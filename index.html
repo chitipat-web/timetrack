@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>🌊 TimeTrack สงกรานต์</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Firebase SDK - NO defer (must load in order before inline scripts) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<!-- Chart.js - defer is OK since it's only used when navigating to stats page -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js" defer></script>
 <style>
 :root {
   --bg:#0a1a2e; --surface:#0d2137; --surface2:#112840; --border:#1a3a5c;
@@ -455,10 +456,7 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TimeTrack">
 
-<!-- Preload Firebase SDK -->
-<link rel="preload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" as="script">
-<link rel="preload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" as="script">
-<link rel="preload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js" as="script">
+<!-- Firebase preloaded via direct script tags -->
 </head>
 <body>
 
@@ -467,7 +465,13 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
   <div style="width:52px;height:52px;background:linear-gradient(135deg,#0077cc,#00e5ff);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;font-family:monospace;box-shadow:0 0 30px rgba(0,191,255,.4)">T</div>
   <div style="font-size:18px;font-weight:700;color:#e0f7ff">🌊 TimeTrack</div>
   <div style="width:40px;height:40px;border:3px solid rgba(0,191,255,.2);border-top-color:#00bfff;border-radius:50%;animation:spin .7s linear infinite"></div>
-  <div style="font-size:13px;color:#3a7ca5">กำลังโหลด...</div>
+  <div id="overlay-status" style="font-size:13px;color:#3a7ca5">กำลังโหลด...</div>
+  <div id="overlay-skip" style="display:none;margin-top:8px">
+    <button onclick="document.getElementById('init-overlay').style.display='none';document.getElementById('login-screen').style.display='flex'" 
+      style="background:rgba(0,191,255,.15);border:1px solid rgba(0,191,255,.3);color:#00bfff;padding:10px 24px;border-radius:20px;font-size:13px;cursor:pointer;font-family:sans-serif">
+      เข้าสู่ระบบ →
+    </button>
+  </div>
 </div>
 
 <!-- LOGIN -->
@@ -2130,6 +2134,25 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
 
+// Show progress in overlay
+function updateLoadingStatus(msg) {
+  const el = document.getElementById('overlay-status');
+  if(el) el.textContent = msg;
+}
+
+// Show skip button after 3s
+setTimeout(() => {
+  const skip = document.getElementById('overlay-skip');
+  const status = document.getElementById('overlay-status');
+  if(skip) skip.style.display = 'block';
+  if(status) status.textContent = 'ใช้เวลานานกว่าปกติ...';
+}, 3000);
+
+// Update status messages
+setTimeout(() => updateLoadingStatus('กำลังตรวจสอบ session...'), 500);
+setTimeout(() => updateLoadingStatus('กำลังเชื่อมต่อ Firebase...'), 1500);
+setTimeout(() => updateLoadingStatus('กำลังโหลดข้อมูล...'), 2500);
+
 // Overlay hidden via onAuthStateChanged
 
 // ===== EMAIL SIGN IN =====
@@ -2188,45 +2211,102 @@ function getThaiError(code) {
 async function handleFirebaseUser(fbUser) {
   document.getElementById('login-loading').style.display = 'none';
 
-  // Check if user profile exists in DB
-  const snap = await db.ref('employees/' + fbUser.uid).once('value');
-  let profile = snap.val();
+  // ===== FAST LOAD: ใช้ cache ก่อน เข้าแอปได้เลย =====
+  const cachedEmployees = JSON.parse(localStorage.getItem('tt_emp') || 'null');
+  const cachedRecords   = JSON.parse(localStorage.getItem('tt_rec') || '[]');
+  const cachedUser      = JSON.parse(localStorage.getItem('tt_user_' + fbUser.uid) || 'null');
 
-  if (!profile) {
-    // First time login - create profile
-    profile = {
-      id: fbUser.uid,
-      name: fbUser.displayName || fbUser.email.split('@')[0],
-      email: fbUser.email,
-      photo: fbUser.photoURL || '',
-      dept: 'ทั่วไป',
-      role: 'employee',
-      initial: (fbUser.displayName || fbUser.email)[0].toUpperCase(),
-      createdAt: Date.now()
-    };
-    // First user ever = admin
-    const empSnap = await db.ref('employees').once('value');
-    if (!empSnap.exists()) profile.role = 'admin';
-    await db.ref('employees/' + fbUser.uid).set(profile);
+  if (cachedUser && cachedEmployees) {
+    // มี cache → เข้าแอปทันที ไม่รอ Firebase!
+    curUser   = cachedUser;
+    employees = cachedEmployees;
+    records   = cachedRecords;
+    const overlay = document.getElementById('init-overlay');
+    if(overlay) overlay.style.display = 'none';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'block';
+    initApp();
+    // Sync Firebase เบื้องหลัง
+    _syncFirebaseInBackground(fbUser);
+    return;
   }
 
-  curUser = profile;
-
-  // Load all employees & records from Firebase
-  const [empSnap, recSnap] = await Promise.all([
-    db.ref('employees').once('value'),
-    db.ref('records').once('value')
-  ]);
-  employees = empSnap.val() ? Object.values(empSnap.val()) : [];
-  records   = recSnap.val()  ? Object.values(recSnap.val())  : [];
-
-  // Setup realtime listeners
-  setupRealtimeListeners();
-
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app-shell').style.display = 'block';
-  initApp();
+  // ===== FIRST TIME: ไม่มี cache → โหลดจาก Firebase =====
+  updateLoadingStatus('ตั้งค่าครั้งแรก...');
+  try {
+    const snap = await db.ref('employees/' + fbUser.uid).once('value');
+    let profile = snap.val();
+    if (!profile) {
+      profile = {
+        id: fbUser.uid,
+        name: fbUser.displayName || fbUser.email.split('@')[0],
+        email: fbUser.email, photo: fbUser.photoURL || '',
+        dept: 'ทั่วไป', role: 'employee',
+        initial: (fbUser.displayName || fbUser.email)[0].toUpperCase(),
+        createdAt: Date.now()
+      };
+      const empSnap = await db.ref('employees').once('value');
+      if (!empSnap.exists()) profile.role = 'admin';
+      await db.ref('employees/' + fbUser.uid).set(profile);
+    }
+    curUser = profile;
+    localStorage.setItem('tt_user_' + fbUser.uid, JSON.stringify(profile));
+    updateLoadingStatus('โหลดข้อมูลทีม...');
+    const [empSnap2, recSnap] = await Promise.all([
+      db.ref('employees').once('value'),
+      db.ref('records').once('value')
+    ]);
+    employees = empSnap2.val() ? Object.values(empSnap2.val()) : [];
+    records   = recSnap.val()  ? Object.values(recSnap.val())  : [];
+    localStorage.setItem('tt_emp', JSON.stringify(employees));
+    localStorage.setItem('tt_rec', JSON.stringify(records));
+    setupRealtimeListeners();
+    const overlay = document.getElementById('init-overlay');
+    if(overlay) overlay.style.display = 'none';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'block';
+    initApp();
+  } catch(err) {
+    console.error('[Auth] Firebase load error:', err);
+    const overlay = document.getElementById('init-overlay');
+    if(overlay) overlay.style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    showLoginErr('เชื่อมต่อไม่ได้ กรุณาลองใหม่');
+  }
 }
+
+// ===== BACKGROUND SYNC =====
+async function _syncFirebaseInBackground(fbUser) {
+  try {
+    const snap = await db.ref('employees/' + fbUser.uid).once('value');
+    let profile = snap.val();
+    if (!profile) {
+      await db.ref('employees/' + fbUser.uid).set(curUser);
+    } else {
+      curUser = profile;
+      localStorage.setItem('tt_user_' + fbUser.uid, JSON.stringify(profile));
+    }
+    const [empSnap, recSnap] = await Promise.all([
+      db.ref('employees').once('value'),
+      db.ref('records').once('value')
+    ]);
+    const freshEmp = empSnap.val() ? Object.values(empSnap.val()) : employees;
+    const freshRec = recSnap.val()  ? Object.values(recSnap.val())  : records;
+    const changed = JSON.stringify(freshEmp) !== JSON.stringify(employees) ||
+                    JSON.stringify(freshRec)  !== JSON.stringify(records);
+    if (changed) {
+      employees = freshEmp; records = freshRec;
+      localStorage.setItem('tt_emp', JSON.stringify(employees));
+      localStorage.setItem('tt_rec', JSON.stringify(records));
+      updateTodayStatus();
+      if(document.getElementById('page-home').classList.contains('active')) renderHome();
+    }
+    setupRealtimeListeners();
+  } catch(err) {
+    console.log('[Sync] Background sync failed:', err.message);
+  }
+}
+
 
 // ===== REALTIME LISTENERS =====
 function setupRealtimeListeners() {
@@ -2249,8 +2329,9 @@ function setupRealtimeListeners() {
 // Save record to Firebase
 const _origSaveRec = window.saveRec || function(){};
 window.saveRec = function() {
+  // Local first (instant)
   localStorage.setItem('tt_rec', JSON.stringify(records));
-  // Save to Firebase - use object with id as key
+  // Firebase in background (non-blocking)
   const recObj = {};
   records.forEach(r => { recObj[r.id] = r; });
   db.ref('records').set(recObj).catch(e => console.log('FB write err:', e));
@@ -2259,7 +2340,11 @@ window.saveRec = function() {
 // Save employees to Firebase
 const _origSaveEmp = window.saveEmp || function(){};
 window.saveEmp = function() {
+  // Local first (instant)
   localStorage.setItem('tt_emp', JSON.stringify(employees));
+  // Update user cache too
+  if(curUser) localStorage.setItem('tt_user_' + curUser.id, JSON.stringify(curUser));
+  // Firebase in background (non-blocking)
   const empObj = {};
   employees.forEach(e => { empObj[e.id] = e; });
   db.ref('employees').set(empObj).catch(e => console.log('FB write err:', e));
@@ -2382,15 +2467,28 @@ function doLogout() {
 }
 
 // ===== AUTH STATE LISTENER =====
-// ===== AUTH STATE (single listener) =====
-let _authHandled = false; // prevent double call
+// ===== AUTH STATE (single listener + timeout fallback) =====
+let _authHandled = false;
+
+// ⚡ TIMEOUT FALLBACK: ถ้า Firebase ไม่ตอบใน 5 วินาที → แสดง login เลย
+const _authTimeout = setTimeout(() => {
+  if(_authHandled) return;
+  console.log('[Auth] Timeout — showing login');
+  const overlay = document.getElementById('init-overlay');
+  if(overlay) overlay.style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  // Update loading text
+  const loadingTxt = document.querySelector('#init-overlay div:last-child');
+  if(loadingTxt) loadingTxt.textContent = 'หมดเวลา กรุณา login';
+}, 5000);
+
 auth.onAuthStateChanged(fbUser => {
-  // Hide init overlay
+  clearTimeout(_authTimeout); // Cancel timeout
   const overlay = document.getElementById('init-overlay');
   if(overlay) overlay.style.display = 'none';
 
   if (fbUser) {
-    if(_authHandled) return; // prevent double initApp
+    if(_authHandled) return;
     _authHandled = true;
     handleFirebaseUser(fbUser);
   } else {
