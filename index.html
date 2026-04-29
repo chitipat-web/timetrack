@@ -33,7 +33,7 @@ body.light{--bg:#e8f4ff;--surface:#fff;--surface2:#f0faff;--border:#bde0f5;--tex
 body.light::before{background-image:none}
 
 /* LOGIN */
-#login-screen{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%)}
+#login-screen{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%);overflow-y:auto}
 #login-screen.hidden{display:none}
 .login-box{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 24px;box-shadow:var(--shadow)}
 .login-logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:8px}
@@ -437,6 +437,9 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .spinner{width:18px;height:18px;border:2px solid rgba(0,191,255,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;margin-right:8px;vertical-align:middle}
 .btn-forgot{width:100%;padding:10px;margin-top:8px;background:none;border:none;color:var(--text3);font-family:var(--font);font-size:13px;cursor:pointer;text-decoration:underline}
 .btn-forgot:hover{color:var(--accent)}
+.btn-register{width:100%;padding:13px;background:linear-gradient(135deg,rgba(0,191,255,.15),rgba(0,229,255,.1));border:1px solid rgba(0,191,255,.4);border-radius:10px;color:var(--accent2);font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-register:hover{background:linear-gradient(135deg,rgba(0,191,255,.25),rgba(0,229,255,.2));transform:translateY(-1px)}
+.btn-forgot:hover{color:var(--accent)}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* Responsive canvas z-index */
@@ -464,8 +467,50 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
     <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
     <button class="btn-forgot" onclick="forgotPassword()">ลืมรหัสผ่าน?</button>
 
+    <div style="display:flex;align-items:center;gap:8px;margin:16px 0">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:12px;color:var(--text3)">ยังไม่มีบัญชี?</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <button class="btn-register" onclick="showRegister()">สมัครสมาชิก</button>
+
     <div id="login-loading" style="display:none;text-align:center;padding:16px;color:var(--accent2)">
       <div class="spinner"></div>กำลังเข้าสู่ระบบ...
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER SCREEN -->
+<div id="register-screen" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%);overflow-y:auto">
+  <div class="login-box" style="max-height:90vh;overflow-y:auto">
+    <div class="login-logo"><div class="login-logo-mark">T</div><div class="login-logo-text">🌊 Time<span>Track</span></div></div>
+    <div class="login-sub">สมัครสมาชิกใหม่</div>
+    <div class="login-err" id="reg-err" style="display:none"></div>
+    <div id="reg-success" style="display:none;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green);font-size:13px;padding:12px;border-radius:8px;margin-bottom:14px;text-align:center"></div>
+
+    <label class="login-lbl">ชื่อ-นามสกุล</label>
+    <input class="login-inp" id="reg-name" type="text" placeholder="เช่น สมชาย ใจดี"/>
+
+    <label class="login-lbl">อีเมล</label>
+    <input class="login-inp" id="reg-email" type="email" placeholder="email@company.com"/>
+
+    <label class="login-lbl">รหัสผ่าน</label>
+    <div class="pw-wrap">
+      <input class="login-inp" id="reg-pw" type="password" placeholder="อย่างน้อย 6 ตัวอักษร" style="padding-right:48px"/>
+      <button class="toggle-pw" onclick="toggleRegPw()" tabindex="-1">👁</button>
+    </div>
+
+    <label class="login-lbl">ยืนยันรหัสผ่าน</label>
+    <input class="login-inp" id="reg-pw2" type="password" placeholder="กรอกรหัสผ่านอีกครั้ง"/>
+
+    <label class="login-lbl">แผนก</label>
+    <input class="login-inp" id="reg-dept" type="text" placeholder="เช่น การตลาด, IT, บัญชี"/>
+
+    <button class="login-btn" onclick="doRegister()">สมัครสมาชิก</button>
+    <button class="btn-forgot" onclick="showLogin()">← กลับไปหน้า Login</button>
+
+    <div id="reg-loading" style="display:none;text-align:center;padding:16px;color:var(--accent2)">
+      <div class="spinner"></div>กำลังสมัคร...
     </div>
   </div>
 </div>
@@ -825,31 +870,10 @@ function updateThemeBtn(){
 
 // ========== LOGIN ==========
 function togglePw(){const i=document.getElementById('login-pw');i.type=i.type==='password'?'text':'password'}
-function doLogin(){
-  const email=document.getElementById('login-email').value.trim().toLowerCase();
-  const pass=document.getElementById('login-pw').value;
-  const err=document.getElementById('login-err');
-  if(!email||!pass){err.textContent='กรุณากรอกอีเมลและรหัสผ่าน';err.classList.add('show');return}
-  const user=employees.find(e=>e.email.toLowerCase()===email&&e.password===pass);
-  if(!user){err.textContent='อีเมลหรือรหัสผ่านไม่ถูกต้อง';err.classList.add('show');return}
-  err.classList.remove('show');
-  curUser=user;
-  localStorage.setItem('tt_session',JSON.stringify(user));
-  document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('app-shell').style.display='block';
-  initApp();
-}
-function doLogout(){
-  if(!confirm('ออกจากระบบ?'))return;
-  curUser=null;
-  localStorage.removeItem('tt_session');
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('app-shell').style.display='none';
-  document.getElementById('login-email').value='';
-  document.getElementById('login-pw').value='';
-}
-document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
-document.getElementById('login-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-pw').focus()});
+// doLogin handled by Firebase
+// doLogout moved to Firebase Auth section
+// keydown listener defined in Firebase section
+// keydown listener defined in Firebase section
 
 // ========== INIT ==========
 function initApp(){
@@ -897,7 +921,7 @@ function initApp(){
 // Auto login from session
 (function(){
   const s=localStorage.getItem('tt_session');
-  if(s){try{const u=JSON.parse(s);const found=employees.find(e=>e.id===u.id&&e.password===u.password);if(found){curUser=found;document.getElementById('login-screen').classList.add('hidden');document.getElementById('app-shell').style.display='block';setTimeout(initApp,50)}}catch(e){}}
+  if(s){try{const u=JSON.parse(s);const found=employees.find(e=>e.id===u.id&&e.password===u.password);if(found){curUser=found;document.getElementById('login-screen').style.display='none';document.getElementById('app-shell').style.display='block';setTimeout(initApp,50)}}catch(e){}}
 })();
 
 // ========== SELECTORS ==========
@@ -1731,7 +1755,7 @@ async function handleFirebaseUser(fbUser) {
   // Setup realtime listeners
   setupRealtimeListeners();
 
-  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('login-screen').style.display='none';
   document.getElementById('app-shell').style.display = 'block';
   initApp();
 }
@@ -1773,13 +1797,110 @@ window.saveEmp = function() {
   db.ref('employees').set(empObj).catch(e => console.log('FB write err:', e));
 };
 
+// ===== REGISTER FUNCTIONS =====
+function showRegister() {
+  document.getElementById('login-screen').style.display = 'none';
+  const reg = document.getElementById('register-screen');
+  reg.style.display = 'flex';
+  // Clear fields
+  ['reg-name','reg-email','reg-pw','reg-pw2','reg-dept'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('reg-err').style.display = 'none';
+  document.getElementById('reg-success').style.display = 'none';
+}
+
+function showLogin() {
+  document.getElementById('register-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-err').style.display = 'none';
+}
+
+function toggleRegPw() {
+  const i = document.getElementById('reg-pw');
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
+
+function showRegErr(msg) {
+  const el = document.getElementById('reg-err');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function doRegister() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass  = document.getElementById('reg-pw').value;
+  const pass2 = document.getElementById('reg-pw2').value;
+  const dept  = document.getElementById('reg-dept').value.trim() || 'ทั่วไป';
+
+  document.getElementById('reg-err').style.display = 'none';
+
+  if (!name)  { showRegErr('กรุณาใส่ชื่อ-นามสกุล'); return; }
+  if (!email) { showRegErr('กรุณาใส่อีเมล'); return; }
+  if (!pass)  { showRegErr('กรุณาตั้งรหัสผ่าน'); return; }
+  if (pass.length < 6) { showRegErr('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'); return; }
+  if (pass !== pass2) { showRegErr('รหัสผ่านไม่ตรงกัน กรุณากรอกใหม่'); return; }
+
+  document.getElementById('reg-loading').style.display = 'block';
+
+  try {
+    // Create Firebase Auth user
+    const result = await auth.createUserWithEmailAndPassword(email, pass);
+    const fbUser = result.user;
+
+    // Update display name
+    await fbUser.updateProfile({ displayName: name });
+
+    // Check if first user = admin
+    const empSnap = await db.ref('employees').once('value');
+    const isFirst = !empSnap.exists();
+
+    // Save profile to database
+    const profile = {
+      id: fbUser.uid,
+      name: name,
+      email: email,
+      photo: '',
+      dept: dept,
+      role: isFirst ? 'admin' : 'employee',
+      initial: name[0].toUpperCase(),
+      createdAt: Date.now()
+    };
+    await db.ref('employees/' + fbUser.uid).set(profile);
+
+    document.getElementById('reg-loading').style.display = 'none';
+
+    // Show success
+    const suc = document.getElementById('reg-success');
+    suc.innerHTML = `✅ สมัครสมาชิกสำเร็จ!<br>ยินดีต้อนรับ <strong>${name}</strong>`;
+    suc.style.display = 'block';
+
+    // Auto login after 1.5s
+    setTimeout(() => {
+      document.getElementById('register-screen').style.display = 'none';
+      document.getElementById('app-shell').style.display = 'block';
+      curUser = profile;
+      employees = empSnap.val() ? Object.values(empSnap.val()) : [];
+      employees.push(profile);
+      records = [];
+      setupRealtimeListeners();
+      initApp();
+    }, 1500);
+
+  } catch(err) {
+    document.getElementById('reg-loading').style.display = 'none';
+    showRegErr(getThaiError(err.code));
+  }
+}
+
 // ===== LOGOUT =====
 function doLogout() {
   if (!confirm('ออกจากระบบ?')) return;
   auth.signOut().then(() => {
     curUser = null;
     localStorage.removeItem('tt_session');
-    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('login-screen').style.display='flex';
     document.getElementById('app-shell').style.display = 'none';
     document.getElementById('login-email').value = '';
     document.getElementById('login-pw').value = '';
