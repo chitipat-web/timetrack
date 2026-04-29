@@ -435,6 +435,8 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .google-btn:hover{box-shadow:0 4px 16px rgba(0,0,0,.2);transform:translateY(-1px)}
 .google-btn:active{transform:scale(.98)}
 .spinner{width:18px;height:18px;border:2px solid rgba(0,191,255,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;margin-right:8px;vertical-align:middle}
+.btn-forgot{width:100%;padding:10px;margin-top:8px;background:none;border:none;color:var(--text3);font-family:var(--font);font-size:13px;cursor:pointer;text-decoration:underline}
+.btn-forgot:hover{color:var(--accent)}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* Responsive canvas z-index */
@@ -452,15 +454,6 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
     <div class="login-sub">ระบบบันทึกเวลาพนักงาน</div>
     <div class="login-err" id="login-err" style="display:none"></div>
 
-    <!-- Google Sign-In Button -->
-    <button class="google-btn" onclick="signInWithGoogle()">
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      เข้าสู่ระบบด้วย Google
-    </button>
-
-    <div style="text-align:center;margin:14px 0;color:var(--text3);font-size:12px">— หรือ —</div>
-
-    <!-- Email/Password fallback -->
     <label class="login-lbl">อีเมล</label>
     <input class="login-inp" id="login-email" type="email" placeholder="email@company.com" autocomplete="email"/>
     <label class="login-lbl">รหัสผ่าน</label>
@@ -468,7 +461,8 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
       <input class="login-inp" id="login-pw" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:48px"/>
       <button class="toggle-pw" onclick="togglePw()" tabindex="-1">👁</button>
     </div>
-    <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบด้วยอีเมล</button>
+    <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <button class="btn-forgot" onclick="forgotPassword()">ลืมรหัสผ่าน?</button>
 
     <div id="login-loading" style="display:none;text-align:center;padding:16px;color:var(--accent2)">
       <div class="spinner"></div>กำลังเข้าสู่ระบบ...
@@ -1652,20 +1646,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
 
-// ===== GOOGLE SIGN IN =====
-function signInWithGoogle() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
-  document.getElementById('login-loading').style.display = 'block';
-  document.getElementById('login-err').style.display = 'none';
-  // Use redirect instead of popup - works without domain whitelist
-  auth.signInWithRedirect(provider).catch(err => {
-    document.getElementById('login-loading').style.display = 'none';
-    showLoginErr(getThaiError(err.code));
-  });
-}
-
-// ===== EMAIL SIGN IN (fallback) =====
+// ===== EMAIL SIGN IN =====
 function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-pw').value;
@@ -1678,6 +1659,18 @@ function doLogin() {
       document.getElementById('login-loading').style.display = 'none';
       showLoginErr(getThaiError(err.code));
     });
+}
+
+// ===== FORGOT PASSWORD =====
+function forgotPassword() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) { showLoginErr('กรุณาใส่อีเมลก่อนกด ลืมรหัสผ่าน'); return; }
+  auth.sendPasswordResetEmail(email)
+    .then(() => {
+      document.getElementById('login-err').style.cssText = 'display:block;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#10b981';
+      document.getElementById('login-err').textContent = '✅ ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้วครับ';
+    })
+    .catch(err => showLoginErr(getThaiError(err.code)));
 }
 
 function showLoginErr(msg) {
@@ -1800,17 +1793,6 @@ function doLogout() {
 }
 
 // ===== AUTH STATE LISTENER =====
-// Handle redirect result first
-auth.getRedirectResult().then(result => {
-  if (result && result.user) {
-    handleFirebaseUser(result.user);
-  }
-}).catch(err => {
-  if (err.code !== 'auth/no-current-user') {
-    showLoginErr(getThaiError(err.code));
-  }
-});
-
 auth.onAuthStateChanged(fbUser => {
   if (fbUser) {
     handleFirebaseUser(fbUser);
