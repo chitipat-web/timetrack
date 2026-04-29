@@ -1658,12 +1658,11 @@ function signInWithGoogle() {
   provider.setCustomParameters({ prompt: 'select_account' });
   document.getElementById('login-loading').style.display = 'block';
   document.getElementById('login-err').style.display = 'none';
-  auth.signInWithPopup(provider)
-    .then(result => handleFirebaseUser(result.user))
-    .catch(err => {
-      document.getElementById('login-loading').style.display = 'none';
-      showLoginErr(getThaiError(err.code));
-    });
+  // Use redirect instead of popup - works without domain whitelist
+  auth.signInWithRedirect(provider).catch(err => {
+    document.getElementById('login-loading').style.display = 'none';
+    showLoginErr(getThaiError(err.code));
+  });
 }
 
 // ===== EMAIL SIGN IN (fallback) =====
@@ -1801,9 +1800,19 @@ function doLogout() {
 }
 
 // ===== AUTH STATE LISTENER =====
+// Handle redirect result first
+auth.getRedirectResult().then(result => {
+  if (result && result.user) {
+    handleFirebaseUser(result.user);
+  }
+}).catch(err => {
+  if (err.code !== 'auth/no-current-user') {
+    showLoginErr(getThaiError(err.code));
+  }
+});
+
 auth.onAuthStateChanged(fbUser => {
   if (fbUser) {
-    // Already logged in
     handleFirebaseUser(fbUser);
   }
 });
