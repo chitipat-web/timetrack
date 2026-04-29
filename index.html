@@ -971,7 +971,10 @@ function initApp(){
   document.body.appendChild(banner);
   setTimeout(()=>{ if(banner.parentElement) banner.remove(); }, 5500);
   const admin=isAdmin();
-  document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=admin?'flex':'none');
+  // Show/hide admin tabs based on role
+  const isAdminUser = curUser && curUser.role === 'admin';
+  document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=isAdminUser?'flex':'none');
+  document.getElementById('admin-badge').style.display=isAdminUser?'inline-block':'none';
   document.getElementById('admin-badge').style.display=admin?'inline-block':'none';
   document.getElementById('admin-sal-section').style.display=admin?'block':'none';
   document.getElementById('admin-pw-section').style.display=admin?'block':'none';
@@ -982,8 +985,8 @@ function initApp(){
   document.getElementById('wc-av').innerHTML=photo?`<img src="${photo}">`:(curUser.initial||curUser.name[0])+'<div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div>';
   document.getElementById('settings-av').innerHTML=photo?`<img src="${photo}">`:(curUser.initial||curUser.name[0])+'<div class="settings-av-overlay">📷</div>';
 
-  document.getElementById('tb-name').textContent=curUser.name.split(' ')[0];
-  document.getElementById('wc-name').textContent=curUser.name;
+  document.getElementById('tb-name').textContent=(curUser.name||curUser.email||'User').split(' ')[0];
+  document.getElementById('wc-name').textContent=curUser.name||curUser.email||'User';
   document.getElementById('wc-meta').textContent=`${admin?'👑 Admin':curUser.dept} · ${curUser.email}`;
   document.getElementById('settings-name').textContent=curUser.name;
   document.getElementById('settings-email').textContent=curUser.email;
@@ -2216,8 +2219,13 @@ async function handleFirebaseUser(fbUser) {
   const cachedRecords   = JSON.parse(localStorage.getItem('tt_rec') || '[]');
   const cachedUser      = JSON.parse(localStorage.getItem('tt_user_' + fbUser.uid) || 'null');
 
-  if (cachedUser && cachedEmployees) {
-    // มี cache → เข้าแอปทันที ไม่รอ Firebase!
+  // Validate cache has all required fields
+  const cacheValid = cachedUser && cachedEmployees &&
+    cachedUser.id && cachedUser.email && cachedUser.role &&
+    cachedUser.name && Array.isArray(cachedEmployees);
+
+  if (cacheValid) {
+    // มี cache ครบ → เข้าแอปทันที ไม่รอ Firebase!
     curUser   = cachedUser;
     employees = cachedEmployees;
     records   = cachedRecords;
@@ -2285,6 +2293,10 @@ async function _syncFirebaseInBackground(fbUser) {
     } else {
       curUser = profile;
       localStorage.setItem('tt_user_' + fbUser.uid, JSON.stringify(profile));
+      // Re-apply admin status if changed
+      const adminEl = document.getElementById('admin-badge');
+      if(adminEl) adminEl.style.display = profile.role==='admin' ? 'inline-block' : 'none';
+      document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=profile.role==='admin'?'flex':'none');
     }
     const [empSnap, recSnap] = await Promise.all([
       db.ref('employees').once('value'),
@@ -2469,6 +2481,27 @@ function doLogout() {
 // ===== AUTH STATE LISTENER =====
 // ===== AUTH STATE (single listener + timeout fallback) =====
 let _authHandled = false;
+
+// Clear cache if it's corrupted/outdated
+function _validateAndCleanCache() {
+  try {
+    const emp = JSON.parse(localStorage.getItem('tt_emp') || 'null');
+    if (emp && !Array.isArray(emp)) {
+      // Old format (object) - convert to array
+      localStorage.setItem('tt_emp', JSON.stringify(Object.values(emp)));
+    }
+    const rec = JSON.parse(localStorage.getItem('tt_rec') || '[]');
+    if (rec && !Array.isArray(rec)) {
+      localStorage.setItem('tt_rec', JSON.stringify(Object.values(rec)));
+    }
+  } catch(e) {
+    // Clear corrupted cache
+    localStorage.removeItem('tt_emp');
+    localStorage.removeItem('tt_rec');
+    console.log('[Cache] Cleared corrupted cache');
+  }
+}
+_validateAndCleanCache();
 
 // ⚡ TIMEOUT FALLBACK: ถ้า Firebase ไม่ตอบใน 5 วินาที → แสดง login เลย
 const _authTimeout = setTimeout(() => {
