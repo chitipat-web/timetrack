@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🌊 TimeTrack สงกรานต์</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+:root {
+  --bg:#0a1a2e; --surface:#0d2137; --surface2:#112840; --border:#1a3a5c;
+  --accent:#00bfff; --accent2:#00e5ff; --accent-light:rgba(0,191,255,0.15);
+  --green:#10b981; --green-light:rgba(16,185,129,0.12);
+  --red:#ef4444; --red-light:rgba(239,68,68,0.12);
+  --yellow:#ffd700; --yellow-light:rgba(255,215,0,0.15);
+  --purple:#ff69b4; --purple-light:rgba(255,105,180,0.15);
+  --text:#e0f7ff; --text2:#7ecfee; --text3:#3a7ca5;
+  --font:'IBM Plex Sans Thai',sans-serif; --mono:'IBM Plex Mono',monospace;
+  --shadow:0 4px 32px rgba(0,100,180,0.5);
+  /* Songkran extra */
+  --water:#00bfff; --gold:#ffd700; --lotus:#ff69b4; --sky:#87ceeb;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:linear-gradient(180deg,#051428 0%,#0a2440 40%,#0d3060 100%);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,191,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,191,255,0.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* DARK/LIGHT toggle */
+body.light{--bg:#e8f4ff;--surface:#fff;--surface2:#f0faff;--border:#bde0f5;--text:#0a2a4a;--text2:#2a7ab0;--text3:#7ab8d8}
+body.light::before{background-image:none}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%)}
+#login-screen.hidden{display:none}
+.login-box{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 24px;box-shadow:var(--shadow)}
+.login-logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:8px}
+.login-logo-mark{width:40px;height:40px;background:linear-gradient(135deg,#0077cc,#00bfff,#00e5ff);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;font-family:var(--mono);box-shadow:0 4px 16px rgba(0,191,255,.4)}
+.login-logo-text{font-size:22px;font-weight:700}
+.login-logo-text span{color:var(--accent2)}
+.login-sub{text-align:center;font-size:13px;color:var(--text3);margin-bottom:28px}
+.login-lbl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:block}
+.login-inp{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:15px;padding:13px 16px;border-radius:10px;outline:none;margin-bottom:14px;transition:border-color .2s}
+.login-inp:focus{border-color:var(--accent)}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#2563eb);border:none;border-radius:10px;color:#fff;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer}
+.login-btn:active{opacity:.85}
+.login-err{background:var(--red-light);border:1px solid rgba(239,68,68,.3);color:var(--red);font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none}
+.login-err.show{display:block}
+.pw-wrap{position:relative}
+.toggle-pw{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0}
+.demo-hint{margin-top:16px;padding:12px;background:var(--accent-light);border:1px solid rgba(59,130,246,.2);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.9}
+
+/* APP */
+#app-shell{display:none}
+#app-shell.visible{display:block}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(5,26,60,.94);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,191,255,.2);padding:0 10px;height:52px;display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0;overflow:hidden}
+body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba(0,150,220,.2)}
+.topbar-logo{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.logo-mark{width:26px;height:26px;background:linear-gradient(135deg,#0077cc,#00e5ff);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;font-family:var(--mono)}
+.logo-text{font-size:14px;font-weight:600}
+.logo-text span{color:var(--accent2)}
+.topbar-right{display:flex;align-items:center;gap:4px;flex-shrink:0;min-width:0}
+.live-badge{display:flex;align-items:center;gap:4px;background:var(--green-light);border:1px solid rgba(16,185,129,.3);border-radius:20px;padding:3px 7px;font-size:9px;font-weight:500;color:var(--green);font-family:var(--mono)}
+.live-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.user-chip{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 8px 3px 3px;cursor:pointer;max-width:120px}
+.user-chip-av{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;overflow:hidden;flex-shrink:0}
+.user-chip-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.user-chip-name{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:50px}
+.admin-badge{background:var(--yellow-light);border:1px solid rgba(245,158,11,.3);color:var(--yellow);font-size:14px;padding:2px 4px;border-radius:4px;white-space:nowrap;line-height:1}
+.icon-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 7px;cursor:pointer;font-size:14px;color:var(--text2);flex-shrink:0;line-height:1}
+.logout-btn{display:flex;align-items:center;gap:4px;background:var(--red-light);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:5px 7px;cursor:pointer;font-size:11px;font-weight:600;color:var(--red);font-family:var(--font);transition:all .15s;white-space:nowrap;flex-shrink:0;line-height:1}
+.logout-btn:hover{background:var(--red);color:#fff}
+.logout-btn:active{transform:scale(.96)}
+/* Responsive topbar for small screens */
+@media(max-width:390px){.live-text{display:none}.logout-text{display:none}.user-chip-name{display:none}}
+@media(max-width:340px){.live-badge{display:none}}
+
+/* NAV */
+.nav{display:flex;background:rgba(10,30,60,.98);border-bottom:1px solid rgba(0,191,255,.15);overflow-x:auto;scrollbar-width:none;position:relative;z-index:1;-webkit-overflow-scrolling:touch}
+.nav::-webkit-scrollbar{display:none}
+.nav-btn{flex:0 0 auto;width:calc(100vw / 7);min-width:52px;max-width:80px;padding:9px 2px 8px;border:none;background:none;color:var(--text3);font-family:var(--font);font-size:9.5px;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;border-bottom:2px solid transparent;transition:all .2s;position:relative}
+.nav-btn.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--accent-light)}
+.nav-btn svg{width:16px;height:16px}
+@media(min-width:400px){.nav-btn{font-size:10px}.nav-btn svg{width:17px;height:17px}}
+
+/* PAGES */
+/* ===== RICH ANIMATIONS ===== */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+@keyframes floatUpOrb{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.05)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0)}50%{box-shadow:0 0 22px 5px rgba(59,130,246,.22)}}
+@keyframes spinIn{from{opacity:0;transform:rotate(-12deg) scale(.88)}to{opacity:1;transform:rotate(0) scale(1)}}
+@keyframes countUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes waveIn{0%{transform:scaleX(0);transform-origin:left}100%{transform:scaleX(1);transform-origin:left}}
+@keyframes starFloat{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:1}100%{transform:translateY(-70px) rotate(360deg) scale(.3);opacity:0}}
+@keyframes borderGlow{0%,100%{border-color:rgba(59,130,246,.2)}50%{border-color:rgba(59,130,246,.6)}}
+@keyframes navPop{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1.15)}}
+@keyframes salHeroPulse{0%,100%{box-shadow:0 4px 24px rgba(59,130,246,.3)}50%{box-shadow:0 8px 40px rgba(59,130,246,.55)}}
+
+/* PAGES */
+.page{display:none;padding:12px 12px 90px;position:relative;z-index:1;max-width:680px;margin:0 auto}
+.page.active{display:block;animation:fadeIn .28s ease}
+.page.active > *{animation:slideUp .38s ease both}
+.page.active > *:nth-child(1){animation-delay:.04s}
+.page.active > *:nth-child(2){animation-delay:.10s}
+.page.active > *:nth-child(3){animation-delay:.16s}
+.page.active > *:nth-child(4){animation-delay:.22s}
+.page.active > *:nth-child(5){animation-delay:.28s}
+.page.active > *:nth-child(6){animation-delay:.34s}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 12px;margin-bottom:10px}
+.section-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:14px}
+.section-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+
+/* ===== HOVER & TRANSITION EFFECTS ===== */
+/* Cards lift */
+.card{transition:transform .22s ease,box-shadow .22s ease,border-color .22s}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(0,0,0,.35)}
+.stat-box{transition:transform .2s ease,box-shadow .2s ease,border-color .2s}
+.stat-box:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(59,130,246,.18);border-color:rgba(59,130,246,.4)}
+/* Nav tabs */
+.nav-btn svg{transition:transform .2s ease}
+.nav-btn.active svg{animation:navPop .3s cubic-bezier(.34,1.56,.64,1) forwards}
+.nav-btn:not(.active):hover svg{transform:translateY(-3px)}
+/* Login */
+.login-box{animation:scaleIn .42s cubic-bezier(.34,1.56,.64,1)}
+.login-logo-mark{animation:glowPulse 3s ease-in-out infinite}
+.login-btn{transition:transform .2s,box-shadow .2s,opacity .15s}
+.login-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(59,130,246,.45)}
+/* Check in/out */
+.btn-in,.btn-out{overflow:hidden;transition:transform .15s,box-shadow .15s}
+.btn-in:hover{box-shadow:0 8px 28px rgba(16,185,129,.4)}
+.btn-out:hover{box-shadow:0 8px 28px rgba(239,68,68,.4)}
+.btn-in:active,.btn-out:active{transform:scale(.96)}
+/* Welcome avatar */
+.welcome-av{transition:transform .22s cubic-bezier(.34,1.56,.64,1),box-shadow .22s}
+.welcome-av:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(59,130,246,.45)}
+/* Calendar */
+.cal-day{transition:transform .15s ease,background .15s,border-color .15s,box-shadow .15s}
+.cal-day:hover{transform:scale(1.18);z-index:2;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.cal-day.today-cell{animation:glowPulse 2.5s ease-in-out infinite;animation:borderGlow 2.5s ease-in-out infinite}
+/* Week days */
+.week-day{transition:transform .18s cubic-bezier(.34,1.56,.64,1),border-color .15s,background .15s}
+.week-day:hover{transform:translateY(-4px) scale(1.06)}
+/* Record items */
+.rec-item{transition:transform .15s ease,border-color .15s,background .15s,box-shadow .15s}
+.rec-item:hover{transform:translateX(5px);border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.06);box-shadow:0 2px 12px rgba(0,0,0,.2)}
+/* History items */
+.history-item{transition:transform .18s ease,border-color .18s,box-shadow .18s}
+.history-item:hover{transform:translateY(-2px);border-color:rgba(59,130,246,.35);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+/* Team cards */
+.team-card{transition:transform .22s ease,border-color .2s,box-shadow .22s}
+.team-card:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:0 10px 36px rgba(59,130,246,.18)}
+/* Charts */
+.chart-card{transition:transform .2s ease,box-shadow .2s}
+.chart-card:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(0,0,0,.35)}
+/* Salary hero */
+.sal-hero{animation:salHeroPulse 3s ease-in-out infinite}
+/* Modal */
+.modal{animation:slideUp .35s cubic-bezier(.34,1.4,.64,1)}
+/* Topbar */
+.topbar{animation:slideDown .32s ease}
+/* Logo spin */
+.logo-mark{animation:spinIn .5s cubic-bezier(.34,1.56,.64,1)}
+/* Buttons */
+.btn-primary{transition:transform .15s,box-shadow .15s,opacity .15s}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(59,130,246,.38)}
+.btn-primary:active{transform:scale(.98)}
+.icon-btn{transition:transform .2s,border-color .15s,color .15s}
+.icon-btn:hover{transform:rotate(18deg);border-color:var(--accent);color:var(--accent)}
+.logout-btn{transition:all .22s cubic-bezier(.34,1.4,.64,1)}
+.logout-btn:hover{transform:translateX(2px) scale(1.06)}
+.user-chip{transition:border-color .15s,background .15s}
+.user-chip:hover{border-color:var(--accent);background:var(--accent-light)}
+/* Badges */
+.badge{transition:transform .15s ease}
+.badge:hover{transform:scale(1.1)}
+/* Stat val animate in */
+.stat-val,.sum-val{animation:countUp .45s ease both}
+/* Particle */
+.particle{position:fixed;pointer-events:none;border-radius:50%;animation:starFloat .9s ease forwards;z-index:9999;font-size:18px;line-height:1}
+
+/* HERO CLOCK */
+.clock-hero{background:linear-gradient(135deg,#0a3d6b,#0066aa,#0088cc);border:1px solid rgba(0,191,255,.3);border-radius:16px;padding:18px 16px;margin-bottom:14px;text-align:center;position:relative;overflow:hidden;box-shadow:0 4px 32px rgba(0,150,255,.3)}
+.clock-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:130px;height:130px;background:radial-gradient(circle,rgba(0,191,255,.35),transparent 70%);border-radius:50%;animation:floatUpOrb 4s ease-in-out infinite}
+.clock-hero::after{content:'';position:absolute;bottom:-30px;left:-30px;width:90px;height:90px;background:radial-gradient(circle,rgba(255,105,180,.2),transparent 70%);border-radius:50%;animation:floatUpOrb 5.5s ease-in-out infinite reverse}
+.welcome-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;position:relative;z-index:1}
+.welcome-av{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;overflow:hidden;cursor:pointer}
+.welcome-av img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.welcome-name{font-size:16px;font-weight:700;margin-bottom:2px}
+.welcome-meta{font-size:12px;color:var(--text2)}
+.clock-time{font-family:var(--mono);font-size:clamp(28px,8vw,42px);font-weight:500;letter-spacing:2px;background:linear-gradient(135deg,#fff,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:3px;position:relative;z-index:1}
+.clock-date{font-size:12px;color:var(--text2);margin-bottom:16px;position:relative;z-index:1}
+.clock-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative;z-index:1}
+.btn-in{padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#0077bb,#00bfff);color:#fff;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 4px 20px rgba(0,191,255,.4);transition:all .15s}
+.btn-out{padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#dc2626,var(--red));color:#fff;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 4px 20px rgba(239,68,68,.3);transition:all .15s}
+.btn-in:active,.btn-out:active{transform:scale(.97)}
+.btn-in:disabled,.btn-out:disabled{opacity:.4;cursor:not-allowed}
+.btn-sub{font-size:10px;font-weight:400;opacity:.8}
+
+/* STAT CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;min-width:0}
+.stats-grid > *{min-width:0;overflow:hidden}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+.stat-icon{font-size:20px;margin-bottom:6px}
+.stat-val{font-family:var(--mono);font-size:clamp(18px,5vw,22px);font-weight:600;line-height:1;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat-lbl{font-size:11px;color:var(--text2)}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.c-blue{color:var(--accent)} .c-green{color:var(--green)} .c-red{color:var(--red)} .c-orange{color:var(--yellow)} .c-purple{color:var(--purple)}
+
+/* TODAY STATUS */
+.today-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px}
+.ts-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0}
+.ts-row+.ts-row{border-top:1px solid var(--border)}
+.ts-key{font-size:12px;color:var(--text2)}
+.ts-val{font-family:var(--mono);font-size:13px;font-weight:500}
+
+/* WEEKLY BAR */
+.week-bar{display:flex;gap:5px;margin-bottom:12px}
+.week-day{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;transition:all .15s}
+.week-day.today{border-color:var(--accent);background:var(--accent-light)}
+.week-day.has-data{border-color:var(--green);background:var(--green-light)}
+.week-day.has-late{border-color:var(--red);background:var(--red-light)}
+.week-day.is-holiday{border-color:var(--purple);background:var(--purple-light)}
+.wd-name{font-size:10px;font-weight:700;color:var(--text3)}
+.wd-date{font-size:12px;font-weight:600;margin:2px 0}
+.wd-h{font-size:11px;color:var(--green);font-weight:700}
+
+/* RECORD ITEMS */
+.rec-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px}
+.rec-num{width:26px;height:26px;border-radius:50%;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.rec-times{flex:1}
+.rec-time{font-size:14px;font-weight:600}
+.rec-badges{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-orange{background:var(--yellow-light);color:var(--yellow)}
+.badge-blue{background:var(--accent-light);color:var(--accent)}
+.badge-purple{background:var(--purple-light);color:var(--purple)}
+.rec-actions{display:flex;gap:6px}
+.btn-edit,.btn-del{padding:5px 10px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.btn-edit{background:var(--accent-light);border:1px solid rgba(59,130,246,.3);color:var(--accent)}
+.btn-del{background:var(--red-light);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+
+/* CALENDAR */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-nav-btn{background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:20px;cursor:pointer;padding:4px 12px}
+.cal-title{font-size:16px;font-weight:700}
+.cal-grid{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px}
+.cal-wd{text-align:center;font-size:11px;font-weight:700;color:var(--text3);padding:4px}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;position:relative;background:var(--surface2);border:1px solid transparent;transition:all .15s}
+.cal-day.other-month{opacity:.3}
+.cal-day.today-cell{border-color:var(--accent);background:var(--accent-light);font-weight:700}
+.cal-day.has-data{background:var(--green-light);border-color:rgba(16,185,129,.3)}
+.cal-day.has-late{background:var(--red-light);border-color:rgba(239,68,68,.3)}
+.cal-day.has-ot::after{content:'⚡';position:absolute;top:1px;right:2px;font-size:8px}
+.cal-day.is-holiday{background:var(--purple-light);border-color:rgba(168,85,247,.3)}
+.cal-legend{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+
+/* CHARTS */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.chart-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px}
+
+/* MONTH SUMMARY */
+.sum-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+.sum-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.sum-val{font-family:var(--mono);font-size:20px;font-weight:600;margin-bottom:3px}
+.sum-lbl{font-size:11px;color:var(--text3)}
+
+/* FILTER ROW */
+.filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.sel{flex:1;min-width:100px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:9px 12px;border-radius:8px;outline:none;-webkit-appearance:none}
+.btn-export{padding:8px 10px;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap}
+.btn-csv{background:var(--green);color:#fff}
+.btn-pdf{background:var(--purple);color:#fff}
+
+/* HISTORY */
+.history-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.hi-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.hi-date-lbl{font-size:13px;font-weight:700}
+.hi-day-lbl{font-size:11px;color:var(--text2)}
+.hi-records{display:flex;flex-direction:column;gap:6px}
+.hi-rec{display:flex;align-items:center;justify-content:space-between}
+.hi-times{font-family:var(--mono);font-size:13px}
+.hi-net{font-size:11px;color:var(--accent2)}
+
+/* TEAM */
+.team-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color .2s}
+.team-card:hover{border-color:var(--accent)}
+.team-card-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.team-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
+.team-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.team-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.team-email{font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.team-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.team-stat{text-align:center;background:var(--surface2);border-radius:8px;padding:8px 4px}
+.team-stat-val{font-family:var(--mono);font-size:15px;font-weight:600;margin-bottom:2px}
+.team-stat-lbl{font-size:10px;color:var(--text3)}
+
+/* TEAM SUMMARY TABLE */
+.ts-table{width:100%;border-collapse:collapse;font-size:13px}
+.ts-table th{background:var(--surface2);padding:10px 12px;text-align:left;font-weight:700;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.ts-table td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.ts-table tr:last-child td{border-bottom:none}
+
+/* SALARY */
+.sal-hero{background:linear-gradient(135deg,#0066aa,#00bfff,#ffd700);border-radius:16px;padding:24px;text-align:center;color:#fff;margin-bottom:14px;box-shadow:0 4px 24px rgba(0,150,255,.3)}
+.sal-rate{font-family:var(--mono);font-size:clamp(26px,7vw,38px);font-weight:600;letter-spacing:-1px;margin-bottom:4px}
+.sal-sub{font-size:12px;opacity:.8}
+
+/* SETTINGS */
+.settings-av-wrap{display:flex;justify-content:center;margin-bottom:20px}
+.settings-av{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;cursor:pointer;overflow:hidden;position:relative}
+.settings-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.settings-av-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:16px;color:#fff}
+.settings-av:hover .settings-av-overlay{display:flex}
+
+/* FORM */
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;color:var(--text2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.5px}
+.form-inp{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:14px;padding:11px 14px;border-radius:8px;outline:none;transition:border-color .2s}
+.form-inp:focus{border-color:var(--accent)}
+.form-inp[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
+.btn-primary{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),#2563eb);border:none;border-radius:10px;color:#fff;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn-primary:active{opacity:.85}
+.btn-secondary{width:100%;padding:12px;margin-top:8px;background:none;border:1px solid var(--border);color:var(--text2);font-family:var(--font);font-size:14px;border-radius:10px;cursor:pointer}
+.divider{height:1px;background:var(--border);margin:14px 0}
+
+/* NOTE */
+.note-area{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:14px;padding:12px;border-radius:8px;outline:none;resize:none;transition:border-color .2s}
+.note-area:focus{border-color:var(--accent)}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-height:90vh;overflow-y:auto;animation:slideUp .3s ease}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.modal-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:0}
+.modal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;opacity:0;transition:all .3s;z-index:999;box-shadow:var(--shadow);white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:rgba(16,185,129,.4);color:var(--green)}
+.toast.error{border-color:rgba(239,68,68,.4);color:var(--red)}
+.toast.warning{border-color:rgba(245,158,11,.4);color:var(--yellow)}
+
+/* REMINDER BANNER */
+.reminder-banner{position:fixed;top:64px;left:12px;right:12px;z-index:400;background:var(--surface);border:2px solid var(--yellow);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;animation:slideUp .3s ease}
+.reminder-close{background:var(--surface2);border:none;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:14px;flex-shrink:0}
+
+/* CONN */
+.conn-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);margin-bottom:12px}
+.cs-dot{width:7px;height:7px;border-radius:50%;background:var(--text3)}
+.cs-dot.connected{background:var(--green);animation:pulse 2s infinite}
+.cs-dot.demo{background:var(--yellow)}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-icon{font-size:40px;margin-bottom:10px}
+
+/* ===== SONGKRAN THEME EXTRAS ===== */
+/* Water shimmer on cards */
+.card::before{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,200,255,0.04),transparent);pointer-events:none;transition:left .6s ease}
+.card{position:relative;overflow:hidden}
+.card:hover::before{left:150%}
+
+/* Lotus decoration on clock hero */
+.clock-hero::before{background:radial-gradient(circle,rgba(0,191,255,.4),transparent 70%)}
+
+/* Water border glow on active elements */
+.nav-btn.active{background:rgba(0,191,255,.12);border-bottom-color:var(--accent)}
+
+/* Songkran badge on welcome */
+.welcome-name::after{content:' 🌊';font-size:14px}
+
+/* Live dot water color */
+.live-dot{background:#00e5ff;box-shadow:0 0 6px #00e5ff}
+
+/* Clock time water glow */
+.clock-time{text-shadow:0 0 30px rgba(0,230,255,.5),0 0 60px rgba(0,180,255,.2)}
+
+/* Stat box water glow on hover */
+.stat-box:hover{box-shadow:0 8px 28px rgba(0,191,255,.25);border-color:rgba(0,191,255,.45)}
+
+/* Login box water border */
+.login-box{border:1px solid rgba(0,191,255,.3);box-shadow:0 8px 48px rgba(0,100,200,.5)}
+
+/* Songkran greeting banner */
+#songkran-banner{
+  position:fixed;top:60px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,rgba(0,80,160,.92),rgba(0,150,220,.92));
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(0,200,255,.4);
+  border-radius:20px;padding:10px 20px;
+  font-size:13px;font-weight:700;color:#fff;
+  text-align:center;z-index:200;
+  box-shadow:0 4px 24px rgba(0,150,255,.4);
+  animation:slideDown .5s cubic-bezier(.34,1.56,.64,1),fadeOut 1s ease 4s forwards;
+  pointer-events:none;white-space:nowrap;
+}
+@keyframes fadeOut{to{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+
+/* Water wave bottom on login */
+#login-screen::after{
+  content:'🌊🌊🌊🌊🌊🌊🌊🌊';
+  position:absolute;bottom:20px;left:0;right:0;
+  text-align:center;font-size:22px;
+  opacity:.4;pointer-events:none;
+  animation:floatUpOrb 3s ease-in-out infinite;
+}
+
+/* Google Sign-In Button */
+.google-btn{
+  width:100%;padding:14px;
+  background:#fff;border:1px solid #ddd;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  font-family:var(--font);font-size:15px;font-weight:600;color:#3c4043;
+  cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.google-btn:hover{box-shadow:0 4px 16px rgba(0,0,0,.2);transform:translateY(-1px)}
+.google-btn:active{transform:scale(.98)}
+.spinner{width:18px;height:18px;border:2px solid rgba(0,191,255,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Responsive canvas z-index */
+#songkran-canvas{z-index:0}
+#app-shell,#login-screen .login-box{position:relative;z-index:1}
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo"><div class="login-logo-mark">T</div><div class="login-logo-text">🌊 Time<span>Track</span></div></div>
+    <div class="login-sub">ระบบบันทึกเวลาพนักงาน</div>
+    <div class="login-err" id="login-err" style="display:none"></div>
+
+    <!-- Google Sign-In Button -->
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      เข้าสู่ระบบด้วย Google
+    </button>
+
+    <div style="text-align:center;margin:14px 0;color:var(--text3);font-size:12px">— หรือ —</div>
+
+    <!-- Email/Password fallback -->
+    <label class="login-lbl">อีเมล</label>
+    <input class="login-inp" id="login-email" type="email" placeholder="email@company.com" autocomplete="email"/>
+    <label class="login-lbl">รหัสผ่าน</label>
+    <div class="pw-wrap">
+      <input class="login-inp" id="login-pw" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:48px"/>
+      <button class="toggle-pw" onclick="togglePw()" tabindex="-1">👁</button>
+    </div>
+    <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบด้วยอีเมล</button>
+
+    <div id="login-loading" style="display:none;text-align:center;padding:16px;color:var(--accent2)">
+      <div class="spinner"></div>กำลังเข้าสู่ระบบ...
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-shell">
+  <div class="topbar">
+    <div class="topbar-logo"><div class="logo-mark">T</div><div class="logo-text">🌊 Time<span>Track</span></div></div>
+    <div class="topbar-right">
+      <div class="live-badge"><div class="live-dot"></div><span class="live-text">LIVE</span></div>
+      <span id="admin-badge" class="admin-badge" style="display:none">👑</span>
+      <button class="icon-btn" id="dark-btn" onclick="toggleDark()">🌙</button>
+      <div class="user-chip" onclick="showPage('settings',document.querySelector('[data-page=settings]'))">
+        <div class="user-chip-av" id="tb-av">?</div>
+        <span class="user-chip-name" id="tb-name">—</span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()" title="ออกจากระบบ">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="logout-text">ออก</span>
+      </button>
+    </div>
+  </div>
+
+  <nav class="nav" id="main-nav">
+    <button class="nav-btn active" data-page="home" onclick="showPage('home',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>หน้าหลัก
+    </button>
+    <button class="nav-btn" data-page="calendar" onclick="showPage('calendar',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>ปฏิทิน
+    </button>
+    <button class="nav-btn" data-page="stats" onclick="showPage('stats',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>สถิติ
+    </button>
+    <button class="nav-btn" data-page="history" onclick="showPage('history',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>ประวัติ
+    </button>
+    <button class="nav-btn admin-tab" data-page="team" onclick="showPage('team',this)" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>ทีม
+    </button>
+    <button class="nav-btn" data-page="salary" onclick="showPage('salary',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>ค่าแรง
+    </button>
+    <button class="nav-btn" data-page="settings" onclick="showPage('settings',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg>ตั้งค่า
+    </button>
+  </nav>
+
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="clock-hero">
+      <div class="welcome-row">
+        <div class="welcome-av" id="wc-av" onclick="openPhotoUpload()">?<div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div></div>
+        <div>
+          <div class="welcome-name" id="wc-name">—</div>
+          <div class="welcome-meta" id="wc-meta">—</div>
+        </div>
+      </div>
+      <div class="clock-time" id="clock-display">00:00:00</div>
+      <div class="clock-date" id="clock-date">—</div>
+      <div class="clock-btns">
+        <button class="btn-in" id="btn-in" onclick="doCheckIn()"><span style="font-size:20px">▶</span>เข้างาน<span class="btn-sub">บันทึกเวลาเข้า</span></button>
+        <button class="btn-out" id="btn-out" onclick="doCheckOut()"><span style="font-size:20px">⏹</span>ออกงาน<span class="btn-sub">บันทึกเวลาออก</span></button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-icon">🕐</div><div class="stat-val c-blue" id="s-firstin">--:--</div><div class="stat-lbl">เข้าครั้งแรก</div></div>
+      <div class="stat-box"><div class="stat-icon">⏱</div><div class="stat-val c-green" id="s-hours">0.0</div><div class="stat-lbl">ชม.ทำงาน</div></div>
+      <div class="stat-box"><div class="stat-icon">⚡</div><div class="stat-val c-orange" id="s-ot">0.0</div><div class="stat-lbl">ชม.โอที</div></div>
+      <div class="stat-box"><div class="stat-icon">🔄</div><div class="stat-val c-purple" id="s-rounds">0</div><div class="stat-lbl">รอบเข้า-ออก</div></div>
+    </div>
+
+    <div class="card" id="weekly-card"></div>
+
+    <div class="card">
+      <div class="section-title">📓 บันทึกประจำวัน</div>
+      <textarea class="note-area" id="daily-note" rows="2" placeholder="บันทึกสิ่งที่ทำวันนี้..." oninput="saveDailyNote(todayStr(),this.value)"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="section-title">📝 รายการวันนี้</div>
+      <div id="today-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">✏️ บันทึกย้อนหลัง</div>
+      <div class="modal-grid">
+        <div class="form-group"><label class="form-label">วันที่</label><input type="date" id="man-date" class="form-inp"/></div>
+        <div class="form-group"><label class="form-label">หมายเหตุ</label><input type="text" id="man-note" class="form-inp" placeholder="ไม่บังคับ"/></div>
+        <div class="form-group"><label class="form-label">เวลาเข้า</label><input type="time" id="man-in" class="form-inp"/></div>
+        <div class="form-group"><label class="form-label">เวลาออก</label><input type="time" id="man-out" class="form-inp"/></div>
+      </div>
+      <button class="btn-primary" onclick="addManual()">+ เพิ่มรายการ</button>
+    </div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="page" id="page-calendar">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calMove(-1)">‹</button>
+      <div class="cal-title" id="cal-title">—</div>
+      <button class="cal-nav-btn" onclick="calMove(1)">›</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-weekdays" id="cal-weekdays"></div>
+      <div class="cal-days" id="cal-days"></div>
+    </div>
+    <div class="cal-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>ตรงเวลา</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>มาสาย</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>มีโอที ⚡</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>วันหยุด</div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);text-align:center">💡 กดค้างวันในปฏิทินเพื่อตั้งวันหยุด (Admin)</div>
+  </div>
+
+  <!-- STATS -->
+  <div class="page" id="page-stats">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:17px;font-weight:700">📊 สถิติ</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <select class="sel" id="stat-month" onchange="renderStats()"></select>
+        <select class="sel" id="stat-year" onchange="renderStats()"></select>
+        <button class="btn-export btn-csv" onclick="exportCSV()">📥 CSV</button>
+        <button class="btn-export btn-pdf" onclick="exportPDF()">📄 PDF</button>
+      </div>
+    </div>
+    <div id="month-summary" class="sum-grid"></div>
+    <div class="chart-card"><div class="chart-title">⏰ ชั่วโมงทำงานรายวัน</div><canvas id="chart-hours" height="180"></canvas></div>
+    <div class="chart-card"><div class="chart-title">⚡ ชั่วโมงโอทีรายวัน</div><canvas id="chart-ot" height="120"></canvas></div>
+    <div id="stats-late-list"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="page" id="page-history">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:17px;font-weight:700">📋 ประวัติ</div>
+    </div>
+    <div class="filter-row">
+      <select class="sel" id="hist-month" onchange="renderHistory()"></select>
+      <select class="sel" id="hist-year" onchange="renderHistory()"></select>
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- TEAM (ADMIN) -->
+  <div class="page" id="page-team">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:17px;font-weight:700">👥 สถานะทีม</div>
+      <input type="date" id="team-date" class="sel" style="max-width:160px" onchange="renderTeam()"/>
+    </div>
+    <div class="stats-grid" id="team-stats-bar"></div>
+
+    <div style="margin-bottom:12px" id="admin-add-section">
+      <div class="section-label">เพิ่มพนักงาน</div>
+    </div>
+
+    <div class="section-label">รายชื่อทีม</div>
+    <div id="team-list"></div>
+
+    <div class="divider"></div>
+    <div class="section-label">สรุปทีมรายเดือน</div>
+    <div class="filter-row">
+      <select class="sel" id="ts-month" onchange="renderTeamSummary()"></select>
+      <select class="sel" id="ts-year" onchange="renderTeamSummary()"></select>
+    </div>
+    <div id="team-summary-table"></div>
+  </div>
+
+  <!-- SALARY -->
+  <div class="page" id="page-salary">
+    <div style="font-size:17px;font-weight:700;margin-bottom:14px">💰 คำนวณค่าแรง</div>
+    <div class="filter-row">
+      <select class="sel" id="sal-month" onchange="renderSalary()"></select>
+      <select class="sel" id="sal-year" onchange="renderSalary()"></select>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">เงินเดือนที่ได้รับ (บาท)</label>
+        <input type="number" id="sal-input" class="form-inp" placeholder="เช่น 25000" oninput="saveSalInput();renderSalary()"/>
+      </div>
+    </div>
+    <div id="sal-result"></div>
+    <div id="admin-sal-section" style="display:none">
+      <div class="divider"></div>
+      <div class="section-label">สรุปทีม (Admin)</div>
+      <div id="admin-sal-list"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div style="font-size:17px;font-weight:700;margin-bottom:20px">⚙️ ตั้งค่า</div>
+    <div class="settings-av-wrap">
+      <div class="settings-av" id="settings-av" onclick="openPhotoUpload()">
+        ?<div class="settings-av-overlay">📷</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:700" id="settings-name">—</div>
+      <div style="font-size:12px;color:var(--text3)" id="settings-email">—</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🕐 เวลาทำงาน</div>
+      <div class="modal-grid">
+        <div class="form-group"><label class="form-label">เวลาเริ่มงาน</label><input type="time" id="set-work-start" class="form-inp" value="06:00" onchange="saveWorkStart()"/></div>
+        <div class="form-group"><label class="form-label">เริ่มนับ OT</label><input type="time" id="set-ot-start" class="form-inp" value="16:30" onchange="saveOTStart()"/></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🌙 ธีม</div>
+      <button class="btn-primary" onclick="toggleDark()" id="theme-btn">เปลี่ยนเป็นโหมดสว่าง</button>
+    </div>
+
+    <div class="card">
+      <div class="section-title">📊 Firebase Realtime</div>
+      <div class="conn-row"><div class="cs-dot demo" id="conn-dot"></div><span id="conn-lbl">โหมดสาธิต (เก็บในเครื่อง)</span></div>
+      <input type="text" id="fb-url" class="form-inp" placeholder="https://your-project.firebaseio.com" style="margin-bottom:8px;font-size:12px;font-family:var(--mono)"/>
+      <button class="btn-primary" onclick="connectFB()" style="padding:10px;font-size:13px">เชื่อมต่อ Firebase</button>
+    </div>
+
+    <div class="card" id="admin-pw-section" style="display:none">
+      <div class="section-title">🔑 จัดการพนักงาน</div>
+      <div id="emp-list-settings"></div>
+      <button class="btn-primary" style="margin-top:10px" onclick="openAddEmpModal()">+ เพิ่มพนักงาน</button>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:14px;color:var(--text2)">เวอร์ชัน 2.0</span>
+        <button class="btn-secondary" style="width:auto;padding:8px 16px;font-size:13px" onclick="doLogout()">ออกจากระบบ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ แก้ไขรายการ<button class="modal-close" onclick="closeModal('edit-modal')">✕</button></div>
+    <div class="modal-grid">
+      <div class="form-group"><label class="form-label">วันที่</label><input type="date" id="edit-date" class="form-inp"/></div>
+      <div class="form-group"><label class="form-label">หมายเหตุ</label><input type="text" id="edit-note" class="form-inp"/></div>
+      <div class="form-group"><label class="form-label">เวลาเข้า</label><input type="time" id="edit-in" class="form-inp"/></div>
+      <div class="form-group"><label class="form-label">เวลาออก</label><input type="time" id="edit-out" class="form-inp"/></div>
+    </div>
+    <input type="hidden" id="edit-id"/>
+    <input type="hidden" id="edit-owner"/>
+    <button class="btn-primary" onclick="saveEdit()">💾 บันทึก</button>
+  </div>
+</div>
+
+<!-- ADD EMP MODAL -->
+<div class="modal-overlay" id="add-emp-modal">
+  <div class="modal">
+    <div class="modal-title">👤 เพิ่มพนักงาน<button class="modal-close" onclick="closeModal('add-emp-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">ชื่อ-นามสกุล</label><input class="form-inp" id="n-name" placeholder="สมหญิง ใจดี"/></div>
+    <div class="form-group"><label class="form-label">อีเมล (ใช้ Login)</label><input class="form-inp" id="n-email" type="email" placeholder="somying@company.com"/></div>
+    <div class="form-group"><label class="form-label">รหัสผ่าน</label><input class="form-inp" id="n-pass" type="password" placeholder="ตั้งรหัสผ่าน"/></div>
+    <div class="form-group"><label class="form-label">แผนก</label><input class="form-inp" id="n-dept" placeholder="การตลาด"/></div>
+    <div class="form-group"><label class="form-label">บทบาท</label><select class="form-inp" id="n-role"><option value="employee">👤 พนักงาน</option><option value="admin">👑 Admin</option></select></div>
+    <button class="btn-primary" onclick="addEmp()">เพิ่มพนักงาน</button>
+    <button class="btn-secondary" onclick="closeModal('add-emp-modal')">ยกเลิก</button>
+  </div>
+</div>
+
+<!-- DAY DETAIL MODAL -->
+<div class="modal-overlay" id="day-modal">
+  <div class="modal">
+    <div class="modal-title" id="day-modal-title">รายละเอียด<button class="modal-close" onclick="closeModal('day-modal')">✕</button></div>
+    <div id="day-modal-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== STATE ==========
+let employees = JSON.parse(localStorage.getItem('tt_emp')||'null');
+let records   = JSON.parse(localStorage.getItem('tt_rec')||'[]');
+let fbURL     = localStorage.getItem('tt_fb')||'';
+let fbConn    = false;
+let curUser   = null;
+let calYear, calMonth;
+let chartH=null, chartOT=null;
+let curMonth  = new Date();
+
+// Default employees
+if (!employees) {
+  employees = [
+    {id:'e0',name:'Admin ระบบ',email:'admin@company.com',password:'admin123',dept:'Administration',role:'admin',initial:'A'},
+    {id:'e1',name:'สมชาย ใจดี',email:'somchai@company.com',password:'1234',dept:'การตลาด',role:'employee',initial:'ส'},
+    {id:'e2',name:'สุดา รักงาน',email:'suda@company.com',password:'1234',dept:'บัญชี',role:'employee',initial:'ส'},
+    {id:'e3',name:'วิชัย เก่งมาก',email:'wichai@company.com',password:'1234',dept:'IT',role:'employee',initial:'ว'},
+    {id:'e4',name:'มานะ ขยัน',email:'mana@company.com',password:'1234',dept:'ปฏิบัติการ',role:'employee',initial:'ม'},
+    {id:'e5',name:'นิดา สดใส',email:'nida@company.com',password:'1234',dept:'HR',role:'employee',initial:'น'},
+  ];
+  saveEmp();
+}
+
+// ========== HELPERS ==========
+const pad = n=>String(n).padStart(2,'0');
+function todayStr(){const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+function nowStr(){const n=new Date();return `${pad(n.getHours())}:${pad(n.getMinutes())}`}
+function saveEmp(){localStorage.setItem('tt_emp',JSON.stringify(employees))}
+function saveRec(){localStorage.setItem('tt_rec',JSON.stringify(records));if(fbConn)syncUp()}
+function getWorkStart(){return localStorage.getItem('tt_work_start')||'06:00'}
+function getOTStart(){return localStorage.getItem('tt_ot_start')||'16:30'}
+function saveWorkStart(){localStorage.setItem('tt_work_start',document.getElementById('set-work-start').value);showToast('บันทึกแล้ว','success')}
+function saveOTStart(){localStorage.setItem('tt_ot_start',document.getElementById('set-ot-start').value);showToast('บันทึกแล้ว','success')}
+function isAdmin(){return curUser&&curUser.role==='admin'}
+function getPhoto(email){return localStorage.getItem('tt_photo_'+email.replace(/[^a-zA-Z0-9]/g,'_'))||''}
+function savePhoto(email,d){localStorage.setItem('tt_photo_'+email.replace(/[^a-zA-Z0-9]/g,'_'),d)}
+function calcHours(i,o){if(!i||!o)return 0;const[ih,im]=i.split(':').map(Number);const[oh,om]=o.split(':').map(Number);return Math.max(0,(oh*60+om-ih*60-im)/60)}
+function calcOTMin(t){if(!t)return 0;const[h,m]=t.split(':').map(Number);const[oh,om]=getOTStart().split(':').map(Number);return Math.max(0,h*60+m-(oh*60+om))}
+function isLate(inTime){const[h,m]=inTime.split(':').map(Number);const[wh,wm]=getWorkStart().split(':').map(Number);return h*60+m>wh*60+wm}
+function getDailyNote(date){try{const n=JSON.parse(localStorage.getItem('tt_notes_'+curUser.id)||'{}');return n[date]||''}catch(e){return''}}
+function saveDailyNote(date,txt){try{const n=JSON.parse(localStorage.getItem('tt_notes_'+curUser.id)||'{}');if(txt)n[date]=txt;else delete n[date];localStorage.setItem('tt_notes_'+curUser.id,JSON.stringify(n))}catch(e){}}
+function getHolidays(){try{return JSON.parse(localStorage.getItem('tt_holidays')||'{}')}catch(e){return{}}}
+function saveHolidays(h){localStorage.setItem('tt_holidays',JSON.stringify(h))}
+function isHoliday(d){return!!getHolidays()[d]}
+function getSalInput(m,y){return localStorage.getItem(`tt_sal_${curUser.id}_${y}_${m}`)||''}
+function saveSalInput(){const m=document.getElementById('sal-month').value,y=document.getElementById('sal-year').value,v=document.getElementById('sal-input').value;if(v)localStorage.setItem(`tt_sal_${curUser.id}_${y}_${m}`,v);else localStorage.removeItem(`tt_sal_${curUser.id}_${y}_${m}`)}
+function getMyRecords(email){return records.filter(r=>r.empId===(email||curUser.id))}
+
+// ========== CLOCK ==========
+function startClock(){
+  const days=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  function tick(){
+    const n=new Date();
+    document.getElementById('clock-display').textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+    document.getElementById('clock-date').textContent=`วัน${days[n.getDay()]}ที่ ${n.getDate()} ${mons[n.getMonth()]} ${n.getFullYear()+543}`;
+  }
+  tick(); setInterval(tick,1000);
+}
+
+// ========== DARK MODE ==========
+function initDark(){
+  const s=localStorage.getItem('tt_dark');
+  if(s==='light'){document.body.classList.add('light');document.getElementById('dark-btn').textContent='🌙'}
+  else{document.getElementById('dark-btn').textContent='☀️'}
+  updateThemeBtn();
+}
+function toggleDark(){
+  const isLight=document.body.classList.toggle('light');
+  localStorage.setItem('tt_dark',isLight?'light':'dark');
+  document.getElementById('dark-btn').textContent=isLight?'🌙':'☀️';
+  updateThemeBtn();
+}
+function updateThemeBtn(){
+  const btn=document.getElementById('theme-btn');
+  if(btn)btn.textContent=document.body.classList.contains('light')?'เปลี่ยนเป็นโหมดมืด':'เปลี่ยนเป็นโหมดสว่าง';
+}
+
+// ========== LOGIN ==========
+function togglePw(){const i=document.getElementById('login-pw');i.type=i.type==='password'?'text':'password'}
+function doLogin(){
+  const email=document.getElementById('login-email').value.trim().toLowerCase();
+  const pass=document.getElementById('login-pw').value;
+  const err=document.getElementById('login-err');
+  if(!email||!pass){err.textContent='กรุณากรอกอีเมลและรหัสผ่าน';err.classList.add('show');return}
+  const user=employees.find(e=>e.email.toLowerCase()===email&&e.password===pass);
+  if(!user){err.textContent='อีเมลหรือรหัสผ่านไม่ถูกต้อง';err.classList.add('show');return}
+  err.classList.remove('show');
+  curUser=user;
+  localStorage.setItem('tt_session',JSON.stringify(user));
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app-shell').style.display='block';
+  initApp();
+}
+function doLogout(){
+  if(!confirm('ออกจากระบบ?'))return;
+  curUser=null;
+  localStorage.removeItem('tt_session');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app-shell').style.display='none';
+  document.getElementById('login-email').value='';
+  document.getElementById('login-pw').value='';
+}
+document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+document.getElementById('login-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-pw').focus()});
+
+// ========== INIT ==========
+function initApp(){
+  // Songkran greeting banner
+  const existing = document.getElementById('songkran-banner');
+  if(existing) existing.remove();
+  const banner = document.createElement('div');
+  banner.id = 'songkran-banner';
+  banner.innerHTML = '🌊 สวัสดีปีใหม่ไทย สุขสันต์วันสงกรานต์ 🎉';
+  document.body.appendChild(banner);
+  setTimeout(()=>{ if(banner.parentElement) banner.remove(); }, 5500);
+  const admin=isAdmin();
+  document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=admin?'flex':'none');
+  document.getElementById('admin-badge').style.display=admin?'inline-block':'none';
+  document.getElementById('admin-sal-section').style.display=admin?'block':'none';
+  document.getElementById('admin-pw-section').style.display=admin?'block':'none';
+
+  // Photo
+  const photo=getPhoto(curUser.email);
+  document.getElementById('tb-av').innerHTML=photo?`<img src="${photo}">`:(curUser.initial||curUser.name[0]);
+  document.getElementById('wc-av').innerHTML=photo?`<img src="${photo}">`:(curUser.initial||curUser.name[0])+'<div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div>';
+  document.getElementById('settings-av').innerHTML=photo?`<img src="${photo}">`:(curUser.initial||curUser.name[0])+'<div class="settings-av-overlay">📷</div>';
+
+  document.getElementById('tb-name').textContent=curUser.name.split(' ')[0];
+  document.getElementById('wc-name').textContent=curUser.name;
+  document.getElementById('wc-meta').textContent=`${admin?'👑 Admin':curUser.dept} · ${curUser.email}`;
+  document.getElementById('settings-name').textContent=curUser.name;
+  document.getElementById('settings-email').textContent=curUser.email;
+  document.getElementById('set-work-start').value=getWorkStart();
+  document.getElementById('set-ot-start').value=getOTStart();
+
+  const now=new Date();
+  calYear=now.getFullYear(); calMonth=now.getMonth();
+  document.getElementById('man-date').value=todayStr();
+  document.getElementById('team-date').value=todayStr();
+
+  populateSels();
+  startClock();
+  initDark();
+  renderHome();
+  setupReminder();
+  if(fbURL)document.getElementById('fb-url').value=fbURL;
+}
+
+// Auto login from session
+(function(){
+  const s=localStorage.getItem('tt_session');
+  if(s){try{const u=JSON.parse(s);const found=employees.find(e=>e.id===u.id&&e.password===u.password);if(found){curUser=found;document.getElementById('login-screen').classList.add('hidden');document.getElementById('app-shell').style.display='block';setTimeout(initApp,50)}}catch(e){}}
+})();
+
+// ========== SELECTORS ==========
+function populateSels(){
+  const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const now=new Date();
+  ['stat-month','hist-month','ts-month','sal-month'].forEach(id=>{
+    const s=document.getElementById(id);if(!s)return;
+    s.innerHTML=mons.map((m,i)=>`<option value="${i}"${i===now.getMonth()?' selected':''}>${m}</option>`).join('');
+  });
+  ['stat-year','hist-year','ts-year','sal-year'].forEach(id=>{
+    const s=document.getElementById(id);if(!s)return;
+    s.innerHTML=[now.getFullYear()-1,now.getFullYear()].map(y=>`<option value="${y}"${y===now.getFullYear()?' selected':''}>${y+543}</option>`).join('');
+  });
+}
+
+// ========== CHECK IN/OUT ==========
+function burst(x, y, emojis) {
+  emojis.forEach((em, i) => {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.textContent = em;
+    const angle = (i / emojis.length) * 360;
+    const r = 40 + Math.random() * 40;
+    p.style.left = (x + Math.cos(angle * Math.PI/180) * r) + 'px';
+    p.style.top  = (y + Math.sin(angle * Math.PI/180) * r) + 'px';
+    p.style.animationDelay = (i * 0.06) + 's';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1200);
+  });
+}
+
+function doCheckIn(){
+  const today=todayStr();
+  const open=records.find(r=>r.empId===curUser.id&&r.date===today&&!r.checkOut);
+  if(open){showToast('มีการเข้างานที่ยังไม่ออก','warning');return}
+  const t=nowStr();
+  const late=isLate(t);
+  records.push({id:Date.now()+'',empId:curUser.id,date:today,checkIn:t,checkInTs:Date.now(),checkOut:null,checkOutTs:null,isLate:late,otMin:0,note:''});
+  saveRec();
+  document.getElementById('btn-in').disabled=true;
+  document.getElementById('btn-out').disabled=false;
+  showToast(`เข้างาน ${t}${late?' ⚠ สาย':''}`,late?'warning':'success');
+  const b1=document.getElementById('btn-in');const r1=b1.getBoundingClientRect();
+  burst(r1.left+r1.width/2, r1.top+r1.height/2, late?['⚠️','😅','🕐','📍']:['✅','🟢','⭐','✨','💪']);
+  renderHome();
+}
+function doCheckOut(){
+  const today=todayStr();
+  const idx=records.findIndex(r=>r.empId===curUser.id&&r.date===today&&!r.checkOut);
+  if(idx===-1){showToast('ไม่พบการเข้างาน','error');return}
+  const t=nowStr(),ts=Date.now();
+  records[idx].checkOut=t;records[idx].checkOutTs=ts;records[idx].otMin=calcOTMin(t);
+  saveRec();
+  document.getElementById('btn-in').disabled=false;
+  document.getElementById('btn-out').disabled=true;
+  const hrs=((ts-records[idx].checkInTs)/3600000).toFixed(1);
+  showToast(`ออกงาน ${t} — ${hrs} ชม.${records[idx].otMin>0?' ⚡ OT!':''}`, 'success');
+  const b2=document.getElementById('btn-out');const r2=b2.getBoundingClientRect();
+  burst(r2.left+r2.width/2, r2.top+r2.height/2, records[idx].otMin>0?['⚡','🔥','💫','🎯','🏆']:['👋','🏁','😊','✨','🌟']);
+  renderHome();
+}
+
+// ========== MANUAL ==========
+function addManual(){
+  const date=document.getElementById('man-date').value;
+  const inT=document.getElementById('man-in').value;
+  const outT=document.getElementById('man-out').value;
+  const note=document.getElementById('man-note').value;
+  if(!date||!inT){showToast('กรุณาระบุวันที่และเวลาเข้า','error');return}
+  const late=isLate(inT);
+  records.push({id:Date.now()+'',empId:curUser.id,date,checkIn:inT,checkInTs:null,checkOut:outT||null,checkOutTs:null,isLate:late,otMin:outT?calcOTMin(outT):0,note});
+  saveRec();
+  ['man-in','man-out','man-note'].forEach(id=>document.getElementById(id).value='');
+  showToast(`บันทึก ${date} เรียบร้อย`,'success');
+  renderHome();renderCalendar();renderStats();renderHistory();
+}
+
+// ========== EDIT ==========
+function openEdit(id,ownerEmail){
+  if(ownerEmail!==curUser.email&&!isAdmin()){showToast('ไม่มีสิทธิ์แก้ไข','error');return}
+  const eid=employees.find(e=>e.email===ownerEmail)?.id;
+  const r=records.find(x=>x.id===id&&x.empId===eid);
+  if(!r){showToast('ไม่พบรายการ','error');return}
+  document.getElementById('edit-date').value=r.date;
+  document.getElementById('edit-in').value=r.checkIn||'';
+  document.getElementById('edit-out').value=r.checkOut||'';
+  document.getElementById('edit-note').value=r.note||'';
+  document.getElementById('edit-id').value=id;
+  document.getElementById('edit-owner').value=ownerEmail;
+  document.getElementById('edit-modal').classList.add('open');
+}
+function saveEdit(){
+  const id=document.getElementById('edit-id').value;
+  const ownerEmail=document.getElementById('edit-owner').value;
+  const eid=employees.find(e=>e.email===ownerEmail)?.id;
+  const date=document.getElementById('edit-date').value;
+  const inT=document.getElementById('edit-in').value;
+  const outT=document.getElementById('edit-out').value;
+  const note=document.getElementById('edit-note').value;
+  if(!date||!inT){showToast('กรุณาระบุวันที่และเวลาเข้า','error');return}
+  const idx=records.findIndex(r=>r.id===id&&r.empId===eid);
+  if(idx===-1){showToast('ไม่พบรายการ','error');return}
+  records[idx]={...records[idx],date,checkIn:inT,checkOut:outT||null,isLate:isLate(inT),otMin:outT?calcOTMin(outT):0,note};
+  saveRec();closeModal('edit-modal');
+  showToast('แก้ไขเรียบร้อย','success');
+  renderHome();renderCalendar();renderStats();renderHistory();
+  if(document.getElementById('page-team').classList.contains('active'))renderTeam();
+}
+function deleteRec(id,empId){
+  if(!confirm('ยืนยันลบรายการนี้?'))return;
+  records=records.filter(r=>!(r.id===id&&r.empId===empId));
+  saveRec();showToast('ลบแล้ว','success');
+  renderHome();renderCalendar();renderStats();renderHistory();
+  if(document.getElementById('page-team').classList.contains('active'))renderTeam();
+}
+
+// ========== RENDER HOME ==========
+function renderHome(){
+  const today=todayStr();
+  const myRec=records.filter(r=>r.empId===curUser.id&&r.date===today);
+  const open=myRec.find(r=>!r.checkOut);
+  const comp=myRec.filter(r=>r.checkOut);
+
+  document.getElementById('btn-in').disabled=!!open;
+  document.getElementById('btn-out').disabled=!open;
+
+  const firstIn=myRec.length?myRec[0].checkIn:'--:--';
+  const totalH=comp.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0)+(open?calcHours(open.checkIn,nowStr()):0);
+  const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
+
+  document.getElementById('s-firstin').textContent=firstIn;
+  document.getElementById('s-hours').textContent=totalH.toFixed(1);
+  document.getElementById('s-ot').textContent=(totalOT/60).toFixed(1);
+  document.getElementById('s-rounds').textContent=myRec.length;
+
+  // Today records list
+  const listEl=document.getElementById('today-list');
+  if(!myRec.length){listEl.innerHTML='<div class="empty-state"><div class="empty-icon">⏱</div><div>ยังไม่มีรายการวันนี้</div></div>';return}
+  listEl.innerHTML=myRec.map((r,i)=>{
+    const hrs=r.checkOut?calcHours(r.checkIn,r.checkOut):calcHours(r.checkIn,nowStr());
+    const otH=(r.otMin||0)/60;
+    return `<div class="rec-item">
+      <div class="rec-num">${i+1}</div>
+      <div class="rec-times">
+        <div class="rec-time">${r.checkIn} → ${r.checkOut||'...'}</div>
+        <div class="rec-badges">
+          <span class="badge badge-green">${hrs.toFixed(1)} ชม.</span>
+          ${r.isLate?'<span class="badge badge-red">⚠ สาย</span>':'<span class="badge badge-blue">✓ ตรงเวลา</span>'}
+          ${otH>0?`<span class="badge badge-orange">⚡ OT ${otH.toFixed(1)}ชม.</span>`:''}
+          ${r.note?`<span class="badge" style="background:var(--surface);border:1px solid var(--border);color:var(--text2)">${r.note}</span>`:''}
+        </div>
+      </div>
+      <div class="rec-actions">
+        <button class="btn-edit" onclick="openEdit('${r.id}','${curUser.email}')">✏️</button>
+        <button class="btn-del" onclick="deleteRec('${r.id}','${curUser.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Daily note
+  document.getElementById('daily-note').value=getDailyNote(today);
+
+  // Weekly summary
+  renderWeekly();
+}
+
+function renderWeekly(){
+  const now=new Date();
+  const day=now.getDay();
+  const weekDates=[];
+  for(let i=0;i<7;i++){const d=new Date(now);d.setDate(now.getDate()-day+i);weekDates.push(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`)}
+  const dayNames=['อา','จ','อ','พ','พฤ','ศ','ส'];
+  const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+  let totalH=0,totalOT=0,days=0,lateCount=0;
+  const bars=weekDates.map(date=>{
+    const dr=records.filter(r=>r.empId===curUser.id&&r.date===date&&r.checkOut);
+    const d=new Date(date+'T00:00:00');
+    const dayH=dr.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+    const dayOT=dr.reduce((s,r)=>s+(r.otMin||0),0);
+    const isToday=date===todayStr();
+    const hasLate=dr.some(r=>r.isLate);
+    const holiday=isHoliday(date);
+    if(dr.length){days++;totalH+=dayH;totalOT+=dayOT;if(hasLate)lateCount++}
+    let cls='week-day';
+    if(isToday)cls+=' today';
+    else if(holiday)cls+=' is-holiday';
+    else if(dr.length&&!hasLate)cls+=' has-data';
+    else if(hasLate)cls+=' has-late';
+    return `<div class="${cls}" onclick="showDayDetail('${date}','${curUser.email}')">
+      <div class="wd-name">${dayNames[d.getDay()]}</div>
+      <div class="wd-date">${d.getDate()}</div>
+      <div class="wd-h">${dayH>0?dayH.toFixed(1):'—'}</div>
+      ${dayOT>0?'<div style="font-size:9px;color:var(--yellow)">OT</div>':''}
+    </div>`;
+  }).join('');
+
+  const [sy,sm,sd]=weekDates[0].split('-');
+  const [ey,em,ed]=weekDates[6].split('-');
+  document.getElementById('weekly-card').innerHTML=`
+    <div class="section-title">📅 สัปดาห์นี้ (${parseInt(sd)} ${mons[parseInt(sm)-1]} — ${parseInt(ed)} ${mons[parseInt(em)-1]})</div>
+    <div class="week-bar">${bars}</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <div class="team-stat"><div class="team-stat-val c-blue">${days}</div><div class="team-stat-lbl">วันที่มา</div></div>
+      <div class="team-stat"><div class="team-stat-val c-green">${totalH.toFixed(1)}</div><div class="team-stat-lbl">ชม.สุทธิ</div></div>
+      <div class="team-stat"><div class="team-stat-val c-orange">${(totalOT/60).toFixed(1)}</div><div class="team-stat-lbl">ชม.โอที</div></div>
+      <div class="team-stat"><div class="team-stat-val c-red">${lateCount}</div><div class="team-stat-lbl">ครั้งสาย</div></div>
+    </div>`;
+}
+
+// ========== CALENDAR ==========
+function calMove(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++}else if(calMonth<0){calMonth=11;calYear--}renderCalendar()}
+function renderCalendar(){
+  const mons=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  document.getElementById('cal-title').textContent=`${mons[calMonth]} ${calYear+543}`;
+  const wds=['อา','จ','อ','พ','พฤ','ศ','ส'];
+  document.getElementById('cal-weekdays').innerHTML=wds.map(w=>`<div class="cal-wd">${w}</div>`).join('');
+
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const prevDays=new Date(calYear,calMonth,0).getDate();
+  const myRec=records.filter(r=>r.empId===curUser.id);
+  const holidays=getHolidays();
+
+  let html='';
+  // prev month
+  for(let i=firstDay-1;i>=0;i--){const d=prevDays-i;html+=`<div class="cal-day other-month">${d}</div>`}
+  // current month
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+    const dr=myRec.filter(r=>r.date===dateStr);
+    const isToday=dateStr===todayStr();
+    const hasData=dr.length>0;
+    const hasLate=dr.some(r=>r.isLate);
+    const hasOT=dr.some(r=>r.otMin>0);
+    const holiday=holidays[dateStr];
+    let cls='cal-day';
+    if(isToday)cls+=' today-cell';
+    else if(holiday)cls+=' is-holiday';
+    else if(hasData&&!hasLate)cls+=' has-data';
+    else if(hasLate)cls+=' has-late';
+    if(hasOT)cls+=' has-ot';
+    const tip=isAdmin()?`oncontextmenu="event.preventDefault();toggleHoliday('${dateStr}')" onlongpress="toggleHoliday('${dateStr}')"`:'' ;
+    html+=`<div class="${cls}" onclick="showDayDetail('${dateStr}','${curUser.email}')" ${tip} title="${holiday||''}">${d}</div>`;
+  }
+  document.getElementById('cal-days').innerHTML=html;
+}
+function toggleHoliday(dateStr){
+  if(!isAdmin()){showToast('เฉพาะ Admin','warning');return}
+  const h=getHolidays();
+  if(h[dateStr]){delete h[dateStr];showToast('ยกเลิกวันหยุด','success')}
+  else{const n=prompt('ชื่อวันหยุด:')||'วันหยุด';h[dateStr]=n;showToast(`เพิ่ม: ${n}`,'success')}
+  saveHolidays(h);renderCalendar();
+}
+
+// ========== STATS ==========
+function renderStats(){
+  const month=parseInt(document.getElementById('stat-month').value);
+  const year=parseInt(document.getElementById('stat-year').value);
+  const myRec=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1});
+  const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+  const byDate={};
+  myRec.forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r)});
+  const days=Object.keys(byDate).length;
+  const comp=myRec.filter(r=>r.checkOut);
+  const totalH=comp.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+  const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
+  const lateCount=Object.values(byDate).filter(rs=>rs.some(r=>r.isLate)).length;
+
+  document.getElementById('month-summary').innerHTML=`
+    <div class="sum-card"><div class="sum-val c-blue">${days}</div><div class="sum-lbl">วันที่มา</div></div>
+    <div class="sum-card"><div class="sum-val c-green">${totalH.toFixed(1)}</div><div class="sum-lbl">ชม.รวม</div></div>
+    <div class="sum-card"><div class="sum-val c-orange">${(totalOT/60).toFixed(1)}</div><div class="sum-lbl">ชม.โอที</div></div>
+    <div class="sum-card"><div class="sum-val c-red">${lateCount}</div><div class="sum-lbl">ครั้งสาย</div></div>`;
+
+  // Charts
+  const dim=new Date(year,month+1,0).getDate();
+  const labels=[],dataH=[],dataOT=[];
+  for(let d=1;d<=dim;d++){
+    const ds=`${year}-${pad(month+1)}-${pad(d)}`;
+    const dr=records.filter(r=>r.empId===curUser.id&&r.date===ds&&r.checkOut);
+    labels.push(`${d}`);
+    dataH.push(+dr.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0).toFixed(2));
+    dataOT.push(+(dr.reduce((s,r)=>s+(r.otMin||0),0)/60).toFixed(2));
+  }
+  if(chartH)chartH.destroy();
+  if(chartOT)chartOT.destroy();
+  const cfg={responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(148,163,184,.15)'}}}};
+  chartH=new Chart(document.getElementById('chart-hours'),{type:'bar',data:{labels,datasets:[{data:dataH,backgroundColor:'rgba(59,130,246,.6)',borderColor:'#3b82f6',borderWidth:1,borderRadius:4}]},options:{...cfg}});
+  chartOT=new Chart(document.getElementById('chart-ot'),{type:'bar',data:{labels,datasets:[{data:dataOT,backgroundColor:'rgba(245,158,11,.6)',borderColor:'#f59e0b',borderWidth:1,borderRadius:4}]},options:{...cfg}});
+
+  // Late list
+  const lateRecs=myRec.filter(r=>r.isLate);
+  document.getElementById('stats-late-list').innerHTML=lateCount?`
+    <div class="card">
+      <div class="section-title" style="color:var(--red)">⚠️ วันที่มาสาย ${mons[month]}</div>
+      ${lateRecs.map(r=>`<div class="rec-item"><div class="rec-num">⚠</div><div class="rec-times"><div class="rec-time">${r.date}</div><div class="rec-badges"><span class="badge badge-red">เข้า ${r.checkIn}</span></div></div></div>`).join('')}
+    </div>`:'';
+}
+
+// ========== HISTORY ==========
+function renderHistory(){
+  const month=parseInt(document.getElementById('hist-month').value);
+  const year=parseInt(document.getElementById('hist-year').value);
+  const mons=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const dayNames=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const myRec=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1});
+  const byDate={};
+  myRec.forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r)});
+  const sortedDates=Object.keys(byDate).sort().reverse();
+  if(!sortedDates.length){document.getElementById('history-list').innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div>ไม่มีข้อมูลเดือนนี้</div></div>';return}
+
+  document.getElementById('history-list').innerHTML=sortedDates.map(date=>{
+    const rs=byDate[date];const d=new Date(date+'T00:00:00');
+    const [y,m,dd]=date.split('-');
+    const totalH=rs.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+    const totalOT=rs.reduce((s,r)=>s+(r.otMin||0),0);
+    const hasLate=rs.some(r=>r.isLate);
+    const holiday=isHoliday(date);
+    return `<div class="history-item">
+      <div class="hi-header">
+        <div><div class="hi-date-lbl">${parseInt(dd)} ${mons[parseInt(m)-1]}</div><div class="hi-day-lbl">วัน${dayNames[d.getDay()]} ${holiday?'🏖 '+getHolidays()[date]:''}</div></div>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--green)">${totalH.toFixed(1)} ชม.</div>
+          ${totalOT>0?`<div style="font-size:11px;color:var(--yellow)">⚡ OT ${(totalOT/60).toFixed(1)} ชม.</div>`:''}
+          ${hasLate?'<div style="font-size:11px;color:var(--red)">⚠ สาย</div>':''}
+        </div>
+      </div>
+      <div class="hi-records">
+        ${rs.map((r,i)=>`<div class="hi-rec">
+          <div>
+            <span class="hi-times">${r.checkIn} → ${r.checkOut||'...'}</span>
+            ${r.note?`<span style="font-size:11px;color:var(--text3);margin-left:6px">${r.note}</span>`:''}
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="hi-net">${r.checkOut?calcHours(r.checkIn,r.checkOut).toFixed(1)+'ชม.':''}</span>
+            <button class="btn-edit" onclick="openEdit('${r.id}','${curUser.email}')">✏️</button>
+            <button class="btn-del" onclick="deleteRec('${r.id}','${curUser.id}')">🗑</button>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ========== TEAM (ADMIN) ==========
+function renderTeam(){
+  if(!isAdmin())return;
+  const dateKey=document.getElementById('team-date').value||todayStr();
+  const colors=['#3b82f6','#10b981','#a855f7','#f59e0b','#ef4444','#06b6d4','#84cc16','#f97316'];
+
+  const results=employees.map((emp,i)=>{
+    const photo=getPhoto(emp.email);
+    const dr=records.filter(r=>r.empId===emp.id&&r.date===dateKey);
+    const comp=dr.filter(r=>r.checkOut);
+    const open=dr.find(r=>!r.checkOut);
+    const totalH=comp.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0)+(open?calcHours(open.checkIn,nowStr()):0);
+    const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
+    const hasLate=dr.some(r=>r.isLate);
+    let badge='';
+    if(open)badge='<span class="badge badge-green">🟢 กำลังทำงาน</span>';
+    else if(dr.length)badge=hasLate?'<span class="badge badge-red">⚠ สาย</span>':'<span class="badge badge-blue">✓ มาแล้ว</span>';
+    else badge='<span class="badge" style="background:var(--surface2);color:var(--text3)">— ยังไม่มา</span>';
+    return {emp,photo,dr,totalH,totalOT,open,hasLate,badge,color:colors[i%colors.length]};
+  });
+
+  const inCount=results.filter(r=>r.open).length;
+  const presentCount=results.filter(r=>r.dr.length).length;
+  document.getElementById('team-stats-bar').innerHTML=`
+    <div class="stat-box"><div class="stat-val c-green">${inCount}</div><div class="stat-lbl">กำลังทำงาน</div></div>
+    <div class="stat-box"><div class="stat-val c-blue">${presentCount}</div><div class="stat-lbl">มาแล้วทั้งหมด</div></div>
+    <div class="stat-box"><div class="stat-val c-red">${employees.length-presentCount}</div><div class="stat-lbl">ยังไม่มา</div></div>
+    <div class="stat-box"><div class="stat-val c-orange">${results.filter(r=>r.hasLate).length}</div><div class="stat-lbl">มาสาย</div></div>`;
+
+  document.getElementById('team-list').innerHTML=results.map(({emp,photo,dr,totalH,totalOT,open,badge,color})=>{
+    const firstIn=dr.length?dr[0].checkIn:'--:--';
+    return `<div class="team-card" onclick="showDayDetail('${dateKey}','${emp.email}')">
+      <div class="team-card-top">
+        <div class="team-av" style="background:${color}">${photo?`<img src="${photo}">`:(emp.initial||emp.name[0])}</div>
+        <div class="team-info flex:1">
+          <div class="team-name">${emp.name}</div>
+          <div class="team-email">${emp.email}</div>
+        </div>
+        <div>${badge}</div>
+      </div>
+      <div class="team-stats-row">
+        <div class="team-stat"><div class="team-stat-val c-blue">${firstIn}</div><div class="team-stat-lbl">เข้างาน</div></div>
+        <div class="team-stat"><div class="team-stat-val c-green">${totalH.toFixed(1)}</div><div class="team-stat-lbl">ชม.ทำงาน</div></div>
+        <div class="team-stat"><div class="team-stat-val c-orange">${(totalOT/60).toFixed(1)}</div><div class="team-stat-lbl">ชม.โอที</div></div>
+      </div>
+      ${isAdmin()&&dr.length?`<div style="text-align:right;margin-top:8px">
+        <button class="btn-edit" onclick="event.stopPropagation();openEdit('${dr[0].id}','${emp.email}')">✏️ แก้ไข</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  renderTeamSummary();
+}
+
+function renderTeamSummary(){
+  if(!isAdmin())return;
+  const month=parseInt(document.getElementById('ts-month').value);
+  const year=parseInt(document.getElementById('ts-year').value);
+  const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const colors=['#3b82f6','#10b981','#a855f7','#f59e0b','#ef4444','#06b6d4'];
+
+  const results=employees.map((emp,i)=>{
+    const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===emp.id&&y===year&&m===month+1});
+    const byDate={};mr.forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r)});
+    const days=Object.keys(byDate).length;
+    const comp=mr.filter(r=>r.checkOut);
+    const totalH=comp.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+    const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
+    const lateCount=Object.values(byDate).filter(rs=>rs.some(r=>r.isLate)).length;
+    return {emp,days,totalH,totalOT,lateCount,color:colors[i%colors.length]};
+  });
+
+  const el=document.getElementById('team-summary-table');
+  el.innerHTML=`<div class="card" style="overflow:auto"><table class="ts-table">
+    <thead><tr><th>พนักงาน</th><th>วันที่มา</th><th>ชม.รวม</th><th>ชม.โอที</th><th>ครั้งสาย</th></tr></thead>
+    <tbody>${results.map(r=>`<tr>
+      <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:${r.color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${r.emp.initial||r.emp.name[0]}</div>${r.emp.name}</div></td>
+      <td style="color:var(--accent);font-weight:600">${r.days}</td>
+      <td style="color:var(--green);font-weight:600">${r.totalH.toFixed(1)}</td>
+      <td style="color:var(--yellow)">${(r.totalOT/60).toFixed(1)}</td>
+      <td>${r.lateCount>0?`<span class="badge badge-red">${r.lateCount}</span>`:'<span class="badge badge-green">0</span>'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ========== SALARY ==========
+function renderSalary(){
+  saveSalInput();
+  const month=parseInt(document.getElementById('sal-month').value);
+  const year=parseInt(document.getElementById('sal-year').value);
+  const saved=getSalInput(month,year);
+  if(document.getElementById('sal-input').value===''&&saved)document.getElementById('sal-input').value=saved;
+  const salary=parseFloat(document.getElementById('sal-input').value)||0;
+  const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1});
+  const comp=mr.filter(r=>r.checkOut);
+  const byDate={};mr.forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r)});
+  const days=Object.keys(byDate).length;
+  const totalH=comp.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+  const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
+  const totalOTH=totalOT/60;
+  const lateCount=Object.values(byDate).filter(rs=>rs.some(r=>r.isLate)).length;
+  const perHour=salary>0&&totalH>0?salary/totalH:0;
+  const el=document.getElementById('sal-result');
+
+  if(!salary){el.innerHTML=`<div class="card" style="text-align:center;padding:32px"><div style="font-size:48px;margin-bottom:12px">💰</div><div style="color:var(--text2)">กรอกเงินเดือนที่ได้รับด้านบนเพื่อคำนวณ</div></div>`;return}
+
+  el.innerHTML=`
+    <div class="sal-hero">
+      <div style="font-size:13px;opacity:.85;margin-bottom:6px">ค่าแรงต่อชั่วโมง</div>
+      <div class="sal-rate">฿${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      <div class="sal-sub">${salary.toLocaleString('th-TH')} ÷ ${totalH.toFixed(2)} ชม.</div>
+    </div>
+    <div class="card">
+      <div class="section-title">📊 สรุป ${mons[month]} ${year+543}</div>
+      <div class="sum-grid">
+        <div class="sum-card"><div class="sum-val c-blue">${salary.toLocaleString('th-TH')}</div><div class="sum-lbl">เงินเดือน (฿)</div></div>
+        <div class="sum-card"><div class="sum-val c-green">${totalH.toFixed(2)}</div><div class="sum-lbl">ชม.ทำงานรวม</div></div>
+        <div class="sum-card"><div class="sum-val c-orange">${totalOTH.toFixed(2)}</div><div class="sum-lbl">ชม.โอที</div></div>
+        <div class="sum-card"><div class="sum-val c-purple">${days}</div><div class="sum-lbl">วันที่มา</div></div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px">
+        ${[['เงินเดือน',`฿${salary.toLocaleString('th-TH')}`],['ชม.ทำงานรวม',`${totalH.toFixed(2)} ชม.`],['ชม.ปกติ',`${(totalH-totalOTH).toFixed(2)} ชม.`],['ชม.โอที',`${totalOTH.toFixed(2)} ชม.`],['ค่าแรง/ชม.',`฿${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`]].map(([k,v],i)=>`<div style="display:flex;justify-content:space-between;padding:8px 0;${i<4?'border-bottom:1px solid var(--border)':''}"><span>${k}</span><span style="font-weight:700;${i===4?'color:var(--accent)':''}">${v}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="card" style="border-left:3px solid ${lateCount?'var(--red)':'var(--green)'}">
+      <div style="color:${lateCount?'var(--red)':'var(--green)'};font-weight:700">${lateCount?`⚠️ มาสาย ${lateCount} วัน`:'✅ ไม่มาสายเลยเดือนนี้ 🎉'}</div>
+    </div>`;
+
+  if(isAdmin())renderAdminSalary();
+}
+
+function renderAdminSalary(){
+  const month=parseInt(document.getElementById('sal-month').value);
+  const year=parseInt(document.getElementById('sal-year').value);
+  const el=document.getElementById('admin-sal-list');
+  if(!el)return;
+  el.innerHTML=employees.map(emp=>{
+    const salKey=`tt_sal_${emp.id}_${year}_${month}`;
+    const sal=parseFloat(localStorage.getItem(salKey))||0;
+    const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===emp.id&&y===year&&m===month+1&&r.checkOut});
+    const totalH=mr.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+    const perH=sal>0&&totalH>0?sal/totalH:0;
+    return `<div class="team-stat" style="margin-bottom:8px;text-align:left;padding:12px;border-radius:10px">
+      <div style="font-weight:700;margin-bottom:4px">${emp.name}</div>
+      <div style="font-size:12px;color:var(--text2)">${totalH.toFixed(1)} ชม. · ${sal>0?`฿${perH.toFixed(0)}/ชม.`:'ไม่ได้ตั้งเงินเดือน'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ========== DAY DETAIL ==========
+function showDayDetail(dateStr,email){
+  const emp=employees.find(e=>e.email===email);
+  if(!emp)return;
+  const mons=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const dayNames=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const [y,m,d]=dateStr.split('-');
+  const dt=new Date(dateStr+'T00:00:00');
+  const dr=records.filter(r=>r.empId===emp.id&&r.date===dateStr);
+  const holiday=getHolidays()[dateStr];
+  const totalH=dr.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+  const totalOT=dr.reduce((s,r)=>s+(r.otMin||0),0);
+  const note=getDailyNote(dateStr);
+
+  document.getElementById('day-modal-title').textContent=`${parseInt(d)} ${mons[parseInt(m)-1]} ${parseInt(y)+543}`;
+  document.getElementById('day-modal-content').innerHTML=`
+    <div style="margin-bottom:12px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">วัน${dayNames[dt.getDay()]} ${holiday?'· 🏖 '+holiday:''}</div>
+      ${emp.id!==curUser.id?`<div style="font-size:13px;font-weight:600;margin-bottom:8px">👤 ${emp.name}</div>`:''}
+    </div>
+    ${dr.length?`
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+        <div class="sum-card"><div class="sum-val c-green">${totalH.toFixed(1)}</div><div class="sum-lbl">ชม.รวม</div></div>
+        <div class="sum-card"><div class="sum-val c-orange">${(totalOT/60).toFixed(1)}</div><div class="sum-lbl">ชม.OT</div></div>
+        <div class="sum-card"><div class="sum-val ${dr.some(r=>r.isLate)?'c-red':'c-green'}">${dr.some(r=>r.isLate)?'สาย':'ตรงเวลา'}</div><div class="sum-lbl">สถานะ</div></div>
+      </div>
+      ${dr.map((r,i)=>`<div class="rec-item">
+        <div class="rec-num">${i+1}</div>
+        <div class="rec-times">
+          <div class="rec-time">${r.checkIn} → ${r.checkOut||'...'}</div>
+          <div class="rec-badges">
+            ${r.checkOut?`<span class="badge badge-green">${calcHours(r.checkIn,r.checkOut).toFixed(1)} ชม.</span>`:''}
+            ${r.isLate?'<span class="badge badge-red">สาย</span>':''}
+            ${r.note?`<span class="badge" style="background:var(--surface2);color:var(--text2)">${r.note}</span>`:''}
+          </div>
+        </div>
+        ${(isAdmin()||emp.id===curUser.id)?`<button class="btn-edit" onclick="closeModal('day-modal');openEdit('${r.id}','${email}')">✏️</button>`:''}
+      </div>`).join('')}
+    `:`<div class="empty-state"><div class="empty-icon">😴</div><div>ไม่มีข้อมูลวันนี้</div></div>`}
+    ${note?`<div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--text2)">📓 ${note}</div>`:''}
+    ${isAdmin()?`<div style="margin-top:12px"><button class="btn-secondary" onclick="toggleHoliday('${dateStr}');closeModal('day-modal')">🏖 ${isHoliday(dateStr)?'ยกเลิกวันหยุด':'ตั้งเป็นวันหยุด'}</button></div>`:''}`;
+
+  document.getElementById('day-modal').classList.add('open');
+}
+
+// ========== EXPORT ==========
+function exportCSV(){
+  const month=parseInt(document.getElementById('stat-month').value);
+  const year=parseInt(document.getElementById('stat-year').value);
+  const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const dayNames=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1});
+  if(!mr.length){showToast('ไม่มีข้อมูล','warning');return}
+  const byDate={};mr.forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r)});
+  let csv='\uFEFF';
+  csv+=`รายงานเวลาทำงาน - ${curUser.name} - ${mons[month]} ${year+543}\n\n`;
+  csv+='วันที่,วัน,เวลาเข้า,เวลาออก,ชม.รวม,โอที(ชม.),สถานะ,หมายเหตุ\n';
+  Object.keys(byDate).sort().forEach(date=>{
+    const rs=byDate[date];const d=new Date(date+'T00:00:00');
+    const [y,m,dd]=date.split('-');
+    const dateStr=`${parseInt(dd)}/${parseInt(m)}/${parseInt(y)+543}`;
+    rs.forEach(r=>{
+      const rawH=r.checkOut?calcHours(r.checkIn,r.checkOut):0;
+      const otH=(r.otMin||0)/60;
+      csv+=`${dateStr},${dayNames[d.getDay()]},${r.checkIn},${r.checkOut||''},${rawH.toFixed(2)},${otH.toFixed(2)},${r.isLate?'สาย':'ตรงเวลา'},${r.note||''}\n`;
+    });
+  });
+  const totalH=mr.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+  const totalOT=mr.reduce((s,r)=>s+(r.otMin||0),0);
+  csv+=`\nสรุป,,,, ${totalH.toFixed(2)},${(totalOT/60).toFixed(2)},,\n`;
+  const sal=getSalInput(month,year);
+  if(sal){const ph=parseFloat(sal)/totalH;csv+=`เงินเดือน,,,,฿${parseFloat(sal).toLocaleString('th-TH')},,\nค่าแรง/ชม.,,,,฿${ph.toFixed(2)},,\n`}
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`TimeTrack_${curUser.name}_${mons[month]}${year+543}.csv`;a.click();
+  URL.revokeObjectURL(url);showToast('✅ Export CSV สำเร็จ','success');
+}
+
+function exportPDF(){
+  const month=parseInt(document.getElementById('stat-month').value);
+  const year=parseInt(document.getElementById('stat-year').value);
+  const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1&&r.checkOut});
+  const totalH=mr.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+  const totalOT=mr.reduce((s,r)=>s+(r.otMin||0),0);
+  const days=new Set(mr.map(r=>r.date)).size;
+  const text=`📊 รายงานเวลาทำงาน\n👤 ${curUser.name}\n📅 ${mons[month]} ${year+543}\n⏱ ${days} วัน | ${totalH.toFixed(1)} ชม. | OT ${(totalOT/60).toFixed(1)} ชม.`;
+  if(navigator.share){navigator.share({title:'รายงานเวลาทำงาน',text}).catch(()=>{})}
+  else{navigator.clipboard.writeText(text).then(()=>showToast('✅ คัดลอกข้อมูลแล้ว','success')).catch(()=>showToast('คัดลอกไม่ได้','error'))}
+}
+
+// ========== PROFILE PHOTO ==========
+function openPhotoUpload(){
+  const input=document.createElement('input');input.type='file';input.accept='image/*';
+  input.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+        const ctx=canvas.getContext('2d');
+        const size=Math.min(img.width,img.height);
+        const x=(img.width-size)/2,y=(img.height-size)/2;
+        ctx.drawImage(img,x,y,size,size,0,0,128,128);
+        const dataUrl=canvas.toDataURL('image/jpeg',.8);
+        savePhoto(curUser.email,dataUrl);
+        document.getElementById('tb-av').innerHTML=`<img src="${dataUrl}">`;
+        document.getElementById('wc-av').innerHTML=`<img src="${dataUrl}"><div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px">📷</div>`;
+        document.getElementById('settings-av').innerHTML=`<img src="${dataUrl}"><div class="settings-av-overlay">📷</div>`;
+        showToast('✅ อัปเดตรูปโปรไฟล์แล้ว','success');
+        if(fbConn&&fbURL){fetch(`${fbURL}/photos/${curUser.id}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(dataUrl)}).catch(()=>{})}
+      };img.src=ev.target.result;
+    };reader.readAsDataURL(file);
+  };input.click();
+}
+
+// ========== MANAGE EMPLOYEES (ADMIN) ==========
+function renderEmpListSettings(){
+  const el=document.getElementById('emp-list-settings');if(!el)return;
+  el.innerHTML=employees.map(emp=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,${emp.role==='admin'?'#f59e0b,#d97706':'#3b82f6,#06b6d4'});display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">${emp.initial||emp.name[0]}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${emp.name} ${emp.role==='admin'?'<span style="color:var(--yellow);font-size:10px">Admin</span>':''}</div>
+        <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${emp.email}</div>
+      </div>
+      <button class="btn-del" onclick="removeEmp('${emp.id}')">🗑</button>
+    </div>`).join('');
+}
+function openAddEmpModal(){renderEmpListSettings();document.getElementById('add-emp-modal').classList.add('open')}
+function removeEmp(id){
+  if(id===curUser.id){showToast('ไม่สามารถลบตัวเองได้','error');return}
+  if(!confirm('ลบพนักงานคนนี้?'))return;
+  employees=employees.filter(e=>e.id!==id);saveEmp();renderEmpListSettings();showToast('ลบแล้ว','success');
+}
+function addEmp(){
+  const name=document.getElementById('n-name').value.trim();
+  const email=document.getElementById('n-email').value.trim().toLowerCase();
+  const pass=document.getElementById('n-pass').value;
+  const dept=document.getElementById('n-dept').value.trim();
+  const role=document.getElementById('n-role').value;
+  if(!name){showToast('กรุณาใส่ชื่อ','error');return}
+  if(!email){showToast('กรุณาใส่อีเมล','error');return}
+  if(!pass){showToast('กรุณาตั้งรหัสผ่าน','error');return}
+  if(employees.find(e=>e.email.toLowerCase()===email)){showToast('อีเมลนี้มีแล้ว','error');return}
+  employees.push({id:'e'+Date.now(),name,email,password:pass,dept:dept||'ทั่วไป',role,initial:name[0]});
+  saveEmp();renderEmpListSettings();
+  ['n-name','n-email','n-pass','n-dept'].forEach(id=>document.getElementById(id).value='');
+  showToast(`✅ เพิ่ม ${name} แล้ว`,'success');
+}
+
+// ========== CHECKOUT REMINDER ==========
+function setupReminder(){
+  setInterval(async()=>{
+    const now=new Date();
+    if(now.getHours()<19)return;
+    const open=records.find(r=>r.empId===curUser.id&&r.date===todayStr()&&!r.checkOut);
+    if(!open)return;
+    const lastR=parseInt(localStorage.getItem('tt_last_remind')||'0');
+    if((now.getTime()-lastR)/60000<30)return;
+    localStorage.setItem('tt_last_remind',now.getTime()+'');
+    const mins=Math.floor((now.getTime()-open.checkInTs)/60000);
+    showReminderBanner(open.checkIn,(mins/60).toFixed(1));
+  },60000);
+}
+function showReminderBanner(inTime,hrs){
+  let b=document.getElementById('remind-banner');
+  if(!b){b=document.createElement('div');b.id='remind-banner';b.className='reminder-banner';document.body.appendChild(b)}
+  b.innerHTML=`<span style="font-size:24px">⏰</span><div style="flex:1"><div style="font-weight:700;color:var(--yellow)">อย่าลืมออกงาน!</div><div style="font-size:12px;color:var(--text2)">เข้างาน ${inTime} — ผ่านมา ${hrs} ชม.แล้ว</div></div><button class="btn-out" style="padding:8px 14px;font-size:13px;border-radius:8px" onclick="doCheckOut();document.getElementById('remind-banner').remove()">ออกงาน</button><button class="reminder-close" onclick="this.parentElement.remove()">✕</button>`;
+  b.style.display='flex';
+  setTimeout(()=>{if(b.parentElement)b.remove()},10000);
+}
+
+// ========== FIREBASE ==========
+function connectFB(){
+  const url=(document.getElementById('fb-url')?.value||'').trim()||fbURL;
+  if(!url||!url.startsWith('https://')){showToast('URL ไม่ถูกต้อง','error');return}
+  fbURL=url;localStorage.setItem('tt_fb',url);fbConn=true;
+  const dot=document.getElementById('conn-dot'),lbl=document.getElementById('conn-lbl');
+  if(dot)dot.className='cs-dot connected';if(lbl)lbl.textContent='เชื่อมต่อ Firebase แล้ว';
+  showToast('✅ เชื่อมต่อสำเร็จ','success');syncDown();
+}
+async function syncUp(){
+  if(!fbURL)return;
+  try{
+    await fetch(`${fbURL}/records.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(records)});
+    await fetch(`${fbURL}/employees.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(employees)});
+  }catch(e){}
+}
+async function syncDown(){
+  if(!fbURL)return;
+  try{
+    const[rr,er]=await Promise.all([fetch(`${fbURL}/records.json`),fetch(`${fbURL}/employees.json`)]);
+    const rd=await rr.json(),ed=await er.json();
+    if(Array.isArray(rd))records=rd;if(Array.isArray(ed))employees=ed;
+    saveEmp();saveRec();renderHome();showToast('🔄 ซิงค์ข้อมูลแล้ว','success');
+  }catch(e){}
+}
+
+// ========== NAV ==========
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active')});
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='stats'){renderStats()}
+  if(id==='calendar'){renderCalendar()}
+  if(id==='history'){renderHistory()}
+  if(id==='team'){renderTeam()}
+  if(id==='salary'){renderSalary()}
+  if(id==='settings'){renderEmpListSettings();updateThemeBtn()}
+}
+
+// ========== MODAL ==========
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)}));
+
+// ========== TOAST ==========
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');t.textContent=msg;t.className=`toast show ${type}`;
+  setTimeout(()=>t.className='toast',3200);
+}
+
+// ========== AUTO REFRESH ==========
+setInterval(()=>{
+  if(!curUser)return;
+  if(document.getElementById('page-home').classList.contains('active'))renderHome();
+  if(document.getElementById('page-team').classList.contains('active'))renderTeam();
+  if(fbConn)syncDown();
+},30000);
+</script>
+
+
+<script>
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+  apiKey: "AIzaSyA-L5SBHpXMdxLEDPKJtuiJ-Ddv8DSzw2g",
+  authDomain: "timetrack-63654.firebaseapp.com",
+  databaseURL: "https://timetrack-63654-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "timetrack-63654",
+  storageBucket: "timetrack-63654.firebasestorage.app",
+  messagingSenderId: "164591304174",
+  appId: "1:164591304174:web:7b06f745b7426862c962ff"
+};
+
+// Init Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.database();
+
+// ===== GOOGLE SIGN IN =====
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  document.getElementById('login-loading').style.display = 'block';
+  document.getElementById('login-err').style.display = 'none';
+  auth.signInWithPopup(provider)
+    .then(result => handleFirebaseUser(result.user))
+    .catch(err => {
+      document.getElementById('login-loading').style.display = 'none';
+      showLoginErr(getThaiError(err.code));
+    });
+}
+
+// ===== EMAIL SIGN IN (fallback) =====
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pw').value;
+  if (!email || !pass) { showLoginErr('กรุณากรอกอีเมลและรหัสผ่าน'); return; }
+  document.getElementById('login-loading').style.display = 'block';
+  document.getElementById('login-err').style.display = 'none';
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(result => handleFirebaseUser(result.user))
+    .catch(err => {
+      document.getElementById('login-loading').style.display = 'none';
+      showLoginErr(getThaiError(err.code));
+    });
+}
+
+function showLoginErr(msg) {
+  const el = document.getElementById('login-err');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function getThaiError(code) {
+  const map = {
+    'auth/user-not-found': 'ไม่พบบัญชีนี้ในระบบ',
+    'auth/wrong-password': 'รหัสผ่านไม่ถูกต้อง',
+    'auth/invalid-email': 'รูปแบบอีเมลไม่ถูกต้อง',
+    'auth/too-many-requests': 'ลองหลายครั้งเกินไป กรุณารอสักครู่',
+    'auth/popup-closed-by-user': 'ปิด popup ก่อนเข้าสู่ระบบ',
+    'auth/cancelled-popup-request': 'ยกเลิก',
+    'auth/network-request-failed': 'ไม่มีการเชื่อมต่ออินเทอร์เน็ต',
+  };
+  return map[code] || 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+}
+
+// ===== HANDLE USER AFTER LOGIN =====
+async function handleFirebaseUser(fbUser) {
+  document.getElementById('login-loading').style.display = 'none';
+
+  // Check if user profile exists in DB
+  const snap = await db.ref('employees/' + fbUser.uid).once('value');
+  let profile = snap.val();
+
+  if (!profile) {
+    // First time login - create profile
+    profile = {
+      id: fbUser.uid,
+      name: fbUser.displayName || fbUser.email.split('@')[0],
+      email: fbUser.email,
+      photo: fbUser.photoURL || '',
+      dept: 'ทั่วไป',
+      role: 'employee',
+      initial: (fbUser.displayName || fbUser.email)[0].toUpperCase(),
+      createdAt: Date.now()
+    };
+    // First user ever = admin
+    const empSnap = await db.ref('employees').once('value');
+    if (!empSnap.exists()) profile.role = 'admin';
+    await db.ref('employees/' + fbUser.uid).set(profile);
+  }
+
+  curUser = profile;
+
+  // Load all employees & records from Firebase
+  const [empSnap, recSnap] = await Promise.all([
+    db.ref('employees').once('value'),
+    db.ref('records').once('value')
+  ]);
+  employees = empSnap.val() ? Object.values(empSnap.val()) : [];
+  records   = recSnap.val()  ? Object.values(recSnap.val())  : [];
+
+  // Setup realtime listeners
+  setupRealtimeListeners();
+
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app-shell').style.display = 'block';
+  initApp();
+}
+
+// ===== REALTIME LISTENERS =====
+function setupRealtimeListeners() {
+  // Listen for record changes
+  db.ref('records').on('value', snap => {
+    records = snap.val() ? Object.values(snap.val()) : [];
+    if (curUser) {
+      updateTodayStatus();
+      if (document.getElementById('page-home').classList.contains('active')) renderHome();
+      if (document.getElementById('page-status') && document.getElementById('page-status').classList.contains('active')) renderStatus();
+    }
+  });
+  // Listen for employee changes
+  db.ref('employees').on('value', snap => {
+    employees = snap.val() ? Object.values(snap.val()) : [];
+  });
+}
+
+// ===== OVERRIDE SAVE FUNCTIONS =====
+// Save record to Firebase
+const _origSaveRec = window.saveRec || function(){};
+window.saveRec = function() {
+  localStorage.setItem('tt_rec', JSON.stringify(records));
+  // Save to Firebase - use object with id as key
+  const recObj = {};
+  records.forEach(r => { recObj[r.id] = r; });
+  db.ref('records').set(recObj).catch(e => console.log('FB write err:', e));
+};
+
+// Save employees to Firebase
+const _origSaveEmp = window.saveEmp || function(){};
+window.saveEmp = function() {
+  localStorage.setItem('tt_emp', JSON.stringify(employees));
+  const empObj = {};
+  employees.forEach(e => { empObj[e.id] = e; });
+  db.ref('employees').set(empObj).catch(e => console.log('FB write err:', e));
+};
+
+// ===== LOGOUT =====
+function doLogout() {
+  if (!confirm('ออกจากระบบ?')) return;
+  auth.signOut().then(() => {
+    curUser = null;
+    localStorage.removeItem('tt_session');
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('app-shell').style.display = 'none';
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-pw').value = '';
+    document.getElementById('login-err').style.display = 'none';
+    // Reset nav
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-home').classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.nav-btn[data-page="home"]').classList.add('active');
+  });
+}
+
+// ===== AUTH STATE LISTENER =====
+auth.onAuthStateChanged(fbUser => {
+  if (fbUser) {
+    // Already logged in
+    handleFirebaseUser(fbUser);
+  }
+});
+
+// Enter key
+document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('login-email').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-pw').focus(); });
+</script>
+<!-- SONGKRAN CANVAS -->
+<canvas id="songkran-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.55"></canvas>
+
+<script>
+// ===== SONGKRAN WATER DROP ANIMATION =====
+(function(){
+  const canvas = document.getElementById('songkran-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, drops=[], ripples=[], flowers=[], bubbles=[];
+  let animId;
+
+  function resize(){
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Water drop class
+  class Drop {
+    constructor(){this.reset()}
+    reset(){
+      this.x = Math.random()*W;
+      this.y = -20 - Math.random()*H*0.3;
+      this.len = 8 + Math.random()*14;
+      this.speed = 3.5 + Math.random()*4;
+      this.alpha = 0.15 + Math.random()*0.35;
+      this.width = 0.8 + Math.random()*1.2;
+      // Slight angle
+      this.vx = (Math.random()-0.5)*0.8;
+    }
+    update(){
+      this.y += this.speed;
+      this.x += this.vx;
+      if(this.y > H+20) this.reset();
+    }
+    draw(){
+      ctx.save();
+      ctx.strokeStyle = `rgba(0,200,255,${this.alpha})`;
+      ctx.lineWidth = this.width;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = 'rgba(0,220,255,0.4)';
+      ctx.shadowBlur = 3;
+      ctx.beginPath();
+      ctx.moveTo(this.x, this.y);
+      ctx.lineTo(this.x + this.vx*2, this.y + this.len);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // Ripple class (when drop hits bottom)
+  class Ripple {
+    constructor(x,y){
+      this.x=x; this.y=y; this.r=0; this.max=20+Math.random()*25;
+      this.alpha=0.5; this.speed=0.6+Math.random()*0.5;
+    }
+    update(){ this.r+=this.speed; this.alpha-=0.018; }
+    dead(){ return this.alpha<=0; }
+    draw(){
+      ctx.save();
+      ctx.strokeStyle=`rgba(0,220,255,${this.alpha})`;
+      ctx.lineWidth=0.8;
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y, this.r, this.r*0.35, 0, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // Lotus flower petal class
+  class Flower {
+    constructor(){this.reset()}
+    reset(){
+      this.x = Math.random()*W;
+      this.y = -30;
+      this.size = 6 + Math.random()*10;
+      this.speed = 0.6 + Math.random()*1.2;
+      this.vx = (Math.random()-0.5)*1.2;
+      this.rot = Math.random()*Math.PI*2;
+      this.rotSpeed = (Math.random()-0.5)*0.04;
+      this.alpha = 0.5 + Math.random()*0.4;
+      this.hue = Math.random()<0.5 ? 320 : 340; // pink/magenta
+      this.wobble = Math.random()*Math.PI*2;
+    }
+    update(){
+      this.y += this.speed;
+      this.wobble += 0.03;
+      this.x += this.vx + Math.sin(this.wobble)*0.4;
+      this.rot += this.rotSpeed;
+      if(this.y > H+30) this.reset();
+    }
+    draw(){
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rot);
+      ctx.globalAlpha = this.alpha;
+      // Draw 5 petals
+      for(let i=0;i<5;i++){
+        ctx.save();
+        ctx.rotate((i/5)*Math.PI*2);
+        ctx.fillStyle=`hsla(${this.hue},90%,75%,0.85)`;
+        ctx.shadowColor=`hsla(${this.hue},90%,75%,0.5)`;
+        ctx.shadowBlur=4;
+        ctx.beginPath();
+        ctx.ellipse(0,-this.size*0.7,this.size*0.35,this.size*0.6,0,0,Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+      // Center dot
+      ctx.fillStyle='rgba(255,220,0,0.9)';
+      ctx.beginPath();
+      ctx.arc(0,0,this.size*0.2,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Bubble / water blob
+  class Bubble {
+    constructor(){this.reset()}
+    reset(){
+      this.x = Math.random()*W;
+      this.y = H + 10;
+      this.r = 2 + Math.random()*5;
+      this.speed = 0.8 + Math.random()*1.5;
+      this.vx = (Math.random()-0.5)*0.8;
+      this.alpha = 0.1 + Math.random()*0.25;
+      this.wobble = Math.random()*Math.PI*2;
+    }
+    update(){
+      this.y -= this.speed;
+      this.wobble += 0.04;
+      this.x += this.vx + Math.sin(this.wobble)*0.5;
+      if(this.y < -10) this.reset();
+    }
+    draw(){
+      ctx.save();
+      ctx.strokeStyle=`rgba(0,220,255,${this.alpha})`;
+      ctx.lineWidth=0.8;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+      ctx.stroke();
+      // Highlight
+      ctx.fillStyle=`rgba(180,240,255,${this.alpha*0.4})`;
+      ctx.beginPath();
+      ctx.arc(this.x-this.r*0.3, this.y-this.r*0.3, this.r*0.3, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Init particles
+  for(let i=0;i<80;i++) drops.push(new Drop());
+  for(let i=0;i<18;i++){const f=new Flower();f.y=Math.random()*H;flowers.push(f)}
+  for(let i=0;i<30;i++){const b=new Bubble();b.y=Math.random()*H;bubbles.push(b)}
+
+  // Spawn ripples randomly at bottom
+  setInterval(()=>{
+    if(ripples.length<25)
+      ripples.push(new Ripple(Math.random()*W, H*0.85+Math.random()*H*0.15));
+  },300);
+
+  // Wave layer at bottom
+  let waveT=0;
+  function drawWaves(){
+    waveT+=0.015;
+    // Layer 1
+    ctx.save();
+    ctx.fillStyle='rgba(0,150,220,0.06)';
+    ctx.beginPath();
+    ctx.moveTo(0,H);
+    for(let x=0;x<=W;x+=4){
+      const y = H*0.88 + Math.sin(x*0.012+waveT)*14 + Math.sin(x*0.025+waveT*1.3)*7;
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W,H); ctx.closePath(); ctx.fill(); ctx.restore();
+    // Layer 2
+    ctx.save();
+    ctx.fillStyle='rgba(0,200,255,0.05)';
+    ctx.beginPath();
+    ctx.moveTo(0,H);
+    for(let x=0;x<=W;x+=4){
+      const y = H*0.90 + Math.sin(x*0.01+waveT*1.2+1)*12 + Math.sin(x*0.022+waveT*0.8)*6;
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W,H); ctx.closePath(); ctx.fill(); ctx.restore();
+    // Layer 3 brighter
+    ctx.save();
+    ctx.fillStyle='rgba(100,220,255,0.04)';
+    ctx.beginPath();
+    ctx.moveTo(0,H);
+    for(let x=0;x<=W;x+=4){
+      const y = H*0.93 + Math.sin(x*0.014+waveT*0.9+2)*10 + Math.sin(x*0.03+waveT*1.5)*5;
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W,H); ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+
+  // Main loop
+  function loop(){
+    ctx.clearRect(0,0,W,H);
+    drawWaves();
+    drops.forEach(d=>{d.update();d.draw()});
+    ripples=ripples.filter(r=>{r.update();if(!r.dead()){r.draw();return true}return false});
+    flowers.forEach(f=>{f.update();f.draw()});
+    bubbles.forEach(b=>{b.update();b.draw()});
+    animId=requestAnimationFrame(loop);
+  }
+
+  // Pause when tab hidden (save battery)
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){cancelAnimationFrame(animId)}
+    else{loop()}
+  });
+
+  loop();
+})();
+
+// ===== SONGKRAN CHECKIN WATER SPLASH =====
+const _origBurst = burst;
+window.burst = function(x, y, emojis) {
+  // Extra water drops burst
+  for(let i=0;i<12;i++){
+    const el=document.createElement('div');
+    el.style.cssText=`position:fixed;left:${x}px;top:${y}px;pointer-events:none;z-index:9999;font-size:${14+Math.random()*10}px;line-height:1;animation:starFloat ${0.6+Math.random()*0.6}s ease forwards;animation-delay:${i*0.05}s`;
+    const angle=(i/12)*360;
+    const r=30+Math.random()*50;
+    el.style.transform=`translate(${Math.cos(angle*Math.PI/180)*r}px,${Math.sin(angle*Math.PI/180)*r}px)`;
+    el.textContent=['💧','🌊','💦','🌸','🌺'][Math.floor(Math.random()*5)];
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1400);
+  }
+  _origBurst(x,y,emojis);
+};
+</script>
+</body>
+</html>
