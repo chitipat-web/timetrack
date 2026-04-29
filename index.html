@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>🌊 TimeTrack สงกรานต์</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js" defer></script>
 <style>
 :root {
   --bg:#0a1a2e; --surface:#0d2137; --surface2:#112840; --border:#1a3a5c;
@@ -33,7 +33,7 @@ body.light{--bg:#e8f4ff;--surface:#fff;--surface2:#f0faff;--border:#bde0f5;--tex
 body.light::before{background-image:none}
 
 /* LOGIN */
-#login-screen{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%);overflow-y:auto}
+#login-screen{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%);overflow-y:auto}
 #login-screen.hidden{display:none}
 .login-box{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 24px;box-shadow:var(--shadow)}
 .login-logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:8px}
@@ -450,6 +450,14 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 </head>
 <body>
 
+<!-- INITIAL LOADING OVERLAY -->
+<div id="init-overlay" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(180deg,#051428,#0a2440);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div style="width:52px;height:52px;background:linear-gradient(135deg,#0077cc,#00e5ff);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;font-family:monospace;box-shadow:0 0 30px rgba(0,191,255,.4)">T</div>
+  <div style="font-size:18px;font-weight:700;color:#e0f7ff">🌊 TimeTrack</div>
+  <div style="width:40px;height:40px;border:3px solid rgba(0,191,255,.2);border-top-color:#00bfff;border-radius:50%;animation:spin .7s linear infinite"></div>
+  <div style="font-size:13px;color:#3a7ca5">กำลังโหลด...</div>
+</div>
+
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
@@ -538,6 +546,9 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
     <button class="nav-btn active" data-page="home" onclick="showPage('home',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>หน้าหลัก
     </button>
+    <button class="nav-btn admin-tab" data-page="dashboard" onclick="showPage('dashboard',this)" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>ภาพรวม
+    </button>
     <button class="nav-btn" data-page="calendar" onclick="showPage('calendar',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>ปฏิทิน
     </button>
@@ -546,6 +557,12 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
     </button>
     <button class="nav-btn" data-page="history" onclick="showPage('history',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>ประวัติ
+    </button>
+    <button class="nav-btn admin-tab" data-page="status" onclick="showPage('status',this)" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>สถานะ
+    </button>
+    <button class="nav-btn" data-page="summary" onclick="showPage('summary',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>สรุป
     </button>
     <button class="nav-btn admin-tab" data-page="team" onclick="showPage('team',this)" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>ทีม
@@ -588,6 +605,13 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
     <div class="card">
       <div class="section-title">📓 บันทึกประจำวัน</div>
       <textarea class="note-area" id="daily-note" rows="2" placeholder="บันทึกสิ่งที่ทำวันนี้..." oninput="saveDailyNote(todayStr(),this.value)"></textarea>
+    </div>
+
+    <div class="section-label">สถานะวันนี้</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0"><span style="font-size:12px;color:var(--text2)">เวลาเช็คอิน</span><span style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--green)" id="ts-in">—</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--border)"><span style="font-size:12px;color:var(--text2)">เวลาเช็คเอาท์</span><span style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--red)" id="ts-out">—</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--border)"><span style="font-size:12px;color:var(--text2)">ชั่วโมงทำงาน</span><span style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent2)" id="ts-dur">—</span></div>
     </div>
 
     <div class="card">
@@ -656,6 +680,27 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
     <div id="history-list"></div>
   </div>
 
+  <!-- DASHBOARD (ADMIN) -->
+  <div class="page" id="page-dashboard">
+    <div style="font-size:17px;font-weight:700;margin-bottom:14px">📊 ภาพรวมทีม</div>
+    <div class="filter-row">
+      <select class="sel" id="dash-month" onchange="renderDashboard()"></select>
+      <select class="sel" id="dash-year" onchange="renderDashboard()"></select>
+    </div>
+    <div id="dash-content"></div>
+  </div>
+
+  <!-- STATUS PAGE (ADMIN) -->
+  <div class="page" id="page-status">
+    <div class="stats-bar">
+      <div class="stat-box"><div class="stat-num green" id="stat-in">0</div><div class="stat-label">ในงาน</div></div>
+      <div class="stat-box"><div class="stat-num red" id="stat-out">0</div><div class="stat-label">ไม่อยู่</div></div>
+      <div class="stat-box"><div class="stat-num blue" id="stat-total">0</div><div class="stat-label">ทั้งหมด</div></div>
+    </div>
+    <div class="section-label">สถานะพนักงานวันนี้</div>
+    <div class="status-grid" id="status-grid"></div>
+  </div>
+
   <!-- TEAM (ADMIN) -->
   <div class="page" id="page-team">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -678,6 +723,16 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
       <select class="sel" id="ts-year" onchange="renderTeamSummary()"></select>
     </div>
     <div id="team-summary-table"></div>
+  </div>
+
+  <!-- SUMMARY PAGE -->
+  <div class="page" id="page-summary">
+    <div class="month-sel">
+      <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+      <div class="month-lbl" id="month-lbl">—</div>
+      <button class="month-nav" onclick="changeMonth(1)">›</button>
+    </div>
+    <div id="summary-list"></div>
   </div>
 
   <!-- SALARY -->
@@ -852,10 +907,24 @@ function startClock(){
 
 // ========== DARK MODE ==========
 function initDark(){
-  const s=localStorage.getItem('tt_dark');
-  if(s==='light'){document.body.classList.add('light');document.getElementById('dark-btn').textContent='🌙'}
-  else{document.getElementById('dark-btn').textContent='☀️'}
+  const saved = localStorage.getItem('tt_dark');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const useDark = saved === null ? prefersDark : saved === 'dark';
+  if(!useDark){
+    document.body.classList.add('light');
+    document.getElementById('dark-btn').textContent='🌙';
+  } else {
+    document.getElementById('dark-btn').textContent='☀️';
+  }
   updateThemeBtn();
+  // Listen for system changes (only if user hasn't manually set)
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if(localStorage.getItem('tt_dark') === null) {
+      if(e.matches){ document.body.classList.remove('light'); document.getElementById('dark-btn').textContent='☀️'; }
+      else{ document.body.classList.add('light'); document.getElementById('dark-btn').textContent='🌙'; }
+      updateThemeBtn();
+    }
+  });
 }
 function toggleDark(){
   const isLight=document.body.classList.toggle('light');
@@ -916,6 +985,7 @@ function initApp(){
   renderHome();
   setupReminder();
   if(fbURL)document.getElementById('fb-url').value=fbURL;
+  updateTodayStatus();
 }
 
 // Auto login from session
@@ -928,11 +998,11 @@ function initApp(){
 function populateSels(){
   const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   const now=new Date();
-  ['stat-month','hist-month','ts-month','sal-month'].forEach(id=>{
+  ['stat-month','hist-month','ts-month','sal-month','dash-month'].forEach(id=>{
     const s=document.getElementById(id);if(!s)return;
     s.innerHTML=mons.map((m,i)=>`<option value="${i}"${i===now.getMonth()?' selected':''}>${m}</option>`).join('');
   });
-  ['stat-year','hist-year','ts-year','sal-year'].forEach(id=>{
+  ['stat-year','hist-year','ts-year','sal-year','dash-year'].forEach(id=>{
     const s=document.getElementById(id);if(!s)return;
     s.innerHTML=[now.getFullYear()-1,now.getFullYear()].map(y=>`<option value="${y}"${y===now.getFullYear()?' selected':''}>${y+543}</option>`).join('');
   });
@@ -1057,6 +1127,7 @@ function renderHome(){
   document.getElementById('s-hours').textContent=totalH.toFixed(1);
   document.getElementById('s-ot').textContent=(totalOT/60).toFixed(1);
   document.getElementById('s-rounds').textContent=myRec.length;
+  updateTodayStatus();
 
   // Today records list
   const listEl=document.getElementById('today-list');
@@ -1267,6 +1338,254 @@ function renderHistory(){
       </div>
     </div>`;
   }).join('');
+}
+
+// ========== DASHBOARD (ADMIN) ==========
+function renderDashboard() {
+  if(!isAdmin()) return;
+  const month = parseInt(document.getElementById('dash-month')?.value ?? new Date().getMonth());
+  const year  = parseInt(document.getElementById('dash-year')?.value  ?? new Date().getFullYear());
+  const mons  = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const prefix = `${year}-${String(month+1).padStart(2,'0')}`;
+  const workDays = 22;
+  const colors = ['#00bfff','#10b981','#ff69b4','#ffd700','#ef4444','#a855f7','#f97316','#06b6d4'];
+
+  // Per-employee stats
+  const empStats = employees.map((emp,i) => {
+    const mr = records.filter(r => r.empId===emp.id && r.date.startsWith(prefix));
+    const byDate = {};
+    mr.forEach(r => { if(!byDate[r.date])byDate[r.date]=[]; byDate[r.date].push(r); });
+    const days = Object.keys(byDate).length;
+    const comp = mr.filter(r => r.checkOut);
+    const totalH = comp.reduce((s,r) => s+calcHours(r.checkIn,r.checkOut),0);
+    const totalOT = comp.reduce((s,r) => s+(r.otMin||0),0);
+    const lateCount = Object.values(byDate).filter(rs => rs.some(r=>r.isLate)).length;
+    const attendPct = Math.min(100, Math.round((days/workDays)*100));
+    return { emp, days, totalH, totalOT, lateCount, attendPct, color: colors[i%colors.length] };
+  });
+
+  // Top stats
+  const totalPresent = empStats.reduce((s,e) => s+e.days, 0);
+  const totalHours   = empStats.reduce((s,e) => s+e.totalH, 0);
+  const totalOTAll   = empStats.reduce((s,e) => s+(e.totalOT/60), 0);
+  const totalLate    = empStats.reduce((s,e) => s+e.lateCount, 0);
+  const bestAttend   = [...empStats].sort((a,b) => b.attendPct-a.attendPct)[0];
+  const mostOT       = [...empStats].sort((a,b) => b.totalOT-a.totalOT)[0];
+  const leastLate    = [...empStats].sort((a,b) => a.lateCount-b.lateCount)[0];
+
+  const el = document.getElementById('dash-content');
+  el.innerHTML = `
+    <!-- Summary cards -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
+      <div class="stat-box"><div class="stat-val c-blue">${employees.length}</div><div class="stat-lbl">พนักงานทั้งหมด</div></div>
+      <div class="stat-box"><div class="stat-val c-green">${totalHours.toFixed(0)}</div><div class="stat-lbl">ชม.รวมทีม</div></div>
+      <div class="stat-box"><div class="stat-val c-orange">${totalOTAll.toFixed(1)}</div><div class="stat-lbl">ชม.โอทีรวม</div></div>
+      <div class="stat-box"><div class="stat-val c-red">${totalLate}</div><div class="stat-lbl">ครั้งสายรวม</div></div>
+    </div>
+
+    <!-- Awards -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="section-title">🏆 รางวัลประจำเดือน ${mons[month]}</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px">
+          <span style="font-size:24px">🥇</span>
+          <div><div style="font-size:12px;color:var(--text3)">มาทำงานสม่ำเสมอที่สุด</div><div style="font-weight:700">${bestAttend?.emp.name||'-'} <span style="color:var(--green);font-size:12px">(${bestAttend?.attendPct||0}%)</span></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px">
+          <span style="font-size:24px">⚡</span>
+          <div><div style="font-size:12px;color:var(--text3)">ทำโอทีมากที่สุด</div><div style="font-weight:700">${mostOT?.emp.name||'-'} <span style="color:var(--yellow);font-size:12px">(${((mostOT?.totalOT||0)/60).toFixed(1)} ชม.)</span></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px">
+          <span style="font-size:24px">✅</span>
+          <div><div style="font-size:12px;color:var(--text3)">มาตรงเวลาที่สุด</div><div style="font-weight:700">${leastLate?.emp.name||'-'} <span style="color:var(--accent);font-size:12px">(สาย ${leastLate?.lateCount||0} ครั้ง)</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance bar chart -->
+    <div class="chart-card">
+      <div class="chart-title">📅 วันที่มาทำงาน ${mons[month]}</div>
+      <canvas id="dash-chart-attend" height="160"></canvas>
+    </div>
+
+    <!-- Hours bar chart -->
+    <div class="chart-card">
+      <div class="chart-title">⏱ ชั่วโมงทำงานรวม ${mons[month]}</div>
+      <canvas id="dash-chart-hours" height="160"></canvas>
+    </div>
+
+    <!-- Employee ranking table -->
+    <div class="card">
+      <div class="section-title">📋 อันดับพนักงาน</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--surface2)">
+              <th style="padding:8px;text-align:left;color:var(--text3)">#</th>
+              <th style="padding:8px;text-align:left;color:var(--text3)">ชื่อ</th>
+              <th style="padding:8px;text-align:center;color:var(--text3)">วันมา</th>
+              <th style="padding:8px;text-align:center;color:var(--text3)">ชม.</th>
+              <th style="padding:8px;text-align:center;color:var(--text3)">OT</th>
+              <th style="padding:8px;text-align:center;color:var(--text3)">สาย</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${[...empStats].sort((a,b)=>b.totalH-a.totalH).map((e,i)=>`
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:8px;color:var(--text3)">${i+1}</td>
+              <td style="padding:8px"><div style="display:flex;align-items:center;gap:6px">
+                <div style="width:22px;height:22px;border-radius:50%;background:${e.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${e.emp.initial||e.emp.name[0]}</div>
+                ${e.emp.name.split(' ')[0]}
+              </div></td>
+              <td style="padding:8px;text-align:center;color:var(--accent)">${e.days}</td>
+              <td style="padding:8px;text-align:center;color:var(--green)">${e.totalH.toFixed(1)}</td>
+              <td style="padding:8px;text-align:center;color:var(--yellow)">${(e.totalOT/60).toFixed(1)}</td>
+              <td style="padding:8px;text-align:center">${e.lateCount>0?`<span style="color:var(--red)">${e.lateCount}</span>`:'<span style="color:var(--green)">0</span>'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+  // Draw charts
+  setTimeout(() => {
+    const cfg = {
+      responsive:true,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#7ecfee',font:{size:9}},grid:{color:'rgba(0,191,255,.08)'}},
+        y:{ticks:{color:'#7ecfee',font:{size:9}},grid:{color:'rgba(0,191,255,.08)'}}
+      }
+    };
+    const labels = empStats.map(e => e.emp.name.split(' ')[0]);
+
+    // Attend chart
+    const ca = document.getElementById('dash-chart-attend');
+    if(ca) {
+      if(ca._chart) ca._chart.destroy();
+      ca._chart = new Chart(ca, {type:'bar', data:{
+        labels,
+        datasets:[{data:empStats.map(e=>e.days), backgroundColor:empStats.map(e=>e.color+'99'), borderColor:empStats.map(e=>e.color), borderWidth:1, borderRadius:4}]
+      }, options:{...cfg}});
+    }
+    // Hours chart
+    const ch = document.getElementById('dash-chart-hours');
+    if(ch) {
+      if(ch._chart) ch._chart.destroy();
+      ch._chart = new Chart(ch, {type:'bar', data:{
+        labels,
+        datasets:[{data:empStats.map(e=>parseFloat(e.totalH.toFixed(1))), backgroundColor:empStats.map(e=>e.color+'99'), borderColor:empStats.map(e=>e.color), borderWidth:1, borderRadius:4}]
+      }, options:{...cfg}});
+    }
+  }, 100);
+}
+
+// ========== UPDATE TODAY STATUS ==========
+function updateTodayStatus() {
+  if(!curUser) return;
+  const today = todayStr();
+  const myRec = records.filter(r => r.empId === curUser.id && r.date === today);
+  const inRec  = myRec.find(r => r.type === 'in' || r.checkIn);
+  const outRec = [...myRec].reverse().find(r => r.type === 'out' || r.checkOut);
+  // find first checkin
+  const firstIn = myRec.length ? (myRec[0].checkIn || '--:--') : '--:--';
+  const lastOut = outRec ? (outRec.checkOut || outRec.time || '--:--') : '--:--';
+  const el_in  = document.getElementById('ts-in');
+  const el_out = document.getElementById('ts-out');
+  const el_dur = document.getElementById('ts-dur');
+  if(el_in)  el_in.textContent  = firstIn !== '--:--' ? firstIn + ' น.' : '—';
+  if(el_out) el_out.textContent = lastOut !== '--:--' ? lastOut + ' น.' : '—';
+  if(el_dur) {
+    const comp = myRec.filter(r => r.checkOut);
+    const open = myRec.find(r => !r.checkOut && r.checkIn);
+    const totalH = comp.reduce((s,r) => s + calcHours(r.checkIn, r.checkOut), 0) +
+                   (open ? calcHours(open.checkIn, nowStr()) : 0);
+    el_dur.textContent = totalH > 0 ? `${totalH.toFixed(1)} ชม.${open?' (กำลังทำงาน)':''}` : '—';
+  }
+}
+
+// ========== CHANGE MONTH ==========
+function changeMonth(d) {
+  curMonth = new Date(curMonth.getFullYear(), curMonth.getMonth() + d, 1);
+  renderSummary();
+}
+
+// ========== OPEN MODAL (alias) ==========
+function openModal() { openAddEmpModal(); }
+
+// ========== RENDER STATUS ==========
+function renderStatus() {
+  if(!isAdmin()) return;
+  const today = todayStr();
+  let inCount = 0;
+  const html = employees.map(emp => {
+    const dr = records.filter(r => r.empId === emp.id && r.date === today);
+    const last = dr.length ? dr[dr.length-1] : null;
+    const isIn = last && !last.checkOut && last.checkIn;
+    if(isIn) inCount++;
+    const firstIn = dr.length ? (dr[0].checkIn || '--:--') : '—';
+    let durText = '';
+    if(isIn && last.checkInTs) {
+      const mins = Math.round((Date.now()-last.checkInTs)/60000);
+      durText = `${Math.floor(mins/60)}ชม.${mins%60}นาที`;
+    }
+    const photo = getPhoto(emp.email);
+    return `<div class="emp-card ${isIn?'in':'out'}">
+      <div class="emp-av" style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;overflow:hidden">${photo?`<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:(emp.initial||emp.name[0])}</div>
+      <div class="emp-info" style="flex:1;min-width:0">
+        <div class="emp-name">${emp.name}</div>
+        <div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${emp.email}</div>
+        <div style="font-size:11px;color:var(--text2)">${emp.dept}</div>
+      </div>
+      <div class="emp-right" style="text-align:right;flex-shrink:0">
+        <div class="status-pill ${isIn?'in':'out'}">${isIn?'ในงาน':'ไม่อยู่'}</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text2)">${firstIn !== '--:--' ? 'เข้า '+firstIn : '—'}</div>
+        ${durText?`<div style="font-size:10px;color:var(--accent2)">${durText}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  const grid = document.getElementById('status-grid');
+  if(grid) grid.innerHTML = html || '<div class="empty-state"><div class="empty-icon">👥</div>ไม่มีพนักงาน</div>';
+  const si = document.getElementById('stat-in');
+  const so = document.getElementById('stat-out');
+  const st = document.getElementById('stat-total');
+  if(si) si.textContent = inCount;
+  if(so) so.textContent = employees.length - inCount;
+  if(st) st.textContent = employees.length;
+}
+
+// ========== RENDER SUMMARY ==========
+function renderSummary() {
+  const mons = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const lbl = document.getElementById('month-lbl');
+  if(lbl) lbl.textContent = `${mons[curMonth.getMonth()]} ${curMonth.getFullYear()+543}`;
+  const prefix = `${curMonth.getFullYear()}-${String(curMonth.getMonth()+1).padStart(2,'0')}`;
+  const workDays = 22;
+  const list = isAdmin() ? employees : [curUser];
+  const el = document.getElementById('summary-list');
+  if(!el) return;
+  el.innerHTML = list.map(emp => {
+    const recs = records.filter(r => r.empId===emp.id && r.date.startsWith(prefix));
+    const days = new Set(recs.map(r=>r.date)).size;
+    const comp = recs.filter(r=>r.checkOut);
+    const totalH = comp.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+    const totalOT = comp.reduce((s,r)=>s+(r.otMin||0),0);
+    const pct = Math.min(100,Math.round((days/workDays)*100));
+    return `<div class="summary-card">
+      <div class="summary-hdr" style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">${emp.initial||emp.name[0]}</div>
+        <div><div style="font-size:14px;font-weight:600">${emp.name}</div><div style="font-size:11px;color:var(--text2)">${emp.dept}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <div style="text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--accent2)">${days}</div><div style="font-size:10px;color:var(--text3)">วันมา</div></div>
+        <div style="text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--accent2)">${totalH.toFixed(1)}h</div><div style="font-size:10px;color:var(--text3)">ชม.รวม</div></div>
+        <div style="text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--accent2)">${pct}%</div><div style="font-size:10px;color:var(--text3)">อัตรามา</div></div>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .5s"></div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty-state"><div class="empty-icon">📊</div>ไม่มีข้อมูล</div>';
 }
 
 // ========== TEAM (ADMIN) ==========
@@ -1500,14 +1819,88 @@ function exportCSV(){
 function exportPDF(){
   const month=parseInt(document.getElementById('stat-month').value);
   const year=parseInt(document.getElementById('stat-year').value);
-  const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1&&r.checkOut});
-  const totalH=mr.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
-  const totalOT=mr.reduce((s,r)=>s+(r.otMin||0),0);
-  const days=new Set(mr.map(r=>r.date)).size;
-  const text=`📊 รายงานเวลาทำงาน\n👤 ${curUser.name}\n📅 ${mons[month]} ${year+543}\n⏱ ${days} วัน | ${totalH.toFixed(1)} ชม. | OT ${(totalOT/60).toFixed(1)} ชม.`;
-  if(navigator.share){navigator.share({title:'รายงานเวลาทำงาน',text}).catch(()=>{})}
-  else{navigator.clipboard.writeText(text).then(()=>showToast('✅ คัดลอกข้อมูลแล้ว','success')).catch(()=>showToast('คัดลอกไม่ได้','error'))}
+  const mons=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const dayNames=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1});
+  const comp=mr.filter(r=>r.checkOut);
+  const byDate={};mr.forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r)});
+  const days=Object.keys(byDate).length;
+  const totalH=comp.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+  const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
+  const lateCount=Object.values(byDate).filter(rs=>rs.some(r=>r.isLate)).length;
+  const sal=getSalInput(month,year);
+  const perH=sal&&totalH>0?(parseFloat(sal)/totalH).toFixed(2):'-';
+
+  // Build print window
+  const rows=Object.keys(byDate).sort().map(date=>{
+    const rs=byDate[date];
+    const d=new Date(date+'T00:00:00');
+    const [y,m,dd]=date.split('-');
+    const h=rs.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+    const ot=rs.reduce((s,r)=>s+(r.otMin||0),0);
+    const late=rs.some(r=>r.isLate);
+    return `<tr>
+      <td>${parseInt(dd)}/${parseInt(m)}/${parseInt(y)+543}</td>
+      <td>${dayNames[d.getDay()]}</td>
+      <td>${rs[0].checkIn||'-'}</td>
+      <td>${rs[rs.length-1].checkOut||'...'}</td>
+      <td style="text-align:center">${h.toFixed(2)}</td>
+      <td style="text-align:center">${(ot/60).toFixed(2)}</td>
+      <td style="text-align:center;color:${late?'#e53e3e':'#38a169'}">${late?'สาย':'ตรงเวลา'}</td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>รายงาน ${curUser.name} ${mons[month]} ${year+543}</title>
+    <style>
+      body{font-family:'Sarabun',sans-serif;font-size:13px;color:#1a202c;padding:24px;max-width:800px;margin:0 auto}
+      h1{font-size:20px;font-weight:700;color:#2b6cb0;margin-bottom:4px}
+      h2{font-size:14px;font-weight:400;color:#718096;margin-bottom:20px}
+      .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+      .sum-box{background:#ebf8ff;border:1px solid #bee3f8;border-radius:8px;padding:12px;text-align:center}
+      .sum-val{font-size:22px;font-weight:700;color:#2b6cb0}
+      .sum-lbl{font-size:11px;color:#718096;margin-top:2px}
+      table{width:100%;border-collapse:collapse;margin-bottom:20px}
+      th{background:#2b6cb0;color:#fff;padding:8px 10px;text-align:left;font-size:12px}
+      td{padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:12px}
+      tr:nth-child(even){background:#f7fafc}
+      .footer{text-align:center;font-size:11px;color:#a0aec0;margin-top:20px;border-top:1px solid #e2e8f0;padding-top:12px}
+      @media print{body{padding:0}.no-print{display:none}}
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+  </head><body>
+    <h1>📊 รายงานเวลาทำงาน</h1>
+    <h2>👤 ${curUser.name} &nbsp;|&nbsp; ${curUser.dept} &nbsp;|&nbsp; ${mons[month]} ${year+543}</h2>
+    <div class="summary">
+      <div class="sum-box"><div class="sum-val">${days}</div><div class="sum-lbl">วันที่มา</div></div>
+      <div class="sum-box"><div class="sum-val">${totalH.toFixed(1)}</div><div class="sum-lbl">ชม.รวม</div></div>
+      <div class="sum-box"><div class="sum-val">${(totalOT/60).toFixed(1)}</div><div class="sum-lbl">ชม.โอที</div></div>
+      <div class="sum-box"><div class="sum-val">${lateCount}</div><div class="sum-lbl">ครั้งสาย</div></div>
+    </div>
+    ${sal?`<div style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:8px;padding:12px;margin-bottom:20px;display:flex;gap:24px">
+      <div><span style="color:#718096">เงินเดือน:</span> <strong>฿${parseFloat(sal).toLocaleString('th-TH')}</strong></div>
+      <div><span style="color:#718096">ค่าแรง/ชม.:</span> <strong>฿${perH}</strong></div>
+    </div>`:''}
+    <table>
+      <thead><tr><th>วันที่</th><th>วัน</th><th>เข้างาน</th><th>ออกงาน</th><th>ชม.</th><th>โอที</th><th>สถานะ</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr style="background:#ebf8ff;font-weight:700">
+        <td colspan="4">รวม</td>
+        <td style="text-align:center">${totalH.toFixed(2)}</td>
+        <td style="text-align:center">${(totalOT/60).toFixed(2)}</td>
+        <td></td>
+      </tr></tfoot>
+    </table>
+    <div class="footer">สร้างโดย TimeTrack Pro &nbsp;|&nbsp; ${new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</div>
+    <div class="no-print" style="text-align:center;margin-top:16px">
+      <button onclick="window.print()" style="padding:10px 28px;background:#2b6cb0;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:Sarabun">🖨️ พิมพ์ / บันทึก PDF</button>
+    </div>
+  </body></html>`;
+
+  const w=window.open('','_blank');
+  if(w){ w.document.write(html); w.document.close(); }
+  else{ showToast('⚠️ กรุณาอนุญาต Popup ก่อน','warning'); }
 }
 
 // ========== PROFILE PHOTO ==========
@@ -1572,18 +1965,56 @@ function addEmp(){
 }
 
 // ========== CHECKOUT REMINDER ==========
+// ===== LATE NOTIFICATION (Admin) =====
+async function checkLateEmployees() {
+  if(!isAdmin()) return;
+  const today = todayStr();
+  const workStart = getWorkStart();
+  const now = new Date();
+  const nowMins = now.getHours()*60 + now.getMinutes();
+  const [wh,wm] = workStart.split(':').map(Number);
+  const workMins = wh*60+wm;
+  // Only check after work start time
+  if(nowMins < workMins + 5) return;
+
+  const lateKey = `tt_late_notified_${today}`;
+  const notified = JSON.parse(localStorage.getItem(lateKey)||'[]');
+
+  employees.forEach(emp => {
+    if(emp.role === 'admin') return;
+    if(notified.includes(emp.id)) return;
+    const todayRecs = records.filter(r => r.empId===emp.id && r.date===today);
+    if(todayRecs.length > 0) return; // มาแล้ว
+    // ยังไม่มา และเลยเวลาเข้างานแล้ว
+    const lateMin = nowMins - workMins;
+    if(lateMin >= 5) {
+      showLateAlert(emp.name, lateMin);
+      notified.push(emp.id);
+      localStorage.setItem(lateKey, JSON.stringify(notified));
+    }
+  });
+}
+
+function showLateAlert(name, lateMin) {
+  const banner = document.createElement('div');
+  banner.style.cssText = `position:fixed;top:64px;left:12px;right:12px;z-index:400;
+    background:linear-gradient(135deg,rgba(20,10,10,.95),rgba(40,10,10,.95));
+    border:1.5px solid rgba(239,68,68,.5);border-radius:14px;
+    padding:12px 16px;box-shadow:0 4px 24px rgba(239,68,68,.3);
+    display:flex;align-items:center;gap:12px;animation:slideDown .3s ease`;
+  banner.innerHTML = `
+    <span style="font-size:24px">⚠️</span>
+    <div style="flex:1">
+      <div style="font-weight:700;color:#ef4444;font-size:13px">${name} ยังไม่มาทำงาน!</div>
+      <div style="font-size:11px;color:#94a3b8">สายมาแล้ว ${lateMin} นาที (เวลาเข้างาน ${getWorkStart()})</div>
+    </div>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer">✕</button>`;
+  document.body.appendChild(banner);
+  setTimeout(()=>{ if(banner.parentElement) banner.remove(); }, 8000);
+}
+
 function setupReminder(){
-  setInterval(async()=>{
-    const now=new Date();
-    if(now.getHours()<19)return;
-    const open=records.find(r=>r.empId===curUser.id&&r.date===todayStr()&&!r.checkOut);
-    if(!open)return;
-    const lastR=parseInt(localStorage.getItem('tt_last_remind')||'0');
-    if((now.getTime()-lastR)/60000<30)return;
-    localStorage.setItem('tt_last_remind',now.getTime()+'');
-    const mins=Math.floor((now.getTime()-open.checkInTs)/60000);
-    showReminderBanner(open.checkIn,(mins/60).toFixed(1));
-  },60000);
+  // Checkout reminder merged into main 30s loop below
 }
 function showReminderBanner(inTime,hrs){
   let b=document.getElementById('remind-banner');
@@ -1625,7 +2056,13 @@ function showPage(id,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if(btn)btn.classList.add('active');
-  if(id==='stats'){renderStats()}
+  if(id==='stats')    { renderStats() }
+  if(id==='dashboard'){ renderDashboard() }
+  if(id==='status')   { renderStatus() }
+  if(id==='summary')  { renderSummary() }
+  if(id==='team')     { renderTeam() }
+  if(id==='salary')   { renderSalary() }
+  if(id==='settings') { renderEmpListSettings(); updateThemeBtn() }
   if(id==='calendar'){renderCalendar()}
   if(id==='history'){renderHistory()}
   if(id==='team'){renderTeam()}
@@ -1670,6 +2107,8 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
 
+// Overlay hidden via onAuthStateChanged
+
 // ===== EMAIL SIGN IN =====
 function doLogin() {
   const email = document.getElementById('login-email').value.trim();
@@ -1705,15 +2144,21 @@ function showLoginErr(msg) {
 
 function getThaiError(code) {
   const map = {
-    'auth/user-not-found': 'ไม่พบบัญชีนี้ในระบบ',
-    'auth/wrong-password': 'รหัสผ่านไม่ถูกต้อง',
-    'auth/invalid-email': 'รูปแบบอีเมลไม่ถูกต้อง',
-    'auth/too-many-requests': 'ลองหลายครั้งเกินไป กรุณารอสักครู่',
-    'auth/popup-closed-by-user': 'ปิด popup ก่อนเข้าสู่ระบบ',
-    'auth/cancelled-popup-request': 'ยกเลิก',
-    'auth/network-request-failed': 'ไม่มีการเชื่อมต่ออินเทอร์เน็ต',
+    'auth/user-not-found':        'ไม่พบบัญชีนี้ในระบบ',
+    'auth/wrong-password':        'รหัสผ่านไม่ถูกต้อง',
+    'auth/invalid-email':         'รูปแบบอีเมลไม่ถูกต้อง',
+    'auth/invalid-credential':    'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+    'auth/too-many-requests':     'ลองหลายครั้งเกินไป กรุณารอสักครู่',
+    'auth/email-already-in-use':  'อีเมลนี้มีบัญชีอยู่แล้ว กรุณา Login แทน',
+    'auth/weak-password':         'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+    'auth/user-disabled':         'บัญชีนี้ถูกระงับ กรุณาติดต่อ Admin',
+    'auth/popup-closed-by-user':  'ปิด popup ก่อนเข้าสู่ระบบ',
+    'auth/cancelled-popup-request':'ยกเลิก',
+    'auth/network-request-failed':'ไม่มีการเชื่อมต่ออินเทอร์เน็ต',
+    'auth/requires-recent-login': 'กรุณา Login ใหม่เพื่อยืนยันตัวตน',
+    'auth/expired-action-code':   'ลิงก์หมดอายุแล้ว กรุณาขอใหม่',
   };
-  return map[code] || 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+  return map[code] || `เกิดข้อผิดพลาด (${code})`;
 }
 
 // ===== HANDLE USER AFTER LOGIN =====
@@ -1914,9 +2359,20 @@ function doLogout() {
 }
 
 // ===== AUTH STATE LISTENER =====
+// ===== AUTH STATE (single listener) =====
+let _authHandled = false; // prevent double call
 auth.onAuthStateChanged(fbUser => {
+  // Hide init overlay
+  const overlay = document.getElementById('init-overlay');
+  if(overlay) overlay.style.display = 'none';
+
   if (fbUser) {
+    if(_authHandled) return; // prevent double initApp
+    _authHandled = true;
     handleFirebaseUser(fbUser);
+  } else {
+    _authHandled = false;
+    document.getElementById('login-screen').style.display = 'flex';
   }
 });
 
