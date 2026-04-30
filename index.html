@@ -378,6 +378,45 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
 .empty-icon{font-size:40px;margin-bottom:10px}
 
+/* SKELETON LOADING */
+.skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:400px 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+.skel-line{height:14px;margin-bottom:8px}
+.skel-line.short{width:40%}
+.skel-line.med{width:65%}
+.skel-line.full{width:100%}
+.skel-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px}
+.skel-circle{width:40px;height:40px;border-radius:50%}
+.skel-stat{height:60px;border-radius:10px}
+
+/* ERROR BOUNDARY */
+.error-banner{position:fixed;top:52px;left:0;right:0;z-index:500;background:linear-gradient(135deg,rgba(30,5,5,.97),rgba(60,10,10,.97));border-bottom:2px solid rgba(239,68,68,.5);padding:12px 16px;display:flex;align-items:center;gap:12px;animation:slideDown .3s ease}
+.error-banner-icon{font-size:22px;flex-shrink:0}
+.error-banner-text{flex:1;font-size:13px}
+.error-banner-title{font-weight:700;color:var(--red);margin-bottom:2px}
+.error-banner-sub{font-size:11px;color:var(--text3)}
+.error-retry-btn{background:var(--red-light);border:1px solid rgba(239,68,68,.4);color:var(--red);font-family:var(--font);font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+
+/* CONFIRM DIALOG */
+.confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;align-items:center;justify-content:center;padding:20px}
+.confirm-overlay.open{display:flex}
+.confirm-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px 20px;width:100%;max-width:320px;animation:scaleIn .2s ease}
+.confirm-title{font-size:16px;font-weight:700;margin-bottom:8px}
+.confirm-msg{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6}
+.confirm-actions{display:flex;gap:10px}
+.confirm-ok{flex:1;padding:12px;background:var(--red);border:none;border-radius:10px;color:#fff;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer}
+.confirm-cancel{flex:1;padding:12px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:var(--font);font-size:14px;cursor:pointer}
+
+/* EDIT LOG */
+.log-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
+.log-item:last-child{border-bottom:none}
+.log-time{color:var(--text3);white-space:nowrap;font-family:var(--mono);font-size:11px}
+.log-detail{flex:1;color:var(--text2);line-height:1.5}
+.log-who{color:var(--accent);font-weight:600}
+
+/* PAGINATION */
+.load-more-btn{width:100%;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:var(--font);font-size:13px;cursor:pointer;margin-top:8px;transition:all .2s}
+.load-more-btn:hover{border-color:var(--accent);color:var(--accent)}
+
 /* ===== SONGKRAN THEME EXTRAS ===== */
 /* Water shimmer on cards */
 .card::before{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,200,255,0.04),transparent);pointer-events:none;transition:left .6s ease}
@@ -831,6 +870,7 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
       <div class="section-title">🔑 จัดการพนักงาน</div>
       <div id="emp-list-settings"></div>
       <button class="btn-primary" style="margin-top:10px" onclick="openAddEmpModal()">+ เพิ่มพนักงาน</button>
+      <button class="btn-secondary" style="margin-top:8px" onclick="openEditLog()">📋 ประวัติการแก้ไข</button>
     </div>
 
     <div class="card">
@@ -881,6 +921,36 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">ยืนยันการลบ</div>
+    <div class="confirm-msg" id="confirm-msg">คุณแน่ใจหรือไม่?</div>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" onclick="closeConfirm()">ยกเลิก</button>
+      <button class="confirm-ok" id="confirm-ok-btn">ลบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ERROR BANNER -->
+<div class="error-banner" id="error-banner" style="display:none">
+  <div class="error-banner-icon">⚠️</div>
+  <div class="error-banner-text">
+    <div class="error-banner-title" id="error-banner-title">เชื่อมต่อไม่ได้</div>
+    <div class="error-banner-sub" id="error-banner-sub">กำลังใช้ข้อมูลในเครื่อง</div>
+  </div>
+  <button class="error-retry-btn" onclick="retryConnection()">ลองใหม่</button>
+</div>
+
+<!-- EDIT LOG MODAL -->
+<div class="modal-overlay" id="log-modal">
+  <div class="modal">
+    <div class="modal-title">📋 ประวัติการแก้ไข<button class="modal-close" onclick="closeModal('log-modal')">✕</button></div>
+    <div id="log-list"></div>
+  </div>
+</div>
 
 <script>
 // ========== STATE ==========
@@ -1134,6 +1204,14 @@ function saveEdit(){
   if(!date||!inT){showToast('กรุณาระบุวันที่และเวลาเข้า','error');return}
   const idx=records.findIndex(r=>r.id===id&&r.empId===eid);
   if(idx===-1){showToast('ไม่พบรายการ','error');return}
+  // Save edit log
+  const old=records[idx];
+  saveEditLog({
+    recId:id, empId:eid, editorId:curUser.id, editorName:curUser.name,
+    before:{date:old.date,checkIn:old.checkIn,checkOut:old.checkOut,note:old.note},
+    after:{date,checkIn:inT,checkOut:outT||null,note},
+    ts:Date.now()
+  });
   records[idx]={...records[idx],date,checkIn:inT,checkOut:outT||null,isLate:isLate(inT),otMin:outT?calcOTMin(outT):0,note};
   saveRec();closeModal('edit-modal');
   showToast('แก้ไขเรียบร้อย','success');
@@ -1141,11 +1219,12 @@ function saveEdit(){
   if(document.getElementById('page-team').classList.contains('active'))renderTeam();
 }
 function deleteRec(id,empId){
-  if(!confirm('ยืนยันลบรายการนี้?'))return;
-  records=records.filter(r=>!(r.id===id&&r.empId===empId));
-  saveRec();showToast('ลบแล้ว','success');
-  renderHome();renderCalendar();renderStats();renderHistory();
-  if(document.getElementById('page-team').classList.contains('active'))renderTeam();
+  showConfirm('🗑 ลบรายการ','ยืนยันลบรายการบันทึกเวลานี้? ไม่สามารถกู้คืนได้',()=>{
+    records=records.filter(r=>!(r.id===id&&r.empId===empId));
+    saveRec();showToast('ลบแล้ว','success');
+    renderHome();renderCalendar();renderStats();renderHistory();
+    if(document.getElementById('page-team').classList.contains('active'))renderTeam();
+  });
 }
 
 // ========== RENDER HOME ==========
@@ -1335,7 +1414,11 @@ function renderStats(){
 }
 
 // ========== HISTORY ==========
-function renderHistory(){
+let historyPage = 1;
+const HISTORY_PAGE_SIZE = 15;
+
+function renderHistory(resetPage){
+  if(resetPage) historyPage = 1;
   const month=parseInt(document.getElementById('hist-month').value);
   const year=parseInt(document.getElementById('hist-year').value);
   const mons=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
@@ -1346,7 +1429,10 @@ function renderHistory(){
   const sortedDates=Object.keys(byDate).sort().reverse();
   if(!sortedDates.length){document.getElementById('history-list').innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div>ไม่มีข้อมูลเดือนนี้</div></div>';return}
 
-  document.getElementById('history-list').innerHTML=sortedDates.map(date=>{
+  const pageDates = sortedDates.slice(0, historyPage * HISTORY_PAGE_SIZE);
+  const hasMore = sortedDates.length > pageDates.length;
+
+  document.getElementById('history-list').innerHTML=pageDates.map(date=>{
     const rs=byDate[date];const d=new Date(date+'T00:00:00');
     const [y,m,dd]=date.split('-');
     const totalH=rs.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
@@ -1376,7 +1462,7 @@ function renderHistory(){
         </div>`).join('')}
       </div>
     </div>`;
-  }).join('');
+  }).join('') + (hasMore ? `<button class="load-more-btn" onclick="historyPage++;renderHistory()">โหลดเพิ่ม (เหลือ ${sortedDates.length - pageDates.length} วัน) ▼</button>` : '');
 }
 
 // ========== DASHBOARD (ADMIN) ==========
@@ -1988,8 +2074,10 @@ function renderEmpListSettings(){
 function openAddEmpModal(){renderEmpListSettings();document.getElementById('add-emp-modal').classList.add('open')}
 function removeEmp(id){
   if(id===curUser.id){showToast('ไม่สามารถลบตัวเองได้','error');return}
-  if(!confirm('ลบพนักงานคนนี้?'))return;
-  employees=employees.filter(e=>e.id!==id);saveEmp();renderEmpListSettings();showToast('ลบแล้ว','success');
+  const emp=employees.find(e=>e.id===id);
+  showConfirm('🗑 ลบพนักงาน',`ยืนยันลบ "${emp?.name||'พนักงาน'}" ออกจากระบบ? ข้อมูลทั้งหมดจะหายไป`,()=>{
+    employees=employees.filter(e=>e.id!==id);saveEmp();renderEmpListSettings();showToast('ลบแล้ว','success');
+  });
 }
 function addEmp(){
   const name=document.getElementById('n-name').value.trim();
@@ -2007,7 +2095,122 @@ function addEmp(){
   showToast(`✅ เพิ่ม ${name} แล้ว`,'success');
 }
 
-// ========== CHECKOUT REMINDER ==========
+// ========== CONFIRM DIALOG ==========
+let _confirmCallback = null;
+function showConfirm(title, msg, onOk, okLabel='ลบ', okClass='confirm-ok') {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  const btn = document.getElementById('confirm-ok-btn');
+  btn.textContent = okLabel;
+  btn.className = okClass;
+  _confirmCallback = onOk;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  _confirmCallback = null;
+}
+document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+  if(_confirmCallback) _confirmCallback();
+  closeConfirm();
+});
+
+// ========== ERROR BOUNDARY ==========
+let _connErrShown = false;
+function showConnectionError(msg) {
+  if(_connErrShown) return;
+  _connErrShown = true;
+  const banner = document.getElementById('error-banner');
+  document.getElementById('error-banner-title').textContent = 'เชื่อมต่อ Firebase ไม่ได้';
+  document.getElementById('error-banner-sub').textContent = msg || 'กำลังใช้ข้อมูลในเครื่อง — ข้อมูลอาจไม่อัปเดต';
+  banner.style.display = 'flex';
+}
+function hideConnectionError() {
+  _connErrShown = false;
+  document.getElementById('error-banner').style.display = 'none';
+}
+function retryConnection() {
+  hideConnectionError();
+  showToast('กำลังเชื่อมต่อใหม่...', 'warning');
+  if(typeof setupRealtimeListeners === 'function') {
+    try { setupRealtimeListeners(); } catch(e) { showConnectionError(); }
+  }
+}
+
+// ========== SKELETON LOADERS ==========
+function showSkeletonTeam() {
+  const el = document.getElementById('team-list');
+  if(!el) return;
+  el.innerHTML = Array(4).fill(0).map(() => `
+    <div class="skel-card" style="display:flex;align-items:center;gap:12px">
+      <div class="skeleton skel-circle"></div>
+      <div style="flex:1">
+        <div class="skeleton skel-line med"></div>
+        <div class="skeleton skel-line short"></div>
+      </div>
+    </div>`).join('');
+}
+function showSkeletonHistory() {
+  const el = document.getElementById('history-list');
+  if(!el) return;
+  el.innerHTML = Array(5).fill(0).map(() => `
+    <div class="skel-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+        <div style="flex:1"><div class="skeleton skel-line short"></div><div class="skeleton skel-line" style="width:30%"></div></div>
+        <div style="width:60px"><div class="skeleton skel-line full"></div></div>
+      </div>
+      <div class="skeleton skel-line full"></div>
+    </div>`).join('');
+}
+function showSkeletonStats() {
+  const el = document.getElementById('month-summary');
+  if(!el) return;
+  el.innerHTML = Array(4).fill(0).map(() =>
+    `<div class="sum-card"><div class="skeleton skel-stat"></div></div>`).join('');
+}
+
+// ========== EDIT LOG ==========
+function saveEditLog(entry) {
+  try {
+    const key = 'tt_editlog';
+    const logs = JSON.parse(localStorage.getItem(key) || '[]');
+    logs.unshift(entry);
+    // Keep only last 200 entries
+    localStorage.setItem(key, JSON.stringify(logs.slice(0, 200)));
+    // Also save to Firebase if connected
+    if(typeof db !== 'undefined' && fbConn) {
+      db.ref('editlogs/' + Date.now()).set(entry).catch(() => {});
+    }
+  } catch(e) {}
+}
+function getEditLogs(empId) {
+  try {
+    const logs = JSON.parse(localStorage.getItem('tt_editlog') || '[]');
+    return empId ? logs.filter(l => l.empId === empId) : logs;
+  } catch(e) { return []; }
+}
+function openEditLog(empId) {
+  const logs = getEditLogs(empId);
+  const emp = employees.find(e => e.id === empId);
+  const mons = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  document.getElementById('log-list').innerHTML = logs.length ? logs.slice(0,50).map(l => {
+    const d = new Date(l.ts);
+    const timeStr = `${pad(d.getDate())} ${mons[d.getMonth()]} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const before = `${l.before.checkIn}→${l.before.checkOut||'?'}`;
+    const after  = `${l.after.checkIn}→${l.after.checkOut||'?'}`;
+    return `<div class="log-item">
+      <div class="log-time">${timeStr}</div>
+      <div class="log-detail">
+        <span class="log-who">${l.editorName}</span> แก้ไขวันที่ ${l.after.date}<br>
+        <span style="color:var(--red)">${before}</span> → <span style="color:var(--green)">${after}</span>
+        ${l.after.note ? `<br><span style="color:var(--text3)">หมายเหตุ: ${l.after.note}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty-state"><div class="empty-icon">📋</div><div>ยังไม่มีประวัติการแก้ไข</div></div>';
+  document.getElementById('log-modal').classList.add('open');
+}
+
+// ========== CHECKOUT REMINDER (PUSH) ==========
 // ===== LATE NOTIFICATION (Admin) =====
 async function checkLateEmployees() {
   if(!isAdmin()) return;
@@ -2057,7 +2260,32 @@ function showLateAlert(name, lateMin) {
 }
 
 function setupReminder(){
-  // Checkout reminder merged into main 30s loop below
+  // Request push notification permission for checkout reminder
+  if('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+function checkCheckoutReminder() {
+  if(!curUser) return;
+  const today = todayStr();
+  const myRec = records.filter(r => r.empId === curUser.id && r.date === today);
+  const open = myRec.find(r => !r.checkOut && r.checkIn);
+  if(!open) return;
+  const hrs = calcHours(open.checkIn, nowStr());
+  if(hrs < 8) return; // ยังไม่ถึง 8 ชม. ยังไม่เตือน
+  const remindKey = `tt_co_reminded_${today}`;
+  if(localStorage.getItem(remindKey)) return;
+  localStorage.setItem(remindKey, '1');
+  // Try push notification first
+  if('Notification' in window && Notification.permission === 'granted') {
+    new Notification('⏰ อย่าลืมออกงาน! — TimeTrack', {
+      body: `เข้างาน ${open.checkIn} — ผ่านมา ${hrs.toFixed(1)} ชม.แล้ว`,
+      icon: './icon-192.png',
+      tag: 'checkout-reminder'
+    });
+  }
+  // Also show in-app banner
+  showReminderBanner(open.checkIn, hrs.toFixed(1));
 }
 function showReminderBanner(inTime,hrs){
   let b=document.getElementById('remind-banner');
@@ -2104,15 +2332,15 @@ function showPage(id,btn){
   pg.classList.add('active');
   pg.classList.add(direction === 'right' ? 'slide-in-right' : 'slide-in-left');
   if(btn)btn.classList.add('active');
-  if(id==='stats')    { renderStats() }
+  if(id==='stats')    { showSkeletonStats(); renderStats() }
   if(id==='dashboard'){ renderDashboard() }
   if(id==='status')   { renderStatus() }
   if(id==='summary')  { renderSummary() }
-  if(id==='team')     { renderTeam() }
+  if(id==='team')     { showSkeletonTeam(); renderTeam() }
   if(id==='salary')   { renderSalary() }
   if(id==='settings') { renderEmpListSettings(); updateThemeBtn() }
   if(id==='calendar') { renderCalendar() }
-  if(id==='history')  { renderHistory() }
+  if(id==='history')  { showSkeletonHistory(); renderHistory(true) }
 }
 
 // ========== MODAL ==========
@@ -2298,6 +2526,8 @@ setInterval(()=>{
   if(!curUser)return;
   if(document.getElementById('page-home').classList.contains('active'))renderHome();
   if(document.getElementById('page-team').classList.contains('active'))renderTeam();
+  checkCheckoutReminder();
+  if(isAdmin()) checkLateEmployees();
   if(fbConn)syncDown();
 },30000);
 </script>
@@ -2319,6 +2549,17 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
+
+// Monitor Firebase connection state
+db.ref('.info/connected').on('value', snap => {
+  if(snap.val() === true) {
+    hideConnectionError();
+    fbConn = true;
+  } else {
+    // Only show error if we've been connected before (not first load)
+    if(fbConn) showConnectionError('Firebase ขาดการเชื่อมต่อ — ใช้ข้อมูล offline');
+  }
+});
 
 // Show progress in overlay
 function updateLoadingStatus(msg) {
