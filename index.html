@@ -108,6 +108,10 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 
 /* PAGES */
 .page{display:none;padding:12px 12px 90px;position:relative;z-index:1;max-width:680px;margin:0 auto}
+.page.slide-in-right{animation:slideInRight .25s cubic-bezier(.25,.46,.45,.94) both}
+.page.slide-in-left{animation:slideInLeft .25s cubic-bezier(.25,.46,.45,.94) both}
+@keyframes slideInRight{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
 .page.active{display:block;animation:fadeIn .28s ease}
 .page.active > *{animation:slideUp .38s ease both}
 .page.active > *:nth-child(1){animation-delay:.04s}
@@ -199,7 +203,7 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .welcome-av img{width:100%;height:100%;object-fit:cover;border-radius:10px}
 .welcome-name{font-size:16px;font-weight:700;margin-bottom:2px}
 .welcome-meta{font-size:12px;color:var(--text2)}
-.clock-time{font-family:var(--mono);font-size:clamp(28px,8vw,42px);font-weight:500;letter-spacing:2px;background:linear-gradient(135deg,#fff,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:3px;position:relative;z-index:1}
+.clock-time{font-family:var(--mono);font-size:clamp(28px,8vw,42px);font-weight:500;letter-spacing:2px;background:linear-gradient(135deg,#fff,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:3px;position:relative;z-index:1;transition:text-shadow 2s ease}
 .clock-date{font-size:12px;color:var(--text2);margin-bottom:16px;position:relative;z-index:1}
 .clock-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative;z-index:1}
 .btn-in{padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#0077bb,#00bfff);color:#fff;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 4px 20px rgba(0,191,255,.4);transition:all .15s}
@@ -443,6 +447,19 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .btn-forgot:hover{color:var(--accent)}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+
+/* Status pill & emp-card */
+.status-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.status-pill.in{background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3)}
+.status-pill.out{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.emp-card{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;transition:all .2s}
+.emp-card.in{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.03)}
+.emp-card.out{opacity:.8}
+
+/* Pull to Refresh */
+.ptr-indicator{position:fixed;top:52px;left:50%;transform:translateX(-50%) translateY(-60px);z-index:200;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px;transition:transform .3s ease,opacity .3s;opacity:0;pointer-events:none;box-shadow:var(--shadow)}
+.ptr-indicator.visible{transform:translateX(-50%) translateY(0);opacity:1}
+.ptr-spinner{width:14px;height:14px;border:2px solid rgba(0,191,255,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 /* Responsive canvas z-index */
 #songkran-canvas{z-index:0}
 #app-shell,#login-screen .login-box{position:relative;z-index:1}
@@ -541,6 +558,11 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 
 <!-- APP -->
 <div id="app-shell">
+  <!-- Pull to Refresh indicator -->
+  <div class="ptr-indicator" id="ptr-indicator">
+    <div class="ptr-spinner" id="ptr-spinner" style="display:none"></div>
+    <span id="ptr-text">🔄 ดึงเพื่อรีเฟรช</span>
+  </div>
   <div class="topbar">
     <div class="topbar-logo"><div class="logo-mark">T</div><div class="logo-text">🌊 Time<span>Track</span></div></div>
     <div class="topbar-right">
@@ -918,7 +940,9 @@ function startClock(){
     document.getElementById('clock-display').textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
     document.getElementById('clock-date').textContent=`วัน${days[n.getDay()]}ที่ ${n.getDate()} ${mons[n.getMonth()]} ${n.getFullYear()+543}`;
   }
-  tick(); setInterval(tick,1000);
+  tick(); updateClockGlow();
+  setInterval(tick,1000);
+  setInterval(updateClockGlow,60000); // Update glow every minute
 }
 
 // ========== DARK MODE ==========
@@ -1050,6 +1074,7 @@ function doCheckIn(){
   const t=nowStr();
   const late=isLate(t);
   records.push({id:Date.now()+'',empId:curUser.id,date:today,checkIn:t,checkInTs:Date.now(),checkOut:null,checkOutTs:null,isLate:late,otMin:0,note:''});
+  haptic(late ? 'error' : 'success');
   saveRec();
   document.getElementById('btn-in').disabled=true;
   document.getElementById('btn-out').disabled=false;
@@ -1064,6 +1089,7 @@ function doCheckOut(){
   if(idx===-1){showToast('ไม่พบการเข้างาน','error');return}
   const t=nowStr(),ts=Date.now();
   records[idx].checkOut=t;records[idx].checkOutTs=ts;records[idx].otMin=calcOTMin(t);
+  haptic(records[idx].otMin>0 ? 'heavy' : 'success');
   saveRec();
   document.getElementById('btn-in').disabled=false;
   document.getElementById('btn-out').disabled=true;
@@ -1136,6 +1162,7 @@ function renderHome(){
   const comp=myRec.filter(r=>r.checkOut);
 
   document.getElementById('btn-in').disabled=!!open;
+  haptic(open ? 'light' : 'light');
   document.getElementById('btn-out').disabled=!open;
 
   const firstIn=myRec.length?myRec[0].checkIn:'--:--';
@@ -1143,9 +1170,9 @@ function renderHome(){
   const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
 
   document.getElementById('s-firstin').textContent=firstIn;
-  document.getElementById('s-hours').textContent=totalH.toFixed(1);
-  document.getElementById('s-ot').textContent=(totalOT/60).toFixed(1);
-  document.getElementById('s-rounds').textContent=myRec.length;
+  animateNumber(document.getElementById('s-hours'), totalH, 600, 1);
+  animateNumber(document.getElementById('s-ot'), totalOT/60, 600, 1);
+  animateNumber(document.getElementById('s-rounds'), myRec.length, 400, 0);
   updateTodayStatus();
 
   // Today records list
@@ -1610,6 +1637,8 @@ function renderSummary() {
 // ========== TEAM (ADMIN) ==========
 function renderTeam(){
   if(!isAdmin())return;
+  showSkeleton('team-list',3);
+  setTimeout(()=>{
   const dateKey=document.getElementById('team-date').value||todayStr();
   const colors=['#3b82f6','#10b981','#a855f7','#f59e0b','#ef4444','#06b6d4','#84cc16','#f97316'];
 
@@ -1659,6 +1688,7 @@ function renderTeam(){
   }).join('');
 
   renderTeamSummary();
+  },50);
 }
 
 function renderTeamSummary(){
@@ -2072,9 +2102,14 @@ async function syncDown(){
 
 // ========== NAV ==========
 function showPage(id,btn){
-  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active')});
+  const newIdx = _pageOrder.indexOf(id);
+  const direction = newIdx >= _lastPageIdx ? 'right' : 'left';
+  _lastPageIdx = newIdx >= 0 ? newIdx : _lastPageIdx;
+  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active','slide-in-right','slide-in-left')});
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
+  const pg = document.getElementById('page-'+id);
+  pg.classList.add('active');
+  pg.classList.add(direction === 'right' ? 'slide-in-right' : 'slide-in-left');
   if(btn)btn.classList.add('active');
   if(id==='stats')    { renderStats() }
   if(id==='dashboard'){ renderDashboard() }
@@ -2093,6 +2128,174 @@ function showPage(id,btn){
 // ========== MODAL ==========
 function closeModal(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)}));
+
+// ============================================================
+// 🎯 EFFECT 1: HAPTIC FEEDBACK
+// ============================================================
+function haptic(type='light') {
+  if(!navigator.vibrate) return;
+  const patterns = { light: 10, medium: 25, heavy: 50, success: [10,50,10], error: [50,30,50] };
+  navigator.vibrate(patterns[type] || 10);
+}
+
+// ============================================================
+// 🎯 EFFECT 2: PULL TO REFRESH
+// ============================================================
+(function initPullToRefresh() {
+  let startY = 0, pulling = false, threshold = 70;
+  const indicator = document.getElementById('ptr-indicator');
+  const ptrText = document.getElementById('ptr-text');
+  const ptrSpinner = document.getElementById('ptr-spinner');
+
+  document.addEventListener('touchstart', e => {
+    if(window.scrollY === 0) startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if(!startY) return;
+    const dy = e.touches[0].clientY - startY;
+    if(dy > 20 && window.scrollY === 0) {
+      pulling = true;
+      const progress = Math.min(dy / threshold, 1);
+      if(indicator) {
+        indicator.classList.add('visible');
+        ptrText.textContent = progress >= 1 ? '🔄 ปล่อยเพื่อรีเฟรช' : '🔄 ดึงเพื่อรีเฟรช';
+      }
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if(!pulling) return;
+    pulling = false; startY = 0;
+    const dy = e.changedTouches[0].clientY - (e.changedTouches[0].clientY - e.changedTouches[0].clientY);
+    if(indicator) {
+      ptrText.textContent = '🔄 กำลังรีเฟรช...';
+      if(ptrSpinner) ptrSpinner.style.display = 'block';
+      haptic('medium');
+      // Sync data
+      setTimeout(async () => {
+        try {
+          if(typeof syncDown === 'function') await syncDown();
+          else if(typeof _syncFirebaseInBackground === 'function') await _syncFirebaseInBackground({uid: curUser?.id});
+          updateTodayStatus();
+          if(document.getElementById('page-home').classList.contains('active')) renderHome();
+          showToast('✅ รีเฟรชแล้ว', 'success');
+        } catch(e) {}
+        indicator.classList.remove('visible');
+        if(ptrSpinner) ptrSpinner.style.display = 'none';
+        ptrText.textContent = '🔄 ดึงเพื่อรีเฟรช';
+      }, 800);
+    }
+  }, { passive: true });
+})();
+
+// ============================================================
+// 🎯 EFFECT 3: SWIPE TO DISMISS TOAST
+// ============================================================
+const swipeToast = true; // marker
+(function initSwipeToast() {
+  let toastStartX = 0;
+  document.addEventListener('touchstart', e => {
+    const toast = document.getElementById('toast');
+    if(toast && toast.classList.contains('show') && e.target.closest('#toast')) {
+      toastStartX = e.touches[0].clientX;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    const toast = document.getElementById('toast');
+    if(!toast || !toast.classList.contains('show') || !toastStartX) return;
+    const dx = e.changedTouches[0].clientX - toastStartX;
+    if(Math.abs(dx) > 60) {
+      toast.style.transition = 'transform .2s ease, opacity .2s';
+      toast.style.transform = `translateX(-50%) translateX(${dx > 0 ? '120px' : '-120px'})`;
+      toast.style.opacity = '0';
+      setTimeout(() => {
+        toast.className = 'toast';
+        toast.style.transform = '';
+        toast.style.opacity = '';
+      }, 250);
+    }
+    toastStartX = 0;
+  }, { passive: true });
+})();
+
+// ============================================================
+// 🎯 EFFECT 4: NUMBER COUNTER ANIMATION
+// ============================================================
+function animateNumber(el, target, duration=600, decimals=0, suffix='') {
+  if(!el) return;
+  const start = parseFloat(el.textContent) || 0;
+  const startTime = performance.now();
+  function update(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease out cubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = start + (target - start) * eased;
+    el.textContent = decimals > 0 ? current.toFixed(decimals) + suffix : Math.round(current) + suffix;
+    if(progress < 1) requestAnimationFrame(update);
+    else el.textContent = decimals > 0 ? target.toFixed(decimals) + suffix : Math.round(target) + suffix;
+  }
+  requestAnimationFrame(update);
+}
+
+// ============================================================
+// 🎯 EFFECT 5: CLOCK GLOW - เปลี่ยนสีตามเวลา
+// ============================================================
+function updateClockGlow() {
+  const h = new Date().getHours();
+  const el = document.getElementById('clock-display');
+  if(!el) return;
+  let glow, gradient;
+  if(h >= 5 && h < 9) {
+    // เช้า - ทอง/ส้ม
+    glow = '0 0 30px rgba(255,200,50,.5), 0 0 60px rgba(255,150,0,.2)';
+    gradient = 'linear-gradient(135deg,#ffd700,#ffaa00)';
+  } else if(h >= 9 && h < 17) {
+    // กลางวัน - ฟ้าสว่าง
+    glow = '0 0 30px rgba(0,200,255,.5), 0 0 60px rgba(0,150,220,.2)';
+    gradient = 'linear-gradient(135deg,#fff,#00e5ff)';
+  } else if(h >= 17 && h < 20) {
+    // เย็น - ส้ม/ชมพู
+    glow = '0 0 30px rgba(255,120,50,.5), 0 0 60px rgba(200,80,120,.2)';
+    gradient = 'linear-gradient(135deg,#ff8c42,#ff4e8e)';
+  } else {
+    // กลางคืน - ม่วง/น้ำเงิน
+    glow = '0 0 30px rgba(100,80,255,.5), 0 0 60px rgba(60,50,200,.2)';
+    gradient = 'linear-gradient(135deg,#a78bfa,#60a5fa)';
+  }
+  el.style.textShadow = glow;
+  el.style.backgroundImage = gradient;
+  el.style.webkitBackgroundClip = 'text';
+  el.style.webkitTextFillColor = 'transparent';
+}
+
+// ============================================================
+// 🎯 EFFECT 6: PAGE TRANSITION - slide
+// ============================================================
+let _lastPageIdx = 0;
+const _pageOrder = ['home','calendar','stats','history','status','summary','dashboard','team','salary','settings'];
+
+// ============================================================
+// 🎯 EFFECT 7: SKELETON LOADING
+// ============================================================
+function showSkeleton(containerId, rows=3) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = Array(rows).fill(0).map(() => `
+    <div class="skeleton-card">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        <div class="skeleton skeleton-circle" style="width:40px;height:40px;flex-shrink:0"></div>
+        <div style="flex:1">
+          <div class="skeleton skeleton-line" style="width:60%"></div>
+          <div class="skeleton skeleton-line" style="width:40%;height:10px"></div>
+        </div>
+      </div>
+      <div class="skeleton skeleton-line"></div>
+      <div class="skeleton skeleton-line" style="width:80%"></div>
+    </div>`).join('');
+}
 
 // ========== TOAST ==========
 function showToast(msg,type='success'){
