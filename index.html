@@ -152,7 +152,7 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 /* Calendar */
 .cal-day{transition:transform .15s ease,background .15s,border-color .15s,box-shadow .15s}
 .cal-day:hover{transform:scale(1.18);z-index:2;box-shadow:0 4px 16px rgba(0,0,0,.3)}
-.cal-day.today-cell{animation:glowPulse 2.5s ease-in-out infinite;animation:borderGlow 2.5s ease-in-out infinite}
+.cal-day.today-cell{animation:borderGlow 2.5s ease-in-out infinite}
 /* Week days */
 .week-day{transition:transform .18s cubic-bezier(.34,1.56,.64,1),border-color .15s,background .15s}
 .week-day:hover{transform:translateY(-4px) scale(1.06)}
@@ -996,9 +996,7 @@ function initApp(){
   setTimeout(()=>{ if(banner.parentElement) banner.remove(); }, 5500);
   const admin=isAdmin();
   // Show/hide admin tabs based on role
-  const isAdminUser = curUser && curUser.role === 'admin';
-  document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=isAdminUser?'flex':'none');
-  document.getElementById('admin-badge').style.display=isAdminUser?'inline-block':'none';
+  document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=admin?'flex':'none');
   document.getElementById('admin-badge').style.display=admin?'inline-block':'none';
   document.getElementById('admin-sal-section').style.display=admin?'block':'none';
   document.getElementById('admin-pw-section').style.display=admin?'block':'none';
@@ -1031,11 +1029,7 @@ function initApp(){
   updateTodayStatus();
 }
 
-// Auto login from session
-(function(){
-  const s=localStorage.getItem('tt_session');
-  if(s){try{const u=JSON.parse(s);const found=employees.find(e=>e.id===u.id&&e.password===u.password);if(found){curUser=found;document.getElementById('login-screen').style.display='none';document.getElementById('app-shell').style.display='block';setTimeout(initApp,50)}}catch(e){}}
-})();
+// Legacy session login removed — Firebase Auth handles all session management
 
 // ========== SELECTORS ==========
 function populateSels(){
@@ -1162,7 +1156,6 @@ function renderHome(){
   const comp=myRec.filter(r=>r.checkOut);
 
   document.getElementById('btn-in').disabled=!!open;
-  haptic(open ? 'light' : 'light');
   document.getElementById('btn-out').disabled=!open;
 
   const firstIn=myRec.length?myRec[0].checkIn:'--:--';
@@ -2118,11 +2111,8 @@ function showPage(id,btn){
   if(id==='team')     { renderTeam() }
   if(id==='salary')   { renderSalary() }
   if(id==='settings') { renderEmpListSettings(); updateThemeBtn() }
-  if(id==='calendar'){renderCalendar()}
-  if(id==='history'){renderHistory()}
-  if(id==='team'){renderTeam()}
-  if(id==='salary'){renderSalary()}
-  if(id==='settings'){renderEmpListSettings();updateThemeBtn()}
+  if(id==='calendar') { renderCalendar() }
+  if(id==='history')  { renderHistory() }
 }
 
 // ========== MODAL ==========
@@ -2639,11 +2629,19 @@ async function doRegister() {
       document.getElementById('register-screen').style.display = 'none';
       document.getElementById('app-shell').style.display = 'block';
       curUser = profile;
-      employees = empSnap.val() ? Object.values(empSnap.val()) : [];
-      employees.push(profile);
-      records = [];
-      setupRealtimeListeners();
-      initApp();
+      // Fetch fresh employee list to avoid duplicates
+      db.ref('employees').once('value').then(snap => {
+        employees = snap.val() ? Object.values(snap.val()) : [profile];
+        records = [];
+        localStorage.setItem('tt_emp', JSON.stringify(employees));
+        setupRealtimeListeners();
+        initApp();
+      }).catch(() => {
+        employees = [profile];
+        records = [];
+        setupRealtimeListeners();
+        initApp();
+      });
     }, 1500);
 
   } catch(err) {

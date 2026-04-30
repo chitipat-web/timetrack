@@ -3,13 +3,11 @@ const CACHE_NAME = 'timetrack-v2';
 const STATIC_CACHE = 'timetrack-static-v2';
 const FIREBASE_CACHE = 'timetrack-firebase-v2';
 
-// Files to cache immediately
 const STATIC_ASSETS = [
   './index.html',
   './manifest.json',
 ];
 
-// Firebase CDN files to cache
 const FIREBASE_ASSETS = [
   'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js',
@@ -17,40 +15,35 @@ const FIREBASE_ASSETS = [
   'https://cdn.jsdelivr.net/npm/chart.js',
 ];
 
-// Font files
 const FONT_ASSETS = [
   'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap',
 ];
 
-// ===== INSTALL: Cache all static assets =====
 self.addEventListener('install', event => {
   console.log('[SW] Installing...');
   event.waitUntil(
     Promise.all([
-      // Cache app files
       caches.open(STATIC_CACHE).then(cache => {
         console.log('[SW] Caching static assets');
         return cache.addAll(STATIC_ASSETS).catch(err => {
           console.log('[SW] Static cache error:', err);
         });
       }),
-      // Cache Firebase SDK (most important for speed)
       caches.open(FIREBASE_CACHE).then(cache => {
-        console.log('[SW] Caching Firebase SDK');
+        console.log('[SW] Caching Firebase SDK + Fonts');
         return Promise.all(
-          FIREBASE_ASSETS.map(url =>
-            cache.add(url).catch(err => console.log('[SW] Firebase cache error:', url, err))
+          [...FIREBASE_ASSETS, ...FONT_ASSETS].map(url =>
+            cache.add(url).catch(err => console.log('[SW] Cache error:', url, err))
           )
         );
       }),
     ]).then(() => {
       console.log('[SW] All assets cached!');
-      return self.skipWaiting(); // Activate immediately
+      return self.skipWaiting();
     })
   );
 });
 
-// ===== ACTIVATE: Clean old caches =====
 self.addEventListener('activate', event => {
   console.log('[SW] Activating...');
   event.waitUntil(
@@ -63,25 +56,21 @@ self.addEventListener('activate', event => {
             return caches.delete(key);
           })
       );
-    }).then(() => self.clients.claim()) // Take control immediately
+    }).then(() => self.clients.claim())
   );
 });
 
-// ===== FETCH: Serve from cache, fallback to network =====
 self.addEventListener('fetch', event => {
   const url = event.request.url;
 
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip Firebase Database API calls (must be fresh)
   if (url.includes('firebasedatabase.app') ||
       url.includes('googleapis.com/identitytoolkit') ||
       url.includes('securetoken.googleapis.com')) {
-    return; // Let Firebase handle auth/DB calls
+    return;
   }
 
-  // Firebase SDK & Chart.js → Cache First (very important for speed)
   if (url.includes('gstatic.com/firebasejs') ||
       url.includes('cdn.jsdelivr.net/npm/chart.js') ||
       url.includes('fonts.googleapis.com') ||
@@ -104,7 +93,6 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App HTML → Stale While Revalidate (fast load + background update)
   if (url.includes('github.io') || url.endsWith('index.html') || url.endsWith('/')) {
     event.respondWith(
       caches.open(STATIC_CACHE).then(async cache => {
@@ -115,8 +103,6 @@ self.addEventListener('fetch', event => {
             return response;
           })
           .catch(() => cached);
-
-        // Return cached immediately, update in background
         return cached || fetchPromise;
       })
     );
@@ -124,7 +110,6 @@ self.addEventListener('fetch', event => {
   }
 });
 
-// ===== MESSAGE: Force update =====
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting') {
     self.skipWaiting();
