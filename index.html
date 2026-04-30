@@ -990,7 +990,22 @@ function isAdmin(){return curUser&&curUser.role==='admin'}
 function getPhoto(email){return localStorage.getItem('tt_photo_'+email.replace(/[^a-zA-Z0-9]/g,'_'))||''}
 function savePhoto(email,d){localStorage.setItem('tt_photo_'+email.replace(/[^a-zA-Z0-9]/g,'_'),d)}
 function calcHours(i,o){if(!i||!o)return 0;const[ih,im]=i.split(':').map(Number);const[oh,om]=o.split(':').map(Number);return Math.max(0,(oh*60+om-ih*60-im)/60)}
-function calcOTMin(t){if(!t)return 0;const[h,m]=t.split(':').map(Number);const[oh,om]=getOTStart().split(':').map(Number);return Math.max(0,h*60+m-(oh*60+om))}
+function calcOTMin(checkOut, checkIn){
+  if(!checkOut) return 0;
+  const toMins = t => { const[h,m]=t.split(':').map(Number); return h*60+m; };
+  const [oh,om] = getOTStart().split(':').map(Number);
+  const otStartMins = oh*60+om;
+
+  let outMins = toMins(checkOut);
+  let inMins  = checkIn ? toMins(checkIn) : otStartMins;
+
+  // Handle overnight: ถ้า checkout < checkin แสดงว่าข้ามคืน
+  if(outMins < inMins) outMins += 24*60;
+
+  // OT เริ่มนับจากทีหลังกว่าระหว่าง (เวลาเข้างาน) กับ (เวลาเริ่ม OT)
+  const otFrom = Math.max(inMins, otStartMins);
+  return Math.max(0, outMins - otFrom);
+}
 function isLate(inTime){const[h,m]=inTime.split(':').map(Number);const[wh,wm]=getWorkStart().split(':').map(Number);return h*60+m>wh*60+wm}
 function getDailyNote(date){try{const n=JSON.parse(localStorage.getItem('tt_notes_'+curUser.id)||'{}');return n[date]||''}catch(e){return''}}
 function saveDailyNote(date,txt){try{const n=JSON.parse(localStorage.getItem('tt_notes_'+curUser.id)||'{}');if(txt)n[date]=txt;else delete n[date];localStorage.setItem('tt_notes_'+curUser.id,JSON.stringify(n))}catch(e){}}
@@ -1152,7 +1167,7 @@ function doCheckOut(){
   const idx=records.findIndex(r=>r.empId===curUser.id&&r.date===today&&!r.checkOut);
   if(idx===-1){showToast('ไม่พบการเข้างาน','error');return}
   const t=nowStr(),ts=Date.now();
-  records[idx].checkOut=t;records[idx].checkOutTs=ts;records[idx].otMin=calcOTMin(t);
+  records[idx].checkOut=t;records[idx].checkOutTs=ts;records[idx].otMin=calcOTMin(t, records[idx].checkIn);
   haptic(records[idx].otMin>0 ? 'heavy' : 'success');
   saveRec();
   document.getElementById('btn-in').disabled=false;
@@ -1172,7 +1187,7 @@ function addManual(){
   const note=document.getElementById('man-note').value;
   if(!date||!inT){showToast('กรุณาระบุวันที่และเวลาเข้า','error');return}
   const late=isLate(inT);
-  records.push({id:Date.now()+'',empId:curUser.id,date,checkIn:inT,checkInTs:null,checkOut:outT||null,checkOutTs:null,isLate:late,otMin:outT?calcOTMin(outT):0,note});
+  records.push({id:Date.now()+'',empId:curUser.id,date,checkIn:inT,checkInTs:null,checkOut:outT||null,checkOutTs:null,isLate:late,otMin:outT?calcOTMin(outT,inT):0,note});
   saveRec();
   ['man-in','man-out','man-note'].forEach(id=>document.getElementById(id).value='');
   showToast(`บันทึก ${date} เรียบร้อย`,'success');
@@ -1212,7 +1227,7 @@ function saveEdit(){
     after:{date,checkIn:inT,checkOut:outT||null,note},
     ts:Date.now()
   });
-  records[idx]={...records[idx],date,checkIn:inT,checkOut:outT||null,isLate:isLate(inT),otMin:outT?calcOTMin(outT):0,note};
+  records[idx]={...records[idx],date,checkIn:inT,checkOut:outT||null,isLate:isLate(inT),otMin:outT?calcOTMin(outT,inT):0,note};
   saveRec();closeModal('edit-modal');
   showToast('แก้ไขเรียบร้อย','success');
   renderHome();renderCalendar();renderStats();renderHistory();
