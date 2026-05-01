@@ -1123,6 +1123,19 @@ function saveEmp(){localStorage.setItem('tt_emp',JSON.stringify(employees))}
 function saveRec(){localStorage.setItem('tt_rec',JSON.stringify(records));if(fbConn)syncUp()}
 function getWorkStart(){return localStorage.getItem('tt_work_start')||'06:00'}
 function getOTStart(){return localStorage.getItem('tt_ot_start')||'16:30'}
+
+// ========== AVATAR COLOR ==========
+function avatarColor(name){
+  if(!name) return ['#0077bb','#00bfff'];
+  let hash=0;
+  for(let i=0;i<name.length;i++) hash=name.charCodeAt(i)+((hash<<5)-hash);
+  const hue=Math.abs(hash)%360;
+  // Avoid muddy range, shift if needed
+  const h=(hue>=25&&hue<=55)?hue+90:(hue>=195&&hue<=225)?hue+60:hue;
+  return [`hsl(${h%360},72%,40%)`,`hsl(${(h+32)%360},82%,58%)`];
+}
+function avatarGrad(name){const[c1,c2]=avatarColor(name);return `linear-gradient(135deg,${c1},${c2})`;}
+function avatarLetter(name){return name?name.trim()[0].toUpperCase():'?';}
 function saveWorkStart(){localStorage.setItem('tt_work_start',document.getElementById('set-work-start').value);showToast('บันทึกแล้ว','success')}
 function saveOTStart(){localStorage.setItem('tt_ot_start',document.getElementById('set-ot-start').value);showToast('บันทึกแล้ว','success')}
 function isAdmin(){return !!(curUser&&curUser.role==='admin')}
@@ -1239,11 +1252,18 @@ function initApp(){
   loadAnnounces();
   initPushSettings();
 
-  // Photo
+  // Photo + Avatar color
   const photo=getPhoto(curUser.email);
-  document.getElementById('tb-av').innerHTML=photo?`<img src="${photo}">`:(curUser.initial||curUser.name[0]);
-  document.getElementById('wc-av').innerHTML=photo?`<img src="${photo}">`:(curUser.initial||curUser.name[0])+'<div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div>';
-  document.getElementById('settings-av').innerHTML=photo?`<img src="${photo}">`:(curUser.initial||curUser.name[0])+'<div class="settings-av-overlay">📷</div>';
+  const _avG=avatarGrad(curUser.name), _avL=avatarLetter(curUser.name);
+  const _tbAv=document.getElementById('tb-av');
+  _tbAv.innerHTML=photo?`<img src="${photo}">`:_avL;
+  if(!photo)_tbAv.style.background=_avG;
+  const _wcAv=document.getElementById('wc-av');
+  _wcAv.innerHTML=photo?`<img src="${photo}">`:_avL+'<div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div>';
+  if(!photo)_wcAv.style.background=_avG;
+  const _stAv=document.getElementById('settings-av');
+  _stAv.innerHTML=photo?`<img src="${photo}">`:_avL+'<div class="settings-av-overlay">📷</div>';
+  if(!photo)_stAv.style.background=_avG;
 
   document.getElementById('tb-name').textContent=(curUser.name||curUser.email||'User').split(' ')[0];
   document.getElementById('wc-name').textContent=curUser.name||curUser.email||'User';
@@ -1737,7 +1757,7 @@ function renderDashboard() {
             <tr style="border-bottom:1px solid var(--border)">
               <td style="padding:8px;color:var(--text3)">${i+1}</td>
               <td style="padding:8px"><div style="display:flex;align-items:center;gap:6px">
-                <div style="width:22px;height:22px;border-radius:50%;background:${e.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${e.emp.initial||e.emp.name[0]}</div>
+                <div style="width:22px;height:22px;border-radius:50%;background:${avatarGrad(e.emp.name)};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${avatarLetter(e.emp.name)}</div>
                 ${e.emp.name.split(' ')[0]}
               </div></td>
               <td style="padding:8px;text-align:center;color:var(--accent)">${e.days}</td>
@@ -1833,8 +1853,9 @@ function renderStatus() {
       durText = `${Math.floor(mins/60)}ชม.${mins%60}นาที`;
     }
     const photo = getPhoto(emp.email);
+    const _eG=avatarGrad(emp.name), _eL=avatarLetter(emp.name);
     return `<div class="emp-card ${isIn?'in':'out'}">
-      <div class="emp-av" style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;overflow:hidden">${photo?`<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:(emp.initial||emp.name[0])}</div>
+      <div class="emp-av" style="width:40px;height:40px;border-radius:10px;background:${photo?'none':_eG};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;overflow:hidden">${photo?`<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:_eL}</div>
       <div class="emp-info" style="flex:1;min-width:0">
         <div class="emp-name">${emp.name}</div>
         <div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${emp.email}</div>
@@ -1876,7 +1897,7 @@ function renderSummary() {
     const pct = Math.min(100,Math.round((days/workDays)*100));
     return `<div class="summary-card">
       <div class="summary-hdr" style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-        <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">${emp.initial||emp.name[0]}</div>
+        <div style="width:36px;height:36px;border-radius:8px;background:${avatarGrad(emp.name)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">${avatarLetter(emp.name)}</div>
         <div><div style="font-size:14px;font-weight:600">${emp.name}</div><div style="font-size:11px;color:var(--text2)">${emp.dept}</div></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
@@ -1926,7 +1947,7 @@ function renderTeam(){
     const firstIn=dr.length?dr[0].checkIn:'--:--';
     return `<div class="team-card" onclick="showDayDetail('${dateKey}','${emp.email}')">
       <div class="team-card-top">
-        <div class="team-av" style="background:${color}">${photo?`<img src="${photo}">`:(emp.initial||emp.name[0])}</div>
+        <div class="team-av" style="background:${photo?'none':avatarGrad(emp.name)}">${photo?`<img src="${photo}">`:(avatarLetter(emp.name))}</div>
         <div class="team-info flex:1">
           <div class="team-name">${emp.name}</div>
           <div class="team-email">${emp.email}</div>
@@ -1970,7 +1991,7 @@ function renderTeamSummary(){
   el.innerHTML=`<div class="card" style="overflow:auto"><table class="ts-table">
     <thead><tr><th>พนักงาน</th><th>วันที่มา</th><th>ชม.รวม</th><th>ชม.โอที</th><th>ครั้งสาย</th></tr></thead>
     <tbody>${results.map(r=>`<tr>
-      <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:${r.color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${r.emp.initial||r.emp.name[0]}</div>${r.emp.name}</div></td>
+      <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:${avatarGrad(r.emp.name)};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${avatarLetter(r.emp.name)}</div>${r.emp.name}</div></td>
       <td style="color:var(--accent);font-weight:600">${r.days}</td>
       <td style="color:var(--green);font-weight:600">${r.totalH.toFixed(1)}</td>
       <td style="color:var(--yellow)">${(r.totalOT/60).toFixed(1)}</td>
@@ -2241,7 +2262,7 @@ function renderEmpListSettings(){
   const el=document.getElementById('emp-list-settings');if(!el)return;
   el.innerHTML=employees.map(emp=>`
     <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,${emp.role==='admin'?'#f59e0b,#d97706':'#3b82f6,#06b6d4'});display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">${emp.initial||emp.name[0]}</div>
+      <div style="width:30px;height:30px;border-radius:8px;background:${avatarGrad(emp.name)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">${avatarLetter(emp.name)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600">${emp.name} ${emp.role==='admin'?'<span style="color:var(--yellow);font-size:10px">Admin</span>':''}</div>
         <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${emp.email}</div>
