@@ -174,6 +174,43 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .modal{animation:slideUp .35s cubic-bezier(.34,1.4,.64,1)}
 /* Topbar */
 .topbar{animation:slideDown .32s ease}
+/* Topbar enhanced blur + gradient border */
+.topbar{background:rgba(3,15,35,.82)!important;backdrop-filter:blur(24px) saturate(180%)!important;-webkit-backdrop-filter:blur(24px) saturate(180%)!important;border-bottom:1px solid rgba(0,191,255,.25)!important;box-shadow:0 1px 0 rgba(0,191,255,.08),0 4px 24px rgba(0,0,0,.4)!important}
+
+/* ===== NAV PILL (active tab) ===== */
+.nav-btn.active{color:var(--accent2)!important;border-bottom-color:transparent!important}
+.nav-btn.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:32px;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px 3px 0 0;box-shadow:0 0 10px var(--accent2)}
+.nav-btn.active svg{filter:drop-shadow(0 0 6px var(--accent2))}
+
+/* ===== STATS CARDS 3D GLOW ===== */
+.sum-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;transition:transform .2s ease,box-shadow .2s ease}
+.sum-card:active{transform:scale(.97)}
+/* Color glow per stat type */
+.sum-card:nth-child(1){box-shadow:0 4px 20px rgba(0,191,255,.15);border-color:rgba(0,191,255,.25)}
+.sum-card:nth-child(2){box-shadow:0 4px 20px rgba(16,185,129,.15);border-color:rgba(16,185,129,.25)}
+.sum-card:nth-child(3){box-shadow:0 4px 20px rgba(245,158,11,.15);border-color:rgba(245,158,11,.25)}
+.sum-card:nth-child(4){box-shadow:0 4px 20px rgba(239,68,68,.15);border-color:rgba(239,68,68,.25)}
+
+/* ===== CARD ENTRANCE STAGGER ===== */
+@keyframes cardEnter{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.card-enter{animation:cardEnter .4s cubic-bezier(.22,.61,.36,1) both}
+.card-enter:nth-child(1){animation-delay:.05s}
+.card-enter:nth-child(2){animation-delay:.10s}
+.card-enter:nth-child(3){animation-delay:.15s}
+.card-enter:nth-child(4){animation-delay:.20s}
+.card-enter:nth-child(5){animation-delay:.25s}
+.card-enter:nth-child(6){animation-delay:.30s}
+
+/* ===== NUMBER FLASH on update ===== */
+@keyframes numFlash{0%{color:inherit}30%{color:#10b981;text-shadow:0 0 12px rgba(16,185,129,.8)}100%{color:inherit}}
+.num-flash{animation:numFlash .6s ease forwards}
+
+/* ===== LIVE STATUS BADGE ===== */
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+.live-status-bar{display:flex;align-items:center;gap:8px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:13px;color:var(--green)}
+.live-dot-green{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;animation:livePulse 1.5s ease-in-out infinite}
+.live-status-time{font-family:var(--mono);font-weight:600;font-size:14px;color:var(--green)}
+
 /* Logo spin */
 .logo-mark{animation:spinIn .5s cubic-bezier(.34,1.56,.64,1)}
 /* Buttons */
@@ -206,11 +243,17 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .clock-time{font-family:var(--mono);font-size:clamp(28px,8vw,42px);font-weight:500;letter-spacing:2px;background:linear-gradient(135deg,#fff,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:3px;position:relative;z-index:1;transition:text-shadow 2s ease}
 .clock-date{font-size:12px;color:var(--text2);margin-bottom:16px;position:relative;z-index:1}
 .clock-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative;z-index:1}
-.btn-in{padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#0077bb,#00bfff);color:#fff;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 4px 20px rgba(0,191,255,.4);transition:all .15s;position:relative;overflow:hidden}
-.btn-out{padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#dc2626,var(--red));color:#fff;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 4px 20px rgba(239,68,68,.3);transition:all .15s;position:relative;overflow:hidden}
-.btn-in:active,.btn-out:active{transform:scale(.97)}
-.btn-in:disabled,.btn-out:disabled{opacity:.4;cursor:not-allowed}
-.btn-sub{font-size:10px;font-weight:400;opacity:.8}
+.btn-in{width:130px;height:130px;border:none;border-radius:50%;background:linear-gradient(145deg,#0099dd,#0055aa,#00bfff);color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 0 0 8px rgba(0,191,255,.12),0 0 0 16px rgba(0,191,255,.06),0 8px 32px rgba(0,150,255,.5);transition:all .2s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden}
+.btn-out{width:130px;height:130px;border:none;border-radius:50%;background:linear-gradient(145deg,#dc2626,#991b1b,#ef4444);color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 0 0 8px rgba(239,68,68,.12),0 0 0 16px rgba(239,68,68,.06),0 8px 32px rgba(239,68,68,.4);transition:all .2s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden}
+.btn-in:active{transform:scale(.93);box-shadow:0 0 0 4px rgba(0,191,255,.2),0 4px 16px rgba(0,150,255,.4)}
+.btn-out:active{transform:scale(.93);box-shadow:0 0 0 4px rgba(239,68,68,.2),0 4px 16px rgba(239,68,68,.3)}
+.btn-in:disabled,.btn-out:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.btn-sub{font-size:9px;font-weight:400;opacity:.85;letter-spacing:.3px}
+/* button ring pulse when enabled */
+.btn-in:not(:disabled){animation:btnRingPulse 3s ease-in-out infinite}
+@keyframes btnRingPulse{0%,100%{box-shadow:0 0 0 8px rgba(0,191,255,.12),0 0 0 16px rgba(0,191,255,.06),0 8px 32px rgba(0,150,255,.5)}50%{box-shadow:0 0 0 12px rgba(0,191,255,.18),0 0 0 22px rgba(0,191,255,.08),0 8px 40px rgba(0,150,255,.6)}}
+/* btn wrapper center layout */
+.btn-row{display:flex;justify-content:center;align-items:center;gap:28px;padding:10px 0 14px}
 
 /* STAT CARDS */
 .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;min-width:0}
@@ -741,8 +784,10 @@ body.grad-anim{
       <div class="clock-time" id="clock-display">00:00:00</div>
       <div class="clock-date" id="clock-date">—</div>
       <div class="clock-btns">
-        <button class="btn-in btn-liquid tilt-card" id="btn-in" onclick="doCheckIn()"><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:20px;position:relative;z-index:1">▶</span><span style="position:relative;z-index:1">เข้างาน</span><span class="btn-sub" style="position:relative;z-index:1">บันทึกเวลาเข้า</span></button>
-        <button class="btn-out btn-liquid tilt-card" id="btn-out" onclick="doCheckOut()"><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:20px;position:relative;z-index:1">⏹</span><span style="position:relative;z-index:1">ออกงาน</span><span class="btn-sub" style="position:relative;z-index:1">บันทึกเวลาออก</span></button>
+        <div class="btn-row">
+          <button class="btn-in btn-liquid tilt-card" id="btn-in" onclick="doCheckIn()"><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:26px;position:relative;z-index:1">▶</span><span style="position:relative;z-index:1">เข้างาน</span><span class="btn-sub" style="position:relative;z-index:1">บันทึกเวลาเข้า</span></button>
+          <button class="btn-out btn-liquid tilt-card" id="btn-out" onclick="doCheckOut()"><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:26px;position:relative;z-index:1">⏹</span><span style="position:relative;z-index:1">ออกงาน</span><span class="btn-sub" style="position:relative;z-index:1">บันทึกเวลาออก</span></button>
+        </div>
       </div>
     </div>
 
@@ -769,6 +814,7 @@ body.grad-anim{
 
     <div class="card">
       <div class="section-title">📝 รายการวันนี้</div>
+      <div class="live-status-bar" id="live-status-bar" style="display:none"></div>
       <div id="today-list"></div>
     </div>
 
@@ -1504,11 +1550,36 @@ function renderHome(){
   const totalH=comp.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0)+(open?calcHours(open.checkIn,nowStr()):0);
   const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
 
+  // Number flash on value change
+  function flashIfChanged(id, newVal, decimals) {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const prev = parseFloat(el.textContent);
+    animateNumber(el, newVal, 600, decimals);
+    if(!isNaN(prev) && Math.abs(prev - newVal) > 0.05) {
+      el.classList.remove('num-flash');
+      void el.offsetWidth; // reflow
+      el.classList.add('num-flash');
+    }
+  }
+
   document.getElementById('s-firstin').textContent=firstIn;
-  animateNumber(document.getElementById('s-hours'), totalH, 600, 1);
-  animateNumber(document.getElementById('s-ot'), totalOT/60, 600, 1);
-  animateNumber(document.getElementById('s-rounds'), myRec.length, 400, 0);
+  flashIfChanged('s-hours', totalH, 1);
+  flashIfChanged('s-ot', totalOT/60, 1);
+  flashIfChanged('s-rounds', myRec.length, 0);
   updateTodayStatus();
+
+  // Live status bar
+  const liveEl = document.getElementById('live-status-bar');
+  if(liveEl) {
+    if(open) {
+      const elapsed = calcHours(open.checkIn, nowStr());
+      liveEl.style.display = 'flex';
+      liveEl.innerHTML = `<div class="live-dot-green"></div><span>กำลังทำงาน</span><span class="live-status-time" style="margin-left:auto">${elapsed.toFixed(1)} ชม. (${open.checkIn} → ตอนนี้)</span>`;
+    } else {
+      liveEl.style.display = 'none';
+    }
+  }
 
   // Today records list
   const listEl=document.getElementById('today-list');
@@ -1516,7 +1587,7 @@ function renderHome(){
   listEl.innerHTML=myRec.map((r,i)=>{
     const hrs=r.checkOut?calcHours(r.checkIn,r.checkOut):calcHours(r.checkIn,nowStr());
     const otH=(r.otMin||0)/60;
-    return `<div class="rec-item">
+    return `<div class="rec-item card-enter" style="animation-delay:${i*0.06}s">
       <div class="rec-num">${i+1}</div>
       <div class="rec-times">
         <div class="rec-time">${r.checkIn} → ${r.checkOut||'...'}</div>
