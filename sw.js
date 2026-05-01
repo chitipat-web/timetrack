@@ -1,7 +1,7 @@
 // ===== TimeTrack Service Worker =====
-const CACHE_NAME = 'timetrack-v4';
-const STATIC_CACHE = 'timetrack-static-v4';
-const FIREBASE_CACHE = 'timetrack-firebase-v4';
+const CACHE_NAME = 'timetrack-v5';
+const STATIC_CACHE = 'timetrack-static-v5';
+const FIREBASE_CACHE = 'timetrack-firebase-v5';
 
 const STATIC_ASSETS = [
   './index.html',

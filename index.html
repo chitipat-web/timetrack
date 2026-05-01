@@ -211,8 +211,40 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .live-dot-green{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;animation:livePulse 1.5s ease-in-out infinite}
 .live-status-time{font-family:var(--mono);font-weight:600;font-size:14px;color:var(--green)}
 
-/* Logo spin */
-.logo-mark{animation:spinIn .5s cubic-bezier(.34,1.56,.64,1)}
+/* ===== NEON CLOCK GLOW (time-based color) ===== */
+@keyframes neonPulse{0%,100%{text-shadow:0 0 20px currentColor,0 0 40px currentColor,0 0 80px currentColor}50%{text-shadow:0 0 10px currentColor,0 0 20px currentColor,0 0 40px currentColor}}
+.clock-time{font-family:var(--mono);font-size:clamp(28px,8vw,42px);font-weight:500;letter-spacing:2px;margin-bottom:3px;position:relative;z-index:1;transition:color .5s ease;animation:neonPulse 3s ease-in-out infinite}.clock-neon-morning{color:#00e5ff}
+.clock-neon-afternoon{color:#ffd700}
+.clock-neon-evening{color:#ff7043}
+.clock-neon-night{color:#b388ff}
+
+/* ===== GRADIENT TEXT (username) ===== */
+.wc-name-gradient{background:linear-gradient(135deg,#fff 0%,#00e5ff 50%,#7ecfee 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:700}
+
+/* ===== SHIMMER CARD EFFECT ===== */
+@keyframes shimmerSlide{0%{transform:translateX(-150%) skewX(-15deg)}100%{transform:translateX(300%) skewX(-15deg)}}
+.card{position:relative;overflow:hidden}
+.card::after{content:'';position:absolute;top:0;left:0;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimmerSlide 5s ease-in-out infinite;pointer-events:none;z-index:0}
+
+/* ===== AVATAR RING GLOW (settings) ===== */
+.settings-av{box-shadow:0 0 0 3px rgba(0,191,255,.3),0 0 20px rgba(0,191,255,.25),0 0 40px rgba(0,191,255,.1)!important;animation:avatarRing 3s ease-in-out infinite}
+@keyframes avatarRing{0%,100%{box-shadow:0 0 0 3px rgba(0,191,255,.3),0 0 20px rgba(0,191,255,.25),0 0 40px rgba(0,191,255,.1)}50%{box-shadow:0 0 0 5px rgba(0,191,255,.5),0 0 30px rgba(0,191,255,.4),0 0 60px rgba(0,191,255,.15)}}
+
+/* ===== STATUS PAGE PILL FILTER ===== */
+.status-filter-btn{padding:8px 18px;border:1px solid var(--border);border-radius:20px;background:none;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.status-filter-btn.active{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(0,191,255,.4)}
+
+/* ===== DASHBOARD CARD GRADIENT BORDER ===== */
+.dash-stat-card{background:var(--surface);border-radius:12px;padding:14px;position:relative;overflow:hidden}
+.dash-stat-card::before{content:'';position:absolute;inset:0;border-radius:12px;padding:1px;background:linear-gradient(135deg,rgba(0,191,255,.4),rgba(120,80,255,.3),rgba(0,191,255,.1));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+
+/* ===== FLOATING DOTS (card depth) ===== */
+@keyframes floatDot{0%,100%{transform:translateY(0) scale(1);opacity:.3}50%{transform:translateY(-8px) scale(1.2);opacity:.6}}
+.float-dot{position:absolute;border-radius:50%;background:rgba(0,191,255,.2);pointer-events:none}
+.float-dot:nth-child(1){width:6px;height:6px;top:15%;right:12%;animation:floatDot 4s ease-in-out infinite}
+.float-dot:nth-child(2){width:4px;height:4px;top:60%;right:20%;animation:floatDot 5s ease-in-out infinite 1s}
+.float-dot:nth-child(3){width:5px;height:5px;top:35%;right:8%;animation:floatDot 3.5s ease-in-out infinite 2s}
+
 /* Buttons */
 .btn-primary{transition:transform .15s,box-shadow .15s,opacity .15s}
 .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(59,130,246,.38)}
@@ -240,7 +272,6 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .welcome-av img{width:100%;height:100%;object-fit:cover;border-radius:10px}
 .welcome-name{font-size:16px;font-weight:700;margin-bottom:2px}
 .welcome-meta{font-size:12px;color:var(--text2)}
-.clock-time{font-family:var(--mono);font-size:clamp(28px,8vw,42px);font-weight:500;letter-spacing:2px;background:linear-gradient(135deg,#fff,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:3px;position:relative;z-index:1;transition:text-shadow 2s ease}
 .clock-date{font-size:12px;color:var(--text2);margin-bottom:16px;position:relative;z-index:1}
 .clock-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative;z-index:1}
 .btn-in{width:130px;height:130px;border:none;border-radius:50%;background:linear-gradient(145deg,#0099dd,#0055aa,#00bfff);color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 0 0 8px rgba(0,191,255,.12),0 0 0 16px rgba(0,191,255,.06),0 8px 32px rgba(0,150,255,.5);transition:all .2s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden}
@@ -478,8 +509,7 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 /* Live dot water color */
 .live-dot{background:#00e5ff;box-shadow:0 0 6px #00e5ff}
 
-/* Clock time water glow */
-.clock-time{text-shadow:0 0 30px rgba(0,230,255,.5),0 0 60px rgba(0,180,255,.2)}
+/* Clock time — neon glow via .clock-neon-* classes */
 
 /* Stat box water glow on hover */
 .stat-box:hover{box-shadow:0 8px 28px rgba(0,191,255,.25);border-color:rgba(0,191,255,.45)}
@@ -565,6 +595,48 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .btn-liquid{position:relative;overflow:hidden}
 .btn-liquid canvas.liquid-cv{position:absolute;bottom:0;left:0;width:100%;height:100%;opacity:.35;pointer-events:none}
  */
+/* ===== ROUND 2: SWIPE TO DELETE ===== */
+.swipe-wrap{position:relative;overflow:hidden;border-radius:12px;margin-bottom:8px}
+.swipe-item{position:relative;z-index:1;transition:transform .25s cubic-bezier(.25,.46,.45,.94);touch-action:pan-y;background:var(--surface)}
+.swipe-actions{position:absolute;right:0;top:0;height:100%;display:flex;align-items:stretch;z-index:0}
+.swipe-del-btn{background:var(--red);color:#fff;border:none;padding:0 22px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;min-width:70px}
+.swipe-edit-btn{background:var(--accent);color:#fff;border:none;padding:0 18px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;min-width:60px}
+
+/* ===== MINI TREND CHART (history) ===== */
+.mini-chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.mini-chart-title{font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600}
+.mini-chart-bars{display:flex;align-items:flex-end;gap:3px;height:50px}
+.mini-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mini-bar{width:100%;border-radius:3px 3px 0 0;transition:height .4s cubic-bezier(.22,.61,.36,1);min-height:2px}
+.mini-bar.has-data{background:linear-gradient(180deg,var(--accent2),var(--accent))}
+.mini-bar.empty{background:var(--surface2)}
+.mini-bar.today-bar{background:linear-gradient(180deg,#ffd700,#ff9500);box-shadow:0 0 8px rgba(255,200,0,.4)}
+.mini-bar-label{font-size:8px;color:var(--text3);font-family:var(--mono)}
+
+/* ===== TEAM PROGRESS BAR ===== */
+.team-prog-bar{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-top:4px}
+.team-prog-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s cubic-bezier(.22,.61,.36,1)}
+
+/* ===== SALARY REAL-TIME PREVIEW ===== */
+.sal-preview{background:linear-gradient(135deg,rgba(0,191,255,.08),rgba(0,100,200,.05));border:1px solid rgba(0,191,255,.2);border-radius:14px;padding:16px;margin-top:12px;display:none}
+.sal-preview.show{display:block;animation:cardEnter .3s ease}
+.sal-preview-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,191,255,.08);font-size:13px}
+.sal-preview-row:last-child{border-bottom:none;font-weight:700;font-size:15px;color:var(--green);margin-top:4px}
+.sal-preview-label{color:var(--text2)}
+.sal-preview-val{font-family:var(--mono);color:var(--accent2)}
+
+/* ===== CALENDAR LONG-PRESS TOOLTIP ===== */
+.cal-tooltip{position:fixed;background:rgba(8,18,38,.97);border:1px solid rgba(0,191,255,.3);border-radius:12px;padding:10px 14px;font-size:12px;z-index:800;pointer-events:none;min-width:150px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:scaleIn .15s ease}
+.cal-tooltip-date{font-weight:700;color:var(--accent2);margin-bottom:5px;font-size:13px}
+.cal-tooltip-row{display:flex;justify-content:space-between;gap:12px;color:var(--text2);padding:2px 0}
+
+/* ===== PULL TO REFRESH WATER DROP ===== */
+@keyframes dropFall{0%{transform:translateY(-20px) scale(.5);opacity:0}60%{opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes dropSplash{0%{transform:scale(1);opacity:1}100%{transform:scale(2.5);opacity:0}}
+.ptr-water{position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:400;pointer-events:none;display:none;flex-direction:column;align-items:center;gap:4px}
+.ptr-drop{width:12px;height:16px;background:linear-gradient(180deg,#00e5ff,#0077cc);border-radius:50% 50% 40% 40%}
+.ptr-label-text{font-size:11px;color:var(--accent2);font-weight:600}
+
 @keyframes btnRipple{0%{transform:scale(0);opacity:.6}100%{transform:scale(4);opacity:0}}
 .btn-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.35);animation:btnRipple .6s ease-out forwards;pointer-events:none;width:60px;height:60px;margin-left:-30px;margin-top:-30px}
 
@@ -774,10 +846,13 @@ body.grad-anim{
   <!-- HOME -->
   <div class="page active" id="page-home">
     <div class="clock-hero tilt-card" id="clock-hero">
+      <div class="float-dot"></div>
+      <div class="float-dot"></div>
+      <div class="float-dot"></div>
       <div class="welcome-row">
         <div class="welcome-av" id="wc-av" onclick="openPhotoUpload()">?<div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div></div>
         <div>
-          <div class="welcome-name" id="wc-name"><span id="wc-typewriter"></span><span class="typewriter-cursor" id="tw-cursor" style="display:none"></span></div>
+          <div class="welcome-name wc-name-gradient" id="wc-name"><span id="wc-typewriter"></span><span class="typewriter-cursor" id="tw-cursor" style="display:none"></span></div>
           <div class="welcome-meta" id="wc-meta">—</div>
         </div>
       </div>
@@ -837,7 +912,7 @@ body.grad-anim{
       <div class="cal-title" id="cal-title">—</div>
       <button class="cal-nav-btn" onclick="calMove(1)">›</button>
     </div>
-    <div class="cal-grid">
+    <div class="cal-grid" id="calendar-grid">
       <div class="cal-weekdays" id="cal-weekdays"></div>
       <div class="cal-days" id="cal-days"></div>
     </div>
@@ -873,9 +948,10 @@ body.grad-anim{
       <div style="font-size:17px;font-weight:700">📋 ประวัติ</div>
     </div>
     <div class="filter-row">
-      <select class="sel" id="hist-month" onchange="renderHistory()"></select>
-      <select class="sel" id="hist-year" onchange="renderHistory()"></select>
+      <select class="sel" id="hist-month" onchange="renderHistory(true)"></select>
+      <select class="sel" id="hist-year" onchange="renderHistory(true)"></select>
     </div>
+    <div id="history-mini-chart"></div>
     <div id="history-list"></div>
   </div>
 
@@ -891,10 +967,10 @@ body.grad-anim{
 
   <!-- STATUS PAGE (ADMIN) -->
   <div class="page" id="page-status">
-    <div class="stats-bar">
-      <div class="stat-box"><div class="stat-num green" id="stat-in">0</div><div class="stat-label">ในงาน</div></div>
-      <div class="stat-box"><div class="stat-num red" id="stat-out">0</div><div class="stat-label">ไม่อยู่</div></div>
-      <div class="stat-box"><div class="stat-num blue" id="stat-total">0</div><div class="stat-label">ทั้งหมด</div></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="status-filter-btn active" id="sf-all" onclick="setStatusFilter('all',this)">ทั้งหมด <span id="stat-total" style="opacity:.7">0</span></button>
+      <button class="status-filter-btn" id="sf-in" onclick="setStatusFilter('in',this)">🟢 ในงาน <span id="stat-in" style="opacity:.7">0</span></button>
+      <button class="status-filter-btn" id="sf-out" onclick="setStatusFilter('out',this)">⭕ ไม่อยู่ <span id="stat-out" style="opacity:.7">0</span></button>
     </div>
     <div class="section-label">สถานะพนักงานวันนี้</div>
     <div class="status-grid" id="status-grid"></div>
@@ -944,7 +1020,9 @@ body.grad-anim{
     <div class="card">
       <div class="form-group">
         <label class="form-label">เงินเดือนที่ได้รับ (บาท)</label>
-        <input type="number" id="sal-input" class="form-inp" placeholder="เช่น 25000" oninput="saveSalInput();renderSalary()"/>
+        <input type="number" id="sal-input" class="form-inp" placeholder="เช่น 25000" oninput="saveSalInput();renderSalary();updateSalPreview()"/>
+        <!-- Real-time salary preview -->
+        <div class="sal-preview" id="sal-preview"></div>
       </div>
     </div>
     <div id="sal-result"></div>
@@ -1074,6 +1152,15 @@ body.grad-anim{
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- PULL TO REFRESH WATER DROP -->
+<div class="ptr-water" id="ptr-water">
+  <div class="ptr-drop" id="ptr-drop"></div>
+  <div class="ptr-label-text" id="ptr-label">ดึงเพื่อรีเฟรช</div>
+</div>
+
+<!-- CALENDAR TOOLTIP -->
+<div class="cal-tooltip" id="cal-tooltip" style="display:none"></div>
 
 <!-- CONFIRM DIALOG -->
 <div class="confirm-overlay" id="confirm-overlay">
@@ -1249,12 +1336,24 @@ function startClock(){
   const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   function tick(){
     const n=new Date();
-    document.getElementById('clock-display').textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
-    document.getElementById('clock-date').textContent=`วัน${days[n.getDay()]}ที่ ${n.getDate()} ${mons[n.getMonth()]} ${n.getFullYear()+543}`;
+    const cl = document.getElementById('clock-display');
+    if(cl) cl.textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+    const cd = document.getElementById('clock-date');
+    if(cd) cd.textContent=`วัน${days[n.getDay()]}ที่ ${n.getDate()} ${mons[n.getMonth()]} ${n.getFullYear()+543}`;
+    // Neon color by hour
+    const h = n.getHours();
+    const neonClass = h>=5&&h<12 ? 'clock-neon-morning'
+                    : h>=12&&h<17 ? 'clock-neon-afternoon'
+                    : h>=17&&h<21 ? 'clock-neon-evening'
+                    : 'clock-neon-night';
+    if(cl){
+      cl.classList.remove('clock-neon-morning','clock-neon-afternoon','clock-neon-evening','clock-neon-night');
+      cl.classList.add(neonClass);
+    }
   }
   tick(); updateClockGlow();
   setInterval(tick,1000);
-  setInterval(updateClockGlow,60000); // Update glow every minute
+  setInterval(updateClockGlow,60000);
 }
 
 // ========== DARK MODE ==========
@@ -1324,6 +1423,7 @@ function initApp(){
   else if(document.getElementById('wc-name')) document.getElementById('wc-name').querySelector('span')&&(document.getElementById('wc-typewriter').textContent=curUser.name||'');
   // Init visual effects
   setTimeout(initAllEffects, 300);
+  setTimeout(initRound2Effects, 500);
 
   // Photo + Avatar color
   const photo=getPhoto(curUser.email);
@@ -1689,7 +1789,7 @@ function renderCalendar(){
     else if(hasLate)cls+=' has-late';
     if(hasOT)cls+=' has-ot';
     const tip=isAdmin()?`oncontextmenu="event.preventDefault();toggleHoliday('${dateStr}')" onlongpress="toggleHoliday('${dateStr}')"`:'' ;
-    html+=`<div class="${cls}" onclick="showDayDetail('${dateStr}','${curUser.email}')" ${tip} title="${holiday||''}">${d}</div>`;
+    html+=`<div class="${cls}" data-date="${dateStr}" onclick="showDayDetail('${dateStr}','${curUser.email}')" ${tip} title="${holiday||''}">${d}</div>`;
   }
   document.getElementById('cal-days').innerHTML=html;
 }
@@ -1762,6 +1862,8 @@ function renderHistory(resetPage){
   if(resetPage) historyPage = 1;
   const month=parseInt(document.getElementById('hist-month').value);
   const year=parseInt(document.getElementById('hist-year').value);
+  // Mini trend chart
+  renderMiniTrendChart('history-mini-chart');
   const mons=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   const dayNames=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
   const myRec=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1});
@@ -1980,11 +2082,19 @@ function changeMonth(d) {
 function openModal() { openAddEmpModal(); }
 
 // ========== RENDER STATUS ==========
+let _statusFilter = 'all';
+function setStatusFilter(type, btn) {
+  _statusFilter = type;
+  document.querySelectorAll('.status-filter-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderStatus();
+}
+
 function renderStatus() {
   if(!isAdmin()) return;
   const today = todayStr();
   let inCount = 0;
-  const html = employees.map(emp => {
+  const allCards = employees.map(emp => {
     const dr = records.filter(r => r.empId === emp.id && r.date === today);
     const last = dr.length ? dr[dr.length-1] : null;
     const isIn = last && !last.checkOut && last.checkIn;
@@ -1997,7 +2107,7 @@ function renderStatus() {
     }
     const photo = getPhoto(emp.email);
     const _eG=avatarGrad(emp.name), _eL=avatarLetter(emp.name);
-    return `<div class="emp-card ${isIn?'in':'out'}">
+    return { isIn, html: `<div class="emp-card ${isIn?'in':'out'} card-enter">
       <div class="emp-av" style="width:40px;height:40px;border-radius:10px;background:${photo?'none':_eG};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;overflow:hidden">${photo?`<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:_eL}</div>
       <div class="emp-info" style="flex:1;min-width:0">
         <div class="emp-name">${emp.name}</div>
@@ -2009,8 +2119,13 @@ function renderStatus() {
         <div style="font-family:var(--mono);font-size:11px;color:var(--text2)">${firstIn !== '--:--' ? 'เข้า '+firstIn : '—'}</div>
         ${durText?`<div style="font-size:10px;color:var(--accent2)">${durText}</div>`:''}
       </div>
-    </div>`;
-  }).join('');
+    </div>` };
+  });
+  // Apply filter
+  const filtered = _statusFilter === 'in' ? allCards.filter(c=>c.isIn)
+                 : _statusFilter === 'out' ? allCards.filter(c=>!c.isIn)
+                 : allCards;
+  const html = filtered.map(c=>c.html).join('');
   const grid = document.getElementById('status-grid');
   if(grid) grid.innerHTML = html || '<div class="empty-state"><div class="empty-icon">👥</div>ไม่มีพนักงาน</div>';
   const si = document.getElementById('stat-in');
@@ -2151,6 +2266,7 @@ function renderSalary(){
   const saved=getSalInput(month,year);
   if(document.getElementById('sal-input').value===''&&saved)document.getElementById('sal-input').value=saved;
   const salary=parseFloat(document.getElementById('sal-input').value)||0;
+  updateSalPreview();
   const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1});
   const comp=mr.filter(r=>r.checkOut);
@@ -3619,7 +3735,268 @@ document.getElementById('login-email').addEventListener('keydown', e => { if(e.k
 </div>
 
 <script>
-// ===== EFFECT: TYPEWRITER =====
+// ===== ROUND 2: SWIPE TO DELETE =====
+function initSwipeDelete(wrapEl, onDelete, onEdit) {
+  const item = wrapEl.querySelector('.swipe-item');
+  if(!item) return;
+  let startX=0, curX=0, swiping=false;
+  const THRESHOLD = 80;
+
+  item.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    curX = 0; swiping = true;
+    item.style.transition = 'none';
+  }, {passive:true});
+
+  item.addEventListener('touchmove', e => {
+    if(!swiping) return;
+    curX = e.touches[0].clientX - startX;
+    if(curX > 0) curX = 0; // only left swipe
+    item.style.transform = `translateX(${Math.max(curX, -160)}px)`;
+  }, {passive:true});
+
+  item.addEventListener('touchend', () => {
+    swiping = false;
+    item.style.transition = '';
+    if(curX < -THRESHOLD) {
+      item.style.transform = 'translateX(-130px)';
+    } else {
+      item.style.transform = '';
+    }
+    curX = 0;
+  }, {passive:true});
+
+  // Close on tap elsewhere
+  document.addEventListener('touchstart', e => {
+    if(!wrapEl.contains(e.target)) {
+      item.style.transform = '';
+    }
+  }, {passive:true});
+}
+
+function wrapRecordSwipe(container) {
+  if(!container) return;
+  const items = container.querySelectorAll('.rec-item, .history-item');
+  items.forEach(el => {
+    if(el.closest('.swipe-wrap')) return; // already wrapped
+    const recId = el.querySelector('[onclick*="deleteRec"]')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    const empId = el.querySelector('[onclick*="deleteRec"]')?.getAttribute('onclick')?.match(/'([^']+)',\s*'([^']+)'/)?.[2];
+    const editBtn = el.querySelector('.btn-edit, [onclick*="openEdit"]');
+    const delBtn  = el.querySelector('.btn-del, [onclick*="deleteRec"]');
+    if(!recId) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'swipe-wrap';
+    const actions = document.createElement('div');
+    actions.className = 'swipe-actions';
+    actions.innerHTML = `
+      <button class="swipe-edit-btn" onclick="${editBtn?.getAttribute('onclick')||''}">✏️</button>
+      <button class="swipe-del-btn" onclick="${delBtn?.getAttribute('onclick')||''}">🗑</button>`;
+
+    el.classList.add('swipe-item');
+    el.parentNode.insertBefore(wrap, el);
+    wrap.appendChild(el);
+    wrap.appendChild(actions);
+    initSwipeDelete(wrap, ()=>{}, ()=>{});
+  });
+}
+
+// ===== MINI TREND CHART (history) =====
+function renderMiniTrendChart(containerId) {
+  if(!curUser) return;
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  const today = new Date();
+  const days = [];
+  for(let i=6; i>=0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const dayRecs = records.filter(r => r.empId===curUser.id && r.date===dateStr && r.checkOut);
+    const hrs = dayRecs.reduce((s,r) => s+calcHours(r.checkIn,r.checkOut), 0);
+    const dayNames = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+    days.push({ dateStr, hrs, label: dayNames[d.getDay()], isToday: i===0 });
+  }
+  const maxH = Math.max(...days.map(d=>d.hrs), 8);
+  el.innerHTML = `
+    <div class="mini-chart-wrap">
+      <div class="mini-chart-title">📈 ชม.ทำงาน 7 วันล่าสุด</div>
+      <div class="mini-chart-bars">
+        ${days.map(d => {
+          const pct = d.hrs > 0 ? Math.max(8, (d.hrs/maxH)*100) : 0;
+          const cls = d.isToday ? 'today-bar' : d.hrs>0 ? 'has-data' : 'empty';
+          return `<div class="mini-bar-wrap">
+            <div class="mini-bar ${cls}" style="height:${pct}%;"></div>
+            <div class="mini-bar-label">${d.label}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+// ===== TEAM PROGRESS BAR (summary) =====
+function addProgressBars(summaryEl) {
+  if(!summaryEl) return;
+  const rows = summaryEl.querySelectorAll('.summary-emp-row, [data-emp-hrs]');
+  if(!rows.length) return;
+  // Find max hours
+  let maxH = 0;
+  rows.forEach(row => {
+    const h = parseFloat(row.dataset.empHrs || 0);
+    if(h > maxH) maxH = h;
+  });
+  if(!maxH) return;
+  rows.forEach(row => {
+    const h = parseFloat(row.dataset.empHrs || 0);
+    const pct = maxH > 0 ? (h/maxH*100).toFixed(1) : 0;
+    const existing = row.querySelector('.team-prog-bar');
+    if(existing) existing.remove();
+    const bar = document.createElement('div');
+    bar.className = 'team-prog-bar';
+    bar.innerHTML = `<div class="team-prog-fill" style="width:0%" data-target="${pct}"></div>`;
+    row.appendChild(bar);
+    setTimeout(() => {
+      const fill = bar.querySelector('.team-prog-fill');
+      if(fill) fill.style.width = pct + '%';
+    }, 100);
+  });
+}
+
+// ===== SALARY REAL-TIME PREVIEW =====
+function updateSalPreview() {
+  const preview = document.getElementById('sal-preview');
+  if(!preview) return;
+  const salary = parseFloat(document.getElementById('sal-input')?.value) || 0;
+  if(!salary || !curUser) { preview.classList.remove('show'); return; }
+
+  const month = parseInt(document.getElementById('sal-month')?.value);
+  const year  = parseInt(document.getElementById('sal-year')?.value);
+  const myRec = records.filter(r => {
+    const [y,m] = r.date.split('-').map(Number);
+    return r.empId===curUser.id && y===year && m===month+1 && r.checkOut;
+  });
+  const totalH  = myRec.reduce((s,r) => s+calcHours(r.checkIn,r.checkOut), 0);
+  const totalOT = myRec.reduce((s,r) => s+(r.otMin||0), 0);
+  const workDays = [...new Set(myRec.map(r=>r.date))].length;
+  const dailyRate = salary / 26;
+  const hrRate    = salary / (26*8);
+  const otRate    = hrRate * 1.5;
+  const otPay     = (totalOT/60) * otRate;
+  const total     = salary + otPay;
+
+  preview.classList.add('show');
+  preview.innerHTML = `
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">💡 ประมาณการ</div>
+    <div class="sal-preview-row"><span class="sal-preview-label">เงินเดือนฐาน</span><span class="sal-preview-val">${salary.toLocaleString()} ฿</span></div>
+    <div class="sal-preview-row"><span class="sal-preview-label">ทำงาน ${workDays} วัน / ${totalH.toFixed(1)} ชม.</span><span class="sal-preview-val">${(dailyRate*workDays).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>
+    ${totalOT>0?`<div class="sal-preview-row"><span class="sal-preview-label">OT ${(totalOT/60).toFixed(1)} ชม. (×1.5)</span><span class="sal-preview-val">+${otPay.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>`:''}
+    <div class="sal-preview-row"><span class="sal-preview-label">รวมทั้งหมด</span><span class="sal-preview-val" style="color:var(--green);font-size:16px">${total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>`;
+}
+
+// ===== CALENDAR LONG-PRESS TOOLTIP =====
+let _calTooltipTimer = null;
+function initCalendarTooltip() {
+  const cal = document.getElementById('calendar-grid') || document.querySelector('.cal-grid');
+  if(!cal) return;
+  const tooltip = document.getElementById('cal-tooltip');
+  if(!tooltip) return;
+
+  cal.addEventListener('touchstart', e => {
+    const dayEl = e.target.closest('.cal-day');
+    if(!dayEl || !curUser) return;
+    _calTooltipTimer = setTimeout(() => {
+      haptic('medium');
+      const dateStr = dayEl.dataset.date;
+      if(!dateStr) return;
+      const myRec = records.filter(r => r.empId===curUser.id && r.date===dateStr && r.checkOut);
+      const hrs = myRec.reduce((s,r) => s+calcHours(r.checkIn,r.checkOut), 0);
+      const ot  = myRec.reduce((s,r) => s+(r.otMin||0), 0);
+      const late= myRec.some(r=>r.isLate);
+      const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      const [y,m,d] = dateStr.split('-').map(Number);
+      const rect = dayEl.getBoundingClientRect();
+      tooltip.style.display = 'block';
+      tooltip.style.left = Math.min(rect.left, window.innerWidth-175) + 'px';
+      tooltip.style.top  = (rect.bottom + 8) + 'px';
+      tooltip.innerHTML = `
+        <div class="cal-tooltip-date">${d} ${mons[m-1]} ${y+543}</div>
+        ${myRec.length ? `
+          <div class="cal-tooltip-row"><span>🕐 เข้างาน</span><span>${myRec[0].checkIn}</span></div>
+          <div class="cal-tooltip-row"><span>⏱ รวม</span><span>${hrs.toFixed(1)} ชม.</span></div>
+          ${ot>0?`<div class="cal-tooltip-row"><span>⚡ OT</span><span>${(ot/60).toFixed(1)} ชม.</span></div>`:''}
+          ${late?`<div class="cal-tooltip-row"><span>⚠️ สาย</span><span style="color:var(--red)">ใช่</span></div>`:''}
+        ` : '<div style="color:var(--text3);text-align:center">ไม่มีข้อมูล</div>'}`;
+    }, 500);
+  }, {passive:true});
+
+  cal.addEventListener('touchend', () => {
+    clearTimeout(_calTooltipTimer);
+  }, {passive:true});
+
+  document.addEventListener('touchstart', e => {
+    if(!e.target.closest('.cal-day') && !e.target.closest('.cal-tooltip')) {
+      if(tooltip) tooltip.style.display='none';
+    }
+  }, {passive:true});
+}
+
+// ===== PULL TO REFRESH WATER DROP =====
+function initPullToRefreshWater() {
+  const ptrEl = document.getElementById('ptr-water');
+  const dropEl = document.getElementById('ptr-drop');
+  const labelEl = document.getElementById('ptr-label');
+  if(!ptrEl) return;
+
+  let startY=0, pulling=false;
+  const TRIGGER = 70;
+
+  document.addEventListener('touchstart', e => {
+    if(document.scrollingElement.scrollTop === 0) {
+      startY = e.touches[0].clientY;
+      pulling = true;
+    }
+  }, {passive:true});
+
+  document.addEventListener('touchmove', e => {
+    if(!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if(dy > 10) {
+      ptrEl.style.display = 'flex';
+      const pct = Math.min(dy / TRIGGER, 1);
+      ptrEl.style.opacity = pct.toString();
+      if(dropEl) dropEl.style.transform = `translateY(${dy*0.3}px) scale(${0.5+pct*0.5})`;
+      if(labelEl) labelEl.style.opacity = pct > 0.6 ? '1' : '0';
+    }
+  }, {passive:true});
+
+  document.addEventListener('touchend', e => {
+    if(!pulling) return;
+    pulling = false;
+    const dy = e.changedTouches[0].clientY - startY;
+    if(dy >= TRIGGER) {
+      // Splash animation
+      if(dropEl) { dropEl.classList.add('splash'); setTimeout(()=>dropEl.classList.remove('splash'),300); }
+      if(labelEl) labelEl.textContent = 'กำลังรีเฟรช...';
+      setTimeout(() => {
+        ptrEl.style.display='none';
+        if(labelEl) labelEl.textContent = 'ดึงเพื่อรีเฟรช';
+        if(fbConn && typeof syncDown==='function') syncDown();
+        showToast('🔄 รีเฟรชแล้ว','success');
+      }, 800);
+    } else {
+      ptrEl.style.display = 'none';
+    }
+    startY = 0;
+  }, {passive:true});
+}
+
+// ===== INIT ALL ROUND 2 EFFECTS =====
+function initRound2Effects() {
+  initPullToRefreshWater();
+  initCalendarTooltip();
+}
+
+// ===== HOOK ROUND 2 INTO initApp =====
 let _twTimer = null;
 function typewriterText(el, cursorEl, text, speed=55) {
   if(_twTimer) clearInterval(_twTimer);
