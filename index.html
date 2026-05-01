@@ -1312,9 +1312,48 @@ function initApp(){
   setupReminder();
   if(fbURL)document.getElementById('fb-url').value=fbURL;
   updateTodayStatus();
+  // Migrate OT calculations to latest logic
+  setTimeout(migrateOTIfNeeded, 1500);
 }
 
 // Legacy session login removed — Firebase Auth handles all session management
+
+// ========== OT MIGRATION ==========
+// Recalculate otMin for all records using latest logic (runs once per version)
+const OT_MIGRATE_VER = 'ot_v3';
+async function migrateOTIfNeeded() {
+  if(!curUser) return;
+  const key = `tt_ot_migrated_${curUser.id}`;
+  if(localStorage.getItem(key) === OT_MIGRATE_VER) return; // already done
+
+  let fixed = 0;
+  records.forEach(r => {
+    if(!r.checkOut || !r.checkIn) return;
+    const correct = calcOTMin(r.checkOut, r.checkIn);
+    if(r.otMin !== correct) {
+      r.otMin = correct;
+      fixed++;
+    }
+  });
+
+  if(fixed > 0) {
+    saveRec();
+    // Update Firebase if connected
+    if(fbConn && typeof db !== 'undefined') {
+      try {
+        const updates = {};
+        records.forEach(r => {
+          if(r.empId === curUser.id) {
+            updates[`records/${curUser.id}/${r.id}/otMin`] = r.otMin;
+          }
+        });
+        await db.ref('/').update(updates);
+      } catch(e) {}
+    }
+    showToast(`✅ ปรับ OT ${fixed} รายการ`, 'success');
+  }
+  localStorage.setItem(key, OT_MIGRATE_VER);
+}
 
 // ========== SELECTORS ==========
 function populateSels(){
