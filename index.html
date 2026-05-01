@@ -502,6 +502,34 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 /* Responsive canvas z-index */
 #songkran-canvas{z-index:0}
 #app-shell,#login-screen .login-box{position:relative;z-index:1}
+/* ANNOUNCE & POLL */
+.announce-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;position:relative}
+.announce-card.pinned{border-color:rgba(255,215,0,.4);background:linear-gradient(135deg,var(--surface),rgba(255,215,0,.04))}
+.announce-pin{position:absolute;top:10px;right:10px;font-size:14px}
+.announce-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.announce-body{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:8px}
+.announce-meta{font-size:11px;color:var(--text3)}
+.announce-new{display:inline-block;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+.poll-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.poll-question{font-size:14px;font-weight:700;margin-bottom:12px}
+.poll-option{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.poll-bar-wrap{flex:1;height:34px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative;cursor:pointer;transition:border-color .2s}
+.poll-bar-wrap:hover{border-color:var(--accent)}
+.poll-bar-wrap.voted{border-color:var(--accent)}
+.poll-fill{height:100%;background:var(--accent-light);transition:width .5s ease;position:absolute;left:0;top:0}
+.poll-bar-label{position:relative;z-index:1;padding:0 10px;font-size:13px;line-height:34px}
+.poll-pct{font-size:12px;font-family:var(--mono);color:var(--accent);min-width:36px;text-align:right}
+.poll-votes{font-size:11px;color:var(--text3);margin-top:6px}
+/* PUSH SETTINGS */
+.push-status{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--surface2);border-radius:10px;margin-bottom:10px;font-size:13px}
+.push-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.push-dot.granted{background:var(--green)}.push-dot.denied{background:var(--red)}.push-dot.default{background:var(--yellow)}
+.notif-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.notif-row:last-child{border-bottom:none}
+.tog{width:42px;height:24px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--accent);border-color:var(--accent)}
+.tog-knob{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.tog.on .tog-knob{left:20px}
 
 </style>
 
@@ -649,6 +677,9 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
     </button>
     <button class="nav-btn" data-page="settings" onclick="showPage('settings',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg>ตั้งค่า
+    </button>
+    <button class="nav-btn" data-page="announce" onclick="showPage('announce',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 17H2a3 3 0 000 6h20a3 3 0 000-6z"/><path d="M15 9a3 3 0 000-6H5L2 9h13z"/><path d="M22 9h-5"/></svg>ประกาศ<span id="announce-badge" style="display:none;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:4px;margin-left:3px"></span>
     </button>
   </nav>
 
@@ -874,6 +905,37 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
     </div>
 
     <div class="card">
+      <div class="section-title">🔔 การแจ้งเตือน</div>
+      <div class="push-status">
+        <div class="push-dot" id="push-dot"></div>
+        <span id="push-status-text">กำลังตรวจสอบ...</span>
+      </div>
+      <button class="btn-primary" id="push-enable-btn" style="width:100%;margin-bottom:12px;display:none" onclick="requestPushPermission()">เปิดใช้การแจ้งเตือน</button>
+      <div id="notif-toggles">
+        <div class="notif-row">
+          <span>🌅 เตือนก่อนถึงเวลาเข้างาน 30 นาที</span>
+          <div class="tog" id="tog-early" onclick="toggleNotif('early')"><div class="tog-knob"></div></div>
+        </div>
+        <div class="notif-row">
+          <span>⏰ เตือนลืม Check-out</span>
+          <div class="tog on" id="tog-checkout"><div class="tog-knob"></div></div>
+        </div>
+        <div class="notif-row">
+          <span>📢 ประกาศจาก Admin</span>
+          <div class="tog on" id="tog-announce"><div class="tog-knob"></div></div>
+        </div>
+        <div class="notif-row">
+          <span>🗳 โพลใหม่จาก Admin</span>
+          <div class="tog on" id="tog-poll"><div class="tog-knob"></div></div>
+        </div>
+        <div class="notif-row">
+          <span>📊 สรุปประจำเดือน</span>
+          <div class="tog on" id="tog-monthly"><div class="tog-knob"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:14px;color:var(--text2)">เวอร์ชัน 2.0</span>
         <button class="btn-secondary" style="width:auto;padding:8px 16px;font-size:13px" onclick="doLogout()">ออกจากระบบ</button>
@@ -944,7 +1006,58 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
   <button class="error-retry-btn" onclick="retryConnection()">ลองใหม่</button>
 </div>
 
-<!-- EDIT LOG MODAL -->
+  <!-- ANNOUNCE & POLL PAGE -->
+  <div class="page" id="page-announce">
+    <div class="page-header"><h2 class="page-title">📢 ประกาศ & โพล</h2></div>
+
+    <!-- Admin: create announce/poll -->
+    <div id="admin-announce-section" style="display:none">
+      <div class="card" style="margin-bottom:10px">
+        <div class="section-title">➕ สร้างประกาศ / โพล</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button class="btn-primary" style="flex:1;padding:10px" onclick="openCreateAnnounce()">📢 ประกาศ</button>
+          <button class="btn-primary" style="flex:1;padding:10px;background:linear-gradient(135deg,var(--purple),#c026d3)" onclick="openCreatePoll()">🗳 โพล</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- List -->
+    <div id="announce-list"><div class="empty-state"><div class="empty-icon">📢</div><div>ยังไม่มีประกาศ</div></div></div>
+  </div>
+
+  <!-- CREATE ANNOUNCE MODAL -->
+  <div class="modal-overlay" id="create-announce-modal">
+    <div class="modal">
+      <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
+      <label class="modal-label">หัวข้อ</label>
+      <input class="modal-inp" id="ann-title" placeholder="หัวข้อประกาศ"/>
+      <label class="modal-label">เนื้อหา</label>
+      <textarea class="modal-inp" id="ann-body" rows="4" placeholder="รายละเอียด..." style="resize:vertical"></textarea>
+      <label class="modal-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="ann-pin" style="width:16px;height:16px"> ปักหมุด (แสดงด้านบน)
+      </label>
+      <button class="btn-primary" style="width:100%;margin-top:14px" onclick="submitAnnounce()">ประกาศ</button>
+    </div>
+  </div>
+
+  <!-- CREATE POLL MODAL -->
+  <div class="modal-overlay" id="create-poll-modal">
+    <div class="modal">
+      <div class="modal-title">🗳 สร้างโพล<button class="modal-close" onclick="closeModal('create-poll-modal')">✕</button></div>
+      <label class="modal-label">คำถาม</label>
+      <input class="modal-inp" id="poll-q" placeholder="ถามอะไร?"/>
+      <label class="modal-label">ตัวเลือก (อย่างน้อย 2)</label>
+      <div id="poll-options-wrap">
+        <input class="modal-inp" placeholder="ตัวเลือก 1" style="margin-bottom:6px"/>
+        <input class="modal-inp" placeholder="ตัวเลือก 2" style="margin-bottom:6px"/>
+      </div>
+      <button class="btn-secondary" style="width:100%;margin-bottom:10px" onclick="addPollOption()">+ เพิ่มตัวเลือก</button>
+      <label class="modal-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="poll-multi"> เลือกได้หลายตัวเลือก
+      </label>
+      <button class="btn-primary" style="width:100%;margin-top:14px" onclick="submitPoll()">สร้างโพล</button>
+    </div>
+  </div>
 <div class="modal-overlay" id="log-modal">
   <div class="modal">
     <div class="modal-title">📋 ประวัติการแก้ไข<button class="modal-close" onclick="closeModal('log-modal')">✕</button></div>
@@ -1085,6 +1198,8 @@ function initApp(){
   document.getElementById('admin-badge').style.display=admin?'inline-block':'none';
   document.getElementById('admin-sal-section').style.display=admin?'block':'none';
   document.getElementById('admin-pw-section').style.display=admin?'block':'none';
+  document.getElementById('admin-announce-section').style.display=admin?'block':'none';
+  loadAnnounces();
 
   // Photo
   const photo=getPhoto(curUser.email);
@@ -2225,6 +2340,302 @@ function openEditLog(empId) {
   document.getElementById('log-modal').classList.add('open');
 }
 
+// ========== PUSH NOTIFICATION SETTINGS ==========
+const NOTIF_KEYS = ['early','checkout','announce','poll','monthly'];
+
+function initPushSettings() {
+  const perm = 'Notification' in window ? Notification.permission : 'unsupported';
+  const dot = document.getElementById('push-dot');
+  const txt = document.getElementById('push-status-text');
+  const btn = document.getElementById('push-enable-btn');
+  if(!dot) return;
+  if(perm === 'granted') {
+    dot.className = 'push-dot granted';
+    txt.textContent = 'เปิดใช้การแจ้งเตือนแล้ว ✅';
+    if(btn) btn.style.display = 'none';
+  } else if(perm === 'denied') {
+    dot.className = 'push-dot denied';
+    txt.textContent = 'ถูกบล็อก — เปิดใน Settings ของมือถือ';
+    if(btn) btn.style.display = 'none';
+  } else {
+    dot.className = 'push-dot default';
+    txt.textContent = 'ยังไม่ได้อนุญาต';
+    if(btn) btn.style.display = 'block';
+  }
+  // Load saved toggles
+  NOTIF_KEYS.forEach(k => {
+    const saved = localStorage.getItem(`tt_notif_${k}`);
+    const el = document.getElementById(`tog-${k}`);
+    if(!el) return;
+    // default on unless explicitly set to '0'
+    if(saved === '0') { el.classList.remove('on'); }
+    else { el.classList.add('on'); }
+  });
+}
+
+function toggleNotif(key) {
+  const el = document.getElementById(`tog-${key}`);
+  if(!el) return;
+  const isOn = el.classList.toggle('on');
+  localStorage.setItem(`tt_notif_${key}`, isOn ? '1' : '0');
+  showToast(isOn ? '🔔 เปิดการแจ้งเตือนแล้ว' : '🔕 ปิดการแจ้งเตือนแล้ว', 'success');
+}
+
+function isNotifOn(key) {
+  return localStorage.getItem(`tt_notif_${key}`) !== '0';
+}
+
+async function requestPushPermission() {
+  if(!('Notification' in window)) { showToast('เบราว์เซอร์ไม่รองรับ','error'); return; }
+  const result = await Notification.requestPermission();
+  initPushSettings();
+  if(result === 'granted') showToast('✅ เปิดการแจ้งเตือนสำเร็จ','success');
+  else showToast('ไม่ได้รับอนุญาต','error');
+}
+
+function sendPush(title, body, tag) {
+  if('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body, icon: './icon-192.png', tag });
+  }
+}
+
+// ===== เตือนก่อนถึงเวลาเข้างาน 30 นาที =====
+function checkEarlyReminder() {
+  if(!curUser || !isNotifOn('early')) return;
+  const workStart = getWorkStart();
+  const [wh, wm] = workStart.split(':').map(Number);
+  const now = new Date();
+  const nowMins = now.getHours()*60 + now.getMinutes();
+  const workMins = wh*60+wm;
+  const diffMins = workMins - nowMins;
+  if(diffMins < 25 || diffMins > 35) return; // window 25-35 นาทีก่อน
+  const key = `tt_early_reminded_${todayStr()}`;
+  if(localStorage.getItem(key)) return;
+  localStorage.setItem(key, '1');
+  sendPush('🌅 ใกล้ถึงเวลาเข้างานแล้ว! — TimeTrack',
+    `เวลาเข้างาน ${workStart} — อีก ${diffMins} นาที`, 'early-reminder');
+  showToast(`🌅 อีก ${diffMins} นาทีถึงเวลาเข้างาน`, 'warning');
+}
+
+// ===== สรุปประจำเดือน =====
+function checkMonthlyReminder() {
+  if(!curUser || !isNotifOn('monthly')) return;
+  const now = new Date();
+  if(now.getDate() !== 1) return; // วันที่ 1 ของเดือน
+  const key = `tt_monthly_${now.getFullYear()}_${now.getMonth()}`;
+  if(localStorage.getItem(key)) return;
+  localStorage.setItem(key, '1');
+  const prevMonth = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const myRec = records.filter(r => {
+    const d = new Date(r.date);
+    return r.empId === curUser.id && d.getMonth() === prevMonth.getMonth() && d.getFullYear() === prevMonth.getFullYear();
+  });
+  const totalDays = [...new Set(myRec.map(r=>r.date))].length;
+  const totalHrs = myRec.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+  const totalOT = myRec.reduce((s,r)=>s+(r.otMin||0),0);
+  const mons = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  sendPush(`📊 สรุปเดือน${mons[prevMonth.getMonth()]} — TimeTrack`,
+    `มา ${totalDays} วัน | ${totalHrs.toFixed(1)} ชม. | OT ${(totalOT/60).toFixed(1)} ชม.`,
+    'monthly-summary');
+}
+
+// ========== ANNOUNCE ==========
+let announces = [];
+
+function loadAnnounces() {
+  try { announces = JSON.parse(localStorage.getItem('tt_announces')||'[]'); } catch(e) { announces=[]; }
+  if(fbConn) {
+    db.ref('announces').once('value').then(snap => {
+      if(snap.val()) {
+        announces = Object.values(snap.val()).sort((a,b) => {
+          if(a.pinned && !b.pinned) return -1;
+          if(!a.pinned && b.pinned) return 1;
+          return b.ts - a.ts;
+        });
+        localStorage.setItem('tt_announces', JSON.stringify(announces));
+        renderAnnounces();
+        updateAnnounceBadge();
+      }
+    }).catch(()=>{});
+  }
+}
+
+function saveAnnounce(ann) {
+  announces.unshift(ann);
+  announces.sort((a,b) => { if(a.pinned&&!b.pinned)return -1; if(!a.pinned&&b.pinned)return 1; return b.ts-a.ts; });
+  localStorage.setItem('tt_announces', JSON.stringify(announces));
+  if(fbConn) db.ref('announces/'+ann.id).set(ann).catch(()=>{});
+}
+
+function openCreateAnnounce() {
+  document.getElementById('ann-title').value = '';
+  document.getElementById('ann-body').value = '';
+  document.getElementById('ann-pin').checked = false;
+  document.getElementById('create-announce-modal').classList.add('open');
+}
+
+function submitAnnounce() {
+  const title = document.getElementById('ann-title').value.trim();
+  const body  = document.getElementById('ann-body').value.trim();
+  if(!title||!body) { showToast('กรุณากรอกหัวข้อและเนื้อหา','error'); return; }
+  const ann = { id: Date.now()+'', title, body, pinned: document.getElementById('ann-pin').checked,
+    author: curUser.name, ts: Date.now() };
+  saveAnnounce(ann);
+  closeModal('create-announce-modal');
+  renderAnnounces();
+  updateAnnounceBadge();
+  showToast('📢 ประกาศแล้ว','success');
+  // Push to all users (in-app only)
+  if(isNotifOn('announce')) {
+    sendPush('📢 ประกาศใหม่ — TimeTrack', title, 'announce-'+ann.id);
+  }
+}
+
+function deleteAnnounce(id) {
+  showConfirm('🗑 ลบประกาศ','ยืนยันลบประกาศนี้?', ()=>{
+    announces = announces.filter(a=>a.id!==id);
+    localStorage.setItem('tt_announces', JSON.stringify(announces));
+    if(fbConn) db.ref('announces/'+id).remove().catch(()=>{});
+    renderAnnounces();
+    updateAnnounceBadge();
+    showToast('ลบแล้ว','success');
+  });
+}
+
+function renderAnnounces() {
+  const el = document.getElementById('announce-list');
+  if(!el) return;
+  const readKey = 'tt_ann_read';
+  const read = JSON.parse(localStorage.getItem(readKey)||'[]');
+
+  // Separate polls and announces
+  const anns = announces.filter(a=>!a.isPoll);
+  const polls = announces.filter(a=>a.isPoll);
+
+  let html = '';
+  if(!anns.length && !polls.length) {
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">📢</div><div>ยังไม่มีประกาศหรือโพล</div></div>';
+    return;
+  }
+
+  // Announces
+  if(anns.length) {
+    html += `<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">📢 ประกาศ</div>`;
+    html += anns.map(a => {
+      const isNew = !read.includes(a.id);
+      const d = new Date(a.ts);
+      return `<div class="announce-card${a.pinned?' pinned':''}">
+        ${a.pinned?'<div class="announce-pin">📌</div>':''}
+        <div class="announce-title">${a.title}${isNew?'<span class="announce-new">ใหม่</span>':''}</div>
+        <div class="announce-body">${a.body}</div>
+        <div class="announce-meta">โดย ${a.author} · ${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}
+          ${isAdmin()?`<button onclick="deleteAnnounce('${a.id}')" style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">ลบ</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Polls
+  if(polls.length) {
+    html += `<div style="font-size:12px;color:var(--text3);margin:12px 0 8px;font-weight:600">🗳 โพล</div>`;
+    html += polls.map(p => renderPollCard(p)).join('');
+  }
+
+  el.innerHTML = html;
+  // Mark all as read
+  const allIds = announces.map(a=>a.id);
+  localStorage.setItem(readKey, JSON.stringify([...new Set([...read,...allIds])]));
+}
+
+function updateAnnounceBadge() {
+  const badge = document.getElementById('announce-badge');
+  if(!badge) return;
+  const read = JSON.parse(localStorage.getItem('tt_ann_read')||'[]');
+  const unread = announces.filter(a=>!read.includes(a.id)).length;
+  if(unread > 0) { badge.textContent = unread; badge.style.display='inline'; }
+  else { badge.style.display='none'; }
+}
+
+// ========== POLL ==========
+function openCreatePoll() {
+  document.getElementById('poll-q').value = '';
+  document.getElementById('poll-multi').checked = false;
+  const wrap = document.getElementById('poll-options-wrap');
+  wrap.innerHTML = `
+    <input class="modal-inp" placeholder="ตัวเลือก 1" style="margin-bottom:6px"/>
+    <input class="modal-inp" placeholder="ตัวเลือก 2" style="margin-bottom:6px"/>`;
+  document.getElementById('create-poll-modal').classList.add('open');
+}
+
+function addPollOption() {
+  const wrap = document.getElementById('poll-options-wrap');
+  const n = wrap.querySelectorAll('input').length + 1;
+  const inp = document.createElement('input');
+  inp.className = 'modal-inp';
+  inp.placeholder = `ตัวเลือก ${n}`;
+  inp.style.marginBottom = '6px';
+  wrap.appendChild(inp);
+}
+
+function submitPoll() {
+  const q = document.getElementById('poll-q').value.trim();
+  const multi = document.getElementById('poll-multi').checked;
+  const options = [...document.getElementById('poll-options-wrap').querySelectorAll('input')]
+    .map(i=>i.value.trim()).filter(Boolean);
+  if(!q) { showToast('กรุณากรอกคำถาม','error'); return; }
+  if(options.length < 2) { showToast('ต้องมีอย่างน้อย 2 ตัวเลือก','error'); return; }
+  const poll = { id: Date.now()+'', isPoll: true, title: q, options: options.map(o=>({text:o,votes:[]})),
+    multi, author: curUser.name, ts: Date.now() };
+  saveAnnounce(poll);
+  closeModal('create-poll-modal');
+  renderAnnounces();
+  showToast('🗳 สร้างโพลแล้ว','success');
+  if(isNotifOn('poll')) sendPush('🗳 มีโพลใหม่ — TimeTrack', q, 'poll-'+poll.id);
+}
+
+function votePoll(pollId, optIdx) {
+  const poll = announces.find(a=>a.id===pollId);
+  if(!poll) return;
+  const uid = curUser.id;
+  // Check if already voted this option
+  const alreadyVoted = poll.options[optIdx].votes.includes(uid);
+  if(!poll.multi) {
+    // Single choice: remove from all then toggle
+    poll.options.forEach(o => { o.votes = o.votes.filter(v=>v!==uid); });
+    if(!alreadyVoted) poll.options[optIdx].votes.push(uid);
+  } else {
+    // Multi choice: toggle
+    if(alreadyVoted) poll.options[optIdx].votes = poll.options[optIdx].votes.filter(v=>v!==uid);
+    else poll.options[optIdx].votes.push(uid);
+  }
+  saveAnnounce(poll);
+  renderAnnounces();
+}
+
+function renderPollCard(p) {
+  const totalVotes = p.options.reduce((s,o)=>s+o.votes.length,0);
+  const hasVoted = p.options.some(o=>o.votes.includes(curUser?.id));
+  const optHtml = p.options.map((o,i) => {
+    const pct = totalVotes ? Math.round(o.votes.length/totalVotes*100) : 0;
+    const iVoted = o.votes.includes(curUser?.id);
+    return `<div class="poll-option">
+      <div class="poll-bar-wrap${iVoted?' voted':''}" onclick="votePoll('${p.id}',${i})">
+        <div class="poll-fill" style="width:${hasVoted?pct:0}%"></div>
+        <div class="poll-bar-label">${o.text}</div>
+      </div>
+      <div class="poll-pct">${hasVoted?pct+'%':''}</div>
+    </div>`;
+  }).join('');
+  const d = new Date(p.ts);
+  return `<div class="poll-card">
+    <div class="poll-question">${p.title}${p.multi?'<span style="font-size:11px;color:var(--text3);margin-left:6px">(เลือกได้หลายข้อ)</span>':''}</div>
+    ${optHtml}
+    <div class="poll-votes">🗳 ${totalVotes} โหวต · โดย ${p.author} · ${pad(d.getDate())}/${pad(d.getMonth()+1)}
+      ${isAdmin()?`<button onclick="deleteAnnounce('${p.id}')" style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">ลบ</button>`:''}
+    </div>
+  </div>`;
+}
+
 // ========== CHECKOUT REMINDER (PUSH) ==========
 // ===== LATE NOTIFICATION (Admin) =====
 async function checkLateEmployees() {
@@ -2353,9 +2764,10 @@ function showPage(id,btn){
   if(id==='summary')  { renderSummary() }
   if(id==='team')     { showSkeletonTeam(); renderTeam() }
   if(id==='salary')   { renderSalary() }
-  if(id==='settings') { renderEmpListSettings(); updateThemeBtn() }
+  if(id==='settings') { renderEmpListSettings(); updateThemeBtn(); initPushSettings() }
   if(id==='calendar') { renderCalendar() }
   if(id==='history')  { showSkeletonHistory(); renderHistory(true) }
+  if(id==='announce') { renderAnnounces(); updateAnnounceBadge() }
 }
 
 // ========== MODAL ==========
@@ -2542,6 +2954,8 @@ setInterval(()=>{
   if(document.getElementById('page-home').classList.contains('active'))renderHome();
   if(document.getElementById('page-team').classList.contains('active'))renderTeam();
   checkCheckoutReminder();
+  checkEarlyReminder();
+  checkMonthlyReminder();
   if(isAdmin()) checkLateEmployees();
   if(fbConn)syncDown();
 },30000);
