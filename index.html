@@ -1177,15 +1177,14 @@ function calcOTMin(checkOut, checkIn){
   let outMins = toMins(checkOut);
   let inMins  = checkIn ? toMins(checkIn) : otStartMins;
 
-  // Handle overnight: ถ้า checkout <= checkin แสดงว่าข้ามคืน
-  if(outMins <= inMins) outMins += 24*60;
+  // ถ้าเวลาเข้า = เวลาออก → ทำงาน 0 นาที ไม่มี OT
+  if(outMins === inMins) return 0;
+
+  // Handle overnight: ถ้า checkout < checkin แสดงว่าข้ามคืน
+  if(outMins < inMins) outMins += 24*60;
 
   // OT เริ่มนับจากทีหลังกว่าระหว่าง (เวลาเข้างาน) กับ (เวลาเริ่ม OT)
-  // ถ้าเข้างานก่อน OT start → OT นับจาก otStartMins
-  // ถ้าเข้างานหลัง OT start → OT นับจาก inMins
-  let otFrom = Math.max(inMins, otStartMins);
-  // ถ้า otFrom < inMins หลังจาก overnight normalize ให้ใช้ inMins
-  if(otFrom < inMins) otFrom = inMins;
+  const otFrom = Math.max(inMins, otStartMins);
   return Math.max(0, outMins - otFrom);
 }
 function isLate(inTime){const[h,m]=inTime.split(':').map(Number);const[wh,wm]=getWorkStart().split(':').map(Number);return h*60+m>wh*60+wm}
