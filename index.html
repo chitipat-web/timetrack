@@ -1486,6 +1486,27 @@ function saveOTStart(){localStorage.setItem('tt_ot_start',document.getElementByI
 function isAdmin(){return !!(curUser&&curUser.role==='admin')}
 function getPhoto(email){return localStorage.getItem('tt_photo_'+email.replace(/[^a-zA-Z0-9]/g,'_'))||''}
 function savePhoto(email,d){localStorage.setItem('tt_photo_'+email.replace(/[^a-zA-Z0-9]/g,'_'),d)}
+
+// Sync photo from Firebase → localStorage (runs on login)
+async function loadPhotoFromFirebase(){
+  if(!curUser||!fbConn||!fbURL) return;
+  const cached = getPhoto(curUser.email);
+  if(cached) return; // already have it locally
+  try{
+    const res = await fetch(`${fbURL}/photos/${curUser.id}.json`);
+    const data = await res.json();
+    if(data && typeof data==='string' && data.startsWith('data:')){
+      savePhoto(curUser.email, data);
+      // Apply to avatars
+      const tbAv=document.getElementById('tb-av');
+      const wcAv=document.getElementById('wc-av');
+      const stAv=document.getElementById('settings-av');
+      if(tbAv){tbAv.innerHTML=`<img src="${data}">`;tbAv.style.background='none';}
+      if(wcAv){wcAv.innerHTML=`<img src="${data}"><div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div>`;wcAv.style.background='none';}
+      if(stAv){stAv.innerHTML=`<img src="${data}"><div class="settings-av-overlay">📷</div>`;stAv.style.background='none';}
+    }
+  }catch(e){}
+}
 function calcHours(i,o){
   if(!i||!o)return 0;
   const[ih,im]=i.split(':').map(Number);
@@ -1608,6 +1629,8 @@ function initApp(){
   document.getElementById('admin-announce-section').style.display=admin?'block':'none';
   loadAnnounces();
   initPushSettings();
+  // Sync photo from Firebase if localStorage was cleared
+  loadPhotoFromFirebase();
   // Typewriter greeting
   const greetHour = new Date().getHours();
   const greet = greetHour<12?'สวัสดีตอนเช้า':greetHour<17?'สวัสดีตอนบ่าย':'สวัสดีตอนเย็น';
