@@ -2661,6 +2661,9 @@ async function saveNewName(){
   // Update local state
   curUser.name = newName;
 
+  // Persist curUser to localStorage cache
+  localStorage.setItem('tt_user_' + curUser.id, JSON.stringify(curUser));
+
   // Update in employees array
   const empIdx = employees.findIndex(e => e.id === curUser.id);
   if(empIdx >= 0){ employees[empIdx].name = newName; saveEmp(); }
