@@ -1514,6 +1514,22 @@ async function loadPhotoFromFirebase(){
     }
   }catch(e){}
 }
+
+// โหลดรูปของทุกคนในทีม (เพื่อแสดงในหน้าทีม/สถานะ)
+async function loadAllPhotosFromFirebase(){
+  if(!fbConn||!fbURL) return;
+  try{
+    const res = await fetch(`${fbURL}/photos.json`);
+    const data = await res.json();
+    if(!data||typeof data!=='object') return;
+    // data = { uid1: 'data:...', uid2: 'data:...' }
+    employees.forEach(emp => {
+      if(data[emp.id] && typeof data[emp.id]==='string' && data[emp.id].startsWith('data:')){
+        savePhoto(emp.email, data[emp.id]);
+      }
+    });
+  }catch(e){}
+}
 function calcHours(i,o){
   if(!i||!o)return 0;
   const[ih,im]=i.split(':').map(Number);
@@ -1638,6 +1654,8 @@ function initApp(){
   initPushSettings();
   // Sync photo from Firebase if localStorage was cleared
   loadPhotoFromFirebase();
+  // Load all team photos for display
+  setTimeout(loadAllPhotosFromFirebase, 1000);
   // Typewriter greeting
   const greetHour = new Date().getHours();
   const greet = greetHour<12?'สวัสดีตอนเช้า':greetHour<17?'สวัสดีตอนบ่าย':'สวัสดีตอนเย็น';
@@ -3086,18 +3104,21 @@ let announces = [];
 function loadAnnounces() {
   try { announces = JSON.parse(localStorage.getItem('tt_announces')||'[]'); } catch(e) { announces=[]; }
   if(fbConn) {
-    db.ref('announces').once('value').then(snap => {
+    // ใช้ .on() แทน .once() เพื่อรับ realtime updates
+    db.ref('announces').on('value', snap => {
       if(snap.val()) {
         announces = Object.values(snap.val()).sort((a,b) => {
           if(a.pinned && !b.pinned) return -1;
           if(!a.pinned && b.pinned) return 1;
           return b.ts - a.ts;
         });
-        localStorage.setItem('tt_announces', JSON.stringify(announces));
-        renderAnnounces();
-        updateAnnounceBadge();
+      } else {
+        announces = [];
       }
-    }).catch(()=>{});
+      localStorage.setItem('tt_announces', JSON.stringify(announces));
+      renderAnnounces();
+      updateAnnounceBadge();
+    }, ()=>{});
   }
 }
 
