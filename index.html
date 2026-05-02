@@ -2639,9 +2639,13 @@ function openPhotoUpload(){
         ctx.drawImage(img,x,y,size,size,0,0,128,128);
         const dataUrl=canvas.toDataURL('image/jpeg',.8);
         savePhoto(curUser.email,dataUrl);
-        document.getElementById('tb-av').innerHTML=`<img src="${dataUrl}">`;
-        document.getElementById('wc-av').innerHTML=`<img src="${dataUrl}"><div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px">📷</div>`;
-        document.getElementById('settings-av').innerHTML=`<img src="${dataUrl}"><div class="settings-av-overlay">📷</div>`;
+        // Update all avatars and clear background color
+        const tbAv=document.getElementById('tb-av');
+        if(tbAv){tbAv.innerHTML=`<img src="${dataUrl}">`;tbAv.style.background='none';}
+        const wcAv=document.getElementById('wc-av');
+        if(wcAv){wcAv.innerHTML=`<img src="${dataUrl}"><div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px">📷</div>`;wcAv.style.background='none';}
+        const stAv=document.getElementById('settings-av');
+        if(stAv){stAv.innerHTML=`<img src="${dataUrl}"><div class="settings-av-overlay">📷</div>`;stAv.style.background='none';}
         showToast('✅ อัปเดตรูปโปรไฟล์แล้ว','success');
         if(fbConn&&fbURL){fetch(`${fbURL}/photos/${curUser.id}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(dataUrl)}).catch(()=>{})}
       };img.src=ev.target.result;
