@@ -813,8 +813,15 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .ptr-drop{width:12px;height:16px;background:linear-gradient(180deg,#00e5ff,#0077cc);border-radius:50% 50% 40% 40%}
 .ptr-label-text{font-size:11px;color:var(--accent2);font-weight:600}
 
-@keyframes btnRipple{0%{transform:scale(0);opacity:.6}100%{transform:scale(4);opacity:0}}
-.btn-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.35);animation:btnRipple .6s ease-out forwards;pointer-events:none;width:60px;height:60px;margin-left:-30px;margin-top:-30px}
+/* ===== WATER SPLASH BUTTON EFFECT ===== */
+@keyframes waterRipple{0%{transform:translate(-50%,-50%) scale(0);opacity:.7}100%{transform:translate(-50%,-50%) scale(3.5);opacity:0}}
+@keyframes waterRipple2{0%{transform:translate(-50%,-50%) scale(0);opacity:.45}100%{transform:translate(-50%,-50%) scale(5);opacity:0}}
+@keyframes dropletFly{0%{transform:translate(0,0) scale(1);opacity:.9}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+@keyframes splashRing{0%{transform:translate(-50%,-50%) scale(0) scaleY(.4);opacity:.6}60%{opacity:.4}100%{transform:translate(-50%,-50%) scale(2.8) scaleY(.25);opacity:0}}
+.water-ripple{position:absolute;border-radius:50%;pointer-events:none;left:var(--rx);top:var(--ry);width:60px;height:60px;background:radial-gradient(circle,rgba(255,255,255,.55) 0%,rgba(255,255,255,.15) 50%,transparent 70%);animation:waterRipple .7s cubic-bezier(.22,.61,.36,1) forwards}
+.water-ripple-2{position:absolute;border-radius:50%;pointer-events:none;left:var(--rx);top:var(--ry);width:60px;height:60px;border:1.5px solid rgba(255,255,255,.4);background:transparent;animation:waterRipple2 .9s cubic-bezier(.22,.61,.36,1) .08s forwards}
+.water-ring{position:absolute;border-radius:50%;pointer-events:none;left:var(--rx);top:var(--ry);width:40px;height:40px;border:2px solid rgba(255,255,255,.5);background:transparent;animation:splashRing .6s ease-out forwards}
+.water-droplet{position:absolute;border-radius:50%;pointer-events:none;left:var(--rx);top:var(--ry);width:var(--ds);height:var(--ds);background:rgba(255,255,255,.8);animation:dropletFly var(--dur) cubic-bezier(.22,.61,.36,1) var(--delay) forwards}
 
 /* ===== EFFECT 2: CONFETTI canvas overlay ===== */
 #confetti-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;display:none}
@@ -4435,16 +4442,45 @@ function initAllEffects() {
 }
 
 // ===== HOOK TYPEWRITER INTO initApp =====
+// ===== WATER SPLASH BUTTON EFFECT =====
 function addWaterRipple(btn, e) {
+  if(!btn) return;
   const rect = btn.getBoundingClientRect();
   const x = (e?.clientX ?? rect.left + rect.width/2) - rect.left;
-  const y = (e?.clientY ?? rect.top + rect.height/2) - rect.top;
-  const ripple = document.createElement('span');
-  ripple.className = 'btn-ripple';
-  ripple.style.left = x + 'px';
-  ripple.style.top  = y + 'px';
-  btn.appendChild(ripple);
-  ripple.addEventListener('animationend', () => ripple.remove());
+  const y = (e?.clientY ?? rect.top  + rect.height/2) - rect.top;
+
+  function mk(cls, extra) {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.style.setProperty('--rx', x + 'px');
+    el.style.setProperty('--ry', y + 'px');
+    if(extra) Object.entries(extra).forEach(([k,v]) => el.style.setProperty(k, v));
+    btn.appendChild(el);
+    el.addEventListener('animationend', () => el.remove(), {once:true});
+    return el;
+  }
+
+  mk('water-ripple');    // main fill
+  mk('water-ripple-2');  // outer ring
+  mk('water-ring');      // flat ellipse impact
+
+  // 8 droplets flying outward
+  for(let i=0; i<8; i++){
+    const angle = (i/8)*Math.PI*2;
+    const dist  = 28 + Math.random()*22;
+    mk('water-droplet',{
+      '--dx':    (Math.cos(angle)*dist)+'px',
+      '--dy':    (Math.sin(angle)*dist - Math.random()*12)+'px',
+      '--ds':    (3+Math.random()*4)+'px',
+      '--dur':   (0.35+Math.random()*0.25)+'s',
+      '--delay': (Math.random()*0.06)+'s',
+    });
+  }
+  // 2 big upward droplets
+  for(let i=0; i<2; i++){
+    const a = -Math.PI/2 + (i===0?-0.5:0.5);
+    mk('water-droplet',{'--dx':(Math.cos(a)*36)+'px','--dy':(Math.sin(a)*36-12)+'px','--ds':'5px','--dur':'0.45s','--delay':'0.02s'});
+  }
 }
 // Attach to check-in/out buttons
 document.addEventListener('DOMContentLoaded', () => {
