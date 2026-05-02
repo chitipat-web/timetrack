@@ -1540,6 +1540,224 @@ function avatarGrad(name){const[c1,c2]=avatarColor(name);return `linear-gradient
 function avatarLetter(name){return name?name.trim()[0].toUpperCase():'?';}
 function saveWorkStart(){localStorage.setItem('tt_work_start',document.getElementById('set-work-start').value);showToast('บันทึกแล้ว','success')}
 function saveOTStart(){localStorage.setItem('tt_ot_start',document.getElementById('set-ot-start').value);showToast('บันทึกแล้ว','success')}
+// ========== REALTIME CLOUD SYNC LAYER ==========
+// Architecture:
+//   - Personal data (per-user): /userdata/{uid}/{key}
+//   - Shared data (team-wide):  /shared/{key}
+//   - All writes → localStorage cache + Firebase push (debounced)
+//   - All reads ← localStorage cache (instant)
+//   - Firebase .on() listeners → update localStorage when remote changes
+//   - UI re-renders when remote changes via custom event
+
+// Personal keys (each user has their own)
+const PERSONAL_KEY_PREFIXES = [
+  'tt_dark','tt_notif_','tt_notes_','tt_sal_','tt_user_',
+  'tt_late_','tt_early_','tt_monthly_','tt_remind_','tt_ann_read','tt_photo_'
+];
+// Shared keys (admin sets, everyone sees)
+const SHARED_KEY_PREFIXES = [
+  'tt_holidays','tt_editlog','tt_work_start','tt_ot_start'
+];
+// Keys that have their own dedicated Firebase paths (skip generic sync)
+const SKIP_KEY_PREFIXES = [
+  'tt_emp','tt_rec','tt_announces','tt_fb','tt_ot_migrated_'
+];
+
+function _isPersonalKey(key){
+  return PERSONAL_KEY_PREFIXES.some(p => key.startsWith(p));
+}
+function _isSharedKey(key){
+  return SHARED_KEY_PREFIXES.some(p => key === p || key.startsWith(p));
+}
+function _shouldSkipKey(key){
+  return SKIP_KEY_PREFIXES.some(p => key.startsWith(p));
+}
+function _cloudKey(key){
+  // Replace Firebase invalid chars: . $ # [ ] /
+  return key.replace(/[.#$\[\]\/]/g, '_');
+}
+function _firebasePath(key){
+  if(_isSharedKey(key)) return `shared/${_cloudKey(key)}`;
+  if(_isPersonalKey(key) && curUser) return `userdata/${curUser.id}/${_cloudKey(key)}`;
+  return null; // skip
+}
+
+// Debounce writes to Firebase (prevent flood when user types fast)
+const _writeQueue = new Map(); // key → {value, timer}
+const WRITE_DEBOUNCE_MS = 400;
+
+function _queueCloudWrite(key, value){
+  if(!fbConn || typeof db==='undefined') return;
+  const path = _firebasePath(key);
+  if(!path) return;
+  // Cancel previous queued write for this key
+  if(_writeQueue.has(key)){
+    clearTimeout(_writeQueue.get(key).timer);
+  }
+  const timer = setTimeout(() => {
+    _writeQueue.delete(key);
+    try{
+      if(value === null || value === undefined){
+        db.ref(path).remove().catch(()=>{});
+      } else {
+        db.ref(path).set(value).catch(()=>{});
+      }
+    }catch(e){}
+  }, WRITE_DEBOUNCE_MS);
+  _writeQueue.set(key, {value, timer});
+}
+
+// Wrap localStorage.setItem
+const _origSetItem = localStorage.setItem.bind(localStorage);
+localStorage.setItem = function(key, value){
+  _origSetItem(key, value);
+  if(!_shouldSkipKey(key)) _queueCloudWrite(key, value);
+};
+
+// Wrap localStorage.removeItem
+const _origRemoveItem = localStorage.removeItem.bind(localStorage);
+localStorage.removeItem = function(key){
+  _origRemoveItem(key);
+  if(!_shouldSkipKey(key)) _queueCloudWrite(key, null);
+};
+
+// Track listeners so we can detach on logout
+const _cloudListeners = [];
+let _isApplyingRemote = false; // prevent echo writes
+
+// Apply remote value to local without triggering cloud write
+function _applyRemoteToLocal(key, value){
+  _isApplyingRemote = true;
+  try{
+    if(value === null || value === undefined){
+      _origRemoveItem(key);
+    } else {
+      _origSetItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+    }
+    // Trigger UI refresh event
+    window.dispatchEvent(new CustomEvent('cloudKeyChanged', {detail:{key, value}}));
+  } finally {
+    _isApplyingRemote = false;
+  }
+}
+
+// Setup realtime listeners for ALL personal + shared data
+async function setupRealtimeCloudSync(){
+  if(!fbConn || typeof db==='undefined' || !curUser) return;
+  // Detach old listeners first
+  _cloudListeners.forEach(({ref}) => { try{ ref.off(); }catch(e){} });
+  _cloudListeners.length = 0;
+
+  // 1. Personal data — listen to /userdata/{uid}
+  const personalRef = db.ref(`userdata/${curUser.id}`);
+  const personalCb = personalRef.on('value', snap => {
+    const data = snap.val();
+    if(!data) return;
+    Object.entries(data).forEach(([cloudKey, value]) => {
+      const localKey = cloudKey;
+      const existing = localStorage.getItem(localKey);
+      const newVal = typeof value === 'string' ? value : JSON.stringify(value);
+      if(existing !== newVal){
+        _applyRemoteToLocal(localKey, value);
+      }
+    });
+  }, err => console.warn('[Cloud] Personal listen error:', err));
+  _cloudListeners.push({ref:personalRef, cb:personalCb, type:'personal'});
+
+  // 2. Shared data — listen to /shared
+  const sharedRef = db.ref('shared');
+  const sharedCb = sharedRef.on('value', snap => {
+    const data = snap.val();
+    if(!data) return;
+    Object.entries(data).forEach(([cloudKey, value]) => {
+      const localKey = cloudKey;
+      const existing = localStorage.getItem(localKey);
+      const newVal = typeof value === 'string' ? value : JSON.stringify(value);
+      if(existing !== newVal){
+        _applyRemoteToLocal(localKey, value);
+      }
+    });
+  }, err => console.warn('[Cloud] Shared listen error:', err));
+  _cloudListeners.push({ref:sharedRef, cb:sharedCb, type:'shared'});
+
+  console.log('[Cloud] Realtime listeners attached');
+}
+
+// Initial push of all matching local keys to Firebase
+async function pushAllLocalToCloud(){
+  if(!fbConn || typeof db==='undefined' || !curUser) return;
+  const personalUpdates = {};
+  const sharedUpdates = {};
+  for(let i=0; i<localStorage.length; i++){
+    const key = localStorage.key(i);
+    if(_shouldSkipKey(key)) continue;
+    const value = localStorage.getItem(key);
+    if(_isPersonalKey(key)){
+      personalUpdates[`userdata/${curUser.id}/${_cloudKey(key)}`] = value;
+    } else if(_isSharedKey(key)){
+      sharedUpdates[`shared/${_cloudKey(key)}`] = value;
+    }
+  }
+  const allUpdates = {...personalUpdates, ...sharedUpdates};
+  if(Object.keys(allUpdates).length > 0){
+    try{
+      await db.ref('/').update(allUpdates);
+      console.log('[Cloud] Initial push:', Object.keys(allUpdates).length, 'keys');
+    }catch(e){ console.warn('[Cloud] Initial push failed:', e); }
+  }
+}
+
+// React to cloud changes — refresh relevant UI
+window.addEventListener('cloudKeyChanged', e => {
+  const {key} = e.detail;
+  // Re-render UI based on what changed
+  try{
+    if(key === 'tt_holidays'){
+      if(typeof renderCalendar === 'function') renderCalendar();
+    } else if(key === 'tt_dark'){
+      const isDark = e.detail.value === 'dark' || e.detail.value === '"dark"';
+      if(isDark) document.body.classList.add('dark');
+      else document.body.classList.remove('dark');
+      const btn = document.getElementById('dark-btn');
+      if(btn) btn.textContent = isDark ? '☀️' : '🌙';
+    } else if(key.startsWith('tt_notif_')){
+      if(typeof initPushSettings === 'function') initPushSettings();
+    } else if(key === 'tt_editlog'){
+      if(typeof openEditLog === 'function' && document.getElementById('log-modal')?.classList.contains('open')){
+        openEditLog();
+      }
+    } else if(key.startsWith('tt_notes_')){
+      if(typeof renderHome === 'function' && document.getElementById('page-home')?.classList.contains('active')){
+        const noteEl = document.getElementById('daily-note');
+        if(noteEl){
+          const today = todayStr();
+          const notes = JSON.parse(localStorage.getItem(key) || '{}');
+          if(notes[today] !== undefined) noteEl.value = notes[today] || '';
+        }
+      }
+    } else if(key.startsWith('tt_sal_')){
+      if(typeof renderSalary === 'function' && document.getElementById('page-salary')?.classList.contains('active')){
+        renderSalary();
+      }
+    } else if(key === 'tt_work_start' || key === 'tt_ot_start'){
+      const inp = document.getElementById(key === 'tt_work_start' ? 'set-work-start' : 'set-ot-start');
+      if(inp) inp.value = e.detail.value;
+    } else if(key.startsWith('tt_user_')){
+      // User profile (e.g. name) changed remotely
+      if(curUser && key === 'tt_user_'+curUser.id){
+        try{
+          const updated = JSON.parse(e.detail.value);
+          if(updated && updated.name && updated.name !== curUser.name){
+            curUser.name = updated.name;
+            const sn = document.getElementById('settings-name');
+            if(sn) sn.textContent = updated.name;
+          }
+        }catch(e){}
+      }
+    }
+  }catch(err){ console.warn('[Cloud] UI refresh error:', err); }
+});
+
 function isAdmin(){return !!(curUser&&curUser.role==='admin')}
 function getPhoto(email){return localStorage.getItem('tt_photo_'+email.replace(/[^a-zA-Z0-9]/g,'_'))||''}
 function savePhoto(email,d){localStorage.setItem('tt_photo_'+email.replace(/[^a-zA-Z0-9]/g,'_'),d)}
@@ -1702,6 +1920,10 @@ function initApp(){
   document.getElementById('admin-announce-section').style.display=admin?'block':'none';
   loadAnnounces();
   initPushSettings();
+  // Setup realtime cloud sync (listens to personal + shared data)
+  setupRealtimeCloudSync();
+  // Push any local-only data that hasn't been to cloud yet
+  setTimeout(pushAllLocalToCloud, 500);
   // Sync photo from Firebase if localStorage was cleared
   loadPhotoFromFirebase();
   // Load all team photos for display
@@ -2883,7 +3105,7 @@ function openPhotoUpload(){
         if(stAv){stAv.innerHTML=`<img src="${dataUrl}"><div class="settings-av-overlay">📷</div>`;stAv.style.background='none';}
         showToast('✅ อัปเดตรูปโปรไฟล์แล้ว','success');
         haptic('success');
-        if(fbConn&&fbURL){fetch(`${fbURL}/photos/${curUser.id}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(dataUrl)}).catch(()=>{})}
+        if(fbConn&&typeof db!=='undefined'){db.ref(`photos/${curUser.id}`).set(dataUrl).catch(()=>{});}
         try{ document.body.removeChild(input); }catch(e){}
       };
       img.onerror=()=>{ showToast('โหลดรูปไม่ได้','error'); try{document.body.removeChild(input);}catch(e){} };
@@ -3887,19 +4109,84 @@ async function _syncFirebaseInBackground(fbUser) {
 
 // ===== REALTIME LISTENERS =====
 function setupRealtimeListeners() {
-  // Listen for record changes
+  // ----- Records realtime -----
   db.ref('records').on('value', snap => {
     records = snap.val() ? Object.values(snap.val()) : [];
+    localStorage.setItem('tt_rec', JSON.stringify(records));
     if (curUser) {
       updateTodayStatus();
-      if (document.getElementById('page-home').classList.contains('active')) renderHome();
-      if (document.getElementById('page-status') && document.getElementById('page-status').classList.contains('active')) renderStatus();
+      // Refresh whichever page is currently active
+      const activePage = document.querySelector('.page.active');
+      if(!activePage) return;
+      const id = activePage.id;
+      try{
+        if (id === 'page-home')      renderHome();
+        else if (id === 'page-status')   renderStatus();
+        else if (id === 'page-history')  renderHistory();
+        else if (id === 'page-stats')    renderStats();
+        else if (id === 'page-calendar') renderCalendar();
+        else if (id === 'page-summary')  renderSummary();
+        else if (id === 'page-dashboard')renderDashboard();
+        else if (id === 'page-salary')   renderSalary();
+        else if (id === 'page-team' && isAdmin()) renderTeamPage();
+      }catch(e){ console.warn('Re-render error:', e); }
     }
-  });
-  // Listen for employee changes
+  }, err => console.warn('records listen err:', err));
+
+  // ----- Employees realtime -----
   db.ref('employees').on('value', snap => {
     employees = snap.val() ? Object.values(snap.val()) : [];
-  });
+    localStorage.setItem('tt_emp', JSON.stringify(employees));
+    // Refresh active page that shows employees
+    const activePage = document.querySelector('.page.active');
+    if(!activePage) return;
+    const id = activePage.id;
+    try{
+      if (id === 'page-status')        renderStatus();
+      else if (id === 'page-team' && isAdmin()) renderTeamPage();
+      else if (id === 'page-summary')  renderSummary();
+      else if (id === 'page-dashboard')renderDashboard();
+      else if (id === 'page-salary')   renderSalary();
+    }catch(e){ console.warn('Emp re-render error:', e); }
+  }, err => console.warn('employees listen err:', err));
+
+  // ----- Photos realtime -----
+  db.ref('photos').on('value', snap => {
+    const data = snap.val();
+    if(!data) return;
+    let updated = false;
+    employees.forEach(emp => {
+      if(data[emp.id] && typeof data[emp.id]==='string' && data[emp.id].startsWith('data:')){
+        const cached = getPhoto(emp.email);
+        if(cached !== data[emp.id]){
+          savePhoto(emp.email, data[emp.id]);
+          updated = true;
+          // Also update curUser's avatar if matched
+          if(curUser && emp.id === curUser.id){
+            const tbAv=document.getElementById('tb-av');
+            const wcAv=document.getElementById('wc-av');
+            const stAv=document.getElementById('settings-av');
+            if(tbAv){tbAv.innerHTML=`<img src="${data[emp.id]}">`;tbAv.style.background='none';}
+            if(wcAv){wcAv.innerHTML=`<img src="${data[emp.id]}"><div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div>`;wcAv.style.background='none';}
+            if(stAv){stAv.innerHTML=`<img src="${data[emp.id]}"><div class="settings-av-overlay">📷</div>`;stAv.style.background='none';}
+          }
+        }
+      }
+    });
+    if(updated){
+      // Re-render active page to show new photos
+      const activePage = document.querySelector('.page.active');
+      if(activePage){
+        const id = activePage.id;
+        try{
+          if (id === 'page-status')        renderStatus();
+          else if (id === 'page-team' && isAdmin()) renderTeamPage();
+          else if (id === 'page-summary')  renderSummary();
+          else if (id === 'page-dashboard')renderDashboard();
+        }catch(e){}
+      }
+    }
+  }, err => console.warn('photos listen err:', err));
 }
 
 // ===== OVERRIDE SAVE FUNCTIONS =====
