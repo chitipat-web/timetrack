@@ -1174,7 +1174,10 @@ body.grad-anim{
       </div>
     </div>
     <div style="text-align:center;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:700" id="settings-name">—</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
+        <div style="font-size:16px;font-weight:700" id="settings-name">—</div>
+        <button onclick="openEditName()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--text3);padding:2px 6px;border-radius:6px;transition:background .15s" onmouseover="this.style.background='var(--accent-light)'" onmouseout="this.style.background='none'">✏️</button>
+      </div>
       <div style="font-size:12px;color:var(--text3)" id="settings-email">—</div>
     </div>
 
@@ -1272,6 +1275,20 @@ body.grad-anim{
     <div class="form-group"><label class="form-label">บทบาท</label><select class="form-inp" id="n-role"><option value="employee">👤 พนักงาน</option><option value="admin">👑 Admin</option></select></div>
     <button class="btn-primary" onclick="addEmp()">เพิ่มพนักงาน</button>
     <button class="btn-secondary" onclick="closeModal('add-emp-modal')">ยกเลิก</button>
+  </div>
+</div>
+
+<!-- EDIT NAME MODAL -->
+<div class="modal-overlay" id="edit-name-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ เปลี่ยนชื่อ<button class="modal-close" onclick="closeModal('edit-name-modal')">✕</button></div>
+    <div class="form-group">
+      <label class="form-label">ชื่อ-นามสกุล ใหม่</label>
+      <input class="form-inp" id="new-name-inp" placeholder="เช่น สมชาย ใจดี" maxlength="50" oninput="document.getElementById('new-name-preview').textContent=this.value||'—'"/>
+    </div>
+    <div style="text-align:center;margin:12px 0 8px;font-size:13px;color:var(--text2)">ตัวอย่าง: <span id="new-name-preview" style="font-weight:700;color:var(--text)">—</span></div>
+    <button class="btn-primary" onclick="saveNewName()">💾 บันทึกชื่อใหม่</button>
+    <button class="btn-secondary" onclick="closeModal('edit-name-modal')" style="margin-top:8px">ยกเลิก</button>
   </div>
 </div>
 
@@ -2624,6 +2641,65 @@ function exportPDF(){
 }
 
 // ========== PROFILE PHOTO ==========
+// ========== CHANGE NAME ==========
+function openEditName(){
+  const inp = document.getElementById('new-name-inp');
+  const prev = document.getElementById('new-name-preview');
+  if(inp){ inp.value = curUser.name || ''; }
+  if(prev){ prev.textContent = curUser.name || '—'; }
+  document.getElementById('edit-name-modal').classList.add('open');
+  setTimeout(()=>inp&&inp.focus(), 350);
+}
+
+async function saveNewName(){
+  const inp = document.getElementById('new-name-inp');
+  const newName = inp ? inp.value.trim() : '';
+  if(!newName){ showToast('กรุณากรอกชื่อ','warning'); return; }
+  if(newName === curUser.name){ closeModal('edit-name-modal'); return; }
+
+  const oldName = curUser.name;
+  // Update local state
+  curUser.name = newName;
+
+  // Update in employees array
+  const empIdx = employees.findIndex(e => e.id === curUser.id);
+  if(empIdx >= 0){ employees[empIdx].name = newName; saveEmp(); }
+
+  // Update Firebase
+  if(fbConn && typeof db !== 'undefined'){
+    try{
+      await db.ref(`employees/${curUser.id}/name`).set(newName);
+    }catch(e){ console.warn('Firebase name update failed:', e); }
+  }
+
+  // Refresh UI
+  document.getElementById('settings-name').textContent = newName;
+  // Re-render avatar with new name
+  const avGrad = avatarGrad(newName);
+  const avLetter = avatarLetter(newName);
+  const tbAv = document.getElementById('tb-av');
+  const wcAv = document.getElementById('wc-av');
+  const stAv = document.getElementById('settings-av');
+  const photo = getPhoto(curUser.email);
+  if(tbAv && !photo){ tbAv.innerHTML = avLetter; tbAv.style.background = avGrad; }
+  if(wcAv && !photo){ wcAv.innerHTML = avLetter + '<div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div>'; wcAv.style.background = avGrad; }
+  if(stAv && !photo){ stAv.innerHTML = avLetter + '<div class="settings-av-overlay">📷</div>'; stAv.style.background = avGrad; }
+
+  // Update typewriter if on home page
+  const twEl = document.getElementById('wc-typewriter');
+  if(twEl && twEl.textContent){
+    const greetHour = new Date().getHours();
+    const greet = greetHour<12?'สวัสดีตอนเช้า':greetHour<17?'สวัสดีตอนบ่าย':'สวัสดีตอนเย็น';
+    const twCursor = document.getElementById('tw-cursor');
+    typewriterText(twEl, twCursor, `${greet} ${newName.split(' ')[0]} 👋`);
+  }
+
+  closeModal('edit-name-modal');
+  showToast(`✅ เปลี่ยนชื่อเป็น "${newName}" แล้ว`, 'success');
+  haptic('success');
+}
+
+// ========== PHOTO UPLOAD ==========
 function openPhotoUpload(){
   // iOS Safari requires input to be in DOM before click
   const input=document.createElement('input');
