@@ -2625,21 +2625,29 @@ function exportPDF(){
 
 // ========== PROFILE PHOTO ==========
 function openPhotoUpload(){
-  const input=document.createElement('input');input.type='file';input.accept='image/*';
-  input.onchange=e=>{
-    const file=e.target.files[0];if(!file)return;
+  // iOS Safari requires input to be in DOM before click
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='image/*';
+  input.style.cssText='position:fixed;top:-100px;left:-100px;opacity:0;width:1px;height:1px';
+  document.body.appendChild(input);
+
+  input.addEventListener('change', e=>{
+    const file=e.target.files[0];
+    if(!file){ document.body.removeChild(input); return; }
     const reader=new FileReader();
     reader.onload=ev=>{
       const img=new Image();
       img.onload=()=>{
-        const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+        const canvas=document.createElement('canvas');
+        canvas.width=128; canvas.height=128;
         const ctx=canvas.getContext('2d');
         const size=Math.min(img.width,img.height);
-        const x=(img.width-size)/2,y=(img.height-size)/2;
+        const x=(img.width-size)/2, y=(img.height-size)/2;
         ctx.drawImage(img,x,y,size,size,0,0,128,128);
         const dataUrl=canvas.toDataURL('image/jpeg',.8);
         savePhoto(curUser.email,dataUrl);
-        // Update all avatars and clear background color
+        // Update all avatars and clear background
         const tbAv=document.getElementById('tb-av');
         if(tbAv){tbAv.innerHTML=`<img src="${dataUrl}">`;tbAv.style.background='none';}
         const wcAv=document.getElementById('wc-av');
@@ -2647,10 +2655,19 @@ function openPhotoUpload(){
         const stAv=document.getElementById('settings-av');
         if(stAv){stAv.innerHTML=`<img src="${dataUrl}"><div class="settings-av-overlay">📷</div>`;stAv.style.background='none';}
         showToast('✅ อัปเดตรูปโปรไฟล์แล้ว','success');
+        haptic('success');
         if(fbConn&&fbURL){fetch(`${fbURL}/photos/${curUser.id}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(dataUrl)}).catch(()=>{})}
-      };img.src=ev.target.result;
-    };reader.readAsDataURL(file);
-  };input.click();
+        try{ document.body.removeChild(input); }catch(e){}
+      };
+      img.onerror=()=>{ showToast('โหลดรูปไม่ได้','error'); try{document.body.removeChild(input);}catch(e){} };
+      img.src=ev.target.result;
+    };
+    reader.onerror=()=>{ showToast('อ่านไฟล์ไม่ได้','error'); try{document.body.removeChild(input);}catch(e){} };
+    reader.readAsDataURL(file);
+  });
+
+  // Small delay for iOS
+  setTimeout(()=>input.click(), 50);
 }
 
 // ========== MANAGE EMPLOYEES (ADMIN) ==========
