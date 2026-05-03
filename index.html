@@ -11,6 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <!-- Chart.js - defer is OK since it's only used when navigating to stats page -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 <style>
 :root {
   /* ===== DARK NEON CYBERPUNK ===== */
@@ -785,6 +786,97 @@ main{padding-bottom:96px}
 .btn-liquid{position:relative;overflow:hidden}
 .btn-liquid canvas.liquid-cv{position:absolute;bottom:0;left:0;width:100%;height:100%;opacity:.35;pointer-events:none}
  */
+/* ===== ANNOUNCE REACTIONS ===== */
+.reactions-row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.reaction-btn{padding:4px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;color:var(--text2)}
+.reaction-btn:hover{background:rgba(0,200,255,.08);border-color:var(--accent)}
+.reaction-btn.reacted{background:rgba(0,200,255,.15);border-color:var(--accent);color:var(--accent);box-shadow:0 0 8px rgba(0,200,255,.2)}
+.reaction-emoji{font-size:14px;line-height:1}
+.reaction-count{font-family:var(--mono);font-weight:600;font-size:11px;min-width:8px}
+
+/* ===== MENTION ===== */
+.mention-tag{background:rgba(0,200,255,.18);color:var(--accent);padding:1px 6px;border-radius:6px;font-weight:600;border:1px solid rgba(0,200,255,.3)}
+.mention-suggest{position:absolute;background:rgba(4,12,32,.96);backdrop-filter:blur(20px);border:1px solid var(--border2);border-radius:10px;padding:4px;max-height:180px;overflow-y:auto;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:160px}
+.mention-suggest-item{padding:8px 12px;border-radius:7px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;transition:background .15s}
+.mention-suggest-item:hover{background:rgba(0,200,255,.12)}
+.mention-suggest-item .em-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;color:#fff}
+
+/* ===== BIRTHDAY BANNER ===== */
+.bday-banner{background:linear-gradient(135deg,rgba(255,45,85,.18),rgba(255,149,0,.12));border:1px solid rgba(255,45,85,.35);border-radius:14px;padding:14px;margin-bottom:12px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;animation:bdayShine 3s ease-in-out infinite}
+@keyframes bdayShine{0%,100%{box-shadow:0 0 16px rgba(255,45,85,.2)}50%{box-shadow:0 0 28px rgba(255,149,0,.35)}}
+.bday-banner::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:radial-gradient(circle,rgba(255,45,85,.3),transparent 70%);border-radius:50%}
+.bday-cake{font-size:36px;animation:bdayBounce 2s ease-in-out infinite;filter:drop-shadow(0 0 10px rgba(255,45,85,.5))}
+@keyframes bdayBounce{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-4px) rotate(3deg)}}
+.bday-text{flex:1;position:relative;z-index:1}
+.bday-title{font-size:15px;font-weight:700;color:#ff2d55;text-shadow:0 0 8px rgba(255,45,85,.3)}
+.bday-sub{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* ===== TEAM CHAT ===== */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:480px;background:var(--surface);backdrop-filter:var(--glass-blur);border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.chat-header{padding:14px 16px;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;background:rgba(0,200,255,.05)}
+.chat-online{font-size:11px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:4px}
+.chat-online::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:livePulse 1.5s ease-in-out infinite}
+.chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+.chat-msg{display:flex;gap:8px;max-width:85%;animation:cardEnter .25s ease both}
+.chat-msg.mine{align-self:flex-end;flex-direction:row-reverse}
+.chat-msg-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
+.chat-msg-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.chat-msg-bubble{padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.4;background:var(--surface2);border:1px solid var(--border);position:relative;word-wrap:break-word}
+.chat-msg.mine .chat-msg-bubble{background:linear-gradient(135deg,#0066cc,#00aaff);color:#fff;border:none}
+.chat-msg-author{font-size:10px;color:var(--accent2);font-weight:600;margin-bottom:2px}
+.chat-msg.mine .chat-msg-author{display:none}
+.chat-msg-time{font-size:9px;color:var(--text3);margin-top:3px;text-align:right}
+.chat-msg.mine .chat-msg-time{color:rgba(255,255,255,.7)}
+.chat-typing{padding:0 14px 4px;font-size:11px;color:var(--text3);font-style:italic;min-height:18px}
+.chat-input-row{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border2);background:rgba(0,0,0,.2)}
+.chat-input{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:13px;padding:10px 14px;border-radius:20px;outline:none}
+.chat-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,200,255,.2)}
+.chat-send{width:40px;height:40px;border:none;background:linear-gradient(135deg,#0066cc,#00aaff);color:#fff;border-radius:50%;cursor:pointer;font-size:16px;box-shadow:0 0 12px rgba(0,170,255,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s}
+.chat-send:active{transform:scale(.92)}
+.chat-date-divider{text-align:center;font-size:10px;color:var(--text3);margin:8px 0;padding:4px 12px;background:rgba(0,0,0,.2);border-radius:10px;align-self:center}
+
+/* ===== STREAK COUNTER ===== */
+.streak-card{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(255,149,0,.15),rgba(255,69,58,.08));border:1px solid rgba(255,149,0,.3);border-radius:14px;padding:12px 14px;margin-bottom:12px;position:relative;overflow:hidden}
+.streak-card::before{content:'';position:absolute;top:-30px;right:-30px;width:90px;height:90px;background:radial-gradient(circle,rgba(255,149,0,.25),transparent 70%);border-radius:50%}
+.streak-flame{font-size:32px;filter:drop-shadow(0 0 12px rgba(255,149,0,.6));animation:flameFlick 1.5s ease-in-out infinite}
+@keyframes flameFlick{0%,100%{transform:scale(1) rotate(-2deg)}50%{transform:scale(1.08) rotate(2deg)}}
+.streak-info{flex:1;position:relative;z-index:1}
+.streak-num{font-family:var(--mono);font-size:24px;font-weight:700;color:#ff9500;line-height:1;text-shadow:0 0 12px rgba(255,149,0,.4)}
+.streak-lbl{font-size:11px;color:var(--text2);margin-top:2px}
+.streak-best{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ===== PUNCTUALITY SCORE ===== */
+.punct-card{background:var(--surface);backdrop-filter:var(--glass-blur);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:12px;text-align:center;position:relative;overflow:hidden}
+.punct-ring{width:90px;height:90px;margin:0 auto 8px;position:relative}
+.punct-ring svg{transform:rotate(-90deg)}
+.punct-ring-bg{stroke:rgba(255,255,255,.08);stroke-width:8;fill:none}
+.punct-ring-fg{stroke-width:8;fill:none;stroke-linecap:round;transition:stroke-dasharray .8s cubic-bezier(.22,.61,.36,1)}
+.punct-ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:22px;font-weight:700}
+.punct-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+
+/* ===== HEATMAP ===== */
+.heatmap-wrap{background:var(--surface);backdrop-filter:var(--glass-blur);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:12px}
+.heatmap-grid{display:grid;grid-template-columns:auto repeat(7,1fr);gap:3px;margin-top:10px}
+.heatmap-hour-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-align:right;padding-right:4px;display:flex;align-items:center;justify-content:flex-end}
+.heatmap-day-label{font-size:9px;color:var(--text3);text-align:center;padding-bottom:2px}
+.heatmap-cell{aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.03);transition:transform .15s}
+.heatmap-cell.lvl-1{background:rgba(0,200,255,.25)}
+.heatmap-cell.lvl-2{background:rgba(0,200,255,.45)}
+.heatmap-cell.lvl-3{background:rgba(0,200,255,.7);box-shadow:0 0 6px rgba(0,200,255,.4)}
+.heatmap-cell.lvl-4{background:rgba(0,229,255,.95);box-shadow:0 0 10px rgba(0,229,255,.6)}
+
+/* ===== ACHIEVEMENT BADGES ===== */
+.badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+@media(min-width:480px){.badges-grid{grid-template-columns:repeat(4,1fr)}}
+.badge-item{aspect-ratio:1;background:var(--surface2);border:1px solid var(--border2);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;position:relative;transition:transform .2s;cursor:pointer}
+.badge-item:active{transform:scale(.92)}
+.badge-item.locked{opacity:.3;filter:grayscale(80%)}
+.badge-item.unlocked{box-shadow:0 0 14px rgba(0,200,255,.25),inset 0 0 12px rgba(0,200,255,.08);animation:badgePulse 2.5s ease-in-out infinite}
+@keyframes badgePulse{0%,100%{box-shadow:0 0 14px rgba(0,200,255,.25),inset 0 0 12px rgba(0,200,255,.08)}50%{box-shadow:0 0 22px rgba(0,200,255,.45),inset 0 0 18px rgba(0,200,255,.15)}}
+.badge-icon{font-size:32px;margin-bottom:4px;filter:drop-shadow(0 0 8px rgba(0,200,255,.4))}
+.badge-name{font-size:9px;font-weight:600;color:var(--text);text-align:center;line-height:1.2}
+.badge-desc{font-size:8px;color:var(--text3);margin-top:2px;text-align:center}
+
 /* ===== SUCCESS CHECKMARK ANIMATION ===== */
 @keyframes checkRingExpand{0%{transform:translate(-50%,-50%) scale(0);opacity:1}70%{opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
 @keyframes checkDraw{0%{stroke-dashoffset:60}100%{stroke-dashoffset:0}}
@@ -1074,10 +1166,14 @@ body.grad-anim{
     <button class="nav-btn" data-page="announce" onclick="showPage('announce',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 17H2a3 3 0 000 6h20a3 3 0 000-6z"/><path d="M15 9a3 3 0 000-6H5L2 9h13z"/><path d="M22 9h-5"/></svg>ประกาศ<span id="announce-badge" style="display:none;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:4px;margin-left:3px"></span>
     </button>
+    <button class="nav-btn" data-page="chat" onclick="showPage('chat',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>แชต<span id="chat-badge" style="display:none;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:4px;margin-left:3px"></span>
+    </button>
   </nav>
 
   <!-- HOME -->
   <div class="page active" id="page-home">
+    <div id="bday-container"></div>
     <div class="clock-hero tilt-card" id="clock-hero">
       <div class="float-dot"></div>
       <div class="float-dot"></div>
@@ -1166,12 +1262,17 @@ body.grad-anim{
         <select class="sel" id="stat-month" onchange="renderStats()"></select>
         <select class="sel" id="stat-year" onchange="renderStats()"></select>
         <button class="btn-export btn-csv" onclick="exportCSV()">📥 CSV</button>
+        <button class="btn-export" style="background:linear-gradient(135deg,#107c41,#16a34a);color:#fff" onclick="exportXLSX()">📊 Excel</button>
         <button class="btn-export btn-pdf" onclick="exportPDF()">📄 PDF</button>
       </div>
     </div>
+    <div id="streak-container"></div>
+    <div id="punctuality-container"></div>
     <div id="month-summary" class="sum-grid"></div>
+    <div id="heatmap-container"></div>
     <div class="chart-card"><div class="chart-title">⏰ ชั่วโมงทำงานรายวัน</div><canvas id="chart-hours" height="180"></canvas></div>
     <div class="chart-card"><div class="chart-title">⚡ ชั่วโมงโอทีรายวัน</div><canvas id="chart-ot" height="120"></canvas></div>
+    <div id="badges-container"></div>
     <div id="stats-late-list"></div>
   </div>
 
@@ -1451,6 +1552,24 @@ body.grad-anim{
 
     <!-- List -->
     <div id="announce-list"><div class="empty-state"><div class="empty-icon">📢</div><div>ยังไม่มีประกาศ</div></div></div>
+  </div>
+
+  <!-- CHAT PAGE -->
+  <div class="page" id="page-chat">
+    <div class="chat-wrap">
+      <div class="chat-header">
+        <span style="font-size:17px;font-weight:700">💬 แชตทีม</span>
+        <span class="chat-online" id="chat-online">—</span>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="empty-state"><div class="empty-icon">💬</div><div>ยังไม่มีข้อความ</div></div>
+      </div>
+      <div class="chat-typing" id="chat-typing"></div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chat-input" placeholder="พิมพ์ข้อความ..." maxlength="500" oninput="onChatTyping()" onkeypress="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg()}"/>
+        <button class="chat-send" onclick="sendChatMsg()">➤</button>
+      </div>
+    </div>
   </div>
 
   <!-- CREATE ANNOUNCE MODAL -->
@@ -1922,6 +2041,8 @@ function initApp(){
   initPushSettings();
   // Setup realtime cloud sync (listens to personal + shared data)
   setupRealtimeCloudSync();
+  // Setup team chat listener
+  setupChatListener();
   // Push any local-only data that hasn't been to cloud yet
   setTimeout(pushAllLocalToCloud, 500);
   // Sync photo from Firebase if localStorage was cleared
@@ -2013,6 +2134,573 @@ async function migrateOTIfNeeded() {
     showToast(`✅ ปรับ OT ${fixed} รายการ`, 'success');
   }
   localStorage.setItem(key, OT_MIGRATE_VER);
+}
+
+// ========== TEAM CHAT ==========
+let _chatMessages = [];
+let _chatTypingUsers = {};
+let _chatTypingTimer = null;
+let _chatLastReadTs = 0;
+
+function setupChatListener(){
+  if(!fbConn || typeof db==='undefined') return;
+  // Listen messages (last 100)
+  db.ref('chat/messages').limitToLast(100).on('value', snap => {
+    const data = snap.val();
+    _chatMessages = data ? Object.values(data).sort((a,b) => a.ts - b.ts) : [];
+    if(document.getElementById('page-chat')?.classList.contains('active')){
+      renderChat();
+      _chatLastReadTs = Date.now();
+      localStorage.setItem('tt_chat_lastread', String(_chatLastReadTs));
+    }
+    updateChatBadge();
+  }, err => console.warn('chat listen err:',err));
+
+  // Listen typing indicators
+  db.ref('chat/typing').on('value', snap => {
+    _chatTypingUsers = snap.val() || {};
+    renderTypingIndicator();
+  }, err => console.warn('typing listen err:',err));
+}
+
+function renderChat(){
+  const el = document.getElementById('chat-messages');
+  if(!el) return;
+  if(!_chatMessages.length){
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div><div>ยังไม่มีข้อความ — เริ่มแชตเลย!</div></div>';
+    return;
+  }
+  let html = '';
+  let lastDate = null;
+  _chatMessages.forEach(m => {
+    const d = new Date(m.ts);
+    const dateKey = d.toDateString();
+    if(dateKey !== lastDate){
+      const today = new Date().toDateString();
+      const yest = new Date(); yest.setDate(yest.getDate()-1);
+      const yestKey = yest.toDateString();
+      const label = dateKey === today ? 'วันนี้'
+                  : dateKey === yestKey ? 'เมื่อวาน'
+                  : `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()+543}`;
+      html += `<div class="chat-date-divider">${label}</div>`;
+      lastDate = dateKey;
+    }
+    const isMine = m.uid === curUser?.id;
+    const photo = m.email ? getPhoto(m.email) : '';
+    const av = photo ? `<img src="${photo}">` : avatarLetter(m.name);
+    const bg = photo ? 'none' : avatarGrad(m.name);
+    const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    html += `<div class="chat-msg ${isMine?'mine':''}">
+      <div class="chat-msg-av" style="background:${bg}">${av}</div>
+      <div>
+        <div class="chat-msg-bubble">
+          ${!isMine?`<div class="chat-msg-author">${m.name||'ไม่ระบุ'}</div>`:''}
+          <div>${renderMentions(m.text||'')}</div>
+          <div class="chat-msg-time">${time}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+  updateOnlineCount();
+}
+
+function updateOnlineCount(){
+  const el = document.getElementById('chat-online');
+  if(!el) return;
+  // Count team based on employees
+  const total = employees.length;
+  el.textContent = `${total} คนในทีม`;
+}
+
+function sendChatMsg(){
+  const inp = document.getElementById('chat-input');
+  if(!inp || !curUser) return;
+  const text = inp.value.trim();
+  if(!text) return;
+  if(!fbConn || typeof db==='undefined'){
+    showToast('ต้องเชื่อมต่อ Firebase ก่อน','warning');
+    return;
+  }
+  const msg = {
+    id: Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    uid: curUser.id,
+    name: curUser.name,
+    email: curUser.email,
+    text: text,
+    ts: Date.now()
+  };
+  db.ref(`chat/messages/${msg.id}`).set(msg).catch(e => {
+    showToast('ส่งไม่สำเร็จ: '+e.message,'error');
+  });
+  inp.value = '';
+  // Clear typing indicator
+  db.ref(`chat/typing/${curUser.id}`).remove().catch(()=>{});
+  haptic('light');
+}
+
+function onChatTyping(){
+  if(!fbConn || typeof db==='undefined' || !curUser) return;
+  // Set typing flag
+  db.ref(`chat/typing/${curUser.id}`).set({name:curUser.name, ts:Date.now()}).catch(()=>{});
+  // Clear after 3s of inactivity
+  if(_chatTypingTimer) clearTimeout(_chatTypingTimer);
+  _chatTypingTimer = setTimeout(() => {
+    db.ref(`chat/typing/${curUser.id}`).remove().catch(()=>{});
+  }, 3000);
+}
+
+function renderTypingIndicator(){
+  const el = document.getElementById('chat-typing');
+  if(!el) return;
+  const now = Date.now();
+  const typers = Object.entries(_chatTypingUsers || {})
+    .filter(([uid, info]) => uid !== curUser?.id && info && (now - info.ts) < 4000)
+    .map(([uid, info]) => info.name);
+  if(typers.length === 0){ el.textContent = ''; return; }
+  if(typers.length === 1) el.textContent = `${typers[0]} กำลังพิมพ์...`;
+  else el.textContent = `${typers.length} คนกำลังพิมพ์...`;
+}
+
+function updateChatBadge(){
+  const badge = document.getElementById('chat-badge');
+  if(!badge) return;
+  const lastRead = parseInt(localStorage.getItem('tt_chat_lastread')||'0');
+  const unread = _chatMessages.filter(m => m.ts > lastRead && m.uid !== curUser?.id).length;
+  if(unread > 0){ badge.textContent = unread; badge.style.display='inline'; }
+  else { badge.style.display='none'; }
+}
+
+// ========== REACTIONS ON ANNOUNCES ==========
+const REACTION_EMOJIS = ['❤️','👍','🎉','😂','👏'];
+
+function getReactions(annId){
+  // Reactions are stored in the announce object itself (Firebase realtime auto-syncs)
+  const ann = announces.find(a => a.id === annId);
+  return (ann && ann.reactions) || {};
+}
+
+function toggleReaction(annId, emoji){
+  if(!curUser) return;
+  const ann = announces.find(a => a.id === annId);
+  if(!ann) return;
+  if(!ann.reactions) ann.reactions = {};
+  if(!ann.reactions[emoji]) ann.reactions[emoji] = [];
+  const idx = ann.reactions[emoji].indexOf(curUser.id);
+  if(idx >= 0){
+    ann.reactions[emoji].splice(idx, 1);
+    if(!ann.reactions[emoji].length) delete ann.reactions[emoji];
+  } else {
+    ann.reactions[emoji].push(curUser.id);
+  }
+  // Save back
+  if(fbConn && typeof db !== 'undefined'){
+    db.ref(`announces/${annId}/reactions`).set(ann.reactions || null).catch(()=>{});
+  }
+  localStorage.setItem('tt_announces', JSON.stringify(announces));
+  haptic('light');
+  renderAnnounces();
+}
+
+function renderReactions(annId){
+  const reactions = getReactions(annId);
+  const myId = curUser?.id;
+  return `<div class="reactions-row">
+    ${REACTION_EMOJIS.map(em => {
+      const users = reactions[em] || [];
+      const reacted = myId && users.includes(myId);
+      return `<button class="reaction-btn ${reacted?'reacted':''}" onclick="toggleReaction('${annId}','${em}')">
+        <span class="reaction-emoji">${em}</span>
+        ${users.length > 0 ? `<span class="reaction-count">${users.length}</span>` : ''}
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+
+// ========== MENTION @ PERSON ==========
+let _mentionState = {target:null, suggest:null, startPos:0};
+
+function attachMention(textareaId){
+  const ta = document.getElementById(textareaId);
+  if(!ta) return;
+  ta.addEventListener('input', e => handleMentionInput(ta));
+  ta.addEventListener('blur', () => setTimeout(closeMentionSuggest, 200));
+}
+
+function handleMentionInput(ta){
+  const pos = ta.selectionStart;
+  const before = ta.value.substring(0, pos);
+  const match = before.match(/@(\S*)$/);
+  if(match){
+    _mentionState.target = ta;
+    _mentionState.startPos = pos - match[0].length;
+    showMentionSuggest(ta, match[1]);
+  } else {
+    closeMentionSuggest();
+  }
+}
+
+function showMentionSuggest(ta, query){
+  const matches = employees.filter(e => {
+    const q = query.toLowerCase();
+    return e.name.toLowerCase().includes(q) || (e.email && e.email.toLowerCase().includes(q));
+  }).slice(0, 5);
+  if(!matches.length){ closeMentionSuggest(); return; }
+  let suggest = document.getElementById('mention-suggest-pop');
+  if(!suggest){
+    suggest = document.createElement('div');
+    suggest.id = 'mention-suggest-pop';
+    suggest.className = 'mention-suggest';
+    document.body.appendChild(suggest);
+  }
+  suggest.innerHTML = matches.map(e => `
+    <div class="mention-suggest-item" onclick="insertMention('${e.id}','${e.name.replace(/'/g,"\\'")}')">
+      <div class="em-av" style="background:${avatarGrad(e.name)}">${avatarLetter(e.name)}</div>
+      <div>
+        <div style="font-weight:600">${e.name}</div>
+        <div style="font-size:10px;color:var(--text3)">${e.dept||''}</div>
+      </div>
+    </div>
+  `).join('');
+  // Position above textarea
+  const rect = ta.getBoundingClientRect();
+  suggest.style.left = rect.left + 'px';
+  suggest.style.top = (rect.top - 200 + window.scrollY) + 'px';
+  suggest.style.display = 'block';
+  _mentionState.suggest = suggest;
+}
+
+function closeMentionSuggest(){
+  const s = document.getElementById('mention-suggest-pop');
+  if(s) s.style.display = 'none';
+  _mentionState.target = null;
+}
+
+function insertMention(empId, name){
+  const ta = _mentionState.target;
+  if(!ta) return;
+  const before = ta.value.substring(0, _mentionState.startPos);
+  const after = ta.value.substring(ta.selectionStart);
+  ta.value = before + '@' + name + ' ' + after;
+  ta.focus();
+  const newPos = before.length + name.length + 2;
+  ta.setSelectionRange(newPos, newPos);
+  closeMentionSuggest();
+}
+
+// Render @mentions in body — convert "@Name" → highlighted span
+function renderMentions(text){
+  if(!text) return '';
+  const safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return safe.replace(/@(\S+(?:\s\S+)?)/g, (match, name) => {
+    const found = employees.find(e => e.name === name || e.name.startsWith(name));
+    if(found) return `<span class="mention-tag">@${found.name}</span>`;
+    return match;
+  });
+}
+
+// ========== BIRTHDAY / ANNIVERSARY ALERT ==========
+function getBirthday(empId){
+  const emp = employees.find(e => e.id === empId);
+  return emp?.birthday || null; // format: 'MM-DD'
+}
+function getJoinDate(empId){
+  const emp = employees.find(e => e.id === empId);
+  return emp?.joinDate || null; // format: 'YYYY-MM-DD'
+}
+
+function checkBirthdayAlert(){
+  if(!curUser) return null;
+  const today = new Date();
+  const todayMD = `${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  // My birthday
+  const myBday = getBirthday(curUser.id);
+  if(myBday === todayMD){
+    return {type:'self_bday', name:curUser.name};
+  }
+  // My anniversary
+  const myJoin = getJoinDate(curUser.id);
+  if(myJoin){
+    const [jy,jm,jd] = myJoin.split('-').map(Number);
+    if(jm === today.getMonth()+1 && jd === today.getDate()){
+      const years = today.getFullYear() - jy;
+      if(years > 0) return {type:'self_anniv', name:curUser.name, years};
+    }
+  }
+  // Team birthdays today
+  const teamBdays = employees.filter(e => e.id !== curUser.id && e.birthday === todayMD);
+  if(teamBdays.length){
+    return {type:'team_bday', list:teamBdays.map(e => e.name)};
+  }
+  return null;
+}
+
+function renderBirthdayBanner(){
+  const alert = checkBirthdayAlert();
+  if(!alert) return '';
+  if(alert.type === 'self_bday'){
+    return `<div class="bday-banner">
+      <div class="bday-cake">🎂</div>
+      <div class="bday-text">
+        <div class="bday-title">สุขสันต์วันเกิด ${alert.name}!</div>
+        <div class="bday-sub">ขอให้มีความสุขและสุขภาพแข็งแรงตลอดปี ✨</div>
+      </div>
+    </div>`;
+  }
+  if(alert.type === 'self_anniv'){
+    return `<div class="bday-banner">
+      <div class="bday-cake">🎉</div>
+      <div class="bday-text">
+        <div class="bday-title">ครบรอบ ${alert.years} ปีในการทำงาน!</div>
+        <div class="bday-sub">ขอบคุณที่อยู่กับเรามาตลอด 💙</div>
+      </div>
+    </div>`;
+  }
+  if(alert.type === 'team_bday'){
+    return `<div class="bday-banner">
+      <div class="bday-cake">🎂</div>
+      <div class="bday-text">
+        <div class="bday-title">วันเกิดเพื่อนร่วมทีม</div>
+        <div class="bday-sub">${alert.list.join(', ')} วันนี้! ส่งคำอวยพรกันได้เลย 💌</div>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+// ========== STREAK COUNTER ==========
+function calcStreak(empId){
+  if(!empId) return {current:0, best:0};
+  // Get all dates with at least one record
+  const myDates = [...new Set(records.filter(r => r.empId===empId && r.checkIn).map(r => r.date))].sort();
+  if(!myDates.length) return {current:0, best:0};
+
+  const todayKey = todayStr();
+  const yest = new Date(); yest.setDate(yest.getDate()-1);
+  const yestKey = `${yest.getFullYear()}-${pad(yest.getMonth()+1)}-${pad(yest.getDate())}`;
+
+  // Calculate current streak (counts back from today/yesterday)
+  let current = 0;
+  let cursor = new Date();
+  // If today not in records but yesterday is, start from yesterday
+  if(!myDates.includes(todayKey) && myDates.includes(yestKey)){
+    cursor = yest;
+  } else if(!myDates.includes(todayKey) && !myDates.includes(yestKey)){
+    current = 0;
+  }
+  while(true){
+    const k = `${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
+    if(myDates.includes(k)){
+      current++;
+      cursor.setDate(cursor.getDate()-1);
+    } else {
+      // Skip weekends/holidays — only break if it's a working day
+      const dow = cursor.getDay();
+      const holidays = getHolidays();
+      const isHoliday = (dow===0 || dow===6 || holidays[k]);
+      if(isHoliday){
+        cursor.setDate(cursor.getDate()-1);
+        if(current === 0 && cursor < new Date('2020-01-01')) break;
+      } else {
+        break;
+      }
+    }
+    if(current > 365) break; // safety
+  }
+
+  // Calculate best streak (longest run in history)
+  let best = 0, run = 0, prev = null;
+  for(const dStr of myDates){
+    const d = new Date(dStr);
+    if(prev){
+      const diff = Math.round((d - prev) / 86400000);
+      if(diff === 1){ run++; }
+      else if(diff > 1){
+        // Check if gap is only weekends/holidays
+        let gapAllSkip = true;
+        for(let i=1; i<diff; i++){
+          const g = new Date(prev); g.setDate(g.getDate()+i);
+          const gk = `${g.getFullYear()}-${pad(g.getMonth()+1)}-${pad(g.getDate())}`;
+          const dow = g.getDay();
+          const holidays = getHolidays();
+          if(!(dow===0 || dow===6 || holidays[gk])){ gapAllSkip = false; break; }
+        }
+        if(gapAllSkip) run++;
+        else { best = Math.max(best, run); run = 1; }
+      }
+    } else {
+      run = 1;
+    }
+    prev = d;
+  }
+  best = Math.max(best, run, current);
+  return {current, best};
+}
+
+function renderStreakCard(empId){
+  const {current, best} = calcStreak(empId);
+  if(current === 0 && best === 0) return ''; // skip if no data
+  return `<div class="streak-card">
+    <div class="streak-flame">🔥</div>
+    <div class="streak-info">
+      <div class="streak-num">${current} วัน</div>
+      <div class="streak-lbl">มาทำงานต่อเนื่อง</div>
+      ${best > current ? `<div class="streak-best">📈 สูงสุด ${best} วัน</div>` : ''}
+    </div>
+  </div>`;
+}
+
+// ========== PUNCTUALITY SCORE ==========
+function calcPunctuality(empId, year, month){
+  if(!empId) return {score:100, total:0, late:0};
+  let recs;
+  if(year !== undefined && month !== undefined){
+    recs = records.filter(r => {
+      const [y,m] = r.date.split('-').map(Number);
+      return r.empId===empId && y===year && m===month+1 && r.checkIn;
+    });
+  } else {
+    recs = records.filter(r => r.empId===empId && r.checkIn);
+  }
+  const total = recs.length;
+  if(total === 0) return {score:100, total:0, late:0};
+  const late = recs.filter(r => r.isLate).length;
+  const score = Math.round(((total - late) / total) * 100);
+  return {score, total, late};
+}
+
+function renderPunctualityCard(empId){
+  const {score, total, late} = calcPunctuality(empId);
+  if(total === 0) return '';
+  const radius = 36;
+  const circ = 2 * Math.PI * radius;
+  const offset = circ - (score / 100) * circ;
+  const color = score >= 90 ? '#00ff9d' : score >= 75 ? '#00c8ff' : score >= 60 ? '#ffe600' : '#ff2d55';
+  return `<div class="punct-card">
+    <div class="punct-label">⏱ คะแนนตรงเวลา</div>
+    <div class="punct-ring">
+      <svg width="90" height="90">
+        <circle class="punct-ring-bg" cx="45" cy="45" r="${radius}"/>
+        <circle class="punct-ring-fg" cx="45" cy="45" r="${radius}" stroke="${color}"
+          stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+          style="filter:drop-shadow(0 0 6px ${color})"/>
+      </svg>
+      <div class="punct-ring-text" style="color:${color}">${score}</div>
+    </div>
+    <div style="font-size:11px;color:var(--text2)">ตรงเวลา ${total - late}/${total} ครั้ง</div>
+  </div>`;
+}
+
+// ========== HEATMAP ==========
+function renderHeatmap(empId){
+  if(!empId) return '';
+  // Build 24h × 7days grid based on check-in times
+  const grid = Array.from({length:24}, () => Array(7).fill(0));
+  records.filter(r => r.empId===empId && r.checkIn).forEach(r => {
+    const d = new Date(r.date);
+    const dow = d.getDay();
+    const [h] = r.checkIn.split(':').map(Number);
+    grid[h][dow]++;
+  });
+  // Find max for normalization
+  let max = 0;
+  grid.forEach(row => row.forEach(v => { if(v>max) max=v; }));
+  if(max === 0) return '';
+
+  const days = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+  // Show only hours 4-22 (work hours)
+  let html = `<div class="heatmap-wrap">
+    <div class="section-title">🔥 ช่วงเวลาเข้างาน</div>
+    <div class="heatmap-grid">
+      <div></div>${days.map(d => `<div class="heatmap-day-label">${d}</div>`).join('')}`;
+  for(let h=4; h<=22; h++){
+    if(h % 3 !== 0 && h !== 4 && h !== 22) {
+      html += `<div></div>`;
+    } else {
+      html += `<div class="heatmap-hour-label">${pad(h)}</div>`;
+    }
+    for(let d=0; d<7; d++){
+      const count = grid[h][d];
+      const lvl = count === 0 ? 0
+                : count <= max*0.25 ? 1
+                : count <= max*0.5  ? 2
+                : count <= max*0.75 ? 3
+                : 4;
+      html += `<div class="heatmap-cell ${lvl?`lvl-${lvl}`:''}" title="${days[d]} ${pad(h)}:00 — ${count} ครั้ง"></div>`;
+    }
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+// ========== ACHIEVEMENT BADGES ==========
+const BADGES = [
+  {id:'first_day',  icon:'🎉', name:'วันแรก',         desc:'Check-in วันแรก',
+    check:(empId) => records.some(r => r.empId===empId && r.checkIn)},
+  {id:'early_bird', icon:'🌅', name:'นกเช้า',         desc:'เข้าก่อน 6:00 5 ครั้ง',
+    check:(empId) => records.filter(r => r.empId===empId && r.checkIn && r.checkIn < '06:00').length >= 5},
+  {id:'streak_7',   icon:'🔥', name:'ต่อเนื่อง 7 วัน', desc:'มาต่อเนื่อง 7 วัน',
+    check:(empId) => calcStreak(empId).best >= 7},
+  {id:'streak_30',  icon:'💎', name:'ต่อเนื่อง 30 วัน', desc:'มาต่อเนื่อง 30 วัน',
+    check:(empId) => calcStreak(empId).best >= 30},
+  {id:'punctual_100',icon:'💯',name:'ตรงเวลา 100%',  desc:'ตรงเวลาทุกครั้ง 1 เดือน',
+    check:(empId) => {
+      const now = new Date();
+      const {score, total} = calcPunctuality(empId, now.getFullYear(), now.getMonth());
+      return total >= 10 && score === 100;
+    }},
+  {id:'ot_master',  icon:'⚡', name:'OT Master',      desc:'OT 50 ชม. ในเดือน',
+    check:(empId) => {
+      const now = new Date();
+      const otMin = records.filter(r => {
+        const [y,m] = r.date.split('-').map(Number);
+        return r.empId===empId && y===now.getFullYear() && m===now.getMonth()+1;
+      }).reduce((s,r) => s+(r.otMin||0), 0);
+      return otMin/60 >= 50;
+    }},
+  {id:'hours_100',  icon:'🏆', name:'100 ชม.',       desc:'ทำงานครบ 100 ชม.',
+    check:(empId) => records.filter(r => r.empId===empId && r.checkIn && r.checkOut)
+      .reduce((s,r) => s+calcHours(r.checkIn,r.checkOut), 0) >= 100},
+  {id:'hours_500',  icon:'👑', name:'500 ชม.',       desc:'ทำงานครบ 500 ชม.',
+    check:(empId) => records.filter(r => r.empId===empId && r.checkIn && r.checkOut)
+      .reduce((s,r) => s+calcHours(r.checkIn,r.checkOut), 0) >= 500},
+  {id:'days_30',    icon:'📅', name:'30 วัน',        desc:'มาทำงานครบ 30 วัน',
+    check:(empId) => new Set(records.filter(r => r.empId===empId && r.checkIn).map(r => r.date)).size >= 30},
+  {id:'no_late',    icon:'⏰', name:'ไม่เคยสาย',     desc:'ไม่เคยสายเลย',
+    check:(empId) => {
+      const recs = records.filter(r => r.empId===empId && r.checkIn);
+      return recs.length >= 10 && !recs.some(r => r.isLate);
+    }},
+  {id:'weekend_warrior',icon:'🏋️',name:'ทำงานวันหยุด',desc:'เข้างานวันเสาร์/อาทิตย์ 5 ครั้ง',
+    check:(empId) => records.filter(r => {
+      if(r.empId!==empId || !r.checkIn) return false;
+      const dow = new Date(r.date).getDay();
+      return dow===0 || dow===6;
+    }).length >= 5},
+  {id:'night_owl',  icon:'🦉', name:'นกเค้าแมว',     desc:'ออกหลัง 22:00 5 ครั้ง',
+    check:(empId) => records.filter(r => r.empId===empId && r.checkOut && r.checkOut > '22:00').length >= 5},
+];
+
+function calcBadges(empId){
+  if(!empId) return [];
+  return BADGES.map(b => ({...b, unlocked: !!b.check(empId)}));
+}
+
+function renderBadgesCard(empId){
+  const badges = calcBadges(empId);
+  const unlockedCount = badges.filter(b => b.unlocked).length;
+  return `<div class="card">
+    <div class="section-title">🏅 ตรารางวัล <span style="font-size:11px;font-weight:400;color:var(--text2);margin-left:auto">${unlockedCount}/${badges.length}</span></div>
+    <div class="badges-grid">
+      ${badges.map(b => `
+        <div class="badge-item ${b.unlocked?'unlocked':'locked'}" title="${b.desc}">
+          <div class="badge-icon">${b.icon}</div>
+          <div class="badge-name">${b.name}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
 }
 
 // ========== SELECTORS ==========
@@ -2158,6 +2846,9 @@ function deleteRec(id,empId){
 
 // ========== RENDER HOME ==========
 function renderHome(){
+  // Birthday/anniversary banner
+  const bdayC = document.getElementById('bday-container');
+  if(bdayC) bdayC.innerHTML = renderBirthdayBanner();
   const today=todayStr();
   const myRec=records.filter(r=>r.empId===curUser.id&&r.date===today);
   const open=myRec.find(r=>!r.checkOut);
@@ -2327,6 +3018,16 @@ function renderStats(){
   const year=parseInt(document.getElementById('stat-year').value);
   const myRec=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1});
   const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+  // Streak + Punctuality + Heatmap + Badges
+  const streakC = document.getElementById('streak-container');
+  const punctC  = document.getElementById('punctuality-container');
+  const heatC   = document.getElementById('heatmap-container');
+  const badgeC  = document.getElementById('badges-container');
+  if(streakC) streakC.innerHTML = renderStreakCard(curUser.id);
+  if(punctC)  punctC.innerHTML  = renderPunctualityCard(curUser.id);
+  if(heatC)   heatC.innerHTML   = renderHeatmap(curUser.id);
+  if(badgeC)  badgeC.innerHTML  = renderBadgesCard(curUser.id);
 
   const byDate={};
   myRec.forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r)});
@@ -2890,6 +3591,78 @@ function showDayDetail(dateStr,email){
 }
 
 // ========== EXPORT ==========
+function exportXLSX(){
+  if(typeof XLSX === 'undefined'){
+    showToast('กำลังโหลด library กรุณาลองอีกครั้ง','warning');
+    return;
+  }
+  const month=parseInt(document.getElementById('stat-month').value);
+  const year=parseInt(document.getElementById('stat-year').value);
+  const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const dayNames=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1});
+  if(!mr.length){showToast('ไม่มีข้อมูล','warning');return}
+  const byDate={};mr.forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r)});
+
+  // Build data array
+  const data = [
+    [`รายงานเวลาทำงาน — ${curUser.name}`],
+    [`${mons[month]} ${year+543}`],
+    [],
+    ['วันที่','วัน','เวลาเข้า','เวลาออก','ชม.รวม','OT (ชม.)','สถานะ','หมายเหตุ']
+  ];
+  let rowCount = 0;
+  Object.keys(byDate).sort().forEach(date=>{
+    const rs=byDate[date];
+    const d=new Date(date+'T00:00:00');
+    const [y,m,dd]=date.split('-');
+    const dateStr=`${parseInt(dd)}/${parseInt(m)}/${parseInt(y)+543}`;
+    rs.forEach(r=>{
+      const rawH=r.checkOut?calcHours(r.checkIn,r.checkOut):0;
+      const otH=(r.otMin||0)/60;
+      data.push([
+        dateStr, dayNames[d.getDay()],
+        r.checkIn||'', r.checkOut||'',
+        Number(rawH.toFixed(2)), Number(otH.toFixed(2)),
+        r.isLate?'สาย':'ตรงเวลา', r.note||''
+      ]);
+      rowCount++;
+    });
+  });
+  // Totals row
+  const totalH=mr.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+  const totalOT=mr.reduce((s,r)=>s+(r.otMin||0),0);
+  data.push([]);
+  data.push(['สรุป','','','รวม', Number(totalH.toFixed(2)), Number((totalOT/60).toFixed(2)),'','']);
+  const sal=getSalInput(month,year);
+  if(sal){
+    const ph = totalH > 0 ? parseFloat(sal)/totalH : 0;
+    data.push(['เงินเดือน','','','', parseFloat(sal),'','','']);
+    data.push(['ค่าแรง/ชม.','','','', Number(ph.toFixed(2)),'','','']);
+  }
+
+  // Create workbook with styling
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+
+  // Column widths
+  ws['!cols'] = [
+    {wch:15},{wch:10},{wch:10},{wch:10},
+    {wch:10},{wch:10},{wch:12},{wch:25}
+  ];
+  // Merge title rows
+  ws['!merges'] = [
+    {s:{r:0,c:0},e:{r:0,c:7}},
+    {s:{r:1,c:0},e:{r:1,c:7}}
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, mons[month]+year);
+  const filename = `TimeTrack_${curUser.name}_${mons[month]}${year+543}.xlsx`;
+  XLSX.writeFile(wb, filename);
+  showToast('✅ Export Excel สำเร็จ','success');
+  haptic('success');
+}
+
 function exportCSV(){
   const month=parseInt(document.getElementById('stat-month').value);
   const year=parseInt(document.getElementById('stat-year').value);
@@ -3406,6 +4179,8 @@ function openCreateAnnounce() {
   document.getElementById('ann-body').value = '';
   document.getElementById('ann-pin').checked = false;
   document.getElementById('create-announce-modal').classList.add('open');
+  // Attach @mention autocomplete to textarea
+  setTimeout(() => attachMention('ann-body'), 100);
 }
 
 function submitAnnounce() {
@@ -3461,10 +4236,11 @@ function renderAnnounces() {
       return `<div class="announce-card${a.pinned?' pinned':''}">
         ${a.pinned?'<div class="announce-pin">📌</div>':''}
         <div class="announce-title">${a.title}${isNew?'<span class="announce-new">ใหม่</span>':''}</div>
-        <div class="announce-body">${a.body}</div>
+        <div class="announce-body">${renderMentions(a.body)}</div>
         <div class="announce-meta">โดย ${a.author} · ${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}
           ${isAdmin()?`<button onclick="deleteAnnounce('${a.id}')" style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">ลบ</button>`:''}
         </div>
+        ${renderReactions(a.id)}
       </div>`;
     }).join('');
   }
@@ -3702,6 +4478,12 @@ function showPage(id,btn){
   if(id==='calendar') { renderCalendar() }
   if(id==='history')  { showSkeletonHistory(); renderHistory(true) }
   if(id==='announce') { renderAnnounces(); updateAnnounceBadge() }
+  if(id==='chat')     {
+    renderChat();
+    _chatLastReadTs = Date.now();
+    localStorage.setItem('tt_chat_lastread', String(_chatLastReadTs));
+    updateChatBadge();
+  }
 }
 
 // ========== MODAL ==========
