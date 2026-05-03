@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>⚡ TimeTrack Cyberpunk</title>
+<title>🌌 RUDY</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <!-- Firebase SDK - NO defer (must load in order before inline scripts) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1457,10 +1457,16 @@ body.grad-anim{
 
 <!-- PWA Manifest -->
 <link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="icon-120.png">
 <meta name="theme-color" content="#051428">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="TimeTrack">
+<meta name="apple-mobile-web-app-title" content="RUDY">
 
 <!-- Firebase preloaded via direct script tags -->
 </head>
@@ -1469,7 +1475,7 @@ body.grad-anim{
 <!-- INITIAL LOADING OVERLAY -->
 <div id="init-overlay" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(180deg,#051428,#0a2440);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
   <div style="width:52px;height:52px;background:linear-gradient(135deg,#0077cc,#00e5ff);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;font-family:monospace;box-shadow:0 0 30px rgba(0,191,255,.4)">T</div>
-  <div style="font-size:18px;font-weight:700;color:#e0f7ff">🌊 TimeTrack</div>
+  <div style="font-size:18px;font-weight:700;color:#e0f7ff">🌌 RUDY</div>
   <div style="width:40px;height:40px;border:3px solid rgba(0,191,255,.2);border-top-color:#00bfff;border-radius:50%;animation:spin .7s linear infinite"></div>
   <div id="overlay-status" style="font-size:13px;color:#3a7ca5">กำลังโหลด...</div>
   <div id="overlay-skip" style="display:none;margin-top:8px">
@@ -1483,7 +1489,7 @@ body.grad-anim{
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo"><div class="login-logo-mark">T</div><div class="login-logo-text">🌊 Time<span>Track</span></div></div>
+    <div class="login-logo"><div class="login-logo-mark">R</div><div class="login-logo-text">🌌 RU<span>DY</span></div></div>
     <div class="login-sub">ระบบบันทึกเวลาพนักงาน</div>
     <div class="login-err" id="login-err" style="display:none"></div>
 
@@ -1513,7 +1519,7 @@ body.grad-anim{
 <!-- REGISTER SCREEN -->
 <div id="register-screen" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%);overflow-y:auto">
   <div class="login-box" style="max-height:90vh;overflow-y:auto">
-    <div class="login-logo"><div class="login-logo-mark">T</div><div class="login-logo-text">🌊 Time<span>Track</span></div></div>
+    <div class="login-logo"><div class="login-logo-mark">R</div><div class="login-logo-text">🌌 RU<span>DY</span></div></div>
     <div class="login-sub">สมัครสมาชิกใหม่</div>
     <div class="login-err" id="reg-err" style="display:none"></div>
     <div id="reg-success" style="display:none;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green);font-size:13px;padding:12px;border-radius:8px;margin-bottom:14px;text-align:center"></div>
@@ -1553,7 +1559,7 @@ body.grad-anim{
     <span id="ptr-text">🔄 ดึงเพื่อรีเฟรช</span>
   </div>
   <div class="topbar">
-    <div class="topbar-logo"><div class="logo-mark">T</div><div class="logo-text">🌊 Time<span>Track</span></div></div>
+    <div class="topbar-logo"><div class="logo-mark">R</div><div class="logo-text">🌌 RU<span>DY</span></div></div>
     <div class="topbar-right">
       <div class="live-badge"><div class="live-dot"></div><span class="live-text">LIVE</span></div>
       <span id="admin-badge" class="admin-badge" style="display:none">👑</span>
@@ -2457,7 +2463,7 @@ function initApp(){
   if(existing) existing.remove();
   const banner = document.createElement('div');
   banner.id = 'songkran-banner';
-  banner.innerHTML = '⚡ TimeTrack — Cyberpunk Edition ✨';
+  banner.innerHTML = '🌌 RUDY — Galaxy Edition ✨';
   document.body.appendChild(banner);
   setTimeout(()=>{ if(banner.parentElement) banner.remove(); }, 5500);
   const admin=isAdmin();
@@ -4362,7 +4368,7 @@ function exportXLSX(){
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, mons[month]+year);
-  const filename = `TimeTrack_${curUser.name}_${mons[month]}${year+543}.xlsx`;
+  const filename = `RUDY_${curUser.name}_${mons[month]}${year+543}.xlsx`;
   XLSX.writeFile(wb, filename);
   showToast('✅ Export Excel สำเร็จ','success');
   haptic('success');
@@ -4396,7 +4402,7 @@ function exportCSV(){
   if(sal){const ph=parseFloat(sal)/totalH;csv+=`เงินเดือน,,,,฿${parseFloat(sal).toLocaleString('th-TH')},,\nค่าแรง/ชม.,,,,฿${ph.toFixed(2)},,\n`}
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`TimeTrack_${curUser.name}_${mons[month]}${year+543}.csv`;a.click();
+  const a=document.createElement('a');a.href=url;a.download=`RUDY_${curUser.name}_${mons[month]}${year+543}.csv`;a.click();
   URL.revokeObjectURL(url);showToast('✅ Export CSV สำเร็จ','success');
 }
 
@@ -4476,7 +4482,7 @@ function exportPDF(){
         <td></td>
       </tr></tfoot>
     </table>
-    <div class="footer">สร้างโดย TimeTrack Pro &nbsp;|&nbsp; ${new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</div>
+    <div class="footer">สร้างโดย RUDY &nbsp;|&nbsp; ${new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</div>
     <div class="no-print" style="text-align:center;margin-top:16px">
       <button onclick="window.print()" style="padding:10px 28px;background:#2b6cb0;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:Sarabun">🖨️ พิมพ์ / บันทึก PDF</button>
     </div>
@@ -4821,7 +4827,7 @@ function checkEarlyReminder() {
   const key = `tt_early_reminded_${todayStr()}`;
   if(localStorage.getItem(key)) return;
   localStorage.setItem(key, '1');
-  sendPush('🌅 ใกล้ถึงเวลาเข้างานแล้ว! — TimeTrack',
+  sendPush('🌅 ใกล้ถึงเวลาเข้างานแล้ว! — RUDY',
     `เวลาเข้างาน ${workStart} — อีก ${diffMins} นาที`, 'early-reminder');
   showToast(`🌅 อีก ${diffMins} นาทีถึงเวลาเข้างาน`, 'warning');
 }
@@ -4843,7 +4849,7 @@ function checkMonthlyReminder() {
   const totalHrs = myRec.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
   const totalOT = myRec.reduce((s,r)=>s+(r.otMin||0),0);
   const mons = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  sendPush(`📊 สรุปเดือน${mons[prevMonth.getMonth()]} — TimeTrack`,
+  sendPush(`📊 สรุปเดือน${mons[prevMonth.getMonth()]} — RUDY`,
     `มา ${totalDays} วัน | ${totalHrs.toFixed(1)} ชม. | OT ${(totalOT/60).toFixed(1)} ชม.`,
     'monthly-summary');
 }
@@ -4901,7 +4907,7 @@ function submitAnnounce() {
   showToast('📢 ประกาศแล้ว','success');
   // Push to all users (in-app only)
   if(isNotifOn('announce')) {
-    sendPush('📢 ประกาศใหม่ — TimeTrack', title, 'announce-'+ann.id);
+    sendPush('📢 ประกาศใหม่ — RUDY', title, 'announce-'+ann.id);
   }
 }
 
@@ -5005,7 +5011,7 @@ function submitPoll() {
   closeModal('create-poll-modal');
   renderAnnounces();
   showToast('🗳 สร้างโพลแล้ว','success');
-  if(isNotifOn('poll')) sendPush('🗳 มีโพลใหม่ — TimeTrack', q, 'poll-'+poll.id);
+  if(isNotifOn('poll')) sendPush('🗳 มีโพลใหม่ — RUDY', q, 'poll-'+poll.id);
 }
 
 function votePoll(pollId, optIdx) {
@@ -5119,7 +5125,7 @@ function checkCheckoutReminder() {
   localStorage.setItem(remindKey, '1');
   // Try push notification first
   if('Notification' in window && Notification.permission === 'granted') {
-    new Notification('⏰ อย่าลืมออกงาน! — TimeTrack', {
+    new Notification('⏰ อย่าลืมออกงาน! — RUDY', {
       body: `เข้างาน ${open.checkIn} — ผ่านมา ${hrs.toFixed(1)} ชม.แล้ว`,
       icon: './icon-192.png',
       tag: 'checkout-reminder'
@@ -6268,9 +6274,9 @@ function showCinemaSplash(duration = 1800){
       <div class="cinema-splash-ring"></div>
     </div>
     <div class="cinema-splash-content">
-      <div class="cinema-splash-logo">⚡</div>
-      <div class="cinema-splash-text">TimeTrack</div>
-      <div class="cinema-splash-tagline">Cyberpunk Edition</div>
+      <div class="cinema-splash-logo">🌌</div>
+      <div class="cinema-splash-text">RUDY</div>
+      <div class="cinema-splash-tagline">Galaxy Edition</div>
     </div>`;
   document.body.appendChild(splash);
   setTimeout(()=>{

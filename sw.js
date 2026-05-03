@@ -1,11 +1,17 @@
-// ===== TimeTrack Service Worker =====
-const CACHE_NAME = 'timetrack-v31';
-const STATIC_CACHE = 'timetrack-static-v31';
-const FIREBASE_CACHE = 'timetrack-firebase-v31';
+// ===== RUDY Service Worker =====
+const CACHE_NAME = 'rudy-v32';
+const STATIC_CACHE = 'rudy-static-v32';
+const FIREBASE_CACHE = 'rudy-firebase-v32';
 
 const STATIC_ASSETS = [
   './index.html',
   './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-180.png',
+  './icon-167.png',
+  './icon-152.png',
+  './icon-120.png',
 ];
 
 const FIREBASE_ASSETS = [
