@@ -204,7 +204,8 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 @media(min-width:400px){.nav-btn{font-size:10px;min-width:60px}.nav-btn svg{width:20px;height:20px}}
 
 /* Bottom padding for floating nav */
-main{padding-bottom:96px}
+main{padding-bottom:130px}
+body{padding-bottom:env(safe-area-inset-bottom,0)}
 
 /* PAGES */
 /* ===== RICH ANIMATIONS — Spring Physics ===== */
@@ -252,27 +253,254 @@ main{padding-bottom:96px}
 
 /* Smooth scroll */
 html{scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
-body{scroll-behavior:smooth}
+body{scroll-behavior:smooth;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
 
 /* Reduce motion respect */
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 
+/* ===== CINEMATIC BATCH A ===== */
+
+/* === Page Transition Glitch === */
+@keyframes glitchIn{
+  0%{opacity:0;transform:translateX(20px) scale(.96);clip-path:polygon(0 0,100% 0,100% 100%,0 100%);filter:hue-rotate(0deg) brightness(1)}
+  10%{opacity:1;clip-path:polygon(0 5%,100% 0,100% 95%,0 100%);filter:hue-rotate(-90deg) brightness(1.4)}
+  20%{clip-path:polygon(0 0,100% 12%,100% 100%,0 88%);filter:hue-rotate(90deg) brightness(1.2) saturate(2)}
+  35%{clip-path:polygon(0 8%,100% 0,100% 92%,0 100%);filter:hue-rotate(-30deg) brightness(1.1)}
+  50%{filter:hue-rotate(0deg) brightness(1) saturate(1)}
+  100%{opacity:1;transform:translateX(0) scale(1);clip-path:polygon(0 0,100% 0,100% 100%,0 100%);filter:none}
+}
+@keyframes glitchScanline{
+  0%{transform:translateY(-100%);opacity:0}
+  10%{opacity:.6}
+  90%{opacity:.6}
+  100%{transform:translateY(200%);opacity:0}
+}
+.glitch-active{animation:glitchIn .55s var(--ease-out-expo) both;position:relative}
+.glitch-active::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:linear-gradient(180deg,transparent 0%,rgba(0,200,255,.15) 50%,transparent 100%);
+  animation:glitchScanline .6s ease-out forwards
+}
+/* RGB chromatic aberration on glitch */
+.glitch-active::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
+  background:
+    radial-gradient(circle at 30% 50%,rgba(255,0,90,.05) 0%,transparent 50%),
+    radial-gradient(circle at 70% 50%,rgba(0,200,255,.05) 0%,transparent 50%);
+  animation:glitchAberration .4s ease-out forwards
+}
+@keyframes glitchAberration{
+  0%{opacity:.8;transform:translateX(0)}
+  25%{transform:translateX(-3px)}
+  50%{transform:translateX(3px)}
+  75%{transform:translateX(-1px)}
+  100%{opacity:0;transform:translateX(0)}
+}
+
+/* === Particle Trail === */
+.cursor-trail{
+  position:fixed;width:8px;height:8px;border-radius:50%;
+  pointer-events:none;z-index:99999;
+  background:radial-gradient(circle,rgba(0,229,255,.9),rgba(0,200,255,.4) 40%,transparent 70%);
+  box-shadow:0 0 12px rgba(0,229,255,.8),0 0 24px rgba(0,200,255,.4);
+  animation:particleFade .8s ease-out forwards;
+  will-change:transform,opacity
+}
+@keyframes particleFade{
+  0%{transform:scale(1) translate(-50%,-50%);opacity:1}
+  100%{transform:scale(0) translate(-50%,-50%);opacity:0}
+}
+.cursor-trail.spark{
+  width:4px;height:4px;
+  background:radial-gradient(circle,rgba(255,255,255,1),rgba(0,229,255,.6) 50%,transparent);
+  box-shadow:0 0 8px rgba(255,255,255,.9),0 0 16px var(--accent)
+}
+
+/* === Cinematic Loading Splash === */
+@keyframes splashIn{
+  0%{opacity:0;transform:scale(.5);filter:blur(20px)}
+  60%{opacity:1;transform:scale(1.05);filter:blur(0)}
+  100%{opacity:1;transform:scale(1)}
+}
+@keyframes splashOut{
+  0%{opacity:1;transform:scale(1);filter:blur(0)}
+  100%{opacity:0;transform:scale(1.4);filter:blur(40px)}
+}
+@keyframes splashLogoSpin{
+  0%{transform:rotate(0deg) scale(1);filter:drop-shadow(0 0 20px var(--accent))}
+  50%{transform:rotate(180deg) scale(1.1);filter:drop-shadow(0 0 40px var(--accent2))}
+  100%{transform:rotate(360deg) scale(1);filter:drop-shadow(0 0 20px var(--accent))}
+}
+@keyframes splashRingExpand{
+  0%{transform:scale(.3);opacity:1;border-color:var(--accent)}
+  100%{transform:scale(3);opacity:0;border-color:transparent}
+}
+@keyframes splashTextGlow{
+  0%,100%{text-shadow:0 0 20px var(--accent),0 0 40px var(--accent2)}
+  50%{text-shadow:0 0 40px var(--accent2),0 0 80px var(--accent),0 0 120px var(--accent)}
+}
+.cinema-splash{
+  position:fixed;inset:0;z-index:99998;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at center,rgba(0,30,60,.95) 0%,rgba(0,5,15,.99) 100%);
+  backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
+  animation:splashIn .8s var(--ease-out-expo) both
+}
+.cinema-splash.fading{animation:splashOut .5s var(--ease-out-quart) both}
+.cinema-splash-content{text-align:center;position:relative}
+.cinema-splash-logo{
+  font-size:80px;display:inline-block;
+  animation:splashLogoSpin 2s var(--ease-spring) infinite
+}
+.cinema-splash-text{
+  font-family:var(--mono);font-size:24px;font-weight:700;color:var(--accent);
+  margin-top:20px;letter-spacing:8px;text-transform:uppercase;
+  animation:splashTextGlow 1.5s ease-in-out infinite
+}
+.cinema-splash-tagline{
+  font-size:11px;color:var(--text2);margin-top:8px;letter-spacing:3px;
+  text-transform:uppercase;opacity:.7
+}
+.cinema-splash-rings{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.cinema-splash-ring{
+  position:absolute;top:50%;left:50%;
+  width:120px;height:120px;border:2px solid var(--accent);border-radius:50%;
+  transform:translate(-50%,-50%);
+  animation:splashRingExpand 2s ease-out infinite
+}
+.cinema-splash-ring:nth-child(2){animation-delay:.5s}
+.cinema-splash-ring:nth-child(3){animation-delay:1s}
+.cinema-splash-ring:nth-child(4){animation-delay:1.5s}
+
+/* === CINEMATIC TOGGLE === */
+body.cinema-off .glitch-active::before,
+body.cinema-off .glitch-active::after{display:none!important}
+body.cinema-off .cursor-trail{display:none!important}
+
+/* ===== CINEMATIC BATCH B ===== */
+
+/* === Spotlight Glow on Cards === */
+.spotlight-card{position:relative;overflow:hidden}
+.spotlight-card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),rgba(0,229,255,.18),transparent 40%);
+  opacity:0;transition:opacity .3s var(--ease-smooth);z-index:1
+}
+.spotlight-card:hover::before,.spotlight-card.spotlight-active::before{opacity:1}
+
+/* === Dynamic Scroll Blur Background === */
+@keyframes blurShift{
+  0%{filter:blur(0px)}
+  50%{filter:blur(2px)}
+  100%{filter:blur(0px)}
+}
+body[data-scroll-fast="1"]::before{
+  filter:blur(8px) saturate(140%);
+  transition:filter .2s ease
+}
+
+/* Subtle parallax orbs on scroll */
+body::before{will-change:transform;transition:transform .1s linear}
+
+/* === Number Reactive Glow === */
+@keyframes numReactive{
+  0%{transform:scale(1);text-shadow:0 0 0 currentColor;filter:brightness(1)}
+  30%{transform:scale(1.18);text-shadow:0 0 16px currentColor,0 0 32px currentColor;filter:brightness(1.5)}
+  70%{transform:scale(1.05);text-shadow:0 0 8px currentColor;filter:brightness(1.2)}
+  100%{transform:scale(1);text-shadow:0 0 0 currentColor;filter:brightness(1)}
+}
+.num-reactive{animation:numReactive .8s var(--ease-spring) forwards;display:inline-block}
+
+@keyframes pulseRipple{
+  0%{box-shadow:0 0 0 0 rgba(0,229,255,.6),0 0 0 0 rgba(0,229,255,.3)}
+  50%{box-shadow:0 0 0 12px rgba(0,229,255,.2),0 0 0 24px rgba(0,229,255,.05)}
+  100%{box-shadow:0 0 0 0 rgba(0,229,255,0),0 0 0 0 rgba(0,229,255,0)}
+}
+.num-pulse{animation:pulseRipple 1s ease-out forwards}
+
+/* === Mouse-aware Border Glow === */
+@keyframes borderTrace{
+  0%{background-position:0% 50%}
+  100%{background-position:200% 50%}
+}
+.border-trace{
+  position:relative
+}
+.border-trace::before{
+  content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;
+  background:linear-gradient(90deg,transparent,var(--accent2),var(--accent),var(--accent2),transparent);
+  background-size:200% 100%;
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  animation:borderTrace 3s linear infinite;
+  pointer-events:none;opacity:0;transition:opacity .3s
+}
+.border-trace.active::before,.border-trace:hover::before{opacity:1}
+
+body.cinema-off .num-reactive,
+body.cinema-off .num-pulse,
+body.cinema-off .spotlight-card::before,
+body.cinema-off .border-trace::before{animation:none!important;display:none!important}
+
+/* ===== CINEMATIC BATCH C — 3D Parallax & Depth ===== */
+
+/* 3D scene container */
+.cinema-3d-scene{perspective:1200px;perspective-origin:50% 50%}
+
+/* Cards with 3D depth on parallax */
+.parallax-3d{
+  transform-style:preserve-3d;
+  transition:transform .25s var(--ease-spring);
+  will-change:transform
+}
+
+/* Gyroscope-driven background orb shift */
+@keyframes orbDrift{
+  0%,100%{transform:translate(var(--gx,0),var(--gy,0))}
+}
+body::before{transition:transform .15s linear}
+
+/* Depth layers — z-translate for parallax */
+.depth-near{transform:translateZ(20px)}
+.depth-mid{transform:translateZ(8px)}
+.depth-far{transform:translateZ(-12px)}
+
+/* Hover glow burst */
+@keyframes burstGlow{
+  0%{box-shadow:0 0 0 0 rgba(0,229,255,0)}
+  50%{box-shadow:0 0 30px 8px rgba(0,229,255,.35),0 0 60px 16px rgba(0,200,255,.15)}
+  100%{box-shadow:0 0 0 0 rgba(0,229,255,0)}
+}
+.burst-glow{animation:burstGlow .8s ease-out}
+
+/* Body reactive shake on important events */
+@keyframes screenShake{
+  0%,100%{transform:translate(0)}
+  10%,30%,50%,70%,90%{transform:translate(-2px,1px)}
+  20%,40%,60%,80%{transform:translate(2px,-1px)}
+}
+body.shaking{animation:screenShake .35s ease-in-out}
+
+body.cinema-off .parallax-3d{transform:none!important}
+body.cinema-off.shaking{animation:none!important}
+
 /* PAGES */
-.page{display:none;padding:12px 12px 90px;position:relative;z-index:1;max-width:680px;margin:0 auto}
+.page{display:none;padding:12px 12px 130px;position:relative;z-index:1;max-width:680px;margin:0 auto;width:100%;box-sizing:border-box;overflow-x:hidden}
 .page.slide-in-right{animation:slideInRight .42s var(--ease-out-expo) both}
 .page.slide-in-left{animation:slideInLeft .42s var(--ease-out-expo) both}
 .page.active{display:block;animation:fadeIn .3s var(--ease-smooth)}
-.page.active > *{animation:slideUp .55s var(--ease-spring) both;will-change:transform,opacity}
+.page.active > *{animation:slideUp .5s var(--ease-spring) both}
 .page.active > *:nth-child(1){animation-delay:.04s}
-.page.active > *:nth-child(2){animation-delay:.10s}
-.page.active > *:nth-child(3){animation-delay:.16s}
-.page.active > *:nth-child(4){animation-delay:.22s}
-.page.active > *:nth-child(5){animation-delay:.28s}
-.page.active > *:nth-child(6){animation-delay:.34s}
-.page.active > *:nth-child(7){animation-delay:.40s}
-.page.active > *:nth-child(8){animation-delay:.46s}
+.page.active > *:nth-child(2){animation-delay:.08s}
+.page.active > *:nth-child(3){animation-delay:.12s}
+.page.active > *:nth-child(4){animation-delay:.16s}
+.page.active > *:nth-child(5){animation-delay:.20s}
+.page.active > *:nth-child(6){animation-delay:.24s}
+.page.active > *:nth-child(7){animation-delay:.28s}
+.page.active > *:nth-child(8){animation-delay:.32s}
+/* Remove animation after first run to prevent scroll lag */
+.page.active > *:nth-child(n+9){animation:none;opacity:1}
 
 /* CARDS — main definition above (line ~86) */
 .section-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:14px;padding-left:10px;border-left:3px solid var(--accent);box-shadow:-2px 0 8px rgba(0,200,255,.2)}
@@ -316,15 +544,16 @@ body{scroll-behavior:smooth}
 .segment-btn.active{background:rgba(0,200,255,.15);color:var(--accent);box-shadow:inset 0 0 8px rgba(0,200,255,.15)}
 
 /* ===== ADVANCED REPORT CARDS ===== */
-.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:14px}
-.report-card{background:var(--surface);backdrop-filter:var(--glass-blur);border:1px solid var(--border2);border-radius:16px;padding:16px;position:relative;overflow:hidden;animation:popIn .55s var(--ease-spring) both}
+.report-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:14px;width:100%}
+@media(min-width:600px){.report-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}}
+.report-card{background:rgba(6,18,48,0.86);border:1px solid var(--border2);border-radius:16px;padding:16px;position:relative;overflow:hidden;animation:fadeInUp .4s var(--ease-out-expo) both;box-shadow:var(--shadow)}
 .report-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.6}
 .report-title{font-size:13px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
 
 /* ===== PIE CHART (status pie) ===== */
 .pie-wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .pie-svg{flex-shrink:0}
-.pie-legend{flex:1;display:flex;flex-direction:column;gap:6px;min-width:120px}
+.pie-legend{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
 .pie-legend-item{display:flex;align-items:center;gap:8px;font-size:12px}
 .pie-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;box-shadow:0 0 6px currentColor}
 .pie-legend-label{flex:1;color:var(--text2)}
@@ -1496,6 +1725,12 @@ body.grad-anim{
     <div class="card">
       <div class="section-title">🌙 ธีม</div>
       <button class="btn-primary" onclick="toggleDark()" id="theme-btn">เปลี่ยนเป็นโหมดสว่าง</button>
+    </div>
+
+    <div class="card">
+      <div class="section-title">✨ เอฟเฟค Cinematic</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">เอฟเฟคหนัก: glitch, particle trail, splash screen — ปิดถ้ารู้สึกเครื่องหน่วง</div>
+      <button class="btn-primary" onclick="onToggleCinematic()" id="cinema-btn" style="background:linear-gradient(135deg,#9c27b0,#673ab7)">⚡ ปิด/เปิด เอฟเฟค</button>
     </div>
 
     <div class="card">
@@ -3080,6 +3315,7 @@ function doCheckIn(){
   if(!late) {
     launchConfetti(['#00bfff','#00e5ff','#10b981','#ffd700','#ffffff','#7ecfee']);
     showCheckmarkSuccess('#34c759');
+    if(typeof screenShake === 'function') screenShake();
   } else {
     launchConfetti(['#ffd700','#ff9500','#ff6b6b']);
     showCheckmarkSuccess('#ff9500');
@@ -3201,6 +3437,8 @@ function renderHome(){
       el.classList.remove('num-flash');
       void el.offsetWidth; // reflow
       el.classList.add('num-flash');
+      // Cinematic reactive effect
+      if(typeof flashReactiveNumber === 'function') flashReactiveNumber(el);
     }
   }
 
@@ -4808,11 +5046,17 @@ function showPage(id,btn){
   const newIdx = _pageOrder.indexOf(id);
   const direction = newIdx >= _lastPageIdx ? 'right' : 'left';
   _lastPageIdx = newIdx >= 0 ? newIdx : _lastPageIdx;
-  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active','slide-in-right','slide-in-left')});
+  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active','slide-in-right','slide-in-left','glitch-active')});
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const pg = document.getElementById('page-'+id);
   pg.classList.add('active');
-  pg.classList.add(direction === 'right' ? 'slide-in-right' : 'slide-in-left');
+  // Cinematic glitch transition (skip if disabled)
+  if(!document.body.classList.contains('cinema-off')){
+    pg.classList.add('glitch-active');
+    setTimeout(()=>pg.classList.remove('glitch-active'), 600);
+  } else {
+    pg.classList.add(direction === 'right' ? 'slide-in-right' : 'slide-in-left');
+  }
   if(btn)btn.classList.add('active');
   if(id==='stats')    { showSkeletonStats(); renderStats() }
   if(id==='dashboard'){ renderDashboard() }
@@ -5791,6 +6035,311 @@ function initRound2Effects() {
 }
 
 // ===== SUCCESS CHECKMARK ANIMATION =====
+// ===== CINEMATIC BATCH A — JS =====
+
+// Cinematic toggle (default ON, can disable in settings)
+function isCinematicOn(){ return localStorage.getItem('tt_cinema') !== '0'; }
+function toggleCinematic(){
+  const on = !isCinematicOn();
+  localStorage.setItem('tt_cinema', on ? '1' : '0');
+  document.body.classList.toggle('cinema-off', !on);
+  if(typeof showToast === 'function') showToast(on?'✨ เปิดเอฟเฟคหนัก':'⚡ ปิดเอฟเฟคหนัก','success');
+  return on;
+}
+// Apply cinematic state on init
+function applyCinematicState(){
+  if(!isCinematicOn()) document.body.classList.add('cinema-off');
+  else document.body.classList.remove('cinema-off');
+  const btn = document.getElementById('cinema-btn');
+  if(btn) btn.textContent = isCinematicOn() ? '⚡ ปิด เอฟเฟค Cinematic' : '✨ เปิด เอฟเฟค Cinematic';
+}
+function onToggleCinematic(){ toggleCinematic(); applyCinematicState(); }
+
+// === PARTICLE TRAIL ===
+let _trailEnabled = true;
+let _lastTrailTime = 0;
+const TRAIL_THROTTLE_MS = 30;
+
+function initParticleTrail(){
+  if(document.body.classList.contains('cinema-off')) return;
+  // Throttle for performance
+  function spawnTrail(x, y, isSpark){
+    const now = performance.now();
+    if(now - _lastTrailTime < TRAIL_THROTTLE_MS) return;
+    _lastTrailTime = now;
+    const el = document.createElement('div');
+    el.className = 'cursor-trail' + (isSpark ? ' spark' : '');
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 800);
+    // Spawn 1-2 sparks alongside
+    if(!isSpark && Math.random() > 0.5){
+      const dx = x + (Math.random()-0.5)*16;
+      const dy = y + (Math.random()-0.5)*16;
+      const spark = document.createElement('div');
+      spark.className = 'cursor-trail spark';
+      spark.style.left = dx + 'px';
+      spark.style.top = dy + 'px';
+      document.body.appendChild(spark);
+      setTimeout(()=>spark.remove(), 600);
+    }
+  }
+  // Touch
+  document.addEventListener('touchmove', e => {
+    if(document.body.classList.contains('cinema-off')) return;
+    const t = e.touches[0];
+    if(t) spawnTrail(t.clientX, t.clientY, false);
+  }, {passive:true});
+  // Mouse (desktop)
+  document.addEventListener('mousemove', e => {
+    if(document.body.classList.contains('cinema-off')) return;
+    spawnTrail(e.clientX, e.clientY, false);
+  });
+  // Click burst
+  document.addEventListener('click', e => {
+    if(document.body.classList.contains('cinema-off')) return;
+    for(let i=0; i<6; i++){
+      setTimeout(()=>{
+        const angle = (i/6)*Math.PI*2;
+        const dist = 20 + Math.random()*15;
+        spawnTrail(e.clientX + Math.cos(angle)*dist, e.clientY + Math.sin(angle)*dist, true);
+      }, i*30);
+    }
+  });
+}
+
+// === LOADING SPLASH ===
+function showCinemaSplash(duration = 1800){
+  if(document.body.classList.contains('cinema-off')) return;
+  const existing = document.getElementById('cinema-splash');
+  if(existing) existing.remove();
+  const splash = document.createElement('div');
+  splash.id = 'cinema-splash';
+  splash.className = 'cinema-splash';
+  splash.innerHTML = `
+    <div class="cinema-splash-rings">
+      <div class="cinema-splash-ring"></div>
+      <div class="cinema-splash-ring"></div>
+      <div class="cinema-splash-ring"></div>
+      <div class="cinema-splash-ring"></div>
+    </div>
+    <div class="cinema-splash-content">
+      <div class="cinema-splash-logo">⚡</div>
+      <div class="cinema-splash-text">TimeTrack</div>
+      <div class="cinema-splash-tagline">Cyberpunk Edition</div>
+    </div>`;
+  document.body.appendChild(splash);
+  setTimeout(()=>{
+    splash.classList.add('fading');
+    setTimeout(()=>splash.remove(), 500);
+  }, duration);
+}
+
+// Auto-show splash on first load
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(applyCinematicState, 0);
+    if(isCinematicOn() && !sessionStorage.getItem('tt_splash_shown')){
+      showCinemaSplash(1800);
+      sessionStorage.setItem('tt_splash_shown', '1');
+    }
+    setTimeout(initParticleTrail, 100);
+  });
+} else {
+  applyCinematicState();
+  if(isCinematicOn() && !sessionStorage.getItem('tt_splash_shown')){
+    showCinemaSplash(1800);
+    sessionStorage.setItem('tt_splash_shown', '1');
+  }
+  setTimeout(initParticleTrail, 100);
+}
+
+// === SPOTLIGHT GLOW ON CARDS (mouse/touch tracking) ===
+function initSpotlightCards(){
+  if(document.body.classList.contains('cinema-off')) return;
+  // Auto-add class to cards
+  document.querySelectorAll('.card,.report-card,.stat-box,.sum-card').forEach(c => {
+    if(c.classList.contains('spotlight-card')) return;
+    c.classList.add('spotlight-card');
+  });
+  // Track mouse/touch
+  function update(e, target){
+    const card = target.closest('.spotlight-card');
+    if(!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = ((e.clientX || e.touches?.[0]?.clientX || 0) - rect.left) / rect.width * 100;
+    const y = ((e.clientY || e.touches?.[0]?.clientY || 0) - rect.top) / rect.height * 100;
+    card.style.setProperty('--mx', x + '%');
+    card.style.setProperty('--my', y + '%');
+    card.classList.add('spotlight-active');
+  }
+  document.addEventListener('mousemove', e => {
+    if(document.body.classList.contains('cinema-off')) return;
+    if(e.target?.closest) update(e, e.target);
+  }, {passive:true});
+  document.addEventListener('touchmove', e => {
+    if(document.body.classList.contains('cinema-off')) return;
+    const t = e.touches[0];
+    if(t){
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      if(el) update(e, el);
+    }
+  }, {passive:true});
+  // Clear on touchend
+  document.addEventListener('touchend', () => {
+    document.querySelectorAll('.spotlight-active').forEach(el => {
+      setTimeout(()=>el.classList.remove('spotlight-active'), 300);
+    });
+  }, {passive:true});
+}
+
+// === DYNAMIC SCROLL BLUR ===
+let _scrollVelocity = 0;
+let _lastScroll = 0;
+let _lastScrollTime = 0;
+let _scrollBlurTimer = null;
+
+function initScrollBlur(){
+  if(document.body.classList.contains('cinema-off')) return;
+  window.addEventListener('scroll', () => {
+    if(document.body.classList.contains('cinema-off')) return;
+    const now = performance.now();
+    const dy = Math.abs(window.scrollY - _lastScroll);
+    const dt = now - _lastScrollTime;
+    _scrollVelocity = dt > 0 ? dy / dt : 0;
+    _lastScroll = window.scrollY;
+    _lastScrollTime = now;
+    if(_scrollVelocity > 1.5){
+      document.body.dataset.scrollFast = '1';
+      // Parallax shift
+      document.body.style.setProperty('--scroll-shift', (window.scrollY * 0.02) + 'px');
+    }
+    clearTimeout(_scrollBlurTimer);
+    _scrollBlurTimer = setTimeout(()=>{
+      document.body.removeAttribute('data-scroll-fast');
+    }, 150);
+  }, {passive:true});
+}
+
+// === NUMBER REACTIVE — flash glow on big number changes ===
+function flashReactiveNumber(el){
+  if(!el) return;
+  if(document.body.classList.contains('cinema-off')) return;
+  el.classList.remove('num-reactive');
+  void el.offsetWidth; // reflow
+  el.classList.add('num-reactive');
+  // Haptic if available
+  if(navigator.vibrate) navigator.vibrate(15);
+}
+
+function flashPulseRing(el){
+  if(!el) return;
+  if(document.body.classList.contains('cinema-off')) return;
+  el.classList.remove('num-pulse');
+  void el.offsetWidth;
+  el.classList.add('num-pulse');
+}
+
+// Init Batch B effects
+function initCinematicBatchB(){
+  setTimeout(initSpotlightCards, 200);
+  setTimeout(initScrollBlur, 100);
+  // Re-apply spotlight when new cards added
+  const observer = new MutationObserver(() => {
+    setTimeout(initSpotlightCards, 50);
+  });
+  observer.observe(document.body, {childList:true, subtree:true});
+}
+
+// Hook into init
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initCinematicBatchB);
+} else {
+  setTimeout(initCinematicBatchB, 100);
+}
+
+// ===== CINEMATIC BATCH C — 3D Parallax =====
+
+let _gyroX = 0, _gyroY = 0;
+let _gyroEnabled = false;
+
+function initGyroParallax(){
+  if(document.body.classList.contains('cinema-off')) return;
+  if(typeof DeviceOrientationEvent === 'undefined') return;
+
+  function applyParallax(beta, gamma){
+    // beta = front/back tilt (-180 to 180), gamma = left/right (-90 to 90)
+    const x = Math.max(-1, Math.min(1, gamma / 30));  // -1 to 1
+    const y = Math.max(-1, Math.min(1, beta / 30));
+    _gyroX = x * 8;  // max 8px shift
+    _gyroY = y * 8;
+    document.body.style.setProperty('--gx', _gyroX + 'px');
+    document.body.style.setProperty('--gy', _gyroY + 'px');
+    // Apply to background orbs
+    const bg = document.body;
+    if(bg.style){
+      bg.style.setProperty('--scroll-shift', _gyroX + 'px');
+    }
+  }
+
+  function handler(e){
+    if(document.body.classList.contains('cinema-off')) return;
+    if(e.beta !== null && e.gamma !== null){
+      applyParallax(e.beta, e.gamma);
+    }
+  }
+
+  // iOS 13+ requires permission
+  if(typeof DeviceOrientationEvent.requestPermission === 'function'){
+    // Request on first user interaction
+    const askOnce = () => {
+      DeviceOrientationEvent.requestPermission().then(state => {
+        if(state === 'granted'){
+          window.addEventListener('deviceorientation', handler);
+          _gyroEnabled = true;
+        }
+      }).catch(()=>{});
+      document.removeEventListener('click', askOnce);
+      document.removeEventListener('touchstart', askOnce);
+    };
+    document.addEventListener('click', askOnce, {once:true});
+    document.addEventListener('touchstart', askOnce, {once:true});
+  } else {
+    window.addEventListener('deviceorientation', handler);
+    _gyroEnabled = true;
+  }
+}
+
+// === Screen shake on important events ===
+function screenShake(){
+  if(document.body.classList.contains('cinema-off')) return;
+  document.body.classList.remove('shaking');
+  void document.body.offsetWidth;
+  document.body.classList.add('shaking');
+  setTimeout(()=>document.body.classList.remove('shaking'), 400);
+}
+
+// === Burst glow on element ===
+function burstGlow(el){
+  if(!el || document.body.classList.contains('cinema-off')) return;
+  el.classList.remove('burst-glow');
+  void el.offsetWidth;
+  el.classList.add('burst-glow');
+  setTimeout(()=>el.classList.remove('burst-glow'), 800);
+}
+
+// Init Batch C
+function initCinematicBatchC(){
+  setTimeout(initGyroParallax, 500);
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initCinematicBatchC);
+} else {
+  setTimeout(initCinematicBatchC, 200);
+}
+
 function showCheckmarkSuccess(color) {
   color = color || '#34c759';
   const existing = document.getElementById('checkin-success-overlay');
