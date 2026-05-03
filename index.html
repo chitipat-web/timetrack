@@ -207,36 +207,72 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 main{padding-bottom:96px}
 
 /* PAGES */
-/* ===== RICH ANIMATIONS ===== */
+/* ===== RICH ANIMATIONS — Spring Physics ===== */
+/* Easing curves */
+:root{
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --ease-spring-bounce:cubic-bezier(.68,-0.55,.27,1.55);
+  --ease-out-expo:cubic-bezier(.16,1,.3,1);
+  --ease-out-quart:cubic-bezier(.25,1,.5,1);
+  --ease-in-out-quart:cubic-bezier(.76,0,.24,1);
+  --ease-overshoot:cubic-bezier(.34,1.4,.64,1);
+  --ease-smooth:cubic-bezier(.45,0,.15,1);
+}
+
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
-@keyframes scaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+@keyframes slideUp{0%{opacity:0;transform:translateY(28px) scale(.96)}60%{opacity:1}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes slideDown{0%{opacity:0;transform:translateY(-20px) scale(.97)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes scaleIn{0%{opacity:0;transform:scale(.85)}55%{transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
 @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
 @keyframes floatUpOrb{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.05)}}
-@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0)}50%{box-shadow:0 0 22px 5px rgba(59,130,246,.22)}}
-@keyframes spinIn{from{opacity:0;transform:rotate(-12deg) scale(.88)}to{opacity:1;transform:rotate(0) scale(1)}}
-@keyframes countUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,200,255,0)}50%{box-shadow:0 0 22px 5px rgba(0,200,255,.25)}}
+@keyframes spinIn{0%{opacity:0;transform:rotate(-180deg) scale(.5)}60%{transform:rotate(15deg) scale(1.08)}100%{opacity:1;transform:rotate(0) scale(1)}}
+@keyframes countUp{0%{opacity:0;transform:translateY(14px)}100%{opacity:1;transform:translateY(0)}}
 @keyframes waveIn{0%{transform:scaleX(0);transform-origin:left}100%{transform:scaleX(1);transform-origin:left}}
-@keyframes starFloat{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:1}100%{transform:translateY(-70px) rotate(360deg) scale(.3);opacity:0}}
-@keyframes borderGlow{0%,100%{border-color:rgba(59,130,246,.2)}50%{border-color:rgba(59,130,246,.6)}}
-@keyframes navPop{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1.15)}}
-@keyframes salHeroPulse{0%,100%{box-shadow:0 4px 24px rgba(59,130,246,.3)}50%{box-shadow:0 8px 40px rgba(59,130,246,.55)}}
+@keyframes starFloat{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:1}100%{transform:translateY(-80px) rotate(360deg) scale(.2);opacity:0}}
+@keyframes borderGlow{0%,100%{border-color:rgba(0,200,255,.2)}50%{border-color:rgba(0,200,255,.6)}}
+@keyframes navPop{0%{transform:scale(1)}40%{transform:scale(1.35) rotate(-3deg)}70%{transform:scale(1.1)}100%{transform:scale(1.15)}}
+@keyframes salHeroPulse{0%,100%{box-shadow:0 4px 24px rgba(0,200,255,.3)}50%{box-shadow:0 8px 40px rgba(0,200,255,.6)}}
+
+/* New advanced animations */
+@keyframes popIn{0%{opacity:0;transform:scale(.3) rotate(-15deg)}50%{transform:scale(1.1) rotate(5deg)}75%{transform:scale(.95) rotate(-2deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes slideInRight{0%{opacity:0;transform:translateX(60px) scale(.95)}60%{opacity:.9}100%{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes slideInLeft{0%{opacity:0;transform:translateX(-60px) scale(.95)}60%{opacity:.9}100%{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes bounceIn{0%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1.08)}70%{transform:scale(.95)}100%{transform:scale(1)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes breathe{0%,100%{opacity:.85;transform:scale(1)}50%{opacity:1;transform:scale(1.02)}}
+@keyframes rippleOut{0%{transform:scale(.5);opacity:.6}100%{transform:scale(2.4);opacity:0}}
+@keyframes typeIn{from{width:0}to{width:100%}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
+@keyframes tada{0%,100%{transform:scale(1) rotate(0)}10%,20%{transform:scale(.94) rotate(-3deg)}30%,50%,70%,90%{transform:scale(1.08) rotate(3deg)}40%,60%,80%{transform:scale(1.08) rotate(-3deg)}}
+@keyframes wobble{0%,100%{transform:translateX(0) rotate(0)}15%{transform:translateX(-12px) rotate(-3deg)}30%{transform:translateX(10px) rotate(3deg)}45%{transform:translateX(-8px) rotate(-2deg)}60%{transform:translateX(6px) rotate(1deg)}75%{transform:translateX(-4px) rotate(-.5deg)}}
+@keyframes heartBeat{0%,40%,80%,100%{transform:scale(1)}20%,60%{transform:scale(1.15)}}
+@keyframes fadeInUp{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes lift{0%{transform:translateY(0)}100%{transform:translateY(-2px)}}
+
+/* Smooth scroll */
+html{scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+body{scroll-behavior:smooth}
+
+/* Reduce motion respect */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
 
 /* PAGES */
 .page{display:none;padding:12px 12px 90px;position:relative;z-index:1;max-width:680px;margin:0 auto}
-.page.slide-in-right{animation:slideInRight .35s cubic-bezier(.22,.61,.36,1) both}
-.page.slide-in-left{animation:slideInLeft .35s cubic-bezier(.22,.61,.36,1) both}
-@keyframes slideInRight{from{opacity:0;transform:translateX(40px) scale(.98)}to{opacity:1;transform:translateX(0) scale(1)}}
-@keyframes slideInLeft{from{opacity:0;transform:translateX(-40px) scale(.98)}to{opacity:1;transform:translateX(0) scale(1)}}
-.page.active{display:block;animation:fadeIn .28s ease}
-.page.active > *{animation:slideUp .38s ease both}
+.page.slide-in-right{animation:slideInRight .42s var(--ease-out-expo) both}
+.page.slide-in-left{animation:slideInLeft .42s var(--ease-out-expo) both}
+.page.active{display:block;animation:fadeIn .3s var(--ease-smooth)}
+.page.active > *{animation:slideUp .55s var(--ease-spring) both;will-change:transform,opacity}
 .page.active > *:nth-child(1){animation-delay:.04s}
 .page.active > *:nth-child(2){animation-delay:.10s}
 .page.active > *:nth-child(3){animation-delay:.16s}
 .page.active > *:nth-child(4){animation-delay:.22s}
 .page.active > *:nth-child(5){animation-delay:.28s}
 .page.active > *:nth-child(6){animation-delay:.34s}
+.page.active > *:nth-child(7){animation-delay:.40s}
+.page.active > *:nth-child(8){animation-delay:.46s}
 
 /* CARDS — main definition above (line ~86) */
 .section-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:14px;padding-left:10px;border-left:3px solid var(--accent);box-shadow:-2px 0 8px rgba(0,200,255,.2)}
@@ -279,6 +315,97 @@ main{padding-bottom:96px}
 .segment-btn{flex:1;padding:8px 12px;border:none;background:none;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;border-radius:7px;transition:all .2s;letter-spacing:.3px}
 .segment-btn.active{background:rgba(0,200,255,.15);color:var(--accent);box-shadow:inset 0 0 8px rgba(0,200,255,.15)}
 
+/* ===== ADVANCED REPORT CARDS ===== */
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:14px}
+.report-card{background:var(--surface);backdrop-filter:var(--glass-blur);border:1px solid var(--border2);border-radius:16px;padding:16px;position:relative;overflow:hidden;animation:popIn .55s var(--ease-spring) both}
+.report-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.6}
+.report-title{font-size:13px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+
+/* ===== PIE CHART (status pie) ===== */
+.pie-wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pie-svg{flex-shrink:0}
+.pie-legend{flex:1;display:flex;flex-direction:column;gap:6px;min-width:120px}
+.pie-legend-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.pie-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;box-shadow:0 0 6px currentColor}
+.pie-legend-label{flex:1;color:var(--text2)}
+.pie-legend-val{font-family:var(--mono);font-weight:700;color:var(--text)}
+
+/* ===== COMPARISON CHART (this vs last month) ===== */
+.compare-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.compare-side{padding:14px;border-radius:12px;text-align:center;position:relative}
+.compare-side.this{background:linear-gradient(135deg,rgba(0,200,255,.12),rgba(0,200,255,.04));border:1px solid rgba(0,200,255,.25)}
+.compare-side.last{background:rgba(255,255,255,.03);border:1px solid var(--border)}
+.compare-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.compare-val{font-family:var(--mono);font-size:24px;font-weight:700;line-height:1;color:var(--text)}
+.compare-this .compare-val{color:var(--accent)}
+.compare-sub{font-size:11px;color:var(--text2);margin-top:4px}
+.compare-arrow{position:absolute;top:50%;right:-7px;transform:translateY(-50%);width:14px;height:14px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-weight:900;z-index:2}
+.compare-pct{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;margin-top:6px}
+.compare-pct.up{background:rgba(0,255,157,.15);color:var(--green);border:1px solid rgba(0,255,157,.3)}
+.compare-pct.down{background:rgba(255,45,85,.15);color:var(--red);border:1px solid rgba(255,45,85,.3)}
+.compare-pct.same{background:rgba(255,255,255,.05);color:var(--text2)}
+
+/* ===== PROGRESS RING (monthly goal) ===== */
+.progress-ring-wrap{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.progress-ring{flex-shrink:0;position:relative;width:110px;height:110px}
+.progress-ring svg{transform:rotate(-90deg)}
+.progress-ring-bg{stroke:rgba(255,255,255,.06);stroke-width:9;fill:none}
+.progress-ring-fg{stroke-width:9;fill:none;stroke-linecap:round;transition:stroke-dasharray 1s var(--ease-out-expo)}
+.progress-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--mono)}
+.progress-ring-num{font-size:24px;font-weight:700;color:var(--accent)}
+.progress-ring-pct{font-size:11px;color:var(--text3);margin-top:2px}
+.progress-info{flex:1}
+.progress-info-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--border)}
+.progress-info-row:last-child{border-bottom:none}
+.progress-info-label{color:var(--text2)}
+.progress-info-val{font-family:var(--mono);font-weight:600;color:var(--text)}
+
+/* ===== HISTOGRAM (OT distribution) ===== */
+.histogram{display:flex;align-items:flex-end;gap:3px;height:80px;margin:10px 0;padding:4px 0;border-bottom:1px solid var(--border)}
+.hist-bar{flex:1;background:linear-gradient(180deg,var(--yellow),#ff9500);border-radius:3px 3px 0 0;min-height:2px;transition:height .8s var(--ease-out-expo);position:relative;cursor:default}
+.hist-bar:hover{filter:brightness(1.2)}
+.hist-bar-label{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--text);font-family:var(--mono);font-weight:600;opacity:0;transition:opacity .15s}
+.hist-bar:hover .hist-bar-label{opacity:1}
+.hist-axis{display:flex;justify-content:space-between;font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:4px}
+
+/* ===== PEAK HOURS (bar with peak indicator) ===== */
+.peak-bars{display:flex;align-items:flex-end;gap:2px;height:64px;margin-top:8px}
+.peak-bar{flex:1;background:rgba(0,200,255,.25);border-radius:2px 2px 0 0;min-height:2px;transition:height .8s var(--ease-out-expo)}
+.peak-bar.peak{background:linear-gradient(180deg,var(--accent2),var(--accent));box-shadow:0 0 10px var(--accent)}
+.peak-axis{display:flex;justify-content:space-between;font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:4px}
+
+/* ===== LATE PATTERN (heatmap mini) ===== */
+.late-pattern-row{display:grid;grid-template-columns:30px 1fr;gap:8px;align-items:center;margin:5px 0;font-size:11px}
+.late-pattern-day{color:var(--text3);font-weight:600}
+.late-pattern-bar{height:12px;background:rgba(255,45,85,.08);border-radius:6px;position:relative;overflow:hidden}
+.late-pattern-fill{height:100%;background:linear-gradient(90deg,#ff6b6b,#ff2d55);transition:width .8s var(--ease-out-expo);box-shadow:0 0 6px rgba(255,45,85,.4)}
+.late-pattern-num{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:#fff;font-family:var(--mono);text-shadow:0 0 4px rgba(0,0,0,.5)}
+
+/* ===== ABSENCE CALENDAR MINI ===== */
+.absence-mini{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:8px}
+.absence-cell{aspect-ratio:1;border-radius:4px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:600;font-family:var(--mono)}
+.absence-cell.present{background:rgba(0,255,157,.15);color:var(--green);border:1px solid rgba(0,255,157,.25)}
+.absence-cell.absent{background:rgba(255,45,85,.12);color:var(--red);border:1px solid rgba(255,45,85,.25)}
+.absence-cell.future{background:rgba(255,255,255,.02);color:var(--text3);border:1px dashed var(--border)}
+.absence-cell.holiday{background:rgba(0,200,255,.1);color:var(--accent2);border:1px solid rgba(0,200,255,.2)}
+.absence-cell.weekend{background:rgba(255,255,255,.04);color:var(--text3);border:1px solid var(--border);opacity:.6}
+.absence-legend{display:flex;justify-content:center;gap:10px;margin-top:8px;font-size:10px;color:var(--text2);flex-wrap:wrap}
+.absence-legend-item{display:flex;align-items:center;gap:4px}
+.absence-legend-dot{width:8px;height:8px;border-radius:2px}
+
+/* ===== WEEKLY SUMMARY CARD ===== */
+.week-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px}
+.week-stat{background:rgba(0,200,255,.05);border:1px solid var(--border2);border-radius:10px;padding:10px;text-align:center}
+.week-stat-icon{font-size:18px;margin-bottom:4px;filter:drop-shadow(0 0 4px rgba(0,200,255,.3))}
+.week-stat-val{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent)}
+.week-stat-lbl{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ===== PRODUCTIVITY TREND ===== */
+.trend-arrow{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;padding:4px 10px;border-radius:14px}
+.trend-arrow.up{background:rgba(0,255,157,.12);color:var(--green)}
+.trend-arrow.down{background:rgba(255,45,85,.12);color:var(--red)}
+.trend-arrow.same{background:rgba(255,255,255,.06);color:var(--text2)}
+
 /* ===== STATUS BADGE (cleaner) ===== */
 .status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:700;letter-spacing:.3px}
 .status-badge::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
@@ -289,9 +416,10 @@ main{padding-bottom:96px}
 
 /* ===== HOVER & TRANSITION EFFECTS ===== */
 /* Cards lift */
-.card{transition:transform .22s ease,box-shadow .22s ease,border-color .22s}
-.card:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(0,0,0,.35)}
-.stat-box{transition:transform .2s ease,box-shadow .2s ease,border-color .2s}
+.card{transition:transform .35s var(--ease-spring),box-shadow .25s var(--ease-out-quart),border-color .25s ease}
+.card:active{transform:scale(.985);transition-duration:.1s}
+.stat-box{transition:transform .3s var(--ease-spring),box-shadow .25s var(--ease-out-quart),border-color .2s}
+.stat-box:active{transform:scale(.96);transition-duration:.08s}
 .stat-box:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(59,130,246,.18);border-color:rgba(59,130,246,.4)}
 /* Nav tabs */
 .nav-btn svg{transition:transform .2s ease}
@@ -1241,6 +1369,7 @@ body.grad-anim{
     </div>
     <div id="streak-container"></div>
     <div id="punctuality-container"></div>
+    <div id="reports-container"></div>
     <div id="month-summary" class="sum-grid"></div>
     <div id="heatmap-container"></div>
     <div class="chart-card"><div class="chart-title">⏰ ชั่วโมงทำงานรายวัน</div><canvas id="chart-hours" height="180"></canvas></div>
@@ -2520,6 +2649,390 @@ function renderBadgesCard(empId){
   </div>`;
 }
 
+// ========== ADVANCED REPORTS ==========
+
+// 1. PIE CHART — สถานะรายเดือน
+function renderStatusPieChart(empId, year, month){
+  if(!empId) return '';
+  const recs = records.filter(r => {
+    const [y,m] = r.date.split('-').map(Number);
+    return r.empId===empId && y===year && m===month+1 && r.checkIn;
+  });
+  if(!recs.length) return '';
+  const onTime = recs.filter(r => !r.isLate).length;
+  const late = recs.filter(r => r.isLate).length;
+  const ot = recs.filter(r => (r.otMin||0) > 0).length;
+  const total = recs.length;
+
+  const data = [
+    {label:'ตรงเวลา', val:onTime, color:'#00ff9d'},
+    {label:'มาสาย',   val:late,   color:'#ff2d55'},
+    {label:'ทำ OT',   val:ot,     color:'#ffe600'},
+  ].filter(d => d.val > 0);
+
+  const radius = 50, cx = 60, cy = 60;
+  const circ = 2 * Math.PI * radius;
+  let offset = 0;
+  const segments = data.map(d => {
+    const pct = d.val / total;
+    const len = pct * circ;
+    const seg = `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="none"
+      stroke="${d.color}" stroke-width="22"
+      stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset}"
+      style="filter:drop-shadow(0 0 6px ${d.color}99);transition:all .8s var(--ease-out-expo)"/>`;
+    offset += len;
+    return seg;
+  }).join('');
+
+  return `<div class="report-card">
+    <div class="report-title">🥧 สัดส่วนสถานะ</div>
+    <div class="pie-wrap">
+      <svg class="pie-svg" width="120" height="120" viewBox="0 0 120 120" style="transform:rotate(-90deg)">
+        <circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="22"/>
+        ${segments}
+      </svg>
+      <div class="pie-legend">
+        ${data.map(d => `
+          <div class="pie-legend-item">
+            <div class="pie-legend-dot" style="background:${d.color};color:${d.color}"></div>
+            <div class="pie-legend-label">${d.label}</div>
+            <div class="pie-legend-val">${d.val} (${Math.round(d.val/total*100)}%)</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// 2. COMPARISON CHART — เดือนนี้ vs เดือนที่แล้ว
+function renderComparisonChart(empId, year, month){
+  if(!empId) return '';
+  function statsForMonth(y, m){
+    const recs = records.filter(r => {
+      const [yy,mm] = r.date.split('-').map(Number);
+      return r.empId===empId && yy===y && mm===m+1 && r.checkOut;
+    });
+    const days = new Set(recs.map(r => r.date)).size;
+    const hours = recs.reduce((s,r) => s+calcHours(r.checkIn,r.checkOut), 0);
+    const ot = recs.reduce((s,r) => s+(r.otMin||0), 0)/60;
+    return {days, hours, ot};
+  }
+  const cur = statsForMonth(year, month);
+  let lastY = year, lastM = month - 1;
+  if(lastM < 0){ lastM = 11; lastY = year - 1; }
+  const last = statsForMonth(lastY, lastM);
+
+  function pctChange(c, l){
+    if(l === 0) return c > 0 ? 100 : 0;
+    return Math.round(((c - l) / l) * 100);
+  }
+  const hPct = pctChange(cur.hours, last.hours);
+  const dPct = pctChange(cur.days, last.days);
+  const oPct = pctChange(cur.ot, last.ot);
+
+  function badge(n){
+    if(n === 0) return `<span class="compare-pct same">— 0%</span>`;
+    if(n > 0)   return `<span class="compare-pct up">↑ +${n}%</span>`;
+    return `<span class="compare-pct down">↓ ${n}%</span>`;
+  }
+
+  return `<div class="report-card">
+    <div class="report-title">📊 เปรียบเทียบ ${last.days>0?'กับเดือนที่แล้ว':'ไม่มีข้อมูลเดือนก่อน'}</div>
+    <div class="compare-wrap">
+      <div class="compare-side last">
+        <div class="compare-label">เดือนที่แล้ว</div>
+        <div class="compare-val">${last.hours.toFixed(1)}</div>
+        <div class="compare-sub">ชม. รวม</div>
+      </div>
+      <div class="compare-side this">
+        <div class="compare-label">เดือนนี้</div>
+        <div class="compare-val">${cur.hours.toFixed(1)}</div>
+        <div class="compare-sub">ชม. รวม</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <div style="flex:1;text-align:center"><div style="font-size:10px;color:var(--text3)">วันที่มา</div>${badge(dPct)}</div>
+      <div style="flex:1;text-align:center"><div style="font-size:10px;color:var(--text3)">ชม.รวม</div>${badge(hPct)}</div>
+      <div style="flex:1;text-align:center"><div style="font-size:10px;color:var(--text3)">OT</div>${badge(oPct)}</div>
+    </div>
+  </div>`;
+}
+
+// 3. PROGRESS RING — Monthly goal
+function renderMonthlyGoalRing(empId, year, month){
+  if(!empId) return '';
+  const goal = parseInt(localStorage.getItem('tt_goal_'+empId)) || 160; // default 160 hr/month
+  const recs = records.filter(r => {
+    const [y,m] = r.date.split('-').map(Number);
+    return r.empId===empId && y===year && m===month+1 && r.checkOut;
+  });
+  const totalH = recs.reduce((s,r) => s+calcHours(r.checkIn,r.checkOut), 0);
+  const pct = Math.min(totalH / goal * 100, 100);
+  const radius = 46;
+  const circ = 2 * Math.PI * radius;
+  const offset = circ - (pct / 100) * circ;
+  const color = pct >= 100 ? '#00ff9d' : pct >= 75 ? '#00c8ff' : pct >= 50 ? '#ffe600' : '#ff9500';
+  const remaining = Math.max(0, goal - totalH);
+
+  return `<div class="report-card">
+    <div class="report-title">🎯 เป้าหมายเดือนนี้</div>
+    <div class="progress-ring-wrap">
+      <div class="progress-ring">
+        <svg width="110" height="110">
+          <circle class="progress-ring-bg" cx="55" cy="55" r="${radius}"/>
+          <circle class="progress-ring-fg" cx="55" cy="55" r="${radius}" stroke="${color}"
+            stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+            style="filter:drop-shadow(0 0 8px ${color})"/>
+        </svg>
+        <div class="progress-ring-text">
+          <div class="progress-ring-num" style="color:${color}">${Math.round(pct)}%</div>
+          <div class="progress-ring-pct">เป้าหมาย</div>
+        </div>
+      </div>
+      <div class="progress-info">
+        <div class="progress-info-row"><span class="progress-info-label">ทำได้</span><span class="progress-info-val">${totalH.toFixed(1)} ชม.</span></div>
+        <div class="progress-info-row"><span class="progress-info-label">เป้าหมาย</span><span class="progress-info-val">${goal} ชม.</span></div>
+        <div class="progress-info-row"><span class="progress-info-label">เหลือ</span><span class="progress-info-val" style="color:${color}">${remaining.toFixed(1)} ชม.</span></div>
+        <div style="margin-top:8px;text-align:center">
+          <button onclick="setMonthlyGoal()" style="font-size:11px;padding:4px 10px;background:rgba(0,200,255,.1);border:1px solid var(--border2);border-radius:8px;color:var(--accent2);cursor:pointer">⚙ ตั้งเป้า</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function setMonthlyGoal(){
+  const cur = parseInt(localStorage.getItem('tt_goal_'+curUser.id)) || 160;
+  const v = prompt('ตั้งเป้าหมาย ชม.ทำงาน/เดือน', cur);
+  if(v === null) return;
+  const n = parseInt(v);
+  if(!isNaN(n) && n > 0){
+    localStorage.setItem('tt_goal_'+curUser.id, n);
+    showToast('✅ ตั้งเป้าหมาย '+n+' ชม.', 'success');
+    if(typeof renderStats === 'function') renderStats();
+  }
+}
+
+// 4. HISTOGRAM — OT distribution
+function renderOTHistogram(empId, year, month){
+  if(!empId) return '';
+  const recs = records.filter(r => {
+    const [y,m] = r.date.split('-').map(Number);
+    return r.empId===empId && y===year && m===month+1 && r.checkOut && (r.otMin||0) > 0;
+  });
+  if(!recs.length) return '';
+
+  // Buckets: 0-1h, 1-2h, 2-3h, 3-4h, 4-5h, 5+h
+  const buckets = [0,0,0,0,0,0];
+  const labels = ['<1','1-2','2-3','3-4','4-5','5+'];
+  recs.forEach(r => {
+    const h = (r.otMin||0)/60;
+    const i = h < 1 ? 0 : h < 2 ? 1 : h < 3 ? 2 : h < 4 ? 3 : h < 5 ? 4 : 5;
+    buckets[i]++;
+  });
+  const max = Math.max(...buckets);
+
+  return `<div class="report-card">
+    <div class="report-title">📊 OT แบ่งช่วงชั่วโมง</div>
+    <div class="histogram">
+      ${buckets.map((v,i) => `
+        <div class="hist-bar" style="height:${max>0?(v/max*100):0}%" title="${labels[i]} ชม. — ${v} ครั้ง">
+          <div class="hist-bar-label">${v}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="hist-axis">
+      ${labels.map(l => `<span>${l}</span>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--text2);text-align:center;margin-top:6px">รวม ${recs.length} ครั้งที่ OT</div>
+  </div>`;
+}
+
+// 5. PEAK HOURS — ช่วงเวลาเข้างาน peak
+function renderPeakHours(empId){
+  if(!empId) return '';
+  const counts = Array(24).fill(0);
+  records.filter(r => r.empId===empId && r.checkIn).forEach(r => {
+    const [h] = r.checkIn.split(':').map(Number);
+    counts[h]++;
+  });
+  const max = Math.max(...counts);
+  if(max === 0) return '';
+  const peakHour = counts.indexOf(max);
+
+  return `<div class="report-card">
+    <div class="report-title">⏰ ช่วงเข้างานบ่อยสุด</div>
+    <div style="text-align:center;margin-bottom:6px">
+      <span style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--accent);text-shadow:0 0 12px var(--accent)">${pad(peakHour)}:00</span>
+      <span style="font-size:12px;color:var(--text2);margin-left:8px">${max} ครั้ง</span>
+    </div>
+    <div class="peak-bars">
+      ${counts.slice(4,22).map((v,i) => `
+        <div class="peak-bar ${(i+4)===peakHour?'peak':''}" style="height:${max>0?(v/max*100):0}%" title="${pad(i+4)}:00 — ${v} ครั้ง"></div>
+      `).join('')}
+    </div>
+    <div class="peak-axis">
+      <span>04:00</span><span>10:00</span><span>16:00</span><span>22:00</span>
+    </div>
+  </div>`;
+}
+
+// 6. LATE PATTERN — วันไหนสายบ่อยสุด
+function renderLatePattern(empId){
+  if(!empId) return '';
+  const dayCounts = [0,0,0,0,0,0,0]; // Sun-Sat
+  records.filter(r => r.empId===empId && r.isLate).forEach(r => {
+    const dow = new Date(r.date).getDay();
+    dayCounts[dow]++;
+  });
+  const total = dayCounts.reduce((a,b) => a+b, 0);
+  if(total === 0){
+    return `<div class="report-card">
+      <div class="report-title">⚠️ พฤติกรรมการมาสาย</div>
+      <div style="text-align:center;padding:18px;color:var(--green);font-size:14px">🎉 ไม่เคยสายเลย ดีมาก!</div>
+    </div>`;
+  }
+  const max = Math.max(...dayCounts);
+  const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const dayShort = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+  const worstDay = dayCounts.indexOf(max);
+
+  return `<div class="report-card">
+    <div class="report-title">⚠️ พฤติกรรมการมาสาย</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
+      สายบ่อยสุด: <span style="color:var(--red);font-weight:700">วัน${days[worstDay]}</span> (${max} ครั้ง)
+    </div>
+    ${dayCounts.map((v,i) => `
+      <div class="late-pattern-row">
+        <div class="late-pattern-day">${dayShort[i]}</div>
+        <div class="late-pattern-bar">
+          <div class="late-pattern-fill" style="width:${max>0?(v/max*100):0}%"></div>
+          ${v>0?`<div class="late-pattern-num">${v}</div>`:''}
+        </div>
+      </div>
+    `).join('')}
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px">รวม ${total} ครั้งที่สาย</div>
+  </div>`;
+}
+
+// 7. ABSENCE CALENDAR MINI — ปฏิทินวันที่ไม่มา
+function renderAbsenceCalendar(empId, year, month){
+  if(!empId) return '';
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const today = new Date();
+  const isThisMonth = today.getFullYear()===year && today.getMonth()===month;
+  const todayDate = today.getDate();
+  const myDates = new Set(records.filter(r => {
+    const [y,m] = r.date.split('-').map(Number);
+    return r.empId===empId && y===year && m===month+1 && r.checkIn;
+  }).map(r => r.date));
+  const holidays = getHolidays();
+
+  const cells = [];
+  let absent = 0, present = 0;
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = `${year}-${pad(month+1)}-${pad(d)}`;
+    const date = new Date(dateStr);
+    const dow = date.getDay();
+    let cls;
+    if(holidays[dateStr]){ cls = 'holiday'; }
+    else if(dow === 0 || dow === 6){ cls = 'weekend'; }
+    else if(isThisMonth && d > todayDate){ cls = 'future'; }
+    else if(myDates.has(dateStr)){ cls = 'present'; present++; }
+    else{ cls = 'absent'; absent++; }
+    cells.push(`<div class="absence-cell ${cls}" title="${d}/${month+1}">${d}</div>`);
+  }
+
+  return `<div class="report-card">
+    <div class="report-title">📅 ภาพรวมเดือน</div>
+    <div style="display:flex;justify-content:space-around;font-size:12px;margin-bottom:8px">
+      <div style="text-align:center"><div style="color:var(--green);font-weight:700;font-size:16px;font-family:var(--mono)">${present}</div><div style="color:var(--text3);font-size:10px">มาแล้ว</div></div>
+      <div style="text-align:center"><div style="color:var(--red);font-weight:700;font-size:16px;font-family:var(--mono)">${absent}</div><div style="color:var(--text3);font-size:10px">ขาด</div></div>
+    </div>
+    <div class="absence-mini">${cells.join('')}</div>
+    <div class="absence-legend">
+      <div class="absence-legend-item"><div class="absence-legend-dot" style="background:rgba(0,255,157,.3)"></div>มา</div>
+      <div class="absence-legend-item"><div class="absence-legend-dot" style="background:rgba(255,45,85,.3)"></div>ขาด</div>
+      <div class="absence-legend-item"><div class="absence-legend-dot" style="background:rgba(0,200,255,.2)"></div>หยุด</div>
+      <div class="absence-legend-item"><div class="absence-legend-dot" style="background:rgba(255,255,255,.1)"></div>เสาร์-อาทิตย์</div>
+    </div>
+  </div>`;
+}
+
+// 8. WEEKLY SUMMARY
+function renderWeeklySummary(empId){
+  if(!empId) return '';
+  const today = new Date();
+  const monday = new Date(today);
+  const dow = today.getDay();
+  const diffToMon = dow === 0 ? -6 : 1 - dow;
+  monday.setDate(today.getDate() + diffToMon);
+  monday.setHours(0,0,0,0);
+
+  const recs = records.filter(r => {
+    const d = new Date(r.date);
+    return r.empId===empId && d >= monday && r.checkOut;
+  });
+  if(!recs.length) return '';
+  const totalH = recs.reduce((s,r) => s+calcHours(r.checkIn,r.checkOut), 0);
+  const totalOT = recs.reduce((s,r) => s+(r.otMin||0), 0)/60;
+  const days = new Set(recs.map(r => r.date)).size;
+  const lateCount = recs.filter(r => r.isLate).length;
+
+  return `<div class="report-card">
+    <div class="report-title">📅 สัปดาห์นี้</div>
+    <div class="week-summary">
+      <div class="week-stat"><div class="week-stat-icon">📆</div><div class="week-stat-val">${days}</div><div class="week-stat-lbl">วันที่มา</div></div>
+      <div class="week-stat"><div class="week-stat-icon">⏰</div><div class="week-stat-val">${totalH.toFixed(1)}</div><div class="week-stat-lbl">ชม.รวม</div></div>
+      <div class="week-stat"><div class="week-stat-icon">⚡</div><div class="week-stat-val" style="color:var(--yellow)">${totalOT.toFixed(1)}</div><div class="week-stat-lbl">ชม.OT</div></div>
+      <div class="week-stat"><div class="week-stat-icon">${lateCount===0?'💯':'⚠️'}</div><div class="week-stat-val" style="color:${lateCount===0?'var(--green)':'var(--red)'}">${lateCount}</div><div class="week-stat-lbl">ครั้งสาย</div></div>
+    </div>
+  </div>`;
+}
+
+// 9. PRODUCTIVITY TREND (3-month moving avg)
+function renderProductivityTrend(empId){
+  if(!empId) return '';
+  const months = [];
+  const today = new Date();
+  for(let i=2; i>=0; i--){
+    const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
+    const recs = records.filter(r => {
+      const [y,m] = r.date.split('-').map(Number);
+      return r.empId===empId && y===d.getFullYear() && m===d.getMonth()+1 && r.checkOut;
+    });
+    const h = recs.reduce((s,r) => s+calcHours(r.checkIn,r.checkOut), 0);
+    months.push({label:d.toLocaleString('th-TH',{month:'short'}), h});
+  }
+  const cur = months[2].h;
+  const prev = months[1].h;
+  const diff = cur - prev;
+  const pct = prev > 0 ? Math.round(diff/prev*100) : 0;
+
+  let arrow = 'same', arrowText = '— เท่าเดิม';
+  if(diff > 0.5){ arrow = 'up'; arrowText = `↑ เพิ่มขึ้น ${pct}%`; }
+  else if(diff < -0.5){ arrow = 'down'; arrowText = `↓ ลดลง ${Math.abs(pct)}%`; }
+
+  const max = Math.max(...months.map(m => m.h), 1);
+  return `<div class="report-card">
+    <div class="report-title">📈 แนวโน้ม 3 เดือน</div>
+    <div style="display:flex;align-items:flex-end;gap:8px;height:90px;margin:10px 0">
+      ${months.map((m,i) => `
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%">
+          <div style="font-family:var(--mono);font-size:10px;font-weight:600;color:${i===2?'var(--accent)':'var(--text2)'}">${m.h.toFixed(1)}</div>
+          <div style="flex:1;display:flex;align-items:flex-end;width:100%">
+            <div style="width:100%;height:${(m.h/max*100)}%;min-height:2px;background:${i===2?'linear-gradient(180deg,var(--accent2),var(--accent))':'rgba(255,255,255,.12)'};border-radius:4px 4px 0 0;${i===2?'box-shadow:0 0 10px var(--accent)':''};transition:height .8s var(--ease-out-expo)"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text3)">${m.label}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="text-align:center;margin-top:8px">
+      <span class="trend-arrow ${arrow}">${arrowText}</span>
+    </div>
+  </div>`;
+}
+
 // ========== SELECTORS ==========
 function populateSels(){
   const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -2845,6 +3358,22 @@ function renderStats(){
   if(punctC)  punctC.innerHTML  = renderPunctualityCard(curUser.id);
   if(heatC)   heatC.innerHTML   = renderHeatmap(curUser.id);
   if(badgeC)  badgeC.innerHTML  = renderBadgesCard(curUser.id);
+
+  // ===== Advanced Reports =====
+  const reportC = document.getElementById('reports-container');
+  if(reportC){
+    reportC.innerHTML = `<div class="report-grid">
+      ${renderWeeklySummary(curUser.id)}
+      ${renderMonthlyGoalRing(curUser.id, year, month)}
+      ${renderStatusPieChart(curUser.id, year, month)}
+      ${renderComparisonChart(curUser.id, year, month)}
+      ${renderProductivityTrend(curUser.id)}
+      ${renderPeakHours(curUser.id)}
+      ${renderOTHistogram(curUser.id, year, month)}
+      ${renderLatePattern(curUser.id)}
+      ${renderAbsenceCalendar(curUser.id, year, month)}
+    </div>`;
+  }
 
   const byDate={};
   myRec.forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r)});
@@ -4395,15 +4924,16 @@ const swipeToast = true; // marker
 // ============================================================
 // 🎯 EFFECT 4: NUMBER COUNTER ANIMATION
 // ============================================================
-function animateNumber(el, target, duration=600, decimals=0, suffix='') {
+function animateNumber(el, target, duration=700, decimals=0, suffix='') {
   if(!el) return;
   const start = parseFloat(el.textContent) || 0;
   const startTime = performance.now();
+  // Use ease-out-expo for smoother feel
+  function easeOutExpo(t){ return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); }
   function update(now) {
     const elapsed = now - startTime;
     const progress = Math.min(elapsed / duration, 1);
-    // Ease out cubic
-    const eased = 1 - Math.pow(1 - progress, 3);
+    const eased = easeOutExpo(progress);
     const current = start + (target - start) * eased;
     el.textContent = decimals > 0 ? current.toFixed(decimals) + suffix : Math.round(current) + suffix;
     if(progress < 1) requestAnimationFrame(update);
