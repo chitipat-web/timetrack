@@ -4721,7 +4721,7 @@ function setupRealtimeListeners() {
         else if (id === 'page-summary')  renderSummary();
         else if (id === 'page-dashboard')renderDashboard();
         else if (id === 'page-salary')   renderSalary();
-        else if (id === 'page-team' && isAdmin()) renderTeamPage();
+        else if (id === 'page-team' && isAdmin()) renderTeam();
       }catch(e){ console.warn('Re-render error:', e); }
     }
   }, err => console.warn('records listen err:', err));
@@ -4736,7 +4736,7 @@ function setupRealtimeListeners() {
     const id = activePage.id;
     try{
       if (id === 'page-status')        renderStatus();
-      else if (id === 'page-team' && isAdmin()) renderTeamPage();
+      else if (id === 'page-team' && isAdmin()) renderTeam();
       else if (id === 'page-summary')  renderSummary();
       else if (id === 'page-dashboard')renderDashboard();
       else if (id === 'page-salary')   renderSalary();
@@ -4773,7 +4773,7 @@ function setupRealtimeListeners() {
         const id = activePage.id;
         try{
           if (id === 'page-status')        renderStatus();
-          else if (id === 'page-team' && isAdmin()) renderTeamPage();
+          else if (id === 'page-team' && isAdmin()) renderTeam();
           else if (id === 'page-summary')  renderSummary();
           else if (id === 'page-dashboard')renderDashboard();
         }catch(e){}
