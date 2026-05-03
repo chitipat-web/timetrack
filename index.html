@@ -2143,7 +2143,10 @@ let _chatTypingTimer = null;
 let _chatLastReadTs = 0;
 
 function setupChatListener(){
-  if(!fbConn || typeof db==='undefined') return;
+  if(!fbConn || typeof db==='undefined') {
+    console.warn('[Chat] Firebase not connected');
+    return;
+  }
   // Listen messages (last 100)
   db.ref('chat/messages').limitToLast(100).on('value', snap => {
     const data = snap.val();
@@ -2154,13 +2157,22 @@ function setupChatListener(){
       localStorage.setItem('tt_chat_lastread', String(_chatLastReadTs));
     }
     updateChatBadge();
-  }, err => console.warn('chat listen err:',err));
+  }, err => {
+    console.warn('[Chat] Listen error:', err);
+    // Show error in chat UI
+    const el = document.getElementById('chat-messages');
+    if(el) el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">⚠️</div>
+      <div class="empty-title">ไม่สามารถโหลดแชตได้</div>
+      <div class="empty-sub">${err.code || err.message || 'Permission denied'}<br>กรุณาตั้งค่า Firebase Rules</div>
+    </div>`;
+  });
 
   // Listen typing indicators
   db.ref('chat/typing').on('value', snap => {
     _chatTypingUsers = snap.val() || {};
     renderTypingIndicator();
-  }, err => console.warn('typing listen err:',err));
+  }, err => console.warn('[Chat] Typing listen err:', err));
 }
 
 function renderChat(){
