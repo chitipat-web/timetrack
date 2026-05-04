@@ -625,7 +625,7 @@ body.cinema-off .smoke-puff,
 body.cinema-off .lightning-bolt,
 body.cinema-off .crystal-shard{display:none!important}
 
-/* ===== 🏴‍☠️ MUGIWARA ULTIMATE EFFECTS ===== */
+/* ===== 🏴‍☠️ SHANKS ULTIMATE EFFECTS ===== */
 
 /* === DON! IMPACT TEXT === */
 @keyframes donImpact{
@@ -802,7 +802,7 @@ body.cinema-off .blood-mist,
 body.cinema-off .jolly-roger-bg{display:none!important;animation:none!important}
 body.cinema-off .haki-aura{animation:none!important}
 
-/* ===== 🔥 MUGIWARA GEAR MODE — Batch 1: Manga ===== */
+/* ===== 🔥 SHANKS GOD MODE — Batch 1: Manga ===== */
 
 /* === Halftone Pattern Background === */
 @keyframes halftoneShift{
@@ -1593,6 +1593,25 @@ body.cinema-off .shanks-deco{animation:none!important;opacity:.20}
 @keyframes waveDrift{
   0%,100%{transform:translateX(0)}
   50%{transform:translateX(-12px)}
+}
+
+/* 👥 MUGIWARA CREW — silhouettes at the bottom (above waves) */
+.shanks-deco.crew{
+  bottom:80px;left:50%;
+  width:min(540px, 96vw);height:200px;
+  transform:translateX(-50%);
+  opacity:.42;
+  animation:crewBob 4s ease-in-out infinite;
+  filter:drop-shadow(0 0 18px rgba(251,183,63,.5)) drop-shadow(0 4px 8px rgba(0,0,0,.5));
+  pointer-events:none;
+  z-index:0;
+}
+@keyframes crewBob{
+  0%,100%{transform:translateX(-50%) translateY(0)}
+  50%{transform:translateX(-50%) translateY(-6px)}
+}
+@media(max-width:480px){
+  .shanks-deco.crew{opacity:.32;height:160px;bottom:90px}
 }
 
 /* SVG filters for RGB split (placeholder) */
@@ -2574,20 +2593,33 @@ body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important
 .live-dot-green{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;animation:livePulse 1.5s ease-in-out infinite}
 .live-status-time{font-family:var(--mono);font-weight:600;font-size:14px;color:var(--green)}
 
-/* ===== NEON CLOCK GLOW (time-based color) ===== */
+/* ===== NEON CLOCK GLOW (time-based color — Mugiwara palette) ===== */
 @keyframes neonPulse{
   0%,100%{text-shadow:0 0 7px currentColor,0 0 18px currentColor,0 0 40px currentColor,0 0 80px currentColor}
   50%{text-shadow:0 0 4px currentColor,0 0 10px currentColor,0 0 22px currentColor,0 0 48px currentColor}
 }
 .clock-time{font-family:var(--mono);font-size:clamp(32px,9vw,48px);font-weight:600;letter-spacing:4px;margin-bottom:3px;position:relative;z-index:1;transition:color .6s ease,text-shadow .6s ease;animation:neonPulse 2.5s ease-in-out infinite}
-/* Morning — cyan bright */
-.clock-neon-morning{color:#ef4444;text-shadow:0 0 8px #ef4444,0 0 22px #ef4444,0 0 55px #dc2626,0 0 100px rgba(220,38,38,.5)}
-/* Afternoon — golden warm */
-.clock-neon-afternoon{color:#dc2626;text-shadow:0 0 8px #dc2626,0 0 22px #dc2626,0 0 55px #ef4444,0 0 100px rgba(239,68,68,.5)}
-/* Evening — orange fire */
-.clock-neon-evening{color:#ff6b35;text-shadow:0 0 8px #ff6b35,0 0 22px #ff6b35,0 0 55px #ff3d00,0 0 100px rgba(255,61,0,.5)}
-/* Night — purple dream */
-.clock-neon-night{color:#ce93d8;text-shadow:0 0 8px #ce93d8,0 0 22px #b388ff,0 0 55px #9c27b0,0 0 100px rgba(156,39,176,.5)}
+/* IMPORTANT: when clock is inside Wanted Poster, disable neon glow (it leaks out of paper) */
+.wanted-poster .clock-time{animation:none!important}
+.wanted-poster .clock-neon-morning,
+.wanted-poster .clock-neon-afternoon,
+.wanted-poster .clock-neon-evening,
+.wanted-poster .clock-neon-night{
+  color:#1a0e04!important;
+  text-shadow:
+    -1.5px -1.5px 0 #fbb73f,1.5px -1.5px 0 #fbb73f,
+    -1.5px 1.5px 0 #fbb73f,1.5px 1.5px 0 #fbb73f,
+    0 0 14px rgba(251,183,63,.5),
+    3px 3px 0 #8b5a2b!important;
+}
+/* Morning — gold sunrise */
+.clock-neon-morning{color:#fde047;text-shadow:0 0 8px #fde047,0 0 22px #fbb73f,0 0 55px #fbb73f,0 0 100px rgba(251,183,63,.5)}
+/* Afternoon — Luffy red */
+.clock-neon-afternoon{color:#e63946;text-shadow:0 0 8px #e63946,0 0 22px #e63946,0 0 55px #ff5a5f,0 0 100px rgba(230,57,70,.5)}
+/* Evening — sunset orange */
+.clock-neon-evening{color:#fb923c;text-shadow:0 0 8px #fb923c,0 0 22px #fb923c,0 0 55px #ea580c,0 0 100px rgba(234,88,12,.5)}
+/* Night — deep ocean blue */
+.clock-neon-night{color:#7dd3fc;text-shadow:0 0 8px #7dd3fc,0 0 22px #0ea5e9,0 0 55px #0369a1,0 0 100px rgba(3,105,161,.5)}
 
 /* ===== GRADIENT TEXT (username) ===== */
 .wc-name-gradient{background:linear-gradient(135deg,#fff 0%,#ef4444 50%,#7ecfee 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:700}
@@ -2642,17 +2674,17 @@ body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important
 .welcome-meta{font-size:12px;color:var(--text2)}
 .clock-date{font-size:12px;color:var(--text2);margin-bottom:16px;position:relative;z-index:1}
 .clock-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative;z-index:1}
-.btn-in{width:130px;height:130px;border:none;border-radius:50%;background:linear-gradient(145deg,#fbbf24 0%,#dc2626 50%,#7f1d1d 100%);color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 0 0 4px rgba(251,191,36,.4),0 0 0 8px rgba(220,38,38,.3),0 0 24px rgba(251,191,36,.6),inset 0 -8px 16px rgba(0,0,0,.4),inset 0 4px 8px rgba(255,255,255,.2);transition:all .2s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden;border:2px solid #fbbf24}
-.btn-in::before{content:'⚔️';position:absolute;font-size:80px;opacity:.08;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-45deg);pointer-events:none}
-.btn-out{width:130px;height:130px;border:none;border-radius:50%;background:linear-gradient(145deg,#1a0808 0%,#7f1d1d 50%,#dc2626 100%);color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 0 0 4px rgba(127,29,29,.4),0 0 0 8px rgba(0,0,0,.5),0 0 24px rgba(220,38,38,.5),inset 0 -8px 16px rgba(0,0,0,.6),inset 0 4px 8px rgba(220,38,38,.2);transition:all .2s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden;border:2px solid #dc2626}
-.btn-out::before{content:'🗡️';position:absolute;font-size:80px;opacity:.08;left:50%;top:50%;transform:translate(-50%,-50%) rotate(45deg);pointer-events:none}
-.btn-in:active{transform:scale(.93);box-shadow:0 0 0 4px rgba(220,38,38,.2),0 4px 16px rgba(0,150,255,.4)}
-.btn-out:active{transform:scale(.93);box-shadow:0 0 0 4px rgba(239,68,68,.2),0 4px 16px rgba(239,68,68,.3)}
+.btn-in{width:130px;height:130px;border:none;border-radius:50%;background:linear-gradient(145deg,#7dd3fc 0%,#0ea5e9 45%,#0369a1 100%);color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 0 0 4px rgba(251,183,63,.45),0 0 0 8px rgba(14,165,233,.35),0 0 28px rgba(125,211,252,.55),inset 0 -8px 16px rgba(0,30,60,.45),inset 0 4px 8px rgba(255,255,255,.28);transition:all .2s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden;border:2px solid #fbb73f}
+.btn-in::before{content:'🌊';position:absolute;font-size:80px;opacity:.12;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
+.btn-out{width:130px;height:130px;border:none;border-radius:50%;background:linear-gradient(145deg,#fbb73f 0%,#e63946 45%,#991b1b 100%);color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 0 0 4px rgba(251,183,63,.45),0 0 0 8px rgba(230,57,70,.35),0 0 28px rgba(251,183,63,.45),inset 0 -8px 16px rgba(60,10,15,.55),inset 0 4px 8px rgba(255,220,160,.3);transition:all .2s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden;border:2px solid #fbb73f}
+.btn-out::before{content:'🏴‍☠️';position:absolute;font-size:80px;opacity:.10;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
+.btn-in:active{transform:scale(.93);box-shadow:0 0 0 4px rgba(251,183,63,.3),0 4px 16px rgba(14,165,233,.5)}
+.btn-out:active{transform:scale(.93);box-shadow:0 0 0 4px rgba(251,183,63,.3),0 4px 16px rgba(230,57,70,.45)}
 .btn-in:disabled,.btn-out:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
 .btn-sub{font-size:9px;font-weight:400;opacity:.85;letter-spacing:.3px}
-/* button ring pulse when enabled */
+/* button ring pulse when enabled — gold rope shimmer */
 .btn-in:not(:disabled){animation:btnRingPulse 3s ease-in-out infinite}
-@keyframes btnRingPulse{0%,100%{box-shadow:0 0 0 8px rgba(220,38,38,.12),0 0 0 16px rgba(220,38,38,.06),0 8px 32px rgba(0,150,255,.5)}50%{box-shadow:0 0 0 12px rgba(220,38,38,.18),0 0 0 22px rgba(220,38,38,.08),0 8px 40px rgba(0,150,255,.6)}}
+@keyframes btnRingPulse{0%,100%{box-shadow:0 0 0 8px rgba(251,183,63,.16),0 0 0 16px rgba(251,183,63,.08),0 8px 32px rgba(14,165,233,.5)}50%{box-shadow:0 0 0 12px rgba(251,183,63,.22),0 0 0 22px rgba(251,183,63,.10),0 8px 40px rgba(14,165,233,.6)}}
 /* btn wrapper center layout */
 .btn-row{display:flex;justify-content:center;align-items:center;gap:28px;padding:10px 0 14px}
 
@@ -3473,6 +3505,124 @@ body.grad-anim{
       <circle cx="980" cy="84" r="1"/>
       <circle cx="1180" cy="80" r="1.3"/>
       <circle cx="1340" cy="84" r="1"/>
+    </g>
+  </svg>
+
+  <!-- 👥 MUGIWARA CREW SILHOUETTES — standing on the deck (bottom of screen) -->
+  <svg class="shanks-deco crew" viewBox="0 0 540 200" preserveAspectRatio="xMidYEnd meet">
+    <defs>
+      <linearGradient id="crewBody" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1a0e04"/>
+        <stop offset="100%" stop-color="#000"/>
+      </linearGradient>
+      <linearGradient id="luffyVest" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e63946"/>
+        <stop offset="100%" stop-color="#991b1b"/>
+      </linearGradient>
+    </defs>
+
+    <!-- 🦌 CHOPPER (small, far left) -->
+    <g transform="translate(60,140)">
+      <!-- Body -->
+      <ellipse cx="0" cy="20" rx="14" ry="22" fill="url(#crewBody)"/>
+      <!-- Head -->
+      <circle cx="0" cy="-10" r="13" fill="#e8b88a"/>
+      <!-- Antlers -->
+      <path d="M -8,-22 L -12,-32 L -10,-30 L -14,-36 M 8,-22 L 12,-32 L 10,-30 L 14,-36" stroke="#7c5a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- Pink hat -->
+      <ellipse cx="0" cy="-18" rx="14" ry="3" fill="#e63946"/>
+      <path d="M -10,-19 Q -8,-26 0,-27 Q 8,-26 10,-19 Z" fill="#fca5a5"/>
+      <path d="M -3,-26 L 0,-30 L 3,-26 Z" fill="#fca5a5"/>
+      <!-- Black nose -->
+      <circle cx="0" cy="-7" r="2" fill="#1a0e04"/>
+    </g>
+
+    <!-- 👨‍🍳 SANJI (slim, smoking, second from left) -->
+    <g transform="translate(140,100)">
+      <!-- Body (suit) -->
+      <path d="M -10,10 L -12,60 L 12,60 L 10,10 Z" fill="#1e3a5f"/>
+      <!-- Tie -->
+      <path d="M -2,12 L 2,12 L 1,28 L 0,32 L -1,28 Z" fill="#e63946"/>
+      <!-- Head -->
+      <circle cx="0" cy="0" r="11" fill="#f5d6a8"/>
+      <!-- Blonde hair (curled forward, covering one eye) -->
+      <path d="M -10,-3 Q -12,-12 -4,-12 Q 6,-15 11,-8 Q 12,0 6,2 Q 4,-2 0,-2 Q -2,2 -10,3 Z" fill="#fde047"/>
+      <!-- Eyebrow swirl -->
+      <path d="M 4,-2 Q 7,-3 9,0" stroke="#1a0e04" stroke-width="1" fill="none"/>
+      <!-- Cigarette -->
+      <line x1="6" y1="4" x2="14" y2="2" stroke="#fefae0" stroke-width="1.5"/>
+      <circle cx="14.5" cy="2" r="1" fill="#fb923c"/>
+    </g>
+
+    <!-- 🍊 NAMI (orange hair, middle-left) -->
+    <g transform="translate(220,100)">
+      <!-- Body -->
+      <path d="M -9,8 L -11,55 L 11,55 L 9,8 Z" fill="#e63946"/>
+      <!-- Skirt accent -->
+      <rect x="-11" y="38" width="22" height="3" fill="#fefae0" opacity="0.8"/>
+      <!-- Head -->
+      <circle cx="0" cy="-2" r="11" fill="#f5d6a8"/>
+      <!-- Orange hair -->
+      <path d="M -11,-5 Q -13,-14 -5,-15 Q 0,-18 5,-15 Q 13,-14 11,-3 Q 12,4 8,6 L 6,2 L -6,2 L -8,6 Q -12,4 -11,-5 Z" fill="#fb923c"/>
+      <!-- Long hair down -->
+      <path d="M -9,2 Q -10,15 -7,22 L -4,20 Q -5,12 -5,4 Z M 9,2 Q 10,15 7,22 L 4,20 Q 5,12 5,4 Z" fill="#fb923c"/>
+    </g>
+
+    <!-- 👒 LUFFY (CENTER — the captain, with iconic hat & X scar) -->
+    <g transform="translate(310,90)">
+      <!-- Body (red vest open + shorts) -->
+      <path d="M -12,12 L -14,42 L -10,68 L 10,68 L 14,42 L 12,12 Z" fill="url(#luffyVest)"/>
+      <!-- Open vest center showing skin -->
+      <path d="M -3,12 L -3,38 L 3,38 L 3,12 Z" fill="#f5d6a8"/>
+      <!-- Blue shorts -->
+      <path d="M -10,55 L -11,72 L 11,72 L 10,55 Z" fill="#1e3a5f"/>
+      <!-- Yellow sash -->
+      <rect x="-12" y="50" width="24" height="4" fill="#fde047"/>
+      <!-- Head -->
+      <circle cx="0" cy="0" r="13" fill="#f5d6a8"/>
+      <!-- Black hair messy -->
+      <path d="M -12,-4 Q -14,-15 -6,-14 Q -2,-18 0,-17 Q 4,-18 8,-14 Q 14,-13 12,-2 Q 13,2 10,2 L 8,-2 Q 4,-1 0,-1 Q -4,-1 -8,-2 L -10,2 Q -13,2 -12,-4 Z" fill="#1a0e04"/>
+      <!-- ICONIC STRAW HAT -->
+      <ellipse cx="0" cy="-12" rx="20" ry="4" fill="#fbb73f" stroke="#7c5a2e" stroke-width="0.8"/>
+      <path d="M -13,-12 Q -11,-23 0,-25 Q 11,-23 13,-12 Z" fill="#f4c570" stroke="#7c5a2e" stroke-width="0.8"/>
+      <rect x="-12" y="-15" width="24" height="3" fill="#e63946"/>
+      <!-- X scar under eye -->
+      <line x1="-7" y1="3" x2="-3" y2="7" stroke="#991b1b" stroke-width="1.2"/>
+      <line x1="-7" y1="7" x2="-3" y2="3" stroke="#991b1b" stroke-width="1.2"/>
+    </g>
+
+    <!-- ⚔️ ZORO (3-sword wielder, right of Luffy) -->
+    <g transform="translate(390,95)">
+      <!-- Body (green/dark robe) -->
+      <path d="M -11,10 L -13,58 L 13,58 L 11,10 Z" fill="#15803d"/>
+      <!-- Sash (haramaki — green abdominal band) -->
+      <rect x="-13" y="32" width="26" height="6" fill="#dc2626"/>
+      <!-- Three swords at left hip -->
+      <g transform="translate(-12,38)">
+        <line x1="0" y1="0" x2="-3" y2="22" stroke="#1a0e04" stroke-width="2"/>
+        <line x1="0" y1="0" x2="0" y2="24" stroke="#1a0e04" stroke-width="2"/>
+        <line x1="0" y1="0" x2="3" y2="22" stroke="#1a0e04" stroke-width="2"/>
+        <circle cx="0" cy="-1" r="2" fill="#fbb73f"/>
+      </g>
+      <!-- Head -->
+      <circle cx="0" cy="-2" r="11" fill="#f5d6a8"/>
+      <!-- Green hair -->
+      <path d="M -11,-5 Q -13,-13 -5,-13 Q 0,-15 5,-13 Q 11,-13 11,-5 Q 11,0 8,0 L 6,-3 L -6,-3 L -8,0 Q -11,0 -11,-5 Z" fill="#22c55e"/>
+      <!-- Earrings (3 gold dots on left ear) -->
+      <circle cx="-10" cy="0" r="0.8" fill="#fde047"/>
+      <circle cx="-10" cy="2.5" r="0.8" fill="#fde047"/>
+      <circle cx="-10" cy="5" r="0.8" fill="#fde047"/>
+      <!-- Black bandana (tied around left arm — drawn as horizontal stripe) -->
+      <rect x="-15" y="14" width="6" height="2" fill="#1a0e04"/>
+    </g>
+
+    <!-- 🏴‍☠️ Mini flag pole behind crew (center-back) -->
+    <g transform="translate(310,30)" opacity="0.55">
+      <rect x="-1" y="0" width="2" height="60" fill="#7c5a2e"/>
+      <path d="M 1,2 L 30,8 L 30,28 L 1,22 Z" fill="#1a0e04" stroke="#fbb73f" stroke-width="0.5"/>
+      <circle cx="15" cy="14" r="5" fill="#fefae0"/>
+      <line x1="10" y1="9" x2="20" y2="19" stroke="#fefae0" stroke-width="2"/>
+      <line x1="10" y1="19" x2="20" y2="9" stroke="#fefae0" stroke-width="2"/>
     </g>
   </svg>
 </div>
@@ -5444,7 +5594,7 @@ function doCheckIn(){
       smokeFromButton(document.getElementById('btn-in'));
     }
     if(typeof soundCheckIn === 'function') soundCheckIn();
-    // 🏴‍☠️ MUGIWARA ULTIMATE COMBO
+    // 🏴‍☠️ SHANKS ULTIMATE COMBO
     if(typeof overdriveCombo === 'function') overdriveCombo();
     // 🌟 LEGENDARY EDITION extras
     if(typeof legendaryCombo === 'function') legendaryCombo();
@@ -9038,7 +9188,7 @@ function renderWeeklyInsightsCard(empId){
   </div>`;
 }
 
-// ===== 🏴‍☠️ MUGIWARA ULTIMATE EFFECTS =====
+// ===== 🏴‍☠️ SHANKS ULTIMATE EFFECTS =====
 
 // === DON! Impact Text ===
 function showDonImpact(text='DON!'){
@@ -9215,7 +9365,7 @@ function addJollyRoger(){
   document.body.appendChild(j);
 }
 
-// === MUGIWARA GRAND LINE — Background Scenery ===
+// === SHANKS YONKO — Background Scenery ===
 function addShanksScenery(){
   // Sunset sky
   if(!document.getElementById('shanks-sunset-sky')){
@@ -9311,7 +9461,7 @@ if(document.readyState === 'loading'){
   setTimeout(initShanksEffects, 100);
 }
 
-// ===== 🔥 MUGIWARA GEAR MODE — Ultimate Effects =====
+// ===== 🔥 SHANKS GOD MODE — Ultimate Effects =====
 
 // === Dialogue Bubble (BOOM/WHAM/CRASH/DON/BANG) ===
 function showDialogueBubble(text, x, y, yellow=false){
