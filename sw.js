@@ -1,7 +1,7 @@
-// ===== RUDY Service Worker — Mugiwara Edition =====
-const CACHE_NAME = 'rudy-mugiwara-v2';
-const STATIC_CACHE = 'rudy-static-mugiwara-v2';
-const FIREBASE_CACHE = 'rudy-firebase-mugiwara-v2';
+// ===== RUDY Service Worker =====
+const CACHE_NAME = 'rudy-v33';
+const STATIC_CACHE = 'rudy-static-v32';
+const FIREBASE_CACHE = 'rudy-firebase-v32';
 
 const STATIC_ASSETS = [
   './index.html',
@@ -26,7 +26,7 @@ const FONT_ASSETS = [
 ];
 
 self.addEventListener('install', event => {
-  console.log('[SW] Installing Mugiwara Edition...');
+  console.log('[SW] Installing...');
   event.waitUntil(
     Promise.all([
       caches.open(STATIC_CACHE).then(cache => {
@@ -51,7 +51,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating Mugiwara Edition...');
+  console.log('[SW] Activating...');
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
