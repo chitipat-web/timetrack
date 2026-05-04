@@ -1,5 +1,5 @@
 // ===== RUDY Service Worker =====
-const CACHE_NAME = 'rudy-v40';
+const CACHE_NAME = 'rudy-v41';
 const STATIC_CACHE = 'rudy-static-v32';
 const FIREBASE_CACHE = 'rudy-firebase-v32';
 
