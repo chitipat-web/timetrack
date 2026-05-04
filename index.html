@@ -2074,10 +2074,15 @@ if (!employees) {
 
 // ========== HELPERS ==========
 const pad = n=>String(n).padStart(2,'0');
+// HTML escape for user-supplied content rendered via innerHTML/template literals
+function escHtml(s){
+  if(s==null) return '';
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 function todayStr(){const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
 function nowStr(){const n=new Date();return `${pad(n.getHours())}:${pad(n.getMinutes())}`}
 function saveEmp(){localStorage.setItem('tt_emp',JSON.stringify(employees))}
-function saveRec(){localStorage.setItem('tt_rec',JSON.stringify(records));if(fbConn)syncUp()}
+function saveRec(){localStorage.setItem('tt_rec',JSON.stringify(records))}
 function getWorkStart(){return localStorage.getItem('tt_work_start')||'06:00'}
 function getOTStart(){return localStorage.getItem('tt_ot_start')||'16:30'}
 
@@ -4042,9 +4047,9 @@ function renderStatus() {
     return { isIn, html: `<div class="emp-card ${isIn?'in':'out'} card-enter">
       <div class="emp-av" style="width:40px;height:40px;border-radius:10px;background:${photo?'none':_eG};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;overflow:hidden">${photo?`<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:_eL}</div>
       <div class="emp-info" style="flex:1;min-width:0">
-        <div class="emp-name">${emp.name}</div>
-        <div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${emp.email}</div>
-        <div style="font-size:11px;color:var(--text2)">${emp.dept}</div>
+        <div class="emp-name">${escHtml(emp.name)}</div>
+        <div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(emp.email)}</div>
+        <div style="font-size:11px;color:var(--text2)">${escHtml(emp.dept)}</div>
       </div>
       <div class="emp-right" style="text-align:right;flex-shrink:0">
         <div class="status-pill ${isIn?'in':'out'}">${isIn?'ในงาน':'ไม่อยู่'}</div>
@@ -4088,7 +4093,7 @@ function renderSummary() {
     return `<div class="summary-card">
       <div class="summary-hdr" style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
         <div style="width:36px;height:36px;border-radius:8px;background:${avatarGrad(emp.name)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">${avatarLetter(emp.name)}</div>
-        <div><div style="font-size:14px;font-weight:600">${emp.name}</div><div style="font-size:11px;color:var(--text2)">${emp.dept}</div></div>
+        <div><div style="font-size:14px;font-weight:600">${escHtml(emp.name)}</div><div style="font-size:11px;color:var(--text2)">${escHtml(emp.dept)}</div></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
         <div style="text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--accent2)">${days}</div><div style="font-size:10px;color:var(--text3)">วันมา</div></div>
@@ -4139,8 +4144,8 @@ function renderTeam(){
       <div class="team-card-top">
         <div class="team-av" style="background:${photo?'none':avatarGrad(emp.name)}">${photo?`<img src="${photo}">`:(avatarLetter(emp.name))}</div>
         <div class="team-info flex:1">
-          <div class="team-name">${emp.name}</div>
-          <div class="team-email">${emp.email}</div>
+          <div class="team-name">${escHtml(emp.name)}</div>
+          <div class="team-email">${escHtml(emp.email)}</div>
         </div>
         <div>${badge}</div>
       </div>
@@ -4250,7 +4255,7 @@ function renderAdminSalary(){
     const totalH=mr.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
     const perH=sal>0&&totalH>0?sal/totalH:0;
     return `<div class="team-stat" style="margin-bottom:8px;text-align:left;padding:12px;border-radius:10px">
-      <div style="font-weight:700;margin-bottom:4px">${emp.name}</div>
+      <div style="font-weight:700;margin-bottom:4px">${escHtml(emp.name)}</div>
       <div style="font-size:12px;color:var(--text2)">${totalH.toFixed(1)} ชม. · ${sal>0?`฿${perH.toFixed(0)}/ชม.`:'ไม่ได้ตั้งเงินเดือน'}</div>
     </div>`;
   }).join('');
@@ -4274,7 +4279,7 @@ function showDayDetail(dateStr,email){
   document.getElementById('day-modal-content').innerHTML=`
     <div style="margin-bottom:12px">
       <div style="font-size:13px;color:var(--text2);margin-bottom:8px">วัน${dayNames[dt.getDay()]} ${holiday?'· 🏖 '+holiday:''}</div>
-      ${emp.id!==curUser.id?`<div style="font-size:13px;font-weight:600;margin-bottom:8px">👤 ${emp.name}</div>`:''}
+      ${emp.id!==curUser.id?`<div style="font-size:13px;font-weight:600;margin-bottom:8px">👤 ${escHtml(emp.name)}</div>`:''}
     </div>
     ${dr.length?`
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
@@ -4295,7 +4300,7 @@ function showDayDetail(dateStr,email){
         ${(isAdmin()||emp.id===curUser.id)?`<button class="btn-edit" onclick="closeModal('day-modal');openEdit('${r.id}','${email}')">✏️</button>`:''}
       </div>`).join('')}
     `:`<div class="empty-state"><div class="empty-icon">😴</div><div>ไม่มีข้อมูลวันนี้</div></div>`}
-    ${note?`<div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--text2)">📓 ${note}</div>`:''}
+    ${note?`<div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--text2)">📓 ${escHtml(note)}</div>`:''}
     ${isAdmin()?`<div style="margin-top:12px"><button class="btn-secondary" onclick="toggleHoliday('${dateStr}');closeModal('day-modal')">🏖 ${isHoliday(dateStr)?'ยกเลิกวันหยุด':'ตั้งเป็นวันหยุด'}</button></div>`:''}`;
 
   document.getElementById('day-modal').classList.add('open');
@@ -4610,8 +4615,8 @@ function renderEmpListSettings(){
     <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="width:30px;height:30px;border-radius:8px;background:${avatarGrad(emp.name)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">${avatarLetter(emp.name)}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600">${emp.name} ${emp.role==='admin'?'<span style="color:var(--yellow);font-size:10px">Admin</span>':''}</div>
-        <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${emp.email}</div>
+        <div style="font-size:13px;font-weight:600">${escHtml(emp.name)} ${emp.role==='admin'?'<span style="color:var(--yellow);font-size:10px">Admin</span>':''}</div>
+        <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(emp.email)}</div>
       </div>
       <button class="btn-del" onclick="removeEmp('${emp.id}')">🗑</button>
     </div>`).join('');
@@ -4946,9 +4951,9 @@ function renderAnnounces() {
       const d = new Date(a.ts);
       return `<div class="announce-card${a.pinned?' pinned':''}">
         ${a.pinned?'<div class="announce-pin">📌</div>':''}
-        <div class="announce-title">${a.title}${isNew?'<span class="announce-new">ใหม่</span>':''}</div>
+        <div class="announce-title">${escHtml(a.title)}${isNew?'<span class="announce-new">ใหม่</span>':''}</div>
         <div class="announce-body">${renderMentions(a.body)}</div>
-        <div class="announce-meta">โดย ${a.author} · ${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}
+        <div class="announce-meta">โดย ${escHtml(a.author)} · ${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}
           ${isAdmin()?`<button onclick="deleteAnnounce('${a.id}')" style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">ลบ</button>`:''}
         </div>
         ${renderReactions(a.id)}
@@ -5042,16 +5047,16 @@ function renderPollCard(p) {
     return `<div class="poll-option">
       <div class="poll-bar-wrap${iVoted?' voted':''}" onclick="votePoll('${p.id}',${i})">
         <div class="poll-fill" style="width:${hasVoted?pct:0}%"></div>
-        <div class="poll-bar-label">${o.text}</div>
+        <div class="poll-bar-label">${escHtml(o.text)}</div>
       </div>
       <div class="poll-pct">${hasVoted?pct+'%':''}</div>
     </div>`;
   }).join('');
   const d = new Date(p.ts);
   return `<div class="poll-card">
-    <div class="poll-question">${p.title}${p.multi?'<span style="font-size:11px;color:var(--text3);margin-left:6px">(เลือกได้หลายข้อ)</span>':''}</div>
+    <div class="poll-question">${escHtml(p.title)}${p.multi?'<span style="font-size:11px;color:var(--text3);margin-left:6px">(เลือกได้หลายข้อ)</span>':''}</div>
     ${optHtml}
-    <div class="poll-votes">🗳 ${totalVotes} โหวต · โดย ${p.author} · ${pad(d.getDate())}/${pad(d.getMonth()+1)}
+    <div class="poll-votes">🗳 ${totalVotes} โหวต · โดย ${escHtml(p.author)} · ${pad(d.getDate())}/${pad(d.getMonth()+1)}
       ${isAdmin()?`<button onclick="deleteAnnounce('${p.id}')" style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">ลบ</button>`:''}
     </div>
   </div>`;
@@ -5151,22 +5156,10 @@ function connectFB(){
   if(dot)dot.className='cs-dot connected';if(lbl)lbl.textContent='เชื่อมต่อ Firebase แล้ว';
   showToast('✅ เชื่อมต่อสำเร็จ','success');syncDown();
 }
-async function syncUp(){
-  if(!fbURL)return;
-  try{
-    await fetch(`${fbURL}/records.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(records)});
-    await fetch(`${fbURL}/employees.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(employees)});
-  }catch(e){}
-}
-async function syncDown(){
-  if(!fbURL)return;
-  try{
-    const[rr,er]=await Promise.all([fetch(`${fbURL}/records.json`),fetch(`${fbURL}/employees.json`)]);
-    const rd=await rr.json(),ed=await er.json();
-    if(Array.isArray(rd))records=rd;if(Array.isArray(ed))employees=ed;
-    saveEmp();saveRec();renderHome();showToast('🔄 ซิงค์ข้อมูลแล้ว','success');
-  }catch(e){}
-}
+// syncUp/syncDown removed — Firebase SDK realtime listeners handle sync
+// Stubs kept for backward compat with code that still calls them
+async function syncUp(){ /* deprecated: realtime listener handles sync */ }
+async function syncDown(){ /* deprecated: realtime listener handles sync */ }
 
 // ========== NAV ==========
 function showPage(id,btn){
@@ -5803,7 +5796,7 @@ async function doRegister() {
 
     // Show success
     const suc = document.getElementById('reg-success');
-    suc.innerHTML = `✅ สมัครสมาชิกสำเร็จ!<br>ยินดีต้อนรับ <strong>${name}</strong>`;
+    suc.innerHTML = `✅ สมัครสมาชิกสำเร็จ!<br>ยินดีต้อนรับ <strong>${escHtml(name)}</strong>`;
     suc.style.display = 'block';
 
     // Auto login after 1.5s

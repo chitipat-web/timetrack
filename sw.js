@@ -1,7 +1,6 @@
 // ===== RUDY Service Worker =====
-const CACHE_NAME = 'rudy-v33';
-const STATIC_CACHE = 'rudy-static-v32';
-const FIREBASE_CACHE = 'rudy-firebase-v32';
+const STATIC_CACHE = 'rudy-static-v33';
+const FIREBASE_CACHE = 'rudy-firebase-v33';
 
 const STATIC_ASSETS = [
   './index.html',
@@ -19,6 +18,7 @@ const FIREBASE_ASSETS = [
   'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js',
   'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js',
   'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
 ];
 
 const FONT_ASSETS = [
@@ -78,7 +78,7 @@ self.addEventListener('fetch', event => {
   }
 
   if (url.includes('gstatic.com/firebasejs') ||
-      url.includes('cdn.jsdelivr.net/npm/chart.js') ||
+      url.includes('cdn.jsdelivr.net/npm/') ||
       url.includes('fonts.googleapis.com') ||
       url.includes('fonts.gstatic.com')) {
     event.respondWith(
