@@ -1461,18 +1461,18 @@ body.cinema-off.rage-mode{animation:none!important}
   filter:drop-shadow(0 0 20px rgba(220,38,38,.5));
 }
 
-/* 🦸 SHANKS Character Silhouette — bottom-right (where ship was, replace ship-area) */
+/* 🦸 SHANKS Character Silhouette — left of poster */
 .shanks-deco.character{
-  bottom:80px;right:-40px;
+  bottom:60px;left:-10px;
   width:160px;height:320px;
-  opacity:.35;
+  opacity:.85;
   animation:characterStand 5s ease-in-out infinite;
   transform-origin:bottom center;
-  filter:drop-shadow(0 0 25px rgba(220,38,38,.5)) drop-shadow(0 0 50px rgba(127,29,29,.3));
+  filter:drop-shadow(0 0 25px rgba(220,38,38,.8)) drop-shadow(0 0 50px rgba(127,29,29,.6));
 }
 @keyframes characterStand{
   0%,100%{transform:translateY(0) scale(1)}
-  50%{transform:translateY(-6px) scale(1.02)}
+  50%{transform:translateY(-8px) scale(1.02)}
 }
 
 /* Shanks Hat — top right (BIGGER + BRIGHTER) */
@@ -1488,25 +1488,25 @@ body.cinema-off.rage-mode{animation:none!important}
   50%{transform:rotate(8deg) translateY(-12px)}
 }
 
-/* Saber Sword — left side (BIGGER + BRIGHTER) */
+/* Saber Sword — right side (BIGGER + BRIGHTER) */
 .shanks-deco.saber{
-  top:30%;left:-40px;
+  top:25%;right:-30px;
   width:80px;height:420px;
-  opacity:.40;
+  opacity:.55;
   animation:saberSway 8s ease-in-out infinite;
   transform-origin:top center;
-  filter:drop-shadow(0 0 25px rgba(251,191,36,.6)) drop-shadow(0 0 50px rgba(220,38,38,.4));
+  filter:drop-shadow(0 0 25px rgba(251,191,36,.7)) drop-shadow(0 0 50px rgba(220,38,38,.5));
 }
 @keyframes saberSway{
-  0%,100%{transform:rotate(-15deg)}
-  50%{transform:rotate(-25deg) translateY(-8px)}
+  0%,100%{transform:rotate(15deg)}
+  50%{transform:rotate(25deg) translateY(-8px)}
 }
 
-/* Red Force Ship — middle right behind character */
+/* Red Force Ship — bottom right behind saber */
 .shanks-deco.ship{
-  top:35%;right:-60px;
+  bottom:120px;right:-50px;
   width:240px;height:160px;
-  opacity:.32;
+  opacity:.40;
   animation:shipBob 5s ease-in-out infinite;
 }
 @keyframes shipBob{
@@ -2077,7 +2077,8 @@ body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important
   border:3px solid #5d3a1a;
   border-radius:8px;
   padding:20px 16px 24px;
-  margin-bottom:14px;
+  margin:0 auto 14px;
+  max-width:78%;
   box-shadow:
     0 8px 24px rgba(0,0,0,.7),
     inset 0 0 80px rgba(0,0,0,.5),
@@ -2160,14 +2161,22 @@ body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important
   font-family:'Arial Black','Impact',sans-serif;
   font-size:48px;font-weight:900;
   text-align:center;
-  background:linear-gradient(180deg,#fbbf24 0%,#dc2626 50%,#7f1d1d 100%);
-  -webkit-background-clip:text;background-clip:text;
-  -webkit-text-fill-color:transparent;
-  filter:drop-shadow(0 0 16px rgba(220,38,38,.6)) drop-shadow(2px 2px 0 rgba(0,0,0,.5));
+  color:#fbbf24;
+  background:none;
+  -webkit-background-clip:initial;background-clip:initial;
+  -webkit-text-fill-color:initial;
+  filter:none;
   letter-spacing:3px;
   position:relative;z-index:2;
-  text-shadow:0 0 30px rgba(220,38,38,.4);
+  text-shadow:
+    -2px -2px 0 #1a0808,2px -2px 0 #1a0808,
+    -2px 2px 0 #1a0808,2px 2px 0 #1a0808,
+    0 0 12px rgba(251,191,36,.6),
+    0 0 24px rgba(220,38,38,.4),
+    3px 3px 0 #7f1d1d;
+  -webkit-text-stroke:1.5px #1a0808;
   margin:8px 0 4px;
+  animation:none!important;
 }
 .wanted-clock-label{
   text-align:center;
