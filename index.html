@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>RUDY — Galaxy Edition</title>
+<title>RUDY — Mugiwara Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <!-- Firebase SDK - NO defer (must load in order before inline scripts) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -14,35 +14,50 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 <style>
 :root {
-  /* ===== SHANKS — Red Hair Pirate (Ultimate Edition) ===== */
-  --bg:#0a0505;
-  --surface:rgba(40,8,8,0.82);
-  --surface2:rgba(60,12,12,0.7);
-  --surface3:rgba(80,18,18,0.55);
-  --border:rgba(220,38,38,0.18);
-  --border2:rgba(220,38,38,0.30);
-  --accent:#dc2626;
-  --accent2:#ef4444;
-  --accent-light:rgba(220,38,38,0.14);
-  --green:#84cc16;  --green-light:rgba(132,204,22,0.15);
-  --red:#dc2626;    --red-light:rgba(220,38,38,0.18);
-  --yellow:#fbbf24; --yellow-light:rgba(251,191,36,0.15);
+  /* ===== 🏴‍☠️ MUGIWARA — Straw Hat Crew (Grand Line Edition) ===== */
+  /* Sea-night base — deep ocean under starlight */
+  --bg:#031428;
+  --surface:rgba(8,32,58,0.82);
+  --surface2:rgba(14,44,74,0.7);
+  --surface3:rgba(22,58,92,0.55);
+  --border:rgba(251,176,64,0.18);
+  --border2:rgba(251,176,64,0.32);
+  /* Primary: Luffy red */
+  --accent:#e63946;
+  --accent2:#ff5a5f;
+  --accent-light:rgba(230,57,70,0.14);
+  /* Crew status palette */
+  --green:#10b981;  --green-light:rgba(16,185,129,0.15);
+  --red:#e63946;    --red-light:rgba(230,57,70,0.18);
+  --yellow:#fbb73f; --yellow-light:rgba(251,183,63,0.15);
   --purple:#a855f7; --purple-light:rgba(168,85,247,0.15);
-  --text:rgba(255,235,235,0.95);
-  --text2:rgba(240,200,200,0.7);
-  --text3:rgba(200,150,150,0.5);
+  /* Text on sea-blue */
+  --text:rgba(240,250,255,0.96);
+  --text2:rgba(200,225,245,0.72);
+  --text3:rgba(160,195,225,0.52);
   --glass-blur:blur(24px) saturate(220%);
   --glass-blur-lg:blur(40px) saturate(240%);
-  --shadow:0 4px 24px rgba(150,0,0,0.45),0 1px 4px rgba(220,38,38,0.10);
-  --shadow-lg:0 12px 40px rgba(150,0,0,0.55),0 2px 8px rgba(220,38,38,0.15);
-  --neon-glow:0 0 12px rgba(220,38,38,0.6),0 0 30px rgba(239,68,68,0.3);
+  --shadow:0 4px 24px rgba(0,20,50,0.55),0 1px 4px rgba(251,183,63,0.10);
+  --shadow-lg:0 12px 40px rgba(0,20,50,0.65),0 2px 8px rgba(251,183,63,0.15);
+  --neon-glow:0 0 12px rgba(230,57,70,0.6),0 0 30px rgba(251,183,63,0.3);
   --radius:16px; --radius-sm:10px; --radius-xs:7px;
   --font:'IBM Plex Sans Thai',sans-serif;
   --mono:'IBM Plex Mono',monospace;
-  --water:#dc2626; --gold:#fbbf24; --lotus:#dc2626; --sky:#ef4444;
-  --haki-gold:#fbbf24;
-  --haki-dark:#1a0808;
-  --blood-red:#7f1d1d;
+  /* Mugiwara semantic colors */
+  --water:#0ea5e9;          /* Grand Line ocean */
+  --water-deep:#0369a1;
+  --gold:#fbb73f;           /* Straw hat yellow */
+  --straw:#f4c570;          /* Wheat highlight */
+  --straw-dark:#c8893a;     /* Hat band */
+  --lotus:#e63946;          /* Luffy vest red */
+  --sky:#7dd3fc;            /* Sky island blue */
+  --sun:#fde047;            /* Thousand Sunny lion */
+  --jolly-bg:#fff8e7;       /* Pirate flag cream */
+  --haki-gold:#fbb73f;
+  --haki-dark:#031428;
+  --blood-red:#991b1b;
+  --denim:#1e3a5f;          /* Luffy shorts */
+  --rope-tan:#a87c4f;       /* Hat band rope */
 }
 
 /* Dark mode same as root */
@@ -50,29 +65,46 @@ body.dark{ /* same as root */ }
 
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 
-/* ===== SHANKS BACKGROUND ===== */
+/* ===== 🌊 GRAND LINE BACKGROUND ===== */
 body{
-  background:var(--bg);
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 110%, rgba(14,165,233,.18) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 40% at 50% -10%, rgba(251,183,63,.10) 0%, transparent 65%),
+    linear-gradient(180deg, #021024 0%, #031428 40%, #052848 100%);
   color:var(--text);
   font-family:var(--font);
   min-height:100vh;
   overflow-x:hidden;
   transition:background .4s ease;
 }
-/* Subtle gold radial gradient (luxury vibe) */
+/* Layer 1: Sun-warmth + ocean glow */
 body::after{
   content:'';
   position:fixed;inset:0;
   background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(220,38,38,.04) 0%, transparent 70%),
-    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(239,68,68,.03) 0%, transparent 70%);
+    radial-gradient(ellipse 60% 35% at 50% 0%, rgba(251,183,63,.07) 0%, transparent 65%),
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(14,165,233,.10) 0%, transparent 70%);
   pointer-events:none;z-index:0;
 }
+/* Layer 2: Starfield + faint sea horizon */
 body::before{
   content:'';
   position:fixed;inset:0;
-  background:radial-gradient(ellipse 120% 60% at 50% 50%, rgba(70,15,15,.4) 0%, transparent 70%);
+  background:
+    radial-gradient(ellipse 130% 55% at 50% 50%, rgba(8,40,72,.45) 0%, transparent 75%),
+    /* tiny stars */
+    radial-gradient(1px 1px at 12% 14%, rgba(255,255,255,.55), transparent 60%),
+    radial-gradient(1px 1px at 82% 22%, rgba(253,224,71,.5), transparent 60%),
+    radial-gradient(1.5px 1.5px at 24% 68%, rgba(255,255,255,.4), transparent 60%),
+    radial-gradient(1px 1px at 67% 82%, rgba(125,211,252,.55), transparent 60%),
+    radial-gradient(1px 1px at 92% 60%, rgba(255,255,255,.35), transparent 60%),
+    radial-gradient(1.5px 1.5px at 38% 32%, rgba(251,183,63,.4), transparent 60%);
   pointer-events:none;z-index:0;
+  animation:starTwinkle 8s ease-in-out infinite;
+}
+@keyframes starTwinkle{
+  0%,100%{opacity:1}
+  50%{opacity:.65}
 }
 @keyframes meshShift{
   0%{opacity:1}
@@ -119,24 +151,33 @@ body.light::before{background:radial-gradient(ellipse 55% 45% at 15% 10%,rgba(25
 body.light::after{opacity:.3}
 
 /* LOGIN */
-#login-screen{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%);overflow-y:auto}
+#login-screen{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 30%, #052848 0%, #021024 60%, #000814 100%);overflow-y:auto}
 #login-screen.hidden{display:none}
-.login-box{width:100%;max-width:380px;background:rgba(40,8,8,.88);backdrop-filter:var(--glass-blur-lg);-webkit-backdrop-filter:var(--glass-blur-lg);border:1px solid rgba(220,38,38,.2);border-radius:24px;padding:36px 28px;box-shadow:0 20px 60px rgba(0,0,0,.7),0 0 24px rgba(220,38,38,.08)}
+/* Login screen ocean shimmer */
+#login-screen::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 70% 30% at 50% 90%, rgba(14,165,233,.18), transparent 70%),
+    radial-gradient(ellipse 60% 25% at 50% 0%, rgba(251,183,63,.10), transparent 70%);
+  pointer-events:none;
+}
+.login-box{width:100%;max-width:380px;background:rgba(8,32,58,.88);backdrop-filter:var(--glass-blur-lg);-webkit-backdrop-filter:var(--glass-blur-lg);border:1px solid rgba(251,183,63,.28);border-radius:24px;padding:36px 28px;box-shadow:0 20px 60px rgba(0,10,30,.75),0 0 30px rgba(251,183,63,.12),inset 0 1px 0 rgba(251,183,63,.18)}
 .login-logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:8px}
-.login-logo-mark{width:40px;height:40px;background:linear-gradient(135deg,#fbbf24,#dc2626,#ef4444);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;font-family:var(--mono);box-shadow:0 4px 16px rgba(220,38,38,.4)}
+.login-logo-mark{width:40px;height:40px;background:linear-gradient(135deg,#fde047,#fbb73f,#e63946);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;font-family:var(--mono);box-shadow:0 4px 16px rgba(230,57,70,.4),0 0 0 2px rgba(251,183,63,.3)}
 .login-logo-text{font-size:22px;font-weight:700}
 .login-logo-text span{color:var(--accent2)}
 .login-sub{text-align:center;font-size:13px;color:var(--text3);margin-bottom:28px}
 .login-lbl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:block}
 .login-inp{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:15px;padding:13px 16px;border-radius:10px;outline:none;margin-bottom:14px;transition:border-color .2s}
-.login-inp:focus{border-color:var(--accent)}
-.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#2563eb);border:none;border-radius:10px;color:#fff;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer}
-.login-btn:active{opacity:.85}
-.login-err{background:var(--red-light);border:1px solid rgba(239,68,68,.3);color:var(--red);font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none}
+.login-inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(251,183,63,.15)}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent) 0%,#c1121f 100%);border:1px solid rgba(251,183,63,.4);border-radius:10px;color:#fff;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.5px;box-shadow:0 4px 14px rgba(230,57,70,.35),inset 0 1px 0 rgba(255,200,140,.2);transition:transform .12s, box-shadow .15s}
+.login-btn:hover{box-shadow:0 6px 18px rgba(230,57,70,.45),0 0 0 2px rgba(251,183,63,.2),inset 0 1px 0 rgba(255,200,140,.25)}
+.login-btn:active{opacity:.92;transform:translateY(1px)}
+.login-err{background:var(--red-light);border:1px solid rgba(230,57,70,.4);color:#fecaca;font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none}
 .login-err.show{display:block}
 .pw-wrap{position:relative}
 .toggle-pw{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0}
-.demo-hint{margin-top:16px;padding:12px;background:var(--accent-light);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.9}
+.demo-hint{margin-top:16px;padding:12px;background:var(--accent-light);border:1px solid rgba(251,183,63,.2);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.9}
 
 /* APP */
 #app-shell{display:none}
@@ -145,7 +186,7 @@ body.light::after{opacity:.3}
 /* TOPBAR — see theme version below */
 body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba(251,191,36,.2)}
 .topbar-logo{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.logo-mark{width:26px;height:26px;background:linear-gradient(135deg,#fbbf24,#ef4444);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;font-family:var(--mono)}
+.logo-mark{width:26px;height:26px;background:linear-gradient(135deg,#fde047,#fbb73f 50%,#e63946);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;font-family:var(--mono);box-shadow:0 2px 8px rgba(230,57,70,.35),inset 0 1px 0 rgba(255,220,160,.4)}
 .logo-text{font-size:14px;font-weight:600}
 .logo-text span{color:var(--accent2)}
 .topbar-right{display:flex;align-items:center;gap:4px;flex-shrink:0;min-width:0}
@@ -158,7 +199,7 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 .user-chip-name{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:50px}
 .admin-badge{background:var(--yellow-light);border:1px solid rgba(245,158,11,.3);color:var(--yellow);font-size:14px;padding:2px 4px;border-radius:4px;white-space:nowrap;line-height:1}
 .icon-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 7px;cursor:pointer;font-size:14px;color:var(--text2);flex-shrink:0;line-height:1}
-.logout-btn{display:flex;align-items:center;gap:4px;background:var(--red-light);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:5px 7px;cursor:pointer;font-size:11px;font-weight:600;color:var(--red);font-family:var(--font);transition:all .15s;white-space:nowrap;flex-shrink:0;line-height:1}
+.logout-btn{display:flex;align-items:center;gap:4px;background:var(--red-light);border:1px solid rgba(230,57,70,.4);border-radius:8px;padding:5px 7px;cursor:pointer;font-size:11px;font-weight:600;color:var(--red);font-family:var(--font);transition:all .15s;white-space:nowrap;flex-shrink:0;line-height:1}
 .logout-btn:hover{background:var(--red);color:#fff}
 .logout-btn:active{transform:scale(.96)}
 /* Responsive topbar for small screens */
@@ -166,17 +207,17 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 @media(max-width:340px){.live-badge{display:none}}
 
 /* NAV — Liquid Glass */
-/* ===== FLOATING BOTTOM NAV — Shanks Edition ===== */
+/* ===== FLOATING BOTTOM NAV — Mugiwara Edition ===== */
 .nav{
   position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
   display:flex;
-  background:rgba(40,8,8,0.88);
+  background:rgba(8,32,58,0.92);
   backdrop-filter:var(--glass-blur-lg);
   -webkit-backdrop-filter:var(--glass-blur-lg);
-  border:1px solid rgba(220,38,38,0.18);
+  border:1px solid rgba(251,183,63,0.28);
   border-radius:24px;padding:6px;gap:2px;
   z-index:90;
-  box-shadow:0 12px 36px rgba(0,0,0,.7),0 0 24px rgba(220,38,38,.12);
+  box-shadow:0 12px 36px rgba(0,10,30,.75),0 0 24px rgba(251,183,63,.18),inset 0 1px 0 rgba(251,183,63,.15);
   max-width:calc(100vw - 24px);
   overflow-x:auto;scrollbar-width:none;
   -webkit-overflow-scrolling:touch;
@@ -192,9 +233,9 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
   position:relative;letter-spacing:.3px;
 }
 .nav-btn:active{transform:scale(.92)}
-.nav-btn.active{color:var(--accent)!important;background:rgba(220,38,38,.10);box-shadow:inset 0 0 12px rgba(220,38,38,.1)}
-.nav-btn.active::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:14px;height:2px;background:linear-gradient(90deg,#dc2626,#ef4444);border-radius:2px;box-shadow:0 0 6px rgba(220,38,38,.5)}
-.nav-btn.active svg{filter:drop-shadow(0 0 4px rgba(220,38,38,.5));transform:scale(1.08)}
+.nav-btn.active{color:var(--gold)!important;background:rgba(251,183,63,.12);box-shadow:inset 0 0 14px rgba(251,183,63,.18)}
+.nav-btn.active::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:16px;height:2px;background:linear-gradient(90deg,#fde047,#fbb73f 50%,#e63946);border-radius:2px;box-shadow:0 0 8px rgba(251,183,63,.6)}
+.nav-btn.active svg{filter:drop-shadow(0 0 5px rgba(251,183,63,.6));transform:scale(1.08)}
 .nav-btn svg{width:18px;height:18px;transition:all .2s}
 @media(min-width:400px){.nav-btn{font-size:10px;min-width:60px}.nav-btn svg{width:20px;height:20px}}
 
@@ -584,7 +625,7 @@ body.cinema-off .smoke-puff,
 body.cinema-off .lightning-bolt,
 body.cinema-off .crystal-shard{display:none!important}
 
-/* ===== 🏴‍☠️ SHANKS ULTIMATE EFFECTS ===== */
+/* ===== 🏴‍☠️ MUGIWARA ULTIMATE EFFECTS ===== */
 
 /* === DON! IMPACT TEXT === */
 @keyframes donImpact{
@@ -761,7 +802,7 @@ body.cinema-off .blood-mist,
 body.cinema-off .jolly-roger-bg{display:none!important;animation:none!important}
 body.cinema-off .haki-aura{animation:none!important}
 
-/* ===== 🔥 SHANKS GOD MODE — Batch 1: Manga ===== */
+/* ===== 🔥 MUGIWARA GEAR MODE — Batch 1: Manga ===== */
 
 /* === Halftone Pattern Background === */
 @keyframes halftoneShift{
@@ -1450,7 +1491,7 @@ body.cinema-off.rage-mode{animation:none!important}
 
 /* SVG filters for RGB split (need svg in dom) */
 
-/* ===== 🏴‍☠️ SHANKS DECORATIONS CSS ===== */
+/* ===== 🏴‍☠️ MUGIWARA CREW DECORATIONS CSS ===== */
 #shanks-decorations{
   position:fixed;inset:0;pointer-events:none;z-index:0;
   overflow:hidden;
@@ -1458,81 +1499,81 @@ body.cinema-off.rage-mode{animation:none!important}
 .shanks-deco{
   position:absolute;
   pointer-events:none;
-  filter:drop-shadow(0 0 20px rgba(220,38,38,.5));
+  filter:drop-shadow(0 0 20px rgba(251,183,63,.4));
 }
 
-/* 🦸 SHANKS Character Silhouette — left of poster */
+/* 👒 ICONIC STRAW HAT — bottom left corner (signature element) */
 .shanks-deco.character{
-  bottom:60px;left:-10px;
-  width:160px;height:320px;
-  opacity:.85;
-  animation:characterStand 5s ease-in-out infinite;
-  transform-origin:bottom center;
-  filter:drop-shadow(0 0 25px rgba(220,38,38,.8)) drop-shadow(0 0 50px rgba(127,29,29,.6));
+  bottom:80px;left:-20px;
+  width:200px;height:200px;
+  opacity:.28;
+  animation:hatFloat1 6s ease-in-out infinite;
+  transform-origin:center center;
+  filter:drop-shadow(0 0 28px rgba(251,183,63,.7)) drop-shadow(0 0 60px rgba(230,57,70,.4));
 }
-@keyframes characterStand{
-  0%,100%{transform:translateY(0) scale(1)}
-  50%{transform:translateY(-8px) scale(1.02)}
+@keyframes hatFloat1{
+  0%,100%{transform:translateY(0) rotate(-8deg)}
+  50%{transform:translateY(-12px) rotate(4deg)}
 }
 
-/* Shanks Hat — top right (BIGGER + BRIGHTER) */
+/* 🏴‍☠️ Mugiwara Jolly Roger Flag — top right */
 .shanks-deco.hat{
-  top:80px;right:-30px;
-  width:200px;height:120px;
-  opacity:.40;
-  animation:hatFloat 6s ease-in-out infinite;
-  transform-origin:center;
+  top:90px;right:-30px;
+  width:180px;height:160px;
+  opacity:.32;
+  animation:flagWave 5s ease-in-out infinite;
+  transform-origin:left center;
 }
-@keyframes hatFloat{
-  0%,100%{transform:rotate(-5deg) translateY(0)}
-  50%{transform:rotate(8deg) translateY(-12px)}
+@keyframes flagWave{
+  0%,100%{transform:rotate(-3deg) skewX(0deg)}
+  50%{transform:rotate(4deg) skewX(-4deg) translateY(-8px)}
 }
 
-/* Saber Sword — right side (BIGGER + BRIGHTER) */
+/* ⚔️ Cross-Sabers (Zoro's swords) — right side */
 .shanks-deco.saber{
-  top:25%;right:-30px;
-  width:80px;height:420px;
-  opacity:.55;
+  top:28%;right:-20px;
+  width:120px;height:380px;
+  opacity:.30;
   animation:saberSway 8s ease-in-out infinite;
   transform-origin:top center;
-  filter:drop-shadow(0 0 25px rgba(251,191,36,.7)) drop-shadow(0 0 50px rgba(220,38,38,.5));
+  filter:drop-shadow(0 0 22px rgba(125,211,252,.55)) drop-shadow(0 0 40px rgba(251,183,63,.35));
 }
 @keyframes saberSway{
-  0%,100%{transform:rotate(15deg)}
-  50%{transform:rotate(25deg) translateY(-8px)}
+  0%,100%{transform:rotate(8deg)}
+  50%{transform:rotate(18deg) translateY(-6px)}
 }
 
-/* Red Force Ship — bottom right behind saber */
+/* 🦁 Thousand Sunny Ship — bottom right */
 .shanks-deco.ship{
-  bottom:120px;right:-50px;
-  width:240px;height:160px;
-  opacity:.40;
+  bottom:120px;right:-40px;
+  width:260px;height:170px;
+  opacity:.38;
   animation:shipBob 5s ease-in-out infinite;
 }
 @keyframes shipBob{
   0%,100%{transform:translate(0,0) rotate(-2deg)}
-  50%{transform:translate(-8px,-12px) rotate(2deg)}
+  50%{transform:translate(-10px,-14px) rotate(3deg)}
 }
 
-/* Skull Mark — middle area */
+/* ☠️ Mugiwara Skull (with straw hat!) — middle area */
 .shanks-deco.skull-mark{
   top:50%;left:50%;
-  width:300px;height:300px;
-  margin-left:-150px;margin-top:-150px;
+  width:320px;height:320px;
+  margin-left:-160px;margin-top:-160px;
   opacity:.10;
   animation:skullPulse 4s ease-in-out infinite;
 }
 @keyframes skullPulse{
-  0%,100%{transform:scale(1) rotate(-5deg);opacity:.10}
-  50%{transform:scale(1.1) rotate(5deg);opacity:.18}
+  0%,100%{transform:scale(1) rotate(-4deg);opacity:.10}
+  50%{transform:scale(1.08) rotate(4deg);opacity:.18}
 }
 
-/* Compass — bottom left */
+/* 🧭 Log Pose — bottom left */
 .shanks-deco.compass{
-  bottom:140px;left:-15px;
+  bottom:160px;left:-15px;
   width:120px;height:120px;
-  opacity:.40;
-  animation:compassRotate 30s linear infinite;
+  opacity:.42;
+  animation:compassRotate 26s linear infinite;
 }
 @keyframes compassRotate{
   0%{transform:rotate(0deg)}
@@ -1541,26 +1582,39 @@ body.cinema-off.rage-mode{animation:none!important}
 
 body.cinema-off .shanks-deco{animation:none!important;opacity:.20}
 
+/* 🌊 OCEAN WAVES — at the bottom of screen */
+.shanks-deco.ocean-waves{
+  bottom:0;left:0;right:0;
+  width:100%;height:140px;
+  opacity:.35;
+  animation:waveDrift 12s ease-in-out infinite;
+  filter:drop-shadow(0 -2px 8px rgba(14,165,233,.4));
+}
+@keyframes waveDrift{
+  0%,100%{transform:translateX(0)}
+  50%{transform:translateX(-12px)}
+}
+
 /* SVG filters for RGB split (placeholder) */
 
-/* ===== ⚔️ SABER BUTTONS (Shanks Style) ===== */
+/* ===== 🔱 ROPE BUTTONS (Mugiwara Style) — looks like ship rope wrapped in gold ===== */
 .btn-in.btn-liquid,.btn-out.btn-liquid{
   position:relative;
-  border:2px solid #fbbf24!important;
+  border:2px solid var(--gold)!important;
   box-shadow:
-    0 0 0 1px #1a0808,
-    0 0 24px rgba(220,38,38,.4),
-    0 0 60px rgba(251,191,36,.2),
-    inset 0 0 30px rgba(0,0,0,.6),
-    inset 0 1px 0 rgba(255,255,255,.1)!important;
+    0 0 0 1px rgba(124,90,46,.6),
+    0 0 24px rgba(230,57,70,.35),
+    0 0 60px rgba(251,183,63,.22),
+    inset 0 0 30px rgba(0,10,30,.4),
+    inset 0 1px 0 rgba(255,220,160,.25)!important;
   overflow:hidden;
 }
-/* Saber edge gleam */
+/* Wave gleam */
 .btn-in.btn-liquid::before,.btn-out.btn-liquid::before{
   content:'';position:absolute;
   top:0;left:-50%;
   width:50%;height:100%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);
+  background:linear-gradient(90deg,transparent,rgba(253,224,71,.35),transparent);
   pointer-events:none;
   animation:saberGleam 4s ease-in-out infinite;
 }
@@ -1568,11 +1622,11 @@ body.cinema-off .shanks-deco{animation:none!important;opacity:.20}
   0%,100%{transform:translateX(0)}
   50%{transform:translateX(400%)}
 }
-/* Cross-guard pattern */
+/* Inner rope-stitch pattern */
 .btn-in.btn-liquid::after,.btn-out.btn-liquid::after{
   content:'';position:absolute;
   inset:6px;
-  border:1px dashed rgba(251,191,36,.25);
+  border:1px dashed rgba(251,183,63,.32);
   border-radius:50%;
   pointer-events:none;
 }
@@ -1910,46 +1964,46 @@ body.cinema-off.earthquake > main,
 body.cinema-off.earthquake > .topbar,
 body.cinema-off.earthquake > nav{animation:none!important}
 
-/* ===== SHANKS YONKO EDITION — Batch 3: Background Scenery ===== */
+/* ===== 🌊 MUGIWARA EDITION — Background Scenery (Grand Line Sea) ===== */
 
-/* === Sunset Sky Layer === */
+/* === Sunrise/Sunset Sky Layer (golden-pink dawn over the sea) === */
 .sunset-sky{
   position:fixed;top:0;left:0;right:0;height:50vh;
   background:
-    radial-gradient(ellipse at 50% 100%,rgba(251,191,36,.4) 0%,rgba(220,38,38,.3) 30%,rgba(127,29,29,.2) 60%,transparent 100%),
-    linear-gradient(180deg,rgba(10,5,5,.0) 0%,rgba(40,8,8,.4) 50%,rgba(60,20,10,.3) 100%);
+    radial-gradient(ellipse at 50% 100%,rgba(253,224,71,.35) 0%,rgba(251,183,63,.28) 25%,rgba(230,57,70,.18) 55%,transparent 95%),
+    linear-gradient(180deg,rgba(2,16,36,0) 0%,rgba(8,32,58,.45) 60%,rgba(14,44,74,.35) 100%);
   pointer-events:none;z-index:-3;
   animation:sunsetPulse 8s ease-in-out infinite;
 }
 @keyframes sunsetPulse{
-  0%,100%{opacity:.5;filter:hue-rotate(0deg)}
-  50%{opacity:.7;filter:hue-rotate(10deg)}
+  0%,100%{opacity:.55;filter:hue-rotate(0deg)}
+  50%{opacity:.78;filter:hue-rotate(8deg)}
 }
 
-/* === Sun Disc === */
+/* === Sun Disc (rising over the horizon) === */
 .sunset-sun{
-  position:fixed;top:30%;left:50%;
-  width:120px;height:120px;
+  position:fixed;top:32%;left:50%;
+  width:140px;height:140px;
   transform:translate(-50%,-50%);
-  background:radial-gradient(circle,#fbbf24 0%,#dc2626 40%,#7f1d1d 70%,transparent 100%);
+  background:radial-gradient(circle,#fef3c7 0%,#fde047 25%,#fbb73f 55%,#e63946 80%,transparent 100%);
   border-radius:50%;
-  filter:blur(8px);
-  opacity:.4;
+  filter:blur(10px);
+  opacity:.45;
   pointer-events:none;z-index:-3;
   animation:sunGlow 6s ease-in-out infinite;
 }
 @keyframes sunGlow{
-  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.4}
-  50%{transform:translate(-50%,-50%) scale(1.15);opacity:.6}
+  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.45}
+  50%{transform:translate(-50%,-50%) scale(1.18);opacity:.65}
 }
 
-/* === Map of Grand Line === */
+/* === Map of Grand Line (treasure parchment overlay) === */
 .grand-line-map{
   position:fixed;inset:0;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><filter id='grunge'><feTurbulence baseFrequency='.02' numOctaves='3'/><feColorMatrix values='0 0 0 0 .8 0 0 0 0 .5 0 0 0 0 .2 0 0 0 .15 0'/></filter><rect width='800' height='600' filter='url(%23grunge)'/><g stroke='%23dc2626' stroke-width='2' fill='none' opacity='.15'><path d='M50,200 Q150,150 250,200 T450,200 T650,200 T850,200'/><path d='M50,300 Q150,250 250,300 T450,300 T650,300 T850,300'/><path d='M50,400 Q150,350 250,400 T450,400 T650,400 T850,400'/></g><g fill='%23fbbf24' opacity='.2'><circle cx='150' cy='250' r='3'/><circle cx='350' cy='180' r='4'/><circle cx='550' cy='320' r='3'/><circle cx='250' cy='420' r='4'/><circle cx='450' cy='480' r='3'/><circle cx='650' cy='250' r='4'/></g></svg>");
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><filter id='grunge'><feTurbulence baseFrequency='.025' numOctaves='3'/><feColorMatrix values='0 0 0 0 .65 0 0 0 0 .45 0 0 0 0 .15 0 0 0 .12 0'/></filter><rect width='800' height='600' filter='url(%23grunge)'/><g stroke='%23fbb73f' stroke-width='2' fill='none' opacity='.18'><path d='M50,200 Q150,150 250,200 T450,200 T650,200 T850,200'/><path d='M50,300 Q150,250 250,300 T450,300 T650,300 T850,300'/><path d='M50,400 Q150,350 250,400 T450,400 T650,400 T850,400'/></g><g fill='%23e63946' opacity='.28'><circle cx='150' cy='250' r='3'/><circle cx='350' cy='180' r='4'/><circle cx='550' cy='320' r='3'/><circle cx='250' cy='420' r='4'/><circle cx='450' cy='480' r='3'/><circle cx='650' cy='250' r='4'/></g><g fill='%23fde047' opacity='.18'><circle cx='200' cy='150' r='2'/><circle cx='500' cy='250' r='2'/><circle cx='700' cy='400' r='2'/></g></svg>");
   background-size:cover;
   pointer-events:none;z-index:-4;
-  opacity:.25;
+  opacity:.22;
   animation:mapShift 60s linear infinite;
 }
 @keyframes mapShift{
@@ -1957,80 +2011,83 @@ body.cinema-off.earthquake > nav{animation:none!important}
   100%{background-position:800px 0}
 }
 
-/* === Ship Silhouette === */
+/* === Thousand Sunny Ship Silhouette (sailing across) === */
 .red-force-ship{
   position:fixed;bottom:18vh;right:-200px;
   width:200px;height:120px;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='120'><g fill='%23000' opacity='.7'><path d='M20,80 L180,80 L160,100 L40,100 Z'/><path d='M30,80 L170,80 L170,70 L30,70 Z'/><rect x='90' y='20' width='3' height='55' fill='%23000'/><path d='M93,25 Q120,30 145,40 Q120,50 93,55 Z' fill='%23dc2626' opacity='.8'/><path d='M93,25 Q66,30 41,40 Q66,50 93,55 Z' fill='%23dc2626' opacity='.8'/><circle cx='93' cy='35' r='8' fill='%23000'/></g></svg>");
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='120'><g><path d='M20,80 L180,80 L160,100 L40,100 Z' fill='%237c5a2e' opacity='.85'/><path d='M30,80 L170,80 L170,72 L30,72 Z' fill='%23fbb73f' opacity='.7'/><circle cx='50' cy='90' r='2' fill='%23fde047'/><circle cx='80' cy='90' r='2' fill='%23fde047'/><circle cx='120' cy='90' r='2' fill='%23fde047'/><circle cx='150' cy='90' r='2' fill='%23fde047'/><rect x='90' y='20' width='3' height='55' fill='%235a3a14'/><path d='M93,25 Q120,30 145,40 Q120,50 93,55 Z' fill='%23fefae0' opacity='.9'/><path d='M93,25 Q66,30 41,40 Q66,50 93,55 Z' fill='%23fefae0' opacity='.9'/><circle cx='93' cy='40' r='6' fill='%231a0e04'/><path d='M88,45 L98,45 L96,49 L94,46 L92,49 L90,46 Z' fill='%23fefae0'/><circle cx='35' cy='75' r='10' fill='%23fde047' opacity='.85'/><circle cx='32' cy='73' r='2' fill='%231a0e04'/><circle cx='38' cy='73' r='2' fill='%231a0e04'/></g></svg>");
   background-size:contain;
   background-repeat:no-repeat;
   pointer-events:none;z-index:-2;
   animation:shipSail 35s linear infinite;
-  filter:drop-shadow(0 0 10px rgba(220,38,38,.4));
+  filter:drop-shadow(0 0 12px rgba(251,183,63,.45));
 }
 @keyframes shipSail{
   0%{right:-200px;transform:translateY(0)}
-  50%{transform:translateY(-8px)}
+  50%{transform:translateY(-10px)}
   100%{right:calc(100% + 200px);transform:translateY(0)}
 }
 
-/* === Island Silhouettes === */
+/* === Island Silhouettes (Grand Line distant lands) === */
 .island-silhouette{
   position:fixed;bottom:15vh;
   width:300px;height:80px;
   pointer-events:none;z-index:-2;
-  opacity:.4;
+  opacity:.45;
 }
 .island-silhouette.island-1{
   left:5%;
-  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='80'><path d='M0,80 Q50,40 100,50 Q150,30 200,45 Q250,35 300,50 L300,80 Z' fill='%231a0808'/></svg>") center/contain no-repeat;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='80'><path d='M0,80 Q50,40 100,50 Q150,30 200,45 Q250,35 300,50 L300,80 Z' fill='%23052848'/><path d='M80,52 L100,28 L115,52 Z' fill='%23052848'/><path d='M180,46 L195,28 L210,46 Z' fill='%23052848'/></svg>") center/contain no-repeat;
   animation:islandFloat 12s ease-in-out infinite;
+  filter:drop-shadow(0 0 6px rgba(14,165,233,.3));
 }
 .island-silhouette.island-2{
   right:5%;
-  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='80'><path d='M0,80 Q40,50 80,55 Q140,30 180,45 Q230,40 300,55 L300,80 Z' fill='%231a0808'/></svg>") center/contain no-repeat;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='80'><path d='M0,80 Q40,50 80,55 Q140,30 180,45 Q230,40 300,55 L300,80 Z' fill='%23052848'/><path d='M150,46 L168,26 L185,46 Z' fill='%23052848'/></svg>") center/contain no-repeat;
   animation:islandFloat 14s ease-in-out infinite reverse;
+  filter:drop-shadow(0 0 6px rgba(14,165,233,.3));
 }
 @keyframes islandFloat{
   0%,100%{transform:translateY(0)}
   50%{transform:translateY(-6px)}
 }
 
-/* === Big Skull Mark Background === */
+/* === Big Mugiwara Skull Mark Background (faint ghost) === */
 .big-skull-bg{
   position:fixed;top:50%;left:50%;
   transform:translate(-50%,-50%);
   font-size:600px;
-  color:rgba(220,38,38,.04);
+  color:rgba(251,183,63,.05);
   pointer-events:none;z-index:-3;
   animation:bigSkullPulse 6s ease-in-out infinite;
   user-select:none;
+  text-shadow:0 0 60px rgba(230,57,70,.15);
 }
 @keyframes bigSkullPulse{
-  0%,100%{transform:translate(-50%,-50%) scale(1) rotate(0deg);opacity:.04}
-  50%{transform:translate(-50%,-50%) scale(1.05) rotate(2deg);opacity:.07}
+  0%,100%{transform:translate(-50%,-50%) scale(1) rotate(0deg);opacity:.045}
+  50%{transform:translate(-50%,-50%) scale(1.05) rotate(2deg);opacity:.085}
 }
 
-/* === Ocean Wave Layers (3 levels) === */
+/* === Ocean Wave Layers (3 levels — turquoise → deep sea) === */
 .wave-layer{
   position:fixed;left:0;right:0;
   pointer-events:none;z-index:-2;
 }
 .wave-layer.wave-1{
   bottom:0;height:120px;
-  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='120'><path d='M0,60 Q150,20 300,60 T600,60 T900,60 T1200,60 L1200,120 L0,120 Z' fill='%237f1d1d' opacity='.6'/></svg>") repeat-x;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='120'><path d='M0,60 Q150,20 300,60 T600,60 T900,60 T1200,60 L1200,120 L0,120 Z' fill='%23036aa1' opacity='.65'/></svg>") repeat-x;
   background-size:1200px 120px;
   animation:waveScroll 12s linear infinite;
 }
 .wave-layer.wave-2{
   bottom:0;height:80px;
-  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='80'><path d='M0,40 Q200,10 400,40 T800,40 T1200,40 L1200,80 L0,80 Z' fill='%23dc2626' opacity='.4'/></svg>") repeat-x;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='80'><path d='M0,40 Q200,10 400,40 T800,40 T1200,40 L1200,80 L0,80 Z' fill='%230ea5e9' opacity='.45'/></svg>") repeat-x;
   background-size:1200px 80px;
   animation:waveScroll 8s linear infinite reverse;
 }
 .wave-layer.wave-3{
   bottom:0;height:50px;
-  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='50'><path d='M0,25 Q150,5 300,25 T600,25 T900,25 T1200,25 L1200,50 L0,50 Z' fill='%23ef4444' opacity='.3'/></svg>") repeat-x;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='50'><path d='M0,25 Q150,5 300,25 T600,25 T900,25 T1200,25 L1200,50 L0,50 Z' fill='%237dd3fc' opacity='.35'/></svg>") repeat-x;
   background-size:1200px 50px;
   animation:waveScroll 5s linear infinite;
 }
@@ -2039,19 +2096,19 @@ body.cinema-off.earthquake > nav{animation:none!important}
   100%{background-position:1200px 0}
 }
 
-/* === Floating Sakura Petals (background loop) === */
+/* === Floating Cherry Blossoms (Sakura petals — gold-red, evoking Drum Island) === */
 .bg-sakura-petal{
   position:fixed;
   width:14px;height:14px;
-  background:radial-gradient(circle at 40% 40%,#fbbf24,#dc2626 60%,#7f1d1d 100%);
+  background:radial-gradient(circle at 40% 40%,#fef3c7,#fbb73f 55%,#e63946 100%);
   border-radius:50% 0 50% 50%;
   pointer-events:none;z-index:1;
   animation:bgSakuraFall linear infinite;
-  filter:drop-shadow(0 0 4px rgba(220,38,38,.5));
+  filter:drop-shadow(0 0 5px rgba(251,183,63,.6));
 }
 @keyframes bgSakuraFall{
   0%{transform:translate(0,-20vh) rotate(0deg);opacity:0}
-  10%{opacity:.8}
+  10%{opacity:.85}
   100%{transform:translate(40px,110vh) rotate(720deg);opacity:0}
 }
 
@@ -2064,26 +2121,27 @@ body.cinema-off .big-skull-bg,
 body.cinema-off .wave-layer,
 body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important}
 
-/* ===== 🏴‍☠️ SHANKS YONKO EDITION — Batch 1: Wanted Poster ===== */
+/* ===== 🏴‍☠️ MUGIWARA YONKO EDITION — Batch 1: Bounty Poster ===== */
 
-/* === Wanted Poster Hero Card === */
+/* === Mugiwara Bounty Poster Hero Card === */
 .wanted-poster{
   position:relative;
   background:
-    linear-gradient(135deg,rgba(60,30,15,.88) 0%,rgba(40,20,10,.88) 100%),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='paper'><feTurbulence baseFrequency='.04' numOctaves='5'/><feColorMatrix values='0 0 0 0 .35 0 0 0 0 .2 0 0 0 0 .1 0 0 0 .3 0'/></filter><rect width='400' height='400' filter='url(%23paper)'/></svg>");
+    linear-gradient(135deg,rgba(255,243,210,.97) 0%,rgba(245,222,170,.96) 50%,rgba(232,200,140,.96) 100%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='paper'><feTurbulence baseFrequency='.05' numOctaves='5'/><feColorMatrix values='0 0 0 0 .55 0 0 0 0 .42 0 0 0 0 .22 0 0 0 .22 0'/></filter><rect width='400' height='400' filter='url(%23paper)'/></svg>");
   background-blend-mode:multiply;
   background-size:cover;
-  border:3px solid #5d3a1a;
-  border-radius:8px;
-  padding:20px 16px 24px;
+  border:3px solid #8b5a2b;
+  border-radius:6px;
+  padding:18px 16px 22px;
   margin:0 auto 14px;
   max-width:78%;
   box-shadow:
-    0 8px 24px rgba(0,0,0,.7),
-    inset 0 0 80px rgba(0,0,0,.5),
-    inset 0 0 0 1px rgba(255,200,100,.15);
-  filter:sepia(.15) contrast(1.05);
+    0 10px 28px rgba(0,0,0,.55),
+    0 2px 6px rgba(139,90,43,.3),
+    inset 0 0 60px rgba(160,90,30,.18),
+    inset 0 0 0 1px rgba(255,200,100,.25);
+  filter:contrast(1.04) saturate(1.1);
   overflow:hidden;
   /* Torn paper edges */
   clip-path:polygon(
@@ -2094,74 +2152,93 @@ body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important
 .wanted-poster::before{
   content:'';position:absolute;inset:0;
   background:
-    radial-gradient(ellipse at 20% 20%,rgba(180,100,40,.2),transparent 50%),
-    radial-gradient(ellipse at 80% 80%,rgba(100,40,20,.3),transparent 50%);
+    radial-gradient(ellipse at 18% 18%,rgba(160,80,20,.15),transparent 55%),
+    radial-gradient(ellipse at 82% 82%,rgba(120,55,15,.20),transparent 55%);
   pointer-events:none;
 }
+/* Subtle paper grain stripes */
 .wanted-poster::after{
   content:'';position:absolute;inset:0;
   background-image:
-    repeating-linear-gradient(0deg,transparent 0px,transparent 3px,rgba(0,0,0,.02) 3px,rgba(0,0,0,.02) 4px);
+    repeating-linear-gradient(0deg,transparent 0px,transparent 3px,rgba(80,40,10,.025) 3px,rgba(80,40,10,.025) 4px),
+    repeating-linear-gradient(90deg,transparent 0px,transparent 60px,rgba(80,40,10,.02) 60px,rgba(80,40,10,.02) 61px);
   pointer-events:none;
   mix-blend-mode:multiply;
 }
 
-/* WANTED label at top */
+/* WANTED label at top — classic black on cream */
 .wanted-label{
   font-family:'Arial Black','Impact',sans-serif;
   font-size:48px;font-weight:900;
   letter-spacing:14px;
-  color:#1a0808;
+  color:#1a0e04;
   text-align:center;
   text-shadow:
-    2px 2px 0 rgba(220,38,38,.3),
-    -1px -1px 0 rgba(180,100,40,.4);
-  -webkit-text-stroke:1px #2a1410;
+    1px 1px 0 rgba(139,90,43,.3),
+    -1px -1px 0 rgba(255,220,160,.4);
+  -webkit-text-stroke:1px #2a1a08;
   margin-bottom:6px;
   position:relative;z-index:2;
-  filter:drop-shadow(0 2px 0 rgba(0,0,0,.4));
+  filter:drop-shadow(0 2px 0 rgba(80,40,10,.25));
 }
 
 .wanted-subtitle{
   font-size:11px;
   text-align:center;
-  color:#8b4513;
+  color:#5a3a14;
   letter-spacing:4px;
-  font-weight:700;
+  font-weight:800;
   text-transform:uppercase;
   margin-bottom:14px;
   position:relative;z-index:2;
-  border-top:2px solid #5d3a1a;
-  border-bottom:2px solid #5d3a1a;
+  border-top:2px solid #8b5a2b;
+  border-bottom:2px solid #8b5a2b;
   padding:4px 0;
 }
 
-/* Photo frame */
+/* Photo frame — sepia portrait */
 .wanted-photo-frame{
   position:relative;
   margin:0 auto 14px;
   width:120px;height:120px;
-  background:linear-gradient(135deg,#2a1410,#0a0505);
-  border:3px solid #5d3a1a;
-  border-radius:6px;
+  background:linear-gradient(135deg,#fef3c7,#fde68a);
+  border:3px solid #8b5a2b;
+  border-radius:4px;
   display:flex;align-items:center;justify-content:center;
   font-size:48px;font-weight:900;
-  color:#dc2626;
-  box-shadow:inset 0 0 20px rgba(0,0,0,.8),0 4px 12px rgba(0,0,0,.5);
+  color:#7c2d12;
+  box-shadow:
+    inset 0 0 18px rgba(120,60,20,.4),
+    0 4px 12px rgba(0,0,0,.35),
+    0 0 0 2px rgba(255,220,160,.25);
   z-index:2;
   overflow:hidden;
 }
 .wanted-photo-frame img{
   width:100%;height:100%;object-fit:cover;
-  filter:sepia(.3) contrast(1.1);
+  filter:sepia(.45) contrast(1.08) saturate(.85);
+}
+/* Tiny straw hat decoration above photo */
+.wanted-photo-frame::after{
+  content:'';
+  position:absolute;
+  top:-10px;left:50%;
+  transform:translateX(-50%);
+  width:36px;height:14px;
+  background:
+    radial-gradient(ellipse at 50% 100%, var(--gold) 0%, var(--straw) 50%, var(--straw-dark) 100%);
+  border-radius:50% 50% 30% 30%;
+  border:1.5px solid #8b5a2b;
+  box-shadow:0 0 6px rgba(0,0,0,.3);
+  z-index:3;
 }
 
-/* Bounty (clock) */
+/* Bounty (clock) — gold belly! */
 .wanted-clock{
   font-family:'Arial Black','Impact',sans-serif;
   font-size:48px;font-weight:900;
   text-align:center;
-  color:#fbbf24;
+  color:#1a0e04;
   background:none;
   -webkit-background-clip:initial;background-clip:initial;
   -webkit-text-fill-color:initial;
@@ -2169,31 +2246,30 @@ body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important
   letter-spacing:3px;
   position:relative;z-index:2;
   text-shadow:
-    -2px -2px 0 #1a0808,2px -2px 0 #1a0808,
-    -2px 2px 0 #1a0808,2px 2px 0 #1a0808,
-    0 0 12px rgba(251,191,36,.6),
-    0 0 24px rgba(220,38,38,.4),
-    3px 3px 0 #7f1d1d;
-  -webkit-text-stroke:1.5px #1a0808;
+    -1.5px -1.5px 0 #fbb73f,1.5px -1.5px 0 #fbb73f,
+    -1.5px 1.5px 0 #fbb73f,1.5px 1.5px 0 #fbb73f,
+    0 0 14px rgba(251,183,63,.5),
+    3px 3px 0 #8b5a2b;
+  -webkit-text-stroke:1px #1a0e04;
   margin:8px 0 4px;
   animation:none!important;
 }
 .wanted-clock-label{
   text-align:center;
   font-size:10px;
-  color:#8b4513;
+  color:#7c4a14;
   letter-spacing:3px;
   text-transform:uppercase;
   margin-bottom:14px;
-  font-weight:700;
+  font-weight:800;
   position:relative;z-index:2;
 }
 
 .wanted-name{
   text-align:center;
   font-size:18px;font-weight:900;
-  color:#1a0808;
-  -webkit-text-stroke:.5px #2a1410;
+  color:#1a0e04;
+  -webkit-text-stroke:.5px #2a1a08;
   letter-spacing:2px;
   margin-bottom:4px;
   position:relative;z-index:2;
@@ -2202,7 +2278,7 @@ body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important
 .wanted-meta{
   text-align:center;
   font-size:11px;
-  color:#5d3a1a;
+  color:#5a3a14;
   margin-bottom:14px;
   font-weight:600;
   position:relative;z-index:2;
@@ -2215,30 +2291,31 @@ body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important
   gap:8px;
   font-family:'Arial Black','Impact',sans-serif;
   font-size:32px;
-  color:#dc2626;
+  color:#7c2d12;
   font-weight:900;
   letter-spacing:2px;
   margin:8px 0;
   position:relative;z-index:2;
-  text-shadow:0 0 12px rgba(220,38,38,.5);
+  text-shadow:0 0 12px rgba(251,183,63,.4);
 }
 .wanted-bounty-symbol{
-  font-size:24px;color:#fbbf24;
-  text-shadow:0 0 8px rgba(251,191,36,.6);
+  font-size:24px;color:#7c2d12;
+  text-shadow:0 0 6px rgba(251,183,63,.5);
 }
 
-/* Stamp marks */
+/* Stamp marks — Marine red ink stamp */
 .wanted-stamp{
   position:absolute;top:30px;right:14px;
   font-family:'Arial Black',sans-serif;
-  color:rgba(220,38,38,.4);
+  color:rgba(180,30,40,.55);
   font-size:14px;font-weight:900;
-  border:3px solid rgba(220,38,38,.4);
+  border:3px solid rgba(180,30,40,.55);
   padding:4px 10px;
   transform:rotate(-15deg);
   letter-spacing:2px;
   z-index:3;
   border-radius:4px;
+  text-shadow:0 0 1px rgba(180,30,40,.3);
 }
 
 /* PAGES */
@@ -2446,33 +2523,33 @@ body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important
 .sal-hero{animation:salHeroPulse 3s ease-in-out infinite}
 /* Modal */
 .modal{animation:slideUp .35s cubic-bezier(.34,1.4,.64,1)}
-/* ===== TOPBAR — Shanks Edition ===== */
+/* ===== TOPBAR — Mugiwara Edition ===== */
 .topbar{
   position:sticky;top:0;z-index:100;
-  background:rgba(20,4,4,0.88);
+  background:rgba(8,32,58,0.88);
   backdrop-filter:var(--glass-blur-lg);
   -webkit-backdrop-filter:var(--glass-blur-lg);
-  border-bottom:1px solid rgba(220,38,38,0.12);
+  border-bottom:1px solid rgba(251,183,63,0.18);
   padding:0 14px;height:52px;
   display:flex;align-items:center;justify-content:space-between;gap:6px;
-  box-shadow:0 1px 0 rgba(220,38,38,.06);
+  box-shadow:0 1px 0 rgba(251,183,63,.10),0 4px 18px rgba(0,0,0,.35);
 }
 /* Gold highlight bottom line */
 .topbar::after{
   content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(220,38,38,.4),transparent);
+  background:linear-gradient(90deg,transparent,rgba(251,183,63,.55),rgba(230,57,70,.45),rgba(251,183,63,.55),transparent);
   pointer-events:none;
 }
 
-/* ===== NAV — Shanks Edition ===== */
-.nav-btn.active{color:var(--accent)!important;border-bottom-color:transparent!important}
-.nav-btn.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:24px;height:2px;background:linear-gradient(90deg,#dc2626,#ef4444);border-radius:2px 2px 0 0;box-shadow:0 0 8px rgba(220,38,38,.5)}
-.nav-btn.active svg{filter:drop-shadow(0 0 4px rgba(220,38,38,.5))}
+/* ===== NAV — Mugiwara Edition ===== */
+.nav-btn.active{color:#fbb73f!important;border-bottom-color:transparent!important}
+.nav-btn.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:28px;height:2px;background:linear-gradient(90deg,#fde047,#fbb73f,#e63946);border-radius:2px 2px 0 0;box-shadow:0 0 10px rgba(251,183,63,.7),0 0 4px rgba(230,57,70,.5)}
+.nav-btn.active svg{filter:drop-shadow(0 0 5px rgba(251,183,63,.7))}
 
 /* ===== STATS CARDS 3D GLOW ===== */
 .sum-card{background:var(--surface2);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--border2);border-radius:14px;padding:14px;text-align:center;transition:transform .2s,box-shadow .2s;box-shadow:var(--shadow)}
 /* Color glow per stat type */
-.sum-card:nth-child(1){box-shadow:0 4px 20px rgba(220,38,38,.15);border-color:rgba(220,38,38,.25)}
+.sum-card:nth-child(1){box-shadow:0 4px 20px rgba(251,183,63,.20);border-color:rgba(251,183,63,.35)}
 .sum-card:nth-child(2){box-shadow:0 4px 20px rgba(16,185,129,.15);border-color:rgba(16,185,129,.25)}
 .sum-card:nth-child(3){box-shadow:0 4px 20px rgba(245,158,11,.15);border-color:rgba(245,158,11,.25)}
 .sum-card:nth-child(4){box-shadow:0 4px 20px rgba(239,68,68,.15);border-color:rgba(239,68,68,.25)}
@@ -3126,184 +3203,291 @@ body.grad-anim{
 </head>
 <body>
 
-<!-- 🏴‍☠️ SHANKS LEGENDARY DECORATIONS -->
+<!-- 🏴‍☠️ MUGIWARA LEGENDARY DECORATIONS -->
 <div id="shanks-decorations" aria-hidden="true">
-  <!-- 🦸 SHANKS Character (silhouette) -->
-  <svg class="shanks-deco character" viewBox="0 0 200 400" preserveAspectRatio="xMidYMid meet">
+  <!-- 👒 ICONIC STRAW HAT (signature element, bottom-left) -->
+  <svg class="shanks-deco character" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
     <defs>
-      <linearGradient id="charGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#1a0808"/>
-        <stop offset="50%" stop-color="#0a0505"/>
-        <stop offset="100%" stop-color="#000"/>
+      <radialGradient id="strawCrown" cx="50%" cy="40%" r="65%">
+        <stop offset="0%" stop-color="#fef3c7"/>
+        <stop offset="50%" stop-color="#fbb73f"/>
+        <stop offset="100%" stop-color="#a87c4f"/>
+      </radialGradient>
+      <linearGradient id="strawBrim" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f4c570"/>
+        <stop offset="100%" stop-color="#a87c4f"/>
       </linearGradient>
-      <linearGradient id="hairGrad" x1="0" y1="0" x2="0" y2="1">
+      <linearGradient id="hatBand" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#dc2626"/>
-        <stop offset="100%" stop-color="#7f1d1d"/>
+        <stop offset="100%" stop-color="#991b1b"/>
       </linearGradient>
-      <linearGradient id="capeGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#1a0808"/>
+    </defs>
+    <!-- Brim (wide bottom) -->
+    <ellipse cx="100" cy="130" rx="92" ry="22" fill="url(#strawBrim)" stroke="#7c5a2e" stroke-width="1.5"/>
+    <!-- Brim shadow underneath crown -->
+    <ellipse cx="100" cy="120" rx="60" ry="10" fill="#8b5a2b" opacity="0.4"/>
+    <!-- Crown -->
+    <path d="M 50,118 Q 48,75 70,55 Q 100,40 130,55 Q 152,75 150,118 Z" fill="url(#strawCrown)" stroke="#7c5a2e" stroke-width="1.5"/>
+    <!-- Red band -->
+    <path d="M 52,118 Q 75,108 100,108 Q 125,108 148,118 L 150,124 Q 125,114 100,114 Q 75,114 50,124 Z" fill="url(#hatBand)" stroke="#7f1d1d" stroke-width="0.8"/>
+    <!-- Straw weave texture lines (vertical) -->
+    <g stroke="#7c5a2e" stroke-width="0.5" opacity="0.55" fill="none">
+      <path d="M 65,60 Q 64,90 62,118"/>
+      <path d="M 80,55 Q 79,85 77,118"/>
+      <path d="M 100,52 L 100,118"/>
+      <path d="M 120,55 Q 121,85 123,118"/>
+      <path d="M 135,60 Q 136,90 138,118"/>
+    </g>
+    <!-- Straw weave horizontal -->
+    <g stroke="#7c5a2e" stroke-width="0.4" opacity="0.4" fill="none">
+      <path d="M 55,75 Q 100,68 145,75"/>
+      <path d="M 52,90 Q 100,84 148,90"/>
+      <path d="M 50,105 Q 100,99 150,105"/>
+    </g>
+    <!-- Tear/notch on brim (Luffy's iconic damaged brim) -->
+    <path d="M 175,128 L 188,124 L 184,134 Z" fill="#7c5a2e" opacity="0.6"/>
+  </svg>
+
+  <!-- 🏴‍☠️ Mugiwara Jolly Roger Flag (Top-right) -->
+  <svg class="shanks-deco hat" viewBox="0 0 180 160" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="flagGrad" x1="0" y1="0" x2="1" y2="0.3">
+        <stop offset="0%" stop-color="#1a1a1a"/>
         <stop offset="100%" stop-color="#000"/>
       </linearGradient>
     </defs>
-
-    <!-- Cape behind body -->
-    <path d="M 60,90 Q 30,140 25,260 Q 30,340 50,380 L 80,380 Q 70,340 75,280 Q 75,220 85,160 Z" fill="url(#capeGrad)" stroke="#7f1d1d" stroke-width="1" opacity="0.95"/>
-    <path d="M 140,90 Q 170,140 175,260 Q 170,340 150,380 L 120,380 Q 130,340 125,280 Q 125,220 115,160 Z" fill="url(#capeGrad)" stroke="#7f1d1d" stroke-width="1" opacity="0.95"/>
-
-    <!-- Body silhouette -->
-    <path d="M 100,90
-             Q 70,95 65,130
-             L 60,180
-             Q 60,220 65,260
-             L 70,330
-             Q 75,360 85,380
-             L 115,380
-             Q 125,360 130,330
-             L 135,260
-             Q 140,220 140,180
-             L 135,130
-             Q 130,95 100,90 Z" fill="url(#charGrad)"/>
-
-    <!-- Belt (gold) -->
-    <rect x="68" y="200" width="64" height="8" fill="#fbbf24" opacity="0.9"/>
-    <circle cx="100" cy="204" r="3" fill="#dc2626"/>
-
-    <!-- Head -->
-    <circle cx="100" cy="65" r="28" fill="url(#charGrad)"/>
-
-    <!-- Red Hair (top + flowing back) -->
-    <path d="M 75,55 Q 70,30 85,25 Q 100,15 115,25 Q 130,30 125,55 Q 130,40 140,38 Q 145,30 138,50 Q 145,45 148,55 Q 145,65 135,62 Q 130,55 125,55 L 75,55 Q 70,55 65,62 Q 55,65 52,55 Q 55,45 62,50 Q 55,30 60,38 Q 70,40 75,55 Z" fill="url(#hairGrad)" opacity="0.9"/>
-
-    <!-- Pirate Hat on head -->
-    <path d="M 60,45 Q 65,15 100,12 Q 135,15 140,45 Q 140,50 100,52 Q 60,50 60,45 Z" fill="#1a0808" stroke="#fbbf24" stroke-width="1.2"/>
-    <rect x="60" y="42" width="80" height="5" fill="#fbbf24" opacity="0.7"/>
-    <text x="100" y="32" text-anchor="middle" font-size="7" fill="#fbbf24" font-weight="900">☠</text>
-
-    <!-- Left arm (holding nothing - missing arm reference) -->
-    <path d="M 65,130 Q 50,160 48,200 Q 50,210 55,205 Q 60,170 70,140 Z" fill="url(#charGrad)"/>
-
-    <!-- Right arm (holding saber) -->
-    <path d="M 135,130 Q 155,150 165,180 Q 168,195 162,200 Q 152,180 145,160 L 140,140 Z" fill="url(#charGrad)"/>
-
-    <!-- Saber in right hand (gold blade pointing down) -->
-    <line x1="165" y1="195" x2="170" y2="320" stroke="#fbbf24" stroke-width="3" opacity="0.9"/>
-    <line x1="165" y1="195" x2="170" y2="320" stroke="#fff" stroke-width="1" opacity="0.6"/>
-    <ellipse cx="166" cy="195" rx="10" ry="3" fill="#fbbf24"/>
-
-    <!-- Scar over left eye (X mark) -->
-    <line x1="88" y1="55" x2="98" y2="68" stroke="#dc2626" stroke-width="1.5" opacity="0.7"/>
-    <line x1="88" y1="68" x2="98" y2="55" stroke="#dc2626" stroke-width="1.5" opacity="0.7"/>
-
-    <!-- Boots -->
-    <rect x="78" y="370" width="16" height="14" fill="#000" rx="2"/>
-    <rect x="106" y="370" width="16" height="14" fill="#000" rx="2"/>
+    <!-- Pole -->
+    <rect x="6" y="10" width="3" height="150" fill="#7c5a2e"/>
+    <circle cx="7.5" cy="10" r="4" fill="#fbb73f"/>
+    <!-- Flag (waving rectangle with curve) -->
+    <path d="M 9,18 Q 90,12 175,22 L 175,108 Q 90,98 9,108 Z" fill="url(#flagGrad)" stroke="#fbb73f" stroke-width="1.2"/>
+    <!-- Skull face (Mugiwara style) -->
+    <ellipse cx="90" cy="58" rx="22" ry="20" fill="#fff" opacity="0.96"/>
+    <!-- Eye sockets -->
+    <ellipse cx="82" cy="58" rx="4" ry="5" fill="#000"/>
+    <ellipse cx="98" cy="58" rx="4" ry="5" fill="#000"/>
+    <!-- Nose -->
+    <path d="M 88,64 L 90,68 L 92,64 Z" fill="#000"/>
+    <!-- Toothy grin -->
+    <path d="M 80,72 Q 90,80 100,72 L 99,76 L 96,73 L 94,77 L 91,73 L 88,77 L 85,73 L 82,76 Z" fill="#000"/>
+    <!-- Straw hat over skull -->
+    <ellipse cx="90" cy="42" rx="32" ry="6" fill="#fbb73f" stroke="#7c5a2e" stroke-width="0.8"/>
+    <path d="M 72,42 Q 74,30 90,28 Q 106,30 108,42 Z" fill="#f4c570" stroke="#7c5a2e" stroke-width="0.8"/>
+    <rect x="74" y="38" width="32" height="3" fill="#dc2626"/>
+    <!-- Crossed bones BEHIND skull -->
+    <g opacity="0.92">
+      <line x1="62" y1="48" x2="118" y2="80" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      <line x1="62" y1="80" x2="118" y2="48" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="62" cy="48" r="5" fill="#fff"/>
+      <circle cx="118" cy="80" r="5" fill="#fff"/>
+      <circle cx="62" cy="80" r="5" fill="#fff"/>
+      <circle cx="118" cy="48" r="5" fill="#fff"/>
+    </g>
   </svg>
 
-  <!-- Pirate Hat (Top-right) -->
-  <svg class="shanks-deco hat" viewBox="0 0 200 120" preserveAspectRatio="xMidYMid meet">
-    <defs>
-      <linearGradient id="hatGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#7f1d1d"/>
-        <stop offset="50%" stop-color="#4a0808"/>
-        <stop offset="100%" stop-color="#1a0808"/>
-      </linearGradient>
-    </defs>
-    <path d="M 30,80 Q 60,30 100,25 Q 140,30 170,80 Q 170,90 100,95 Q 30,90 30,80 Z" fill="url(#hatGrad)" stroke="#fbbf24" stroke-width="1.5"/>
-    <path d="M 30,80 L 170,80 L 175,95 L 25,95 Z" fill="#1a0808" stroke="#fbbf24" stroke-width="1.5"/>
-    <circle cx="100" cy="55" r="6" fill="#fbbf24"/>
-    <text x="100" y="60" text-anchor="middle" font-size="9" font-weight="900" fill="#1a0808">☠</text>
-  </svg>
-
-  <!-- Saber Sword (Right side) -->
-  <svg class="shanks-deco saber" viewBox="0 0 60 400" preserveAspectRatio="xMidYMid meet">
+  <!-- ⚔️ Cross Sabers — Zoro's Three Swords (Right side) -->
+  <svg class="shanks-deco saber" viewBox="0 0 120 380" preserveAspectRatio="xMidYMid meet">
     <defs>
       <linearGradient id="bladeGrad" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#fff"/>
         <stop offset="50%" stop-color="#cbd5e1"/>
         <stop offset="100%" stop-color="#94a3b8"/>
       </linearGradient>
-      <linearGradient id="hiltGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#fbbf24"/>
+      <linearGradient id="hiltGoldGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#fde047"/>
+        <stop offset="100%" stop-color="#a87c4f"/>
+      </linearGradient>
+      <linearGradient id="hiltRedGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#dc2626"/>
         <stop offset="100%" stop-color="#7f1d1d"/>
       </linearGradient>
     </defs>
-    <!-- Blade -->
-    <path d="M 28,10 L 32,10 L 35,300 L 30,310 L 25,300 Z" fill="url(#bladeGrad)" stroke="#1a0808" stroke-width="1"/>
-    <!-- Edge highlight -->
-    <line x1="30" y1="20" x2="32" y2="290" stroke="#fff" stroke-width="0.5" opacity="0.7"/>
-    <!-- Guard -->
-    <ellipse cx="30" cy="315" rx="22" ry="6" fill="#fbbf24" stroke="#1a0808" stroke-width="1.5"/>
-    <!-- Hilt -->
-    <rect x="25" y="320" width="10" height="55" fill="url(#hiltGrad)" stroke="#1a0808" stroke-width="1"/>
-    <!-- Pommel -->
-    <circle cx="30" cy="380" r="8" fill="#dc2626" stroke="#fbbf24" stroke-width="1.5"/>
+    <!-- Sword 1: katana (center, longer) -->
+    <g transform="translate(60,0)">
+      <path d="M -3,18 L 3,18 L 4,260 L 0,272 L -4,260 Z" fill="url(#bladeGrad)" stroke="#1e293b" stroke-width="0.8"/>
+      <line x1="0" y1="22" x2="2" y2="252" stroke="#fff" stroke-width="0.5" opacity="0.7"/>
+      <ellipse cx="0" cy="276" rx="14" ry="4" fill="url(#hiltGoldGrad)" stroke="#1a0e04" stroke-width="1"/>
+      <rect x="-5" y="280" width="10" height="48" fill="url(#hiltRedGrad)" stroke="#1a0e04" stroke-width="0.8"/>
+      <!-- Hilt wrap pattern -->
+      <line x1="-5" y1="290" x2="5" y2="294" stroke="#1a0e04" stroke-width="0.6"/>
+      <line x1="-5" y1="300" x2="5" y2="304" stroke="#1a0e04" stroke-width="0.6"/>
+      <line x1="-5" y1="310" x2="5" y2="314" stroke="#1a0e04" stroke-width="0.6"/>
+      <line x1="-5" y1="320" x2="5" y2="324" stroke="#1a0e04" stroke-width="0.6"/>
+      <circle cx="0" cy="332" r="6" fill="#fde047" stroke="#1a0e04" stroke-width="0.8"/>
+    </g>
+    <!-- Sword 2: angled left -->
+    <g transform="translate(60,160) rotate(-20)">
+      <path d="M -2,-145 L 2,-145 L 3,90 L 0,98 L -3,90 Z" fill="url(#bladeGrad)" stroke="#1e293b" stroke-width="0.6" opacity="0.78"/>
+      <ellipse cx="0" cy="100" rx="11" ry="3" fill="url(#hiltGoldGrad)" opacity="0.85"/>
+      <rect x="-4" y="103" width="8" height="40" fill="url(#hiltRedGrad)" opacity="0.85"/>
+    </g>
+    <!-- Sword 3: angled right -->
+    <g transform="translate(60,160) rotate(20)">
+      <path d="M -2,-145 L 2,-145 L 3,90 L 0,98 L -3,90 Z" fill="url(#bladeGrad)" stroke="#1e293b" stroke-width="0.6" opacity="0.78"/>
+      <ellipse cx="0" cy="100" rx="11" ry="3" fill="url(#hiltGoldGrad)" opacity="0.85"/>
+      <rect x="-4" y="103" width="8" height="40" fill="url(#hiltRedGrad)" opacity="0.85"/>
+    </g>
   </svg>
 
-  <!-- Red Force Ship (Bottom-right) -->
-  <svg class="shanks-deco ship" viewBox="0 0 240 160" preserveAspectRatio="xMidYMid meet">
+  <!-- 🦁 Thousand Sunny Ship (Bottom-right) -->
+  <svg class="shanks-deco ship" viewBox="0 0 260 170" preserveAspectRatio="xMidYMid meet">
     <defs>
-      <linearGradient id="shipGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#7f1d1d"/>
-        <stop offset="100%" stop-color="#1a0808"/>
+      <linearGradient id="hullGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#7c5a2e"/>
+        <stop offset="60%" stop-color="#5a3a14"/>
+        <stop offset="100%" stop-color="#2a1a08"/>
+      </linearGradient>
+      <radialGradient id="lionFig" cx="50%" cy="40%" r="60%">
+        <stop offset="0%" stop-color="#fde047"/>
+        <stop offset="100%" stop-color="#a87c4f"/>
+      </radialGradient>
+      <linearGradient id="grassDeck" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#22c55e"/>
+        <stop offset="100%" stop-color="#15803d"/>
       </linearGradient>
     </defs>
-    <!-- Hull -->
-    <path d="M 30,110 L 50,140 L 190,140 L 210,110 Z" fill="url(#shipGrad)" stroke="#fbbf24" stroke-width="1.5"/>
-    <!-- Side stripe -->
-    <line x1="40" y1="120" x2="200" y2="120" stroke="#fbbf24" stroke-width="1.5"/>
-    <!-- Windows -->
-    <circle cx="80" cy="125" r="3" fill="#fbbf24"/>
-    <circle cx="120" cy="125" r="3" fill="#fbbf24"/>
-    <circle cx="160" cy="125" r="3" fill="#fbbf24"/>
-    <!-- Mast -->
-    <rect x="118" y="20" width="4" height="90" fill="#1a0808"/>
-    <!-- Sail -->
-    <path d="M 122,30 Q 165,50 165,90 L 122,100 Z" fill="#dc2626" stroke="#fbbf24" stroke-width="1.5" opacity="0.85"/>
-    <!-- Skull on sail -->
-    <text x="143" y="70" text-anchor="middle" font-size="22" fill="#1a0808" opacity="0.9">☠</text>
-    <!-- Flag -->
-    <path d="M 122,15 L 145,25 L 122,35 Z" fill="#dc2626"/>
+    <!-- Hull (curved bottom) -->
+    <path d="M 30,110 Q 25,140 55,150 L 195,150 Q 225,140 220,110 Z" fill="url(#hullGrad)" stroke="#fbb73f" stroke-width="1.5"/>
+    <!-- Yellow stripe -->
+    <rect x="32" y="120" width="186" height="6" fill="#fbb73f" opacity="0.9"/>
+    <!-- Cabin windows -->
+    <circle cx="72" cy="135" r="3.5" fill="#fde047" stroke="#1a0e04" stroke-width="0.5"/>
+    <circle cx="100" cy="135" r="3.5" fill="#fde047" stroke="#1a0e04" stroke-width="0.5"/>
+    <circle cx="128" cy="135" r="3.5" fill="#fde047" stroke="#1a0e04" stroke-width="0.5"/>
+    <circle cx="156" cy="135" r="3.5" fill="#fde047" stroke="#1a0e04" stroke-width="0.5"/>
+    <circle cx="184" cy="135" r="3.5" fill="#fde047" stroke="#1a0e04" stroke-width="0.5"/>
+    <!-- Grass deck -->
+    <path d="M 38,108 Q 130,100 218,108 L 218,114 Q 130,106 38,114 Z" fill="url(#grassDeck)"/>
+    <!-- Mast 1 (main) -->
+    <rect x="123" y="20" width="4" height="92" fill="#5a3a14"/>
+    <!-- Sail with skull -->
+    <path d="M 127,28 Q 175,50 175,90 L 127,98 Z" fill="#fefae0" stroke="#fbb73f" stroke-width="1.2" opacity="0.95"/>
+    <!-- Skull on sail (Mugiwara) -->
+    <g transform="translate(151,68) scale(0.7)">
+      <ellipse cx="0" cy="0" rx="14" ry="13" fill="#1a0e04"/>
+      <ellipse cx="-4" cy="-1" rx="2.5" ry="3" fill="#fefae0"/>
+      <ellipse cx="4" cy="-1" rx="2.5" ry="3" fill="#fefae0"/>
+      <path d="M -6,7 Q 0,12 6,7" stroke="#fefae0" stroke-width="1.5" fill="none"/>
+    </g>
+    <!-- Flag at top of mast -->
+    <path d="M 127,15 L 148,22 L 127,30 Z" fill="#dc2626"/>
+    <!-- 🦁 LION FIGUREHEAD (front, the iconic Sunny lion) -->
+    <g transform="translate(38,98)">
+      <!-- Mane -->
+      <circle cx="0" cy="0" r="22" fill="url(#lionFig)" stroke="#7c5a2e" stroke-width="1"/>
+      <!-- Mane spikes -->
+      <g fill="url(#lionFig)" stroke="#7c5a2e" stroke-width="0.6">
+        <path d="M -22,-8 L -32,-12 L -24,-2 Z"/>
+        <path d="M -24,4 L -34,8 L -22,10 Z"/>
+        <path d="M -22,14 L -28,22 L -16,18 Z"/>
+      </g>
+      <!-- Face -->
+      <ellipse cx="-2" cy="2" rx="11" ry="9" fill="#fef3c7"/>
+      <!-- Eyes -->
+      <circle cx="-6" cy="0" r="1.5" fill="#1a0e04"/>
+      <circle cx="2" cy="0" r="1.5" fill="#1a0e04"/>
+      <!-- Nose & smile -->
+      <path d="M -3,4 L -1,5 L -5,5 Z" fill="#1a0e04"/>
+      <path d="M -7,7 Q -2,11 3,7" stroke="#1a0e04" stroke-width="0.8" fill="none"/>
+    </g>
   </svg>
 
-  <!-- Big Skull mark (Top-left) -->
+  <!-- ☠️ Big Mugiwara Skull mark (center background) -->
   <svg class="shanks-deco skull-mark" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
     <defs>
       <radialGradient id="skullGlow">
-        <stop offset="0%" stop-color="rgba(220,38,38,0.6)"/>
+        <stop offset="0%" stop-color="rgba(251,183,63,0.5)"/>
         <stop offset="100%" stop-color="transparent"/>
       </radialGradient>
     </defs>
     <circle cx="100" cy="100" r="90" fill="url(#skullGlow)"/>
-    <text x="100" y="135" text-anchor="middle" font-size="120" fill="#dc2626" opacity="0.4" style="filter:drop-shadow(0 0 8px #dc2626)">☠</text>
+    <!-- Skull body -->
+    <ellipse cx="100" cy="105" rx="38" ry="36" fill="#fff" opacity="0.45" style="filter:drop-shadow(0 0 10px rgba(251,183,63,.6))"/>
+    <ellipse cx="86" cy="105" rx="6" ry="8" fill="#1a0e04" opacity="0.6"/>
+    <ellipse cx="114" cy="105" rx="6" ry="8" fill="#1a0e04" opacity="0.6"/>
+    <path d="M 96,118 L 100,124 L 104,118 Z" fill="#1a0e04" opacity="0.6"/>
+    <path d="M 82,135 Q 100,148 118,135 L 116,140 L 112,136 L 108,141 L 104,136 L 100,141 L 96,136 L 92,141 L 88,136 L 84,140 Z" fill="#1a0e04" opacity="0.55"/>
+    <!-- Straw hat on top -->
+    <ellipse cx="100" cy="72" rx="58" ry="9" fill="#fbb73f" opacity="0.55"/>
+    <path d="M 70,72 Q 72,52 100,48 Q 128,52 130,72 Z" fill="#f4c570" opacity="0.55"/>
+    <rect x="72" y="65" width="56" height="5" fill="#dc2626" opacity="0.65"/>
+    <!-- Crossed bones -->
+    <g opacity="0.42">
+      <line x1="56" y1="92" x2="144" y2="138" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+      <line x1="56" y1="138" x2="144" y2="92" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+    </g>
   </svg>
 
-  <!-- Compass (Bottom-left) -->
+  <!-- 🧭 Log Pose Compass (Bottom-left) -->
   <svg class="shanks-deco compass" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-    <circle cx="50" cy="50" r="45" fill="none" stroke="#fbbf24" stroke-width="1.5" opacity="0.6"/>
-    <circle cx="50" cy="50" r="38" fill="none" stroke="#fbbf24" stroke-width="0.8" opacity="0.4"/>
-    <line x1="50" y1="10" x2="50" y2="90" stroke="#fbbf24" stroke-width="1" opacity="0.5"/>
-    <line x1="10" y1="50" x2="90" y2="50" stroke="#fbbf24" stroke-width="1" opacity="0.5"/>
-    <text x="50" y="20" text-anchor="middle" font-size="10" fill="#fbbf24" opacity="0.8">N</text>
-    <text x="50" y="88" text-anchor="middle" font-size="10" fill="#fbbf24" opacity="0.8">S</text>
-    <text x="14" y="55" text-anchor="middle" font-size="10" fill="#fbbf24" opacity="0.8">W</text>
-    <text x="86" y="55" text-anchor="middle" font-size="10" fill="#fbbf24" opacity="0.8">E</text>
-    <!-- Needle -->
-    <polygon points="50,50 45,30 50,15 55,30" fill="#dc2626"/>
-    <polygon points="50,50 45,70 50,85 55,70" fill="#fff" opacity="0.5"/>
-    <circle cx="50" cy="50" r="3" fill="#fbbf24"/>
+    <defs>
+      <radialGradient id="logposeFace" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#fef3c7"/>
+        <stop offset="100%" stop-color="#a87c4f"/>
+      </radialGradient>
+    </defs>
+    <!-- Glass dome -->
+    <circle cx="50" cy="50" r="44" fill="url(#logposeFace)" opacity="0.35" stroke="#fbb73f" stroke-width="1.5"/>
+    <!-- Inner ring -->
+    <circle cx="50" cy="50" r="38" fill="none" stroke="#fbb73f" stroke-width="0.8" opacity="0.55"/>
+    <!-- Compass marks -->
+    <g stroke="#fbb73f" stroke-width="1" opacity="0.55">
+      <line x1="50" y1="10" x2="50" y2="18"/>
+      <line x1="50" y1="82" x2="50" y2="90"/>
+      <line x1="10" y1="50" x2="18" y2="50"/>
+      <line x1="82" y1="50" x2="90" y2="50"/>
+    </g>
+    <text x="50" y="22" text-anchor="middle" font-size="9" fill="#fbb73f" opacity="0.85" font-weight="700">N</text>
+    <text x="50" y="84" text-anchor="middle" font-size="9" fill="#fbb73f" opacity="0.85" font-weight="700">S</text>
+    <text x="14" y="54" text-anchor="middle" font-size="9" fill="#fbb73f" opacity="0.85" font-weight="700">W</text>
+    <text x="86" y="54" text-anchor="middle" font-size="9" fill="#fbb73f" opacity="0.85" font-weight="700">E</text>
+    <!-- Needle (red north - "next island" pointing) -->
+    <polygon points="50,50 46,30 50,15 54,30" fill="#dc2626"/>
+    <polygon points="50,50 46,70 50,85 54,70" fill="#fefae0" opacity="0.6"/>
+    <circle cx="50" cy="50" r="3.5" fill="#fbb73f" stroke="#1a0e04" stroke-width="0.8"/>
+  </svg>
+
+  <!-- 🌊 Ocean waves at the bottom of the screen -->
+  <svg class="shanks-deco ocean-waves" viewBox="0 0 1440 140" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="waveGradFar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(125,211,252,0.4)"/>
+        <stop offset="100%" stop-color="rgba(14,165,233,0.5)"/>
+      </linearGradient>
+      <linearGradient id="waveGradNear" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(14,165,233,0.7)"/>
+        <stop offset="100%" stop-color="rgba(3,105,161,0.85)"/>
+      </linearGradient>
+    </defs>
+    <!-- Far wave -->
+    <path d="M 0,80 Q 180,55 360,80 T 720,80 T 1080,80 T 1440,80 L 1440,140 L 0,140 Z" fill="url(#waveGradFar)"/>
+    <!-- Near wave (slightly offset) -->
+    <path d="M 0,100 Q 200,80 400,100 T 800,100 T 1200,100 T 1440,100 L 1440,140 L 0,140 Z" fill="url(#waveGradNear)"/>
+    <!-- Foam dots -->
+    <g fill="#fefae0" opacity="0.85">
+      <circle cx="120" cy="78" r="1.5"/>
+      <circle cx="280" cy="86" r="1"/>
+      <circle cx="450" cy="80" r="1.3"/>
+      <circle cx="640" cy="84" r="1"/>
+      <circle cx="820" cy="78" r="1.4"/>
+      <circle cx="980" cy="84" r="1"/>
+      <circle cx="1180" cy="80" r="1.3"/>
+      <circle cx="1340" cy="84" r="1"/>
+    </g>
   </svg>
 </div>
 
 <!-- INITIAL LOADING OVERLAY -->
-<div id="init-overlay" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(180deg,#051428,#0a2440);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
-  <img src="icon-120.png" style="width:72px;height:72px;border-radius:18px;box-shadow:0 0 30px rgba(170,68,255,.5)"/>
-  <div style="font-size:22px;font-weight:800;color:#e0f7ff;letter-spacing:3px">RUDY</div>
-  <div style="width:40px;height:40px;border:3px solid rgba(220,38,38,.2);border-top-color:#dc2626;border-radius:50%;animation:spin .7s linear infinite"></div>
-  <div id="overlay-status" style="font-size:13px;color:#dc2626">กำลังโหลด...</div>
+<div id="init-overlay" style="position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 50% 30%, #052848 0%, #021024 70%, #000 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <img src="icon-120.png" style="width:72px;height:72px;border-radius:18px;box-shadow:0 0 30px rgba(251,183,63,.55), 0 0 60px rgba(230,57,70,.3)"/>
+  <div style="font-size:22px;font-weight:800;color:#fef3c7;letter-spacing:3px;text-shadow:0 0 12px rgba(251,183,63,.6)">RUDY</div>
+  <div style="font-size:10px;font-weight:700;color:#fbb73f;letter-spacing:6px;text-transform:uppercase;margin-top:-8px">— MUGIWARA CREW —</div>
+  <div style="width:40px;height:40px;border:3px solid rgba(251,183,63,.2);border-top-color:#fbb73f;border-radius:50%;animation:spin .7s linear infinite"></div>
+  <div id="overlay-status" style="font-size:13px;color:#fbb73f">กำลังกางใบเรือ...</div>
   <div id="overlay-skip" style="display:none;margin-top:8px">
     <button onclick="document.getElementById('init-overlay').style.display='none';document.getElementById('login-screen').style.display='flex'" 
-      style="background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);color:#dc2626;padding:10px 24px;border-radius:20px;font-size:13px;cursor:pointer;font-family:sans-serif">
-      เข้าสู่ระบบ →
+      style="background:rgba(230,57,70,.18);border:1px solid rgba(230,57,70,.45);color:#fff5d6;padding:10px 24px;border-radius:20px;font-size:13px;cursor:pointer;font-family:sans-serif">
+      ⚓ ออกเรือ →
     </button>
   </div>
 </div>
@@ -3312,7 +3496,7 @@ body.grad-anim{
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo"><div class="login-logo-mark">R</div><div class="login-logo-text">RU<span>DY</span></div></div>
-    <div class="login-sub">ระบบบันทึกเวลาพนักงาน</div>
+    <div class="login-sub">🏴‍☠️ บันทึกเวลาพนักงาน — Mugiwara Edition</div>
     <div class="login-err" id="login-err" style="display:none"></div>
 
     <label class="login-lbl">อีเมล</label>
@@ -3339,7 +3523,7 @@ body.grad-anim{
 </div>
 
 <!-- REGISTER SCREEN -->
-<div id="register-screen" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%);overflow-y:auto">
+<div id="register-screen" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 30%, #052848 0%, #021024 60%, #000814 100%);overflow-y:auto">
   <div class="login-box" style="max-height:90vh;overflow-y:auto">
     <div class="login-logo"><div class="login-logo-mark">R</div><div class="login-logo-text">RU<span>DY</span></div></div>
     <div class="login-sub">สมัครสมาชิกใหม่</div>
@@ -3437,19 +3621,19 @@ body.grad-anim{
   <div class="page active" id="page-home">
     <div id="bday-container"></div>
     <div class="wanted-poster tilt-card" id="clock-hero">
-      <div class="wanted-stamp">RUDY</div>
+      <div class="wanted-stamp">MUGIWARA</div>
       <div class="wanted-label">WANTED</div>
       <div class="wanted-subtitle">DEAD OR ALIVE</div>
       <div class="wanted-photo-frame welcome-av" id="wc-av" onclick="openPhotoUpload()">?<div style="position:absolute;inset:0;border-radius:4px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div></div>
       <div class="wanted-name welcome-name" id="wc-name"><span id="wc-typewriter"></span><span class="typewriter-cursor" id="tw-cursor" style="display:none"></span></div>
       <div class="wanted-meta welcome-meta" id="wc-meta">—</div>
-      <div class="wanted-clock-label">⚡ Bounty Time ⚡</div>
+      <div class="wanted-clock-label">⚓ Voyage Hours ⚓</div>
       <div class="wanted-clock clock-time" id="clock-display">00:00:00</div>
       <div class="wanted-meta clock-date" id="clock-date">—</div>
       <div class="clock-btns">
         <div class="btn-row">
-          <button class="btn-in btn-liquid tilt-card" id="btn-in" onclick="doCheckIn()"><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:26px;position:relative;z-index:1">▶</span><span style="position:relative;z-index:1">เข้างาน</span><span class="btn-sub" style="position:relative;z-index:1">บันทึกเวลาเข้า</span></button>
-          <button class="btn-out btn-liquid tilt-card" id="btn-out" onclick="doCheckOut()"><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:26px;position:relative;z-index:1">⏹</span><span style="position:relative;z-index:1">ออกงาน</span><span class="btn-sub" style="position:relative;z-index:1">บันทึกเวลาออก</span></button>
+          <button class="btn-in btn-liquid tilt-card" id="btn-in" onclick="doCheckIn()"><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:26px;position:relative;z-index:1">⚓</span><span style="position:relative;z-index:1">ออกเรือ</span><span class="btn-sub" style="position:relative;z-index:1">บันทึกเวลาเข้า</span></button>
+          <button class="btn-out btn-liquid tilt-card" id="btn-out" onclick="doCheckOut()"><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:26px;position:relative;z-index:1">🏴‍☠️</span><span style="position:relative;z-index:1">เทียบท่า</span><span class="btn-sub" style="position:relative;z-index:1">บันทึกเวลาออก</span></button>
         </div>
       </div>
     </div>
@@ -4282,7 +4466,7 @@ function initApp(){
   if(existing) existing.remove();
   const banner = document.createElement('div');
   banner.id = 'songkran-banner';
-  banner.innerHTML = '✨ RUDY — Galaxy Edition ✨';
+  banner.innerHTML = '🏴‍☠️ RUDY — Mugiwara Edition 👒';
   document.body.appendChild(banner);
   setTimeout(()=>{ if(banner.parentElement) banner.remove(); }, 5500);
   const admin=isAdmin();
@@ -5260,7 +5444,7 @@ function doCheckIn(){
       smokeFromButton(document.getElementById('btn-in'));
     }
     if(typeof soundCheckIn === 'function') soundCheckIn();
-    // 🏴‍☠️ SHANKS ULTIMATE COMBO
+    // 🏴‍☠️ MUGIWARA ULTIMATE COMBO
     if(typeof overdriveCombo === 'function') overdriveCombo();
     // 🌟 LEGENDARY EDITION extras
     if(typeof legendaryCombo === 'function') legendaryCombo();
@@ -8099,9 +8283,9 @@ function showCinemaSplash(duration = 1800){
       <div class="cinema-splash-ring"></div>
     </div>
     <div class="cinema-splash-content">
-      <div class="cinema-splash-logo" style="font-family:'Arial Black',sans-serif;font-size:80px;font-weight:900;background:linear-gradient(135deg,#ffccff,#aa44ff,#4400aa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 20px #aa44ff)">R</div>
+      <div class="cinema-splash-logo" style="font-family:'Arial Black',sans-serif;font-size:80px;font-weight:900;background:linear-gradient(135deg,#fde047,#fbb73f,#e63946);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 20px #fbb73f) drop-shadow(0 0 40px #e63946)">R</div>
       <div class="cinema-splash-text">RUDY</div>
-      <div class="cinema-splash-tagline">Galaxy Edition</div>
+      <div class="cinema-splash-tagline">Mugiwara Edition</div>
     </div>`;
   document.body.appendChild(splash);
   setTimeout(()=>{
@@ -8854,7 +9038,7 @@ function renderWeeklyInsightsCard(empId){
   </div>`;
 }
 
-// ===== 🏴‍☠️ SHANKS ULTIMATE EFFECTS =====
+// ===== 🏴‍☠️ MUGIWARA ULTIMATE EFFECTS =====
 
 // === DON! Impact Text ===
 function showDonImpact(text='DON!'){
@@ -9031,7 +9215,7 @@ function addJollyRoger(){
   document.body.appendChild(j);
 }
 
-// === SHANKS YONKO — Background Scenery ===
+// === MUGIWARA GRAND LINE — Background Scenery ===
 function addShanksScenery(){
   // Sunset sky
   if(!document.getElementById('shanks-sunset-sky')){
@@ -9127,7 +9311,7 @@ if(document.readyState === 'loading'){
   setTimeout(initShanksEffects, 100);
 }
 
-// ===== 🔥 SHANKS GOD MODE — Ultimate Effects =====
+// ===== 🔥 MUGIWARA GEAR MODE — Ultimate Effects =====
 
 // === Dialogue Bubble (BOOM/WHAM/CRASH/DON/BANG) ===
 function showDialogueBubble(text, x, y, yellow=false){
@@ -9885,7 +10069,7 @@ function legendaryCombo(){
 
   // Phase 1 (0ms): Storm + Battle Cry + Earthquake
   stormCloud();
-  battleCry('SHANKS!');
+  battleCry('LUFFY!');
   earthquakeRumble();
 
   // Phase 2 (200ms): Pulse waves + Saber Slash X

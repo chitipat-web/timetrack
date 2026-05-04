@@ -1,11 +1,11 @@
 {
   "name": "RUDY",
   "short_name": "RUDY",
-  "description": "RUDY — Galaxy Edition Time Tracking",
+  "description": "RUDY — Mugiwara Edition Time Tracking",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#020818",
-  "theme_color": "#020818",
+  "background_color": "#031428",
+  "theme_color": "#031428",
   "orientation": "portrait",
   "icons": [
     {
