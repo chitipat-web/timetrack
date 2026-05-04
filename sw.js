@@ -1,7 +1,7 @@
 // ===== RUDY Service Worker — Mugiwara Edition =====
-const CACHE_NAME = 'rudy-mugiwara-v1';
-const STATIC_CACHE = 'rudy-static-mugiwara-v1';
-const FIREBASE_CACHE = 'rudy-firebase-mugiwara-v1';
+const CACHE_NAME = 'rudy-mugiwara-v2';
+const STATIC_CACHE = 'rudy-static-mugiwara-v2';
+const FIREBASE_CACHE = 'rudy-firebase-mugiwara-v2';
 
 const STATIC_ASSETS = [
   './index.html',
