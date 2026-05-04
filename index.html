@@ -1018,6 +1018,438 @@ body.cinema-off.camera-zoom > main,
 body.cinema-off.camera-zoom > nav,
 body.cinema-off.camera-zoom > .topbar{animation:none!important}
 
+/* ===== 🎬 OVERDRIVE Batch 1 — Cinematic ===== */
+
+/* === BULLET TIME — แช่จอ + หมุน === */
+@keyframes bulletTime{
+  0%{transform:perspective(1000px) rotateY(0deg) scale(1);filter:saturate(1)}
+  20%{transform:perspective(1000px) rotateY(15deg) scale(1.05);filter:saturate(1.5) brightness(1.2)}
+  50%{transform:perspective(1000px) rotateY(-15deg) scale(1.08);filter:saturate(2) brightness(1.3) hue-rotate(10deg)}
+  80%{transform:perspective(1000px) rotateY(10deg) scale(1.05);filter:saturate(1.5)}
+  100%{transform:perspective(1000px) rotateY(0deg) scale(1);filter:saturate(1)}
+}
+body.bullet-time > main,body.bullet-time > .topbar,body.bullet-time > nav{animation:bulletTime .9s ease-in-out;transform-origin:center}
+
+/* === DOLLY ZOOM — Vertigo effect === */
+@keyframes dollyZoom{
+  0%{transform:scale(1) perspective(800px) translateZ(0)}
+  50%{transform:scale(1.15) perspective(800px) translateZ(-50px)}
+  100%{transform:scale(1) perspective(800px) translateZ(0)}
+}
+body.dolly-zoom > main{animation:dollyZoom .8s cubic-bezier(.34,1.56,.64,1)}
+
+/* === LENS FLARE === */
+@keyframes lensFlareSweep{
+  0%{transform:translate(-100vw,-50vh) rotate(45deg);opacity:0}
+  20%{opacity:1}
+  100%{transform:translate(100vw,50vh) rotate(45deg);opacity:0}
+}
+.lens-flare{
+  position:fixed;top:50%;left:50%;
+  width:300px;height:80px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(255,255,200,.95) 0%,rgba(255,200,100,.5) 30%,transparent 70%);
+  filter:blur(20px);
+  pointer-events:none;z-index:99970;
+  mix-blend-mode:screen;
+  animation:lensFlareSweep 1.2s cubic-bezier(.4,0,.2,1) forwards;
+}
+.lens-flare::before{
+  content:'';position:absolute;inset:-20px;
+  background:radial-gradient(ellipse,rgba(255,255,255,1) 0%,transparent 30%);
+  filter:blur(10px);
+}
+
+/* === FILM GRAIN === */
+@keyframes filmGrain{
+  0%,100%{background-position:0 0}
+  10%{background-position:-100px -50px}
+  20%{background-position:50px 100px}
+  30%{background-position:-150px 30px}
+  40%{background-position:100px -200px}
+  50%{background-position:-50px 150px}
+  60%{background-position:200px -100px}
+  70%{background-position:-30px 80px}
+  80%{background-position:120px -60px}
+  90%{background-position:-80px 40px}
+}
+.film-grain-overlay{
+  position:fixed;inset:0;pointer-events:none;z-index:99960;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='.5'/></svg>");
+  opacity:.08;
+  animation:filmGrain .4s steps(10) infinite;
+  mix-blend-mode:overlay;
+}
+
+/* === LETTERBOX BARS === */
+@keyframes letterboxIn{
+  0%{transform:translateY(-100%)}
+  100%{transform:translateY(0)}
+}
+@keyframes letterboxOut{
+  0%{transform:translateY(0)}
+  100%{transform:translateY(-100%)}
+}
+.letterbox-top,.letterbox-bottom{
+  position:fixed;left:0;right:0;height:80px;
+  background:#000;
+  pointer-events:none;z-index:99950;
+  box-shadow:0 0 30px rgba(0,0,0,.8);
+}
+.letterbox-top{top:0;animation:letterboxIn .4s ease-out forwards}
+.letterbox-bottom{bottom:0;transform:translateY(100%);animation:letterboxIn .4s ease-out forwards}
+.letterbox-top.fading{animation:letterboxOut .4s ease-in forwards}
+.letterbox-bottom.fading{animation:letterboxOut .4s ease-in forwards;transform:translateY(0)}
+@keyframes letterboxOutBottom{0%{transform:translateY(0)}100%{transform:translateY(100%)}}
+.letterbox-bottom.fading{animation:letterboxOutBottom .4s ease-in forwards}
+
+/* === CHROMATIC ABERRATION === */
+@keyframes chromaShift{
+  0%,100%{filter:none}
+  20%{filter:drop-shadow(-3px 0 0 rgba(220,38,38,.7)) drop-shadow(3px 0 0 rgba(0,200,255,.7))}
+  40%{filter:drop-shadow(3px 0 0 rgba(220,38,38,.7)) drop-shadow(-3px 0 0 rgba(0,200,255,.7))}
+  60%{filter:drop-shadow(-2px 2px 0 rgba(255,0,150,.7)) drop-shadow(2px -2px 0 rgba(0,255,200,.7))}
+  80%{filter:drop-shadow(2px -2px 0 rgba(255,0,150,.7)) drop-shadow(-2px 2px 0 rgba(0,255,200,.7))}
+}
+body.chroma-shift > main,body.chroma-shift > .topbar,body.chroma-shift > nav{animation:chromaShift .5s ease-out}
+
+/* Cinema-off */
+body.cinema-off.bullet-time > main,
+body.cinema-off.bullet-time > .topbar,
+body.cinema-off.bullet-time > nav,
+body.cinema-off.dolly-zoom > main,
+body.cinema-off.chroma-shift > main,
+body.cinema-off.chroma-shift > .topbar,
+body.cinema-off.chroma-shift > nav{animation:none!important}
+body.cinema-off .lens-flare,
+body.cinema-off .film-grain-overlay,
+body.cinema-off .letterbox-top,
+body.cinema-off .letterbox-bottom{display:none!important}
+
+/* ===== ⚔️ OVERDRIVE Batch 2 — Anime God-Tier ===== */
+
+/* === SUSANOO AURA (โครงร่างพลัง) === */
+@keyframes susanooAppear{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.3);filter:blur(20px)}
+  30%{opacity:.9;transform:translate(-50%,-50%) scale(1.1);filter:blur(0)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.5);filter:blur(8px)}
+}
+.susanoo-aura{
+  position:fixed;top:50%;left:50%;
+  width:90vw;height:90vh;max-width:600px;max-height:800px;
+  border:4px solid transparent;
+  border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+  background:
+    linear-gradient(180deg,rgba(220,38,38,.3) 0%,rgba(127,29,29,.5) 50%,rgba(251,191,36,.3) 100%) border-box;
+  -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  box-shadow:0 0 60px rgba(220,38,38,.6),inset 0 0 60px rgba(251,191,36,.4);
+  pointer-events:none;z-index:99940;
+  animation:susanooAppear 1.4s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+
+/* === KAMEHAMEHA BEAM === */
+@keyframes kamehamehaCharge{
+  0%{transform:translate(-50%,-50%) scale(0);opacity:0}
+  30%{transform:translate(-50%,-50%) scale(.5);opacity:1}
+  100%{transform:translate(-50%,-50%) scale(20);opacity:0}
+}
+.kamehameha-orb{
+  position:fixed;top:50%;left:50%;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,1) 0%,rgba(251,191,36,.9) 30%,rgba(220,38,38,.7) 60%,transparent 90%);
+  pointer-events:none;z-index:99935;
+  filter:blur(2px);
+  box-shadow:0 0 80px rgba(255,255,255,.9),0 0 160px rgba(251,191,36,.6);
+  animation:kamehamehaCharge 1.2s ease-out forwards;
+}
+
+@keyframes kamehamehaBeam{
+  0%{transform:translate(-50%,-50%) scaleX(0);opacity:1}
+  20%{transform:translate(-50%,-50%) scaleX(1);opacity:1}
+  100%{transform:translate(-50%,-50%) scaleX(1);opacity:0}
+}
+.kamehameha-beam{
+  position:fixed;top:50%;left:50%;
+  width:100vw;height:60px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,1) 20%,rgba(251,191,36,.9) 50%,rgba(220,38,38,.8) 80%,transparent);
+  pointer-events:none;z-index:99934;
+  filter:blur(4px);
+  box-shadow:0 0 40px rgba(255,255,255,.9),0 0 80px rgba(251,191,36,.6);
+  animation:kamehamehaBeam .8s ease-out forwards;
+  transform-origin:center;
+}
+
+/* === BANKAI RELEASE === */
+@keyframes bankaiKanji{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0) rotate(0deg)}
+  30%{opacity:1;transform:translate(-50%,-50%) scale(1.5) rotate(180deg)}
+  70%{transform:translate(-50%,-50%) scale(1.1) rotate(345deg)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(2.5) rotate(360deg)}
+}
+.bankai-kanji{
+  position:fixed;top:50%;left:50%;
+  font-size:200px;font-weight:900;color:#dc2626;
+  text-shadow:0 0 30px #dc2626,0 0 60px #fbbf24,0 0 90px #fff,4px 4px 0 #1a0808;
+  -webkit-text-stroke:4px #1a0808;
+  pointer-events:none;z-index:99933;
+  font-family:'Noto Sans Thai','Arial Black',sans-serif;
+  animation:bankaiKanji 1.4s cubic-bezier(.34,1.56,.64,1) forwards;
+  user-select:none;
+}
+
+/* === SPIRIT BOMB GROW === */
+@keyframes spiritBombGrow{
+  0%{transform:translate(-50%,-50%) scale(0);opacity:0}
+  20%{opacity:1}
+  60%{transform:translate(-50%,-50%) scale(1.2)}
+  100%{transform:translate(-50%,-50%) scale(2);opacity:0;filter:blur(10px)}
+}
+.spirit-bomb{
+  position:fixed;top:30%;left:50%;
+  width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,229,255,1) 0%,rgba(100,200,255,.8) 40%,rgba(180,130,255,.5) 70%,transparent 100%);
+  pointer-events:none;z-index:99932;
+  filter:blur(3px);
+  box-shadow:0 0 100px rgba(0,229,255,.8),0 0 200px rgba(180,130,255,.5);
+  animation:spiritBombGrow 1.5s ease-out forwards;
+}
+
+/* === LIMIT BREAK TEXT === */
+@keyframes limitBreakColor{
+  0%{color:#dc2626;text-shadow:0 0 20px #dc2626}
+  20%{color:#fbbf24;text-shadow:0 0 20px #fbbf24}
+  40%{color:#84cc16;text-shadow:0 0 20px #84cc16}
+  60%{color:#0ea5e9;text-shadow:0 0 20px #0ea5e9}
+  80%{color:#a855f7;text-shadow:0 0 20px #a855f7}
+  100%{color:#f472b6;text-shadow:0 0 20px #f472b6}
+}
+@keyframes limitBreakIn{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.3)}
+  30%{opacity:1;transform:translate(-50%,-50%) scale(1.4)}
+  60%{transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(2)}
+}
+.limit-break-text{
+  position:fixed;top:30%;left:50%;
+  font-family:'Arial Black','Impact',sans-serif;font-size:80px;font-weight:900;
+  -webkit-text-stroke:3px #fff;
+  pointer-events:none;z-index:99931;
+  letter-spacing:6px;
+  animation:limitBreakIn 1.6s var(--ease-spring) forwards,limitBreakColor 1.5s linear forwards;
+}
+
+/* === FINAL SMASH ZOOM === */
+@keyframes finalSmashZoom{
+  0%{transform:scale(1);filter:none}
+  50%{transform:scale(1.5);filter:blur(8px) saturate(2)}
+  100%{transform:scale(1);filter:none}
+}
+body.final-smash > main{animation:finalSmashZoom 1s cubic-bezier(.34,1.56,.64,1)}
+
+/* Cinema-off */
+body.cinema-off .susanoo-aura,
+body.cinema-off .kamehameha-orb,
+body.cinema-off .kamehameha-beam,
+body.cinema-off .bankai-kanji,
+body.cinema-off .spirit-bomb,
+body.cinema-off .limit-break-text{display:none!important;animation:none!important}
+body.cinema-off.final-smash > main{animation:none!important}
+
+/* ===== OVERDRIVE Batch 3 — Reality-Bending + Combo ===== */
+
+/* === GLASS SHATTER (50 ชิ้น) === */
+@keyframes glassShard{
+  0%{transform:translate(0,0) rotate(0deg) scale(1);opacity:1}
+  100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(.2);opacity:0}
+}
+.glass-shard{
+  position:fixed;top:50%;left:50%;
+  width:30px;height:40px;
+  background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(220,220,255,.5),rgba(180,180,220,.3));
+  pointer-events:none;z-index:99925;
+  filter:drop-shadow(0 0 8px rgba(255,255,255,.6));
+  animation:glassShard 1.5s cubic-bezier(.4,0,.2,1) forwards;
+  border:1px solid rgba(255,255,255,.4);
+}
+
+/* === REALITY CRACK === */
+@keyframes crackGrow{
+  0%{transform:translate(-50%,-50%) scale(0) rotate(var(--rot));opacity:1}
+  100%{transform:translate(-50%,-50%) scale(2) rotate(var(--rot));opacity:0}
+}
+.reality-crack{
+  position:fixed;top:50%;left:50%;
+  width:6px;height:80vh;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.95) 30%,rgba(220,38,38,.9) 50%,rgba(255,255,255,.95) 70%,transparent);
+  pointer-events:none;z-index:99924;
+  filter:drop-shadow(0 0 8px rgba(255,255,255,.8));
+  clip-path:polygon(40% 0%,55% 15%,40% 30%,60% 45%,40% 60%,55% 75%,40% 90%,50% 100%,55% 90%,40% 75%,55% 60%,40% 45%,60% 30%,45% 15%,50% 0%);
+  animation:crackGrow 1s ease-out forwards;
+}
+
+/* === VORTEX SPIRAL === */
+@keyframes vortexSpin{
+  0%{transform:translate(-50%,-50%) rotate(0deg) scale(0);opacity:1}
+  100%{transform:translate(-50%,-50%) rotate(1080deg) scale(3);opacity:0}
+}
+.vortex-spiral{
+  position:fixed;top:50%;left:50%;
+  width:400px;height:400px;
+  border-radius:50%;
+  background:
+    conic-gradient(from 0deg,transparent 0deg,rgba(220,38,38,.4) 60deg,transparent 120deg,rgba(251,191,36,.4) 180deg,transparent 240deg,rgba(127,29,29,.4) 300deg,transparent 360deg);
+  pointer-events:none;z-index:99923;
+  filter:blur(6px);
+  animation:vortexSpin 1.4s cubic-bezier(.4,0,.2,1) forwards;
+}
+
+/* === TIME STOP (Za Warudo) === */
+@keyframes timeStopText{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0) rotate(-30deg)}
+  20%{opacity:1;transform:translate(-50%,-50%) scale(1.5) rotate(0deg)}
+  80%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0deg)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.5) rotate(0deg)}
+}
+.time-stop-text{
+  position:fixed;top:50%;left:50%;
+  font-family:'Arial Black','Impact',sans-serif;font-size:90px;font-weight:900;
+  color:#fff;
+  text-shadow:0 0 30px #dc2626,0 0 60px #1a0808,4px 4px 0 #1a0808,-4px -4px 0 #1a0808,4px -4px 0 #1a0808,-4px 4px 0 #1a0808;
+  -webkit-text-stroke:3px #1a0808;
+  pointer-events:none;z-index:99922;
+  letter-spacing:6px;
+  animation:timeStopText 1.8s ease-out forwards;
+}
+@keyframes timeStopFreeze{
+  0%{filter:none}
+  20%,90%{filter:grayscale(1) brightness(.6) blur(1px)}
+  100%{filter:none}
+}
+body.time-stop > main,body.time-stop > .topbar,body.time-stop > nav{animation:timeStopFreeze 1.5s ease-in-out}
+
+/* === BLACK HOLE PULL === */
+@keyframes blackHoleGrow{
+  0%{transform:translate(-50%,-50%) scale(0);opacity:0}
+  20%{opacity:1}
+  100%{transform:translate(-50%,-50%) scale(15);opacity:0}
+}
+.black-hole{
+  position:fixed;top:50%;left:50%;
+  width:80px;height:80px;border-radius:50%;
+  background:radial-gradient(circle,#000 30%,rgba(127,29,29,.8) 50%,rgba(220,38,38,.4) 70%,transparent);
+  box-shadow:0 0 60px #000,inset 0 0 30px rgba(220,38,38,.6);
+  pointer-events:none;z-index:99921;
+  animation:blackHoleGrow 1.5s ease-in forwards;
+}
+@keyframes blackHolePull{
+  0%{transform:scale(1) translate(0,0)}
+  50%{transform:scale(.85) translate(0,0)}
+  100%{transform:scale(1) translate(0,0)}
+}
+body.black-hole-active > main{animation:blackHolePull 1.5s cubic-bezier(.55,0,.1,1)}
+
+/* === DIMENSION SHIFT (RGB split) === */
+@keyframes dimensionShift{
+  0%,100%{filter:none}
+  20%{filter:url(#rgb-split-1)}
+  40%{filter:url(#rgb-split-2)}
+  60%{filter:url(#rgb-split-1)}
+  80%{filter:url(#rgb-split-2)}
+}
+body.dimension-shift > main{animation:dimensionShift .6s ease-out}
+
+/* === COMBO COUNTER === */
+@keyframes comboPop{
+  0%{opacity:0;transform:translate(0,30px) scale(.5)}
+  20%{opacity:1;transform:translate(0,0) scale(1.3)}
+  40%{transform:translate(0,0) scale(1)}
+  85%{opacity:1;transform:translate(0,0) scale(1)}
+  100%{opacity:0;transform:translate(0,-30px) scale(.8)}
+}
+.combo-counter{
+  position:fixed;top:80px;right:20px;
+  font-family:'Arial Black','Impact',sans-serif;
+  pointer-events:none;z-index:99920;
+  text-align:right;
+  animation:comboPop 2s ease-out forwards;
+}
+.combo-counter .combo-num{
+  font-size:64px;font-weight:900;
+  background:linear-gradient(180deg,#fbbf24,#dc2626);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 0 20px rgba(220,38,38,.6);
+  -webkit-text-stroke:2px #1a0808;
+  line-height:1;
+  display:block;
+}
+.combo-counter .combo-label{
+  font-size:24px;font-weight:900;
+  color:#fff;
+  text-shadow:0 0 10px #dc2626,2px 2px 0 #1a0808;
+  -webkit-text-stroke:1px #1a0808;
+  letter-spacing:3px;
+}
+
+/* === DAMAGE NUMBERS === */
+@keyframes damageNumFloat{
+  0%{opacity:0;transform:translate(0,0) scale(0.3)}
+  15%{opacity:1;transform:translate(0,-20px) scale(1.4)}
+  30%{transform:translate(0,-30px) scale(1)}
+  100%{opacity:0;transform:translate(0,-150px) scale(.7)}
+}
+.damage-num{
+  position:fixed;
+  font-family:'Arial Black','Impact',sans-serif;
+  font-size:48px;font-weight:900;
+  color:#fbbf24;
+  text-shadow:0 0 12px #dc2626,2px 2px 0 #1a0808,-2px -2px 0 #1a0808,2px -2px 0 #1a0808,-2px 2px 0 #1a0808;
+  -webkit-text-stroke:2px #1a0808;
+  pointer-events:none;z-index:99919;
+  animation:damageNumFloat 1.5s ease-out forwards;
+}
+.damage-num.crit{
+  color:#fff;font-size:60px;
+  text-shadow:0 0 20px #fbbf24,0 0 40px #dc2626,3px 3px 0 #1a0808;
+  -webkit-text-stroke:3px #1a0808;
+}
+
+/* === RAGE MODE BG (red pulsate) === */
+@keyframes ragePulse{
+  0%,100%{box-shadow:inset 0 0 0 0 rgba(220,38,38,0)}
+  50%{box-shadow:inset 0 0 100px 20px rgba(220,38,38,.5)}
+}
+body.rage-mode{animation:ragePulse 1.5s ease-in-out}
+
+/* === CRITICAL HIT FLASH (rainbow) === */
+@keyframes critRainbow{
+  0%,100%{filter:none}
+  10%{filter:hue-rotate(60deg) saturate(2)}
+  20%{filter:hue-rotate(120deg) saturate(2)}
+  30%{filter:hue-rotate(180deg) saturate(2)}
+  40%{filter:hue-rotate(240deg) saturate(2)}
+  50%{filter:hue-rotate(300deg) saturate(2)}
+}
+body.crit-hit > main,body.crit-hit > .topbar,body.crit-hit > nav{animation:critRainbow .5s ease-out}
+
+/* Cinema-off */
+body.cinema-off .glass-shard,
+body.cinema-off .reality-crack,
+body.cinema-off .vortex-spiral,
+body.cinema-off .time-stop-text,
+body.cinema-off .black-hole,
+body.cinema-off .combo-counter,
+body.cinema-off .damage-num{display:none!important;animation:none!important}
+body.cinema-off.time-stop > main,
+body.cinema-off.time-stop > .topbar,
+body.cinema-off.time-stop > nav,
+body.cinema-off.black-hole-active > main,
+body.cinema-off.dimension-shift > main,
+body.cinema-off.crit-hit > main,
+body.cinema-off.rage-mode{animation:none!important}
+
+/* SVG filters for RGB split (need svg in dom) */
+
 /* PAGES */
 .page{display:none;padding:12px 12px 130px;position:relative;z-index:1;max-width:680px;margin:0 auto;width:100%;box-sizing:border-box;overflow-x:hidden}
 .page.slide-in-right{animation:slideInRight .42s var(--ease-out-expo) both}
@@ -3871,12 +4303,12 @@ function doCheckIn(){
     }
     if(typeof soundCheckIn === 'function') soundCheckIn();
     // 🏴‍☠️ SHANKS ULTIMATE COMBO
-    if(typeof shanksGodModeCombo === 'function') shanksGodModeCombo();
+    if(typeof overdriveCombo === 'function') overdriveCombo();
   } else {
     launchConfetti(['#dc2626','#ff9500','#ff6b6b']);
     showCheckmarkSuccess('#ff9500');
     if(typeof soundCheckOut === 'function') soundCheckOut();
-    if(typeof shanksGodModeCombo === 'function') shanksGodModeCombo();
+    if(typeof overdriveCombo === 'function') overdriveCombo();
   }
   // Liquid button — fill up on check-in
   const lqIn = document.getElementById('liquid-in');
@@ -7877,6 +8309,334 @@ if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', initGodModeEffects);
 } else {
   setTimeout(initGodModeEffects, 200);
+}
+
+// ===== 💥 OVERDRIVE MODE — 12/10 Effects =====
+
+let _comboCount = 0;
+let _comboResetTimer = null;
+
+// === Bullet Time ===
+function bulletTime(){
+  if(document.body.classList.contains('cinema-off')) return;
+  document.body.classList.add('bullet-time');
+  setTimeout(()=>document.body.classList.remove('bullet-time'), 950);
+}
+
+// === Dolly Zoom ===
+function dollyZoom(){
+  if(document.body.classList.contains('cinema-off')) return;
+  document.body.classList.add('dolly-zoom');
+  setTimeout(()=>document.body.classList.remove('dolly-zoom'), 850);
+}
+
+// === Lens Flare ===
+function lensFlare(){
+  if(document.body.classList.contains('cinema-off')) return;
+  const f = document.createElement('div');
+  f.className = 'lens-flare';
+  document.body.appendChild(f);
+  setTimeout(()=>f.remove(), 1300);
+}
+
+// === Film Grain ===
+function addFilmGrain(){
+  if(document.getElementById('film-grain')) return;
+  if(document.body.classList.contains('cinema-off')) return;
+  const g = document.createElement('div');
+  g.id = 'film-grain';
+  g.className = 'film-grain-overlay';
+  document.body.appendChild(g);
+}
+
+// === Letterbox Bars ===
+function showLetterbox(duration=2000){
+  if(document.body.classList.contains('cinema-off')) return;
+  const top = document.createElement('div');
+  top.className = 'letterbox-top';
+  const bot = document.createElement('div');
+  bot.className = 'letterbox-bottom';
+  document.body.appendChild(top);
+  document.body.appendChild(bot);
+  setTimeout(()=>{
+    top.classList.add('fading');
+    bot.classList.add('fading');
+    setTimeout(()=>{ top.remove(); bot.remove(); }, 500);
+  }, duration);
+}
+
+// === Chromatic Aberration ===
+function chromaticShift(){
+  if(document.body.classList.contains('cinema-off')) return;
+  document.body.classList.add('chroma-shift');
+  setTimeout(()=>document.body.classList.remove('chroma-shift'), 550);
+}
+
+// === Susanoo Aura ===
+function susanooAura(){
+  if(document.body.classList.contains('cinema-off')) return;
+  const s = document.createElement('div');
+  s.className = 'susanoo-aura';
+  document.body.appendChild(s);
+  setTimeout(()=>s.remove(), 1500);
+}
+
+// === Kamehameha ===
+function kamehameha(){
+  if(document.body.classList.contains('cinema-off')) return;
+  const orb = document.createElement('div');
+  orb.className = 'kamehameha-orb';
+  document.body.appendChild(orb);
+  setTimeout(()=>orb.remove(), 1300);
+  // Beam after charge
+  setTimeout(()=>{
+    const beam = document.createElement('div');
+    beam.className = 'kamehameha-beam';
+    document.body.appendChild(beam);
+    setTimeout(()=>beam.remove(), 900);
+  }, 600);
+}
+
+// === Bankai Kanji ===
+function bankaiRelease(kanji='卍解'){
+  if(document.body.classList.contains('cinema-off')) return;
+  const k = document.createElement('div');
+  k.className = 'bankai-kanji';
+  k.textContent = kanji;
+  document.body.appendChild(k);
+  setTimeout(()=>k.remove(), 1500);
+}
+
+// === Spirit Bomb ===
+function spiritBomb(){
+  if(document.body.classList.contains('cinema-off')) return;
+  const sb = document.createElement('div');
+  sb.className = 'spirit-bomb';
+  document.body.appendChild(sb);
+  setTimeout(()=>sb.remove(), 1600);
+}
+
+// === Limit Break ===
+function limitBreak(text='LIMIT BREAK!'){
+  if(document.body.classList.contains('cinema-off')) return;
+  const el = document.createElement('div');
+  el.className = 'limit-break-text';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1700);
+}
+
+// === Final Smash Zoom ===
+function finalSmashZoom(){
+  if(document.body.classList.contains('cinema-off')) return;
+  document.body.classList.add('final-smash');
+  setTimeout(()=>document.body.classList.remove('final-smash'), 1100);
+}
+
+// === Glass Shatter (50 shards) ===
+function glassShatterFull(count=50){
+  if(document.body.classList.contains('cinema-off')) return;
+  for(let i=0; i<count; i++){
+    const shard = document.createElement('div');
+    shard.className = 'glass-shard';
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 200 + Math.random() * 400;
+    shard.style.setProperty('--dx', Math.cos(angle)*dist + 'px');
+    shard.style.setProperty('--dy', Math.sin(angle)*dist + 'px');
+    shard.style.setProperty('--rot', (Math.random()*1080-540) + 'deg');
+    shard.style.transform = `translate(-50%,-50%) scale(${.5+Math.random()*.8})`;
+    document.body.appendChild(shard);
+    setTimeout(()=>shard.remove(), 1600);
+  }
+}
+
+// === Reality Crack ===
+function realityCrack(count=8){
+  if(document.body.classList.contains('cinema-off')) return;
+  for(let i=0; i<count; i++){
+    const c = document.createElement('div');
+    c.className = 'reality-crack';
+    c.style.setProperty('--rot', (i*45) + 'deg');
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(), 1100);
+  }
+}
+
+// === Vortex Spiral ===
+function vortexSpiral(){
+  if(document.body.classList.contains('cinema-off')) return;
+  const v = document.createElement('div');
+  v.className = 'vortex-spiral';
+  document.body.appendChild(v);
+  setTimeout(()=>v.remove(), 1500);
+}
+
+// === Time Stop (Za Warudo) ===
+function timeStop(text='ZA WARUDO!'){
+  if(document.body.classList.contains('cinema-off')) return;
+  document.body.classList.add('time-stop');
+  const el = document.createElement('div');
+  el.className = 'time-stop-text';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1900);
+  setTimeout(()=>document.body.classList.remove('time-stop'), 1600);
+}
+
+// === Black Hole ===
+function blackHole(){
+  if(document.body.classList.contains('cinema-off')) return;
+  const bh = document.createElement('div');
+  bh.className = 'black-hole';
+  document.body.appendChild(bh);
+  document.body.classList.add('black-hole-active');
+  setTimeout(()=>bh.remove(), 1600);
+  setTimeout(()=>document.body.classList.remove('black-hole-active'), 1600);
+}
+
+// === Dimension Shift (RGB split) ===
+function dimensionShift(){
+  if(document.body.classList.contains('cinema-off')) return;
+  document.body.classList.add('dimension-shift');
+  setTimeout(()=>document.body.classList.remove('dimension-shift'), 650);
+}
+
+// === Combo Counter ===
+function showCombo(){
+  if(document.body.classList.contains('cinema-off')) return;
+  _comboCount++;
+  // Remove existing combo
+  const existing = document.querySelectorAll('.combo-counter');
+  existing.forEach(e=>e.remove());
+  // Create new
+  const cc = document.createElement('div');
+  cc.className = 'combo-counter';
+  cc.innerHTML = `<div class="combo-num">×${_comboCount}</div><div class="combo-label">COMBO!</div>`;
+  document.body.appendChild(cc);
+  setTimeout(()=>cc.remove(), 2100);
+  // Reset combo after 5s of inactivity
+  if(_comboResetTimer) clearTimeout(_comboResetTimer);
+  _comboResetTimer = setTimeout(()=>{ _comboCount = 0; }, 5000);
+}
+
+// === Damage Numbers ===
+function damageNumber(value, x, y, isCrit=false){
+  if(document.body.classList.contains('cinema-off')) return;
+  const dn = document.createElement('div');
+  dn.className = 'damage-num' + (isCrit ? ' crit' : '');
+  dn.textContent = '+' + value;
+  dn.style.left = (x || window.innerWidth/2 + (Math.random()-0.5)*100) + 'px';
+  dn.style.top = (y || window.innerHeight/2) + 'px';
+  document.body.appendChild(dn);
+  setTimeout(()=>dn.remove(), 1600);
+}
+
+// === Critical Hit Flash ===
+function critHit(){
+  if(document.body.classList.contains('cinema-off')) return;
+  document.body.classList.add('crit-hit');
+  setTimeout(()=>document.body.classList.remove('crit-hit'), 550);
+}
+
+// === Rage Mode ===
+function rageMode(){
+  if(document.body.classList.contains('cinema-off')) return;
+  document.body.classList.add('rage-mode');
+  setTimeout(()=>document.body.classList.remove('rage-mode'), 1600);
+}
+
+// === 💥 OVERDRIVE ULTIMATE COMBO (15 frames) ===
+function overdriveCombo(){
+  if(document.body.classList.contains('cinema-off')) return;
+
+  // Frame 0: Letterbox + Time stop + Combo counter
+  showLetterbox(1800);
+  timeStop('CHECK-IN!');
+  showCombo();
+  rageMode();
+
+  // Frame 1 (50ms): Existing GOD MODE start
+  setTimeout(()=>{
+    if(typeof shanksGodModeCombo === 'function') shanksGodModeCombo();
+  }, 50);
+
+  // Frame 2 (150ms): Bullet time + Chromatic
+  setTimeout(()=>{
+    bulletTime();
+    chromaticShift();
+  }, 150);
+
+  // Frame 3 (250ms): Lens flare + Dolly zoom
+  setTimeout(()=>{
+    lensFlare();
+    dollyZoom();
+  }, 250);
+
+  // Frame 4 (400ms): Susanoo + Spirit bomb
+  setTimeout(()=>{
+    susanooAura();
+    spiritBomb();
+  }, 400);
+
+  // Frame 5 (550ms): Bankai + Limit break
+  setTimeout(()=>{
+    bankaiRelease('卍解');
+    limitBreak('LIMIT BREAK!');
+  }, 550);
+
+  // Frame 6 (700ms): Damage numbers spam
+  setTimeout(()=>{
+    for(let i=0; i<8; i++){
+      setTimeout(()=>{
+        const val = Math.floor(Math.random()*900+100);
+        damageNumber(val, null, null, i%3===0);
+      }, i*60);
+    }
+  }, 700);
+
+  // Frame 7 (900ms): Kamehameha
+  setTimeout(()=>{
+    kamehameha();
+  }, 900);
+
+  // Frame 8 (1100ms): Reality crack + Vortex
+  setTimeout(()=>{
+    realityCrack(8);
+    vortexSpiral();
+  }, 1100);
+
+  // Frame 9 (1300ms): Glass shatter + Critical hit flash
+  setTimeout(()=>{
+    glassShatterFull(50);
+    critHit();
+    finalSmashZoom();
+  }, 1300);
+
+  // Frame 10 (1600ms): Black hole pull
+  setTimeout(()=>{
+    blackHole();
+  }, 1600);
+
+  // Frame 11 (1850ms): Dimension shift final
+  setTimeout(()=>{
+    dimensionShift();
+  }, 1850);
+
+  // Heavy haptic
+  if(navigator.vibrate) navigator.vibrate([50,30,80,30,50,30,100,30,50,30,200]);
+}
+
+// === Init OVERDRIVE backgrounds ===
+function initOverdrive(){
+  setTimeout(()=>{
+    addFilmGrain();
+  }, 500);
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initOverdrive);
+} else {
+  setTimeout(initOverdrive, 300);
 }
 
 function showCheckmarkSuccess(color) {
