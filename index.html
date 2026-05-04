@@ -14,40 +14,40 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 <style>
 :root {
-  /* ===== DARK NEON CYBERPUNK ===== */
-  --bg:#020818;
-  --surface:rgba(6,18,48,0.82);
-  --surface2:rgba(8,24,60,0.7);
-  --surface3:rgba(10,30,70,0.55);
-  --border:rgba(0,200,255,0.15);
-  --border2:rgba(0,200,255,0.22);
-  --accent:#00c8ff;
-  --accent2:#0af;
-  --accent-light:rgba(0,200,255,0.12);
-  --green:#00ff9d;  --green-light:rgba(0,255,157,0.12);
-  --red:#ff2d55;    --red-light:rgba(255,45,85,0.15);
-  --yellow:#ffe600; --yellow-light:rgba(255,230,0,0.15);
+  /* ===== MONO DARK — Apple Minimal ===== */
+  --bg:#000000;
+  --surface:rgba(28,28,30,0.78);
+  --surface2:rgba(44,44,46,0.65);
+  --surface3:rgba(58,58,60,0.5);
+  --border:rgba(255,255,255,0.08);
+  --border2:rgba(255,255,255,0.14);
+  --accent:#ffffff;
+  --accent2:rgba(255,255,255,0.85);
+  --accent-light:rgba(255,255,255,0.08);
+  --green:#30d158;  --green-light:rgba(48,209,88,0.15);
+  --red:#ff453a;    --red-light:rgba(255,69,58,0.15);
+  --yellow:#ffd60a; --yellow-light:rgba(255,214,10,0.15);
   --purple:#bf5af2; --purple-light:rgba(191,90,242,0.15);
-  --text:rgba(220,240,255,0.95);
-  --text2:rgba(140,200,255,0.7);
-  --text3:rgba(80,150,220,0.5);
+  --text:rgba(255,255,255,0.95);
+  --text2:rgba(255,255,255,0.6);
+  --text3:rgba(255,255,255,0.35);
   --glass-blur:blur(20px) saturate(180%);
-  --glass-blur-lg:blur(32px) saturate(200%);
-  --shadow:0 4px 24px rgba(0,200,255,0.1),0 1px 4px rgba(0,0,0,0.5);
-  --shadow-lg:0 8px 40px rgba(0,200,255,0.18),0 2px 8px rgba(0,0,0,0.6);
-  --neon-glow:0 0 12px rgba(0,200,255,0.6),0 0 30px rgba(0,180,255,0.3);
+  --glass-blur-lg:blur(40px) saturate(200%);
+  --shadow:0 4px 24px rgba(0,0,0,0.5),0 1px 4px rgba(0,0,0,0.7);
+  --shadow-lg:0 12px 40px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.7);
+  --neon-glow:0 0 12px rgba(255,255,255,0.3),0 0 30px rgba(255,255,255,0.1);
   --radius:16px; --radius-sm:10px; --radius-xs:7px;
   --font:'IBM Plex Sans Thai',sans-serif;
   --mono:'IBM Plex Mono',monospace;
-  --water:#00c8ff; --gold:#ffe600; --lotus:#ff2d55; --sky:#00aaff;
+  --water:#ffffff; --gold:#ffd60a; --lotus:#ff453a; --sky:#ffffff;
 }
 
-/* Dark mode mirrors root (cyberpunk is always dark) */
-body.dark{ /* same as root — already dark */ }
+/* Dark mode same as root (default) */
+body.dark{ /* same as root */ }
 
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 
-/* ===== CYBERPUNK BACKGROUND ===== */
+/* ===== MONO DARK BACKGROUND ===== */
 body{
   background:var(--bg);
   color:var(--text);
@@ -56,34 +56,27 @@ body{
   overflow-x:hidden;
   transition:background .4s ease;
 }
-/* Scanline grid overlay */
+/* Subtle radial gradient (Apple-style) */
 body::after{
   content:'';
   position:fixed;inset:0;
-  background-image:
-    linear-gradient(rgba(0,200,255,0.025) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,200,255,0.025) 1px,transparent 1px);
-  background-size:40px 40px;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,.025) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(255,255,255,.015) 0%, transparent 70%);
   pointer-events:none;z-index:0;
 }
-/* Neon orbs */
 body::before{
   content:'';
   position:fixed;inset:0;
-  background:
-    radial-gradient(ellipse 55% 45% at 15% 10%, rgba(0,200,255,.18) 0%, transparent 60%),
-    radial-gradient(ellipse 45% 55% at 85% 15%, rgba(0,100,255,.14) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 35% at 50% 85%, rgba(0,180,255,.1)  0%, transparent 55%),
-    radial-gradient(ellipse 35% 45% at 90% 65%, rgba(0,80,200,.1)   0%, transparent 55%);
+  background:radial-gradient(ellipse 120% 60% at 50% 50%, rgba(40,40,42,.4) 0%, transparent 70%);
   pointer-events:none;z-index:0;
-  animation:meshShift 18s ease-in-out infinite alternate;
 }
 @keyframes meshShift{
-  0%{background-position:0% 0%,100% 0%,50% 100%,100% 100%}
-  100%{background-position:8% 12%,92% 12%,52% 88%,88% 82%}
+  0%{opacity:1}
+  100%{opacity:1}
 }
 
-/* ===== CYBERPUNK CARD ===== */
+/* ===== MINIMAL CARD ===== */
 .card{
   background:var(--surface);
   backdrop-filter:var(--glass-blur);
@@ -97,19 +90,18 @@ body::before{
   overflow:hidden;
   transition:box-shadow .2s,transform .2s;
 }
-/* Top neon line */
+/* Subtle top highlight (Apple glass style) */
 .card::before{
   content:'';
   position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--accent),transparent);
-  opacity:.6;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);
+  pointer-events:none;
 }
-/* Corner accent */
+/* Subtle corner */
 .card::after{
   content:'';
   position:absolute;top:0;left:0;
-  width:40px;height:40px;
-  background:linear-gradient(135deg,rgba(0,200,255,.08),transparent);
+  width:0;height:0;
   pointer-events:none;
 }
 
@@ -126,7 +118,7 @@ body.light::after{opacity:.3}
 /* LOGIN */
 #login-screen{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%);overflow-y:auto}
 #login-screen.hidden{display:none}
-.login-box{width:100%;max-width:380px;background:rgba(4,12,36,.92);backdrop-filter:var(--glass-blur-lg);-webkit-backdrop-filter:var(--glass-blur-lg);border:1px solid var(--border2);border-radius:20px;padding:32px 24px;box-shadow:0 0 40px rgba(0,200,255,.15),0 8px 40px rgba(0,0,0,.7)}
+.login-box{width:100%;max-width:380px;background:rgba(28,28,30,.85);backdrop-filter:var(--glass-blur-lg);-webkit-backdrop-filter:var(--glass-blur-lg);border:1px solid var(--border2);border-radius:24px;padding:36px 28px;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 1px rgba(255,255,255,.1)}
 .login-logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:8px}
 .login-logo-mark{width:40px;height:40px;background:linear-gradient(135deg,#0077cc,#00bfff,#00e5ff);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;font-family:var(--mono);box-shadow:0 4px 16px rgba(0,191,255,.4)}
 .login-logo-text{font-size:22px;font-weight:700}
@@ -171,17 +163,17 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
 @media(max-width:340px){.live-badge{display:none}}
 
 /* NAV — Liquid Glass */
-/* ===== FLOATING BOTTOM NAV ===== */
+/* ===== FLOATING BOTTOM NAV — Apple Style ===== */
 .nav{
   position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
   display:flex;
-  background:rgba(4,12,32,.9);
+  background:rgba(28,28,30,0.85);
   backdrop-filter:var(--glass-blur-lg);
   -webkit-backdrop-filter:var(--glass-blur-lg);
   border:1px solid var(--border2);
   border-radius:24px;padding:6px;gap:2px;
   z-index:90;
-  box-shadow:0 0 24px rgba(0,200,255,.2),0 12px 36px rgba(0,0,0,.6);
+  box-shadow:0 12px 36px rgba(0,0,0,.6),0 0 1px rgba(255,255,255,.08);
   max-width:calc(100vw - 24px);
   overflow-x:auto;scrollbar-width:none;
   -webkit-overflow-scrolling:touch;
@@ -197,9 +189,9 @@ body.light .topbar{background:rgba(220,242,255,.96);border-bottom:1px solid rgba
   position:relative;letter-spacing:.3px;
 }
 .nav-btn:active{transform:scale(.92)}
-.nav-btn.active{color:var(--accent)!important;background:rgba(0,200,255,.14);box-shadow:inset 0 0 12px rgba(0,200,255,.15)}
-.nav-btn.active::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:14px;height:2px;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:2px;box-shadow:0 0 8px var(--accent)}
-.nav-btn.active svg{filter:drop-shadow(0 0 6px var(--accent));transform:scale(1.1)}
+.nav-btn.active{color:var(--text)!important;background:rgba(255,255,255,.10)}
+.nav-btn.active::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:12px;height:2px;background:rgba(255,255,255,.85);border-radius:2px}
+.nav-btn.active svg{transform:scale(1.08)}
 .nav-btn svg{width:18px;height:18px;transition:all .2s}
 @media(min-width:400px){.nav-btn{font-size:10px;min-width:60px}.nav-btn svg{width:20px;height:20px}}
 
@@ -794,28 +786,28 @@ body.cinema-off .crystal-shard{display:none!important}
 .sal-hero{animation:salHeroPulse 3s ease-in-out infinite}
 /* Modal */
 .modal{animation:slideUp .35s cubic-bezier(.34,1.4,.64,1)}
-/* ===== TOPBAR — Liquid Glass ===== */
+/* ===== TOPBAR — Apple Style ===== */
 .topbar{
   position:sticky;top:0;z-index:100;
-  background:rgba(2,8,24,0.95);
+  background:rgba(0,0,0,0.85);
   backdrop-filter:var(--glass-blur-lg);
   -webkit-backdrop-filter:var(--glass-blur-lg);
-  border-bottom:1px solid var(--border2);
+  border-bottom:1px solid var(--border);
   padding:0 14px;height:52px;
   display:flex;align-items:center;justify-content:space-between;gap:6px;
-  box-shadow:0 2px 20px rgba(0,200,255,.08),0 4px 24px rgba(0,0,0,.6);
+  box-shadow:0 1px 0 rgba(255,255,255,.04);
 }
-/* Bottom neon line */
+/* Subtle highlight */
 .topbar::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent);
-  pointer-events:none;opacity:.8;
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);
+  pointer-events:none;
 }
 
-/* ===== NAV — Cyberpunk ===== */
-.nav-btn.active{color:var(--accent)!important;border-bottom-color:transparent!important}
-.nav-btn.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:28px;height:2px;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:2px 2px 0 0;box-shadow:0 0 8px var(--accent),0 0 20px rgba(0,200,255,.4)}
-.nav-btn.active svg{filter:drop-shadow(0 0 5px var(--accent))}
+/* ===== NAV — Apple Style ===== */
+.nav-btn.active{color:var(--text)!important;border-bottom-color:transparent!important}
+.nav-btn.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:24px;height:2px;background:rgba(255,255,255,.9);border-radius:2px 2px 0 0}
+.nav-btn.active svg{opacity:1}
 
 /* ===== STATS CARDS 3D GLOW ===== */
 .sum-card{background:var(--surface2);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--border2);border-radius:14px;padding:14px;text-align:center;transition:transform .2s,box-shadow .2s;box-shadow:var(--shadow)}
@@ -1072,8 +1064,8 @@ body.cinema-off .crystal-shard{display:none!important}
 .form-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,122,255,.15)}
 .form-inp:focus{border-color:var(--accent)}
 .form-inp[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
-.btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,#0066cc,#00aaff);border:1px solid var(--accent);border-radius:12px;color:#fff;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 0 20px rgba(0,170,255,.4),0 4px 16px rgba(0,0,0,.4);letter-spacing:.3px}
-.btn-primary:active{transform:scale(.98);box-shadow:0 0 30px rgba(0,200,255,.6)}
+.btn-primary{width:100%;padding:14px;background:#fff;border:none;border-radius:14px;color:#000;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(0,0,0,.4);letter-spacing:.2px}
+.btn-primary:active{transform:scale(.98);background:rgba(255,255,255,.85)}
 .btn-primary:active{opacity:.85}
 .btn-secondary{width:100%;padding:12px;margin-top:8px;background:none;border:1px solid var(--border);color:var(--text2);font-family:var(--font);font-size:14px;border-radius:10px;cursor:pointer}
 .divider{height:1px;background:var(--border);margin:14px 0}
@@ -5911,7 +5903,7 @@ document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key=
 document.getElementById('login-email').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-pw').focus(); });
 </script>
 <!-- SONGKRAN CANVAS -->
-<canvas id="songkran-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.7"></canvas>
+<canvas id="songkran-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.15;display:none"></canvas>
 <canvas id="confetti-canvas"></canvas>
 
 <!-- AURORA GLOW -->
