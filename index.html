@@ -1458,65 +1458,80 @@ body.cinema-off.rage-mode{animation:none!important}
 .shanks-deco{
   position:absolute;
   pointer-events:none;
-  filter:drop-shadow(0 0 15px rgba(220,38,38,.3));
+  filter:drop-shadow(0 0 20px rgba(220,38,38,.5));
 }
 
-/* Shanks Hat — top right */
+/* 🦸 SHANKS Character Silhouette — bottom-right (where ship was, replace ship-area) */
+.shanks-deco.character{
+  bottom:80px;right:-40px;
+  width:160px;height:320px;
+  opacity:.35;
+  animation:characterStand 5s ease-in-out infinite;
+  transform-origin:bottom center;
+  filter:drop-shadow(0 0 25px rgba(220,38,38,.5)) drop-shadow(0 0 50px rgba(127,29,29,.3));
+}
+@keyframes characterStand{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-6px) scale(1.02)}
+}
+
+/* Shanks Hat — top right (BIGGER + BRIGHTER) */
 .shanks-deco.hat{
-  top:60px;right:-20px;
-  width:160px;height:96px;
-  opacity:.20;
+  top:80px;right:-30px;
+  width:200px;height:120px;
+  opacity:.40;
   animation:hatFloat 6s ease-in-out infinite;
   transform-origin:center;
 }
 @keyframes hatFloat{
   0%,100%{transform:rotate(-5deg) translateY(0)}
-  50%{transform:rotate(8deg) translateY(-10px)}
+  50%{transform:rotate(8deg) translateY(-12px)}
 }
 
-/* Saber Sword — right side */
+/* Saber Sword — left side (BIGGER + BRIGHTER) */
 .shanks-deco.saber{
-  top:40%;right:-40px;
-  width:60px;height:340px;
-  opacity:.18;
+  top:30%;left:-40px;
+  width:80px;height:420px;
+  opacity:.40;
   animation:saberSway 8s ease-in-out infinite;
   transform-origin:top center;
-  filter:drop-shadow(0 0 20px rgba(251,191,36,.4));
+  filter:drop-shadow(0 0 25px rgba(251,191,36,.6)) drop-shadow(0 0 50px rgba(220,38,38,.4));
 }
 @keyframes saberSway{
-  0%,100%{transform:rotate(15deg)}
-  50%{transform:rotate(25deg) translateY(-5px)}
+  0%,100%{transform:rotate(-15deg)}
+  50%{transform:rotate(-25deg) translateY(-8px)}
 }
 
-/* Red Force Ship — bottom right */
+/* Red Force Ship — middle right behind character */
 .shanks-deco.ship{
-  bottom:160px;right:-60px;
-  width:200px;height:135px;
-  opacity:.18;
+  top:35%;right:-60px;
+  width:240px;height:160px;
+  opacity:.32;
   animation:shipBob 5s ease-in-out infinite;
 }
 @keyframes shipBob{
   0%,100%{transform:translate(0,0) rotate(-2deg)}
-  50%{transform:translate(-5px,-8px) rotate(2deg)}
+  50%{transform:translate(-8px,-12px) rotate(2deg)}
 }
 
-/* Skull Mark — top left */
+/* Skull Mark — middle area */
 .shanks-deco.skull-mark{
-  top:80px;left:-50px;
-  width:200px;height:200px;
-  opacity:.15;
+  top:50%;left:50%;
+  width:300px;height:300px;
+  margin-left:-150px;margin-top:-150px;
+  opacity:.10;
   animation:skullPulse 4s ease-in-out infinite;
 }
 @keyframes skullPulse{
-  0%,100%{transform:scale(1) rotate(-8deg);opacity:.15}
-  50%{transform:scale(1.05) rotate(8deg);opacity:.25}
+  0%,100%{transform:scale(1) rotate(-5deg);opacity:.10}
+  50%{transform:scale(1.1) rotate(5deg);opacity:.18}
 }
 
 /* Compass — bottom left */
 .shanks-deco.compass{
-  bottom:200px;left:-20px;
-  width:90px;height:90px;
-  opacity:.20;
+  bottom:140px;left:-15px;
+  width:120px;height:120px;
+  opacity:.40;
   animation:compassRotate 30s linear infinite;
 }
 @keyframes compassRotate{
@@ -1524,7 +1539,7 @@ body.cinema-off.rage-mode{animation:none!important}
   100%{transform:rotate(360deg)}
 }
 
-body.cinema-off .shanks-deco{animation:none!important;opacity:.1}
+body.cinema-off .shanks-deco{animation:none!important;opacity:.20}
 
 /* SVG filters for RGB split (placeholder) */
 
@@ -2055,7 +2070,7 @@ body.cinema-off .bg-sakura-petal{display:none!important;animation:none!important
 .wanted-poster{
   position:relative;
   background:
-    linear-gradient(135deg,rgba(60,30,15,.95) 0%,rgba(40,20,10,.95) 100%),
+    linear-gradient(135deg,rgba(60,30,15,.88) 0%,rgba(40,20,10,.88) 100%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='paper'><feTurbulence baseFrequency='.04' numOctaves='5'/><feColorMatrix values='0 0 0 0 .35 0 0 0 0 .2 0 0 0 0 .1 0 0 0 .3 0'/></filter><rect width='400' height='400' filter='url(%23paper)'/></svg>");
   background-blend-mode:multiply;
   background-size:cover;
@@ -3104,6 +3119,77 @@ body.grad-anim{
 
 <!-- 🏴‍☠️ SHANKS LEGENDARY DECORATIONS -->
 <div id="shanks-decorations" aria-hidden="true">
+  <!-- 🦸 SHANKS Character (silhouette) -->
+  <svg class="shanks-deco character" viewBox="0 0 200 400" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="charGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1a0808"/>
+        <stop offset="50%" stop-color="#0a0505"/>
+        <stop offset="100%" stop-color="#000"/>
+      </linearGradient>
+      <linearGradient id="hairGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#dc2626"/>
+        <stop offset="100%" stop-color="#7f1d1d"/>
+      </linearGradient>
+      <linearGradient id="capeGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#1a0808"/>
+        <stop offset="100%" stop-color="#000"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Cape behind body -->
+    <path d="M 60,90 Q 30,140 25,260 Q 30,340 50,380 L 80,380 Q 70,340 75,280 Q 75,220 85,160 Z" fill="url(#capeGrad)" stroke="#7f1d1d" stroke-width="1" opacity="0.95"/>
+    <path d="M 140,90 Q 170,140 175,260 Q 170,340 150,380 L 120,380 Q 130,340 125,280 Q 125,220 115,160 Z" fill="url(#capeGrad)" stroke="#7f1d1d" stroke-width="1" opacity="0.95"/>
+
+    <!-- Body silhouette -->
+    <path d="M 100,90
+             Q 70,95 65,130
+             L 60,180
+             Q 60,220 65,260
+             L 70,330
+             Q 75,360 85,380
+             L 115,380
+             Q 125,360 130,330
+             L 135,260
+             Q 140,220 140,180
+             L 135,130
+             Q 130,95 100,90 Z" fill="url(#charGrad)"/>
+
+    <!-- Belt (gold) -->
+    <rect x="68" y="200" width="64" height="8" fill="#fbbf24" opacity="0.9"/>
+    <circle cx="100" cy="204" r="3" fill="#dc2626"/>
+
+    <!-- Head -->
+    <circle cx="100" cy="65" r="28" fill="url(#charGrad)"/>
+
+    <!-- Red Hair (top + flowing back) -->
+    <path d="M 75,55 Q 70,30 85,25 Q 100,15 115,25 Q 130,30 125,55 Q 130,40 140,38 Q 145,30 138,50 Q 145,45 148,55 Q 145,65 135,62 Q 130,55 125,55 L 75,55 Q 70,55 65,62 Q 55,65 52,55 Q 55,45 62,50 Q 55,30 60,38 Q 70,40 75,55 Z" fill="url(#hairGrad)" opacity="0.9"/>
+
+    <!-- Pirate Hat on head -->
+    <path d="M 60,45 Q 65,15 100,12 Q 135,15 140,45 Q 140,50 100,52 Q 60,50 60,45 Z" fill="#1a0808" stroke="#fbbf24" stroke-width="1.2"/>
+    <rect x="60" y="42" width="80" height="5" fill="#fbbf24" opacity="0.7"/>
+    <text x="100" y="32" text-anchor="middle" font-size="7" fill="#fbbf24" font-weight="900">☠</text>
+
+    <!-- Left arm (holding nothing - missing arm reference) -->
+    <path d="M 65,130 Q 50,160 48,200 Q 50,210 55,205 Q 60,170 70,140 Z" fill="url(#charGrad)"/>
+
+    <!-- Right arm (holding saber) -->
+    <path d="M 135,130 Q 155,150 165,180 Q 168,195 162,200 Q 152,180 145,160 L 140,140 Z" fill="url(#charGrad)"/>
+
+    <!-- Saber in right hand (gold blade pointing down) -->
+    <line x1="165" y1="195" x2="170" y2="320" stroke="#fbbf24" stroke-width="3" opacity="0.9"/>
+    <line x1="165" y1="195" x2="170" y2="320" stroke="#fff" stroke-width="1" opacity="0.6"/>
+    <ellipse cx="166" cy="195" rx="10" ry="3" fill="#fbbf24"/>
+
+    <!-- Scar over left eye (X mark) -->
+    <line x1="88" y1="55" x2="98" y2="68" stroke="#dc2626" stroke-width="1.5" opacity="0.7"/>
+    <line x1="88" y1="68" x2="98" y2="55" stroke="#dc2626" stroke-width="1.5" opacity="0.7"/>
+
+    <!-- Boots -->
+    <rect x="78" y="370" width="16" height="14" fill="#000" rx="2"/>
+    <rect x="106" y="370" width="16" height="14" fill="#000" rx="2"/>
+  </svg>
+
   <!-- Pirate Hat (Top-right) -->
   <svg class="shanks-deco hat" viewBox="0 0 200 120" preserveAspectRatio="xMidYMid meet">
     <defs>
