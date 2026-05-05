@@ -2655,6 +2655,39 @@ body.dark .punct-card{
   </div>
 </div>
 
+<!-- MEMBER HISTORY (ADMIN) — browse + edit member's records by month -->
+<div class="modal-overlay" id="member-history-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="mh-title">ประวัติพนักงาน<button class="modal-close" onclick="closeModal('member-history-modal')">✕</button></div>
+    <div id="mh-summary" style="margin-bottom:12px"></div>
+    <div class="filter-row" style="margin-bottom:12px">
+      <select class="sel" id="mh-month" onchange="renderMemberHistory()"></select>
+      <select class="sel" id="mh-year" onchange="renderMemberHistory()"></select>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn-secondary" style="flex:1" onclick="openAddManualForMember()">➕ เพิ่มบันทึกย้อนหลัง</button>
+    </div>
+    <div id="mh-content"></div>
+  </div>
+</div>
+
+<!-- ADD MANUAL RECORD FOR MEMBER (ADMIN) -->
+<div class="modal-overlay" id="add-manual-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">➕ เพิ่มบันทึกย้อนหลัง<button class="modal-close" onclick="closeModal('add-manual-modal')">✕</button></div>
+    <div id="am-target" style="font-size:13px;color:var(--text2);margin-bottom:12px"></div>
+    <label class="login-lbl">วันที่</label>
+    <input type="date" class="login-input" id="am-date"/>
+    <label class="login-lbl">เวลาเข้า</label>
+    <input type="time" class="login-input" id="am-in"/>
+    <label class="login-lbl">เวลาออก (ถ้ามี)</label>
+    <input type="time" class="login-input" id="am-out"/>
+    <label class="login-lbl">หมายเหตุ</label>
+    <input type="text" class="login-input" id="am-note" placeholder="เหตุผล (ไม่บังคับ)"/>
+    <button class="login-btn" onclick="saveManualForMember()">บันทึก</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- PULL TO REFRESH WATER DROP -->
@@ -4264,6 +4297,7 @@ function saveEdit(){
   showToast('แก้ไขเรียบร้อย','success');
   renderHome();renderCalendar();renderStats();renderHistory();
   if(document.getElementById('page-team').classList.contains('active'))renderTeam();
+  if(document.getElementById('member-history-modal').classList.contains('open'))renderMemberHistory();
 }
 function deleteRec(id,empId){
   showConfirm('🗑 ลบรายการ','ยืนยันลบรายการบันทึกเวลานี้? ไม่สามารถกู้คืนได้',()=>{
@@ -4271,7 +4305,155 @@ function deleteRec(id,empId){
     saveRec();showToast('ลบแล้ว','success');
     renderHome();renderCalendar();renderStats();renderHistory();
     if(document.getElementById('page-team').classList.contains('active'))renderTeam();
+    if(document.getElementById('member-history-modal').classList.contains('open'))renderMemberHistory();
   });
+}
+
+// ========== MEMBER HISTORY (ADMIN) ==========
+let _mhCurrentEmp = null; // currently viewed employee object
+
+function openMemberHistory(empEmail){
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
+  const emp = employees.find(e => e.email === empEmail);
+  if(!emp){ showToast('ไม่พบพนักงาน','error'); return; }
+  _mhCurrentEmp = emp;
+
+  // Populate month/year dropdowns
+  const now = new Date();
+  const monSel = document.getElementById('mh-month');
+  const yrSel = document.getElementById('mh-year');
+  const mons = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  monSel.innerHTML = mons.map((m,i)=>`<option value="${i}" ${i===now.getMonth()?'selected':''}>${m}</option>`).join('');
+  const curYr = now.getFullYear();
+  yrSel.innerHTML = '';
+  for(let y = curYr - 2; y <= curYr; y++){
+    yrSel.innerHTML += `<option value="${y}" ${y===curYr?'selected':''}>${y+543}</option>`;
+  }
+
+  document.getElementById('mh-title').innerHTML = `📋 ${escHtml(emp.name)}<button class="modal-close" onclick="closeModal('member-history-modal')">✕</button>`;
+  document.getElementById('member-history-modal').classList.add('open');
+  renderMemberHistory();
+}
+
+function renderMemberHistory(){
+  if(!_mhCurrentEmp){ return; }
+  const emp = _mhCurrentEmp;
+  const month = parseInt(document.getElementById('mh-month').value);
+  const year = parseInt(document.getElementById('mh-year').value);
+  const mons = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const dayNames = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+
+  // Filter records for this employee in this month
+  const monthRecs = records.filter(r => {
+    if(r.empId !== emp.id) return false;
+    const [y,m] = r.date.split('-').map(Number);
+    return y === year && m === month + 1;
+  }).sort((a,b) => a.date.localeCompare(b.date) || a.checkIn.localeCompare(b.checkIn));
+
+  // Summary
+  const totalDays = new Set(monthRecs.map(r => r.date)).size;
+  const totalH = monthRecs.filter(r => r.checkOut).reduce((s,r) => s + calcHours(r.checkIn, r.checkOut), 0);
+  const totalOT = monthRecs.reduce((s,r) => s + (r.otMin||0), 0) / 60;
+  const lateCount = monthRecs.filter(r => r.isLate).length;
+
+  document.getElementById('mh-summary').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+      <div class="stat-box"><div class="stat-val c-blue">${totalDays}</div><div class="stat-lbl" style="font-size:10px">วันที่มา</div></div>
+      <div class="stat-box"><div class="stat-val c-green">${totalH.toFixed(1)}</div><div class="stat-lbl" style="font-size:10px">ชม.รวม</div></div>
+      <div class="stat-box"><div class="stat-val c-orange">${totalOT.toFixed(1)}</div><div class="stat-lbl" style="font-size:10px">ชม.OT</div></div>
+      <div class="stat-box"><div class="stat-val ${lateCount?'c-red':'c-green'}">${lateCount}</div><div class="stat-lbl" style="font-size:10px">ครั้งสาย</div></div>
+    </div>`;
+
+  // Group by date
+  if(monthRecs.length === 0){
+    document.getElementById('mh-content').innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div>ไม่มีบันทึกในเดือน${mons[month]} ${year+543}</div><div style="font-size:12px;color:var(--text3);margin-top:8px">สามารถเพิ่มย้อนหลังได้</div></div>`;
+    return;
+  }
+  const byDate = {};
+  monthRecs.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
+
+  const html = Object.keys(byDate).sort().reverse().map(dateStr => {
+    const recs = byDate[dateStr];
+    const [y,m,d] = dateStr.split('-');
+    const dt = new Date(dateStr+'T00:00:00');
+    const dayH = recs.filter(r => r.checkOut).reduce((s,r) => s + calcHours(r.checkIn, r.checkOut), 0);
+    const dayOT = recs.reduce((s,r) => s + (r.otMin||0), 0) / 60;
+    const isLateDay = recs.some(r => r.isLate);
+    const holiday = getHolidays()[dateStr];
+
+    return `<div class="card" style="margin-bottom:8px;padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;font-size:14px">${parseInt(d)} ${mons[parseInt(m)-1]} ${parseInt(y)+543} (${dayNames[dt.getDay()]})${holiday?' 🏖':''}</div>
+        <div style="font-size:11px;color:var(--text2)">${dayH.toFixed(1)} ชม. ${dayOT>0?'+ OT '+dayOT.toFixed(1):''}</div>
+      </div>
+      ${recs.map(r => `<div class="rec-item" style="margin-bottom:4px">
+        <div class="rec-times" style="flex:1">
+          <div class="rec-time" style="font-size:13px">${r.checkIn} → ${r.checkOut||'<span style="color:var(--red)">ยังไม่ออก</span>'}</div>
+          <div class="rec-badges">
+            ${r.checkOut?`<span class="badge badge-green">${calcHours(r.checkIn,r.checkOut).toFixed(1)} ชม.</span>`:''}
+            ${r.isLate?'<span class="badge badge-red">สาย</span>':''}
+            ${r.otMin>0?`<span class="badge" style="background:rgba(255,159,10,0.2);color:#FF9F0A">OT ${(r.otMin/60).toFixed(1)} ชม.</span>`:''}
+            ${r.note?`<span class="badge" style="background:var(--surface2);color:var(--text2)">${escHtml(r.note)}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn-edit" style="padding:6px 10px" onclick="closeModal('member-history-modal');openEdit('${r.id}','${escHtml(emp.email)}')" title="แก้ไข">✏️</button>
+          <button class="btn-edit" style="padding:6px 10px;background:rgba(255,69,58,0.18);color:#FF453A" onclick="deleteRec('${r.id}','${emp.id}')" title="ลบ">🗑</button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+
+  document.getElementById('mh-content').innerHTML = html;
+}
+
+function openAddManualForMember(){
+  if(!isAdmin() || !_mhCurrentEmp){ showToast('เฉพาะ Admin','warning'); return; }
+  document.getElementById('am-target').textContent = `👤 พนักงาน: ${_mhCurrentEmp.name}`;
+  document.getElementById('am-date').value = todayStr();
+  document.getElementById('am-in').value = '';
+  document.getElementById('am-out').value = '';
+  document.getElementById('am-note').value = '';
+  document.getElementById('add-manual-modal').classList.add('open');
+}
+
+function saveManualForMember(){
+  if(!isAdmin() || !_mhCurrentEmp){ showToast('เฉพาะ Admin','warning'); return; }
+  const date = document.getElementById('am-date').value;
+  const inT = document.getElementById('am-in').value;
+  const outT = document.getElementById('am-out').value;
+  const note = document.getElementById('am-note').value;
+  if(!date || !inT){ showToast('กรุณาระบุวันที่และเวลาเข้า','error'); return; }
+  const late = isLate(inT);
+  const newRec = {
+    id: Date.now()+'',
+    empId: _mhCurrentEmp.id,
+    date,
+    checkIn: inT,
+    checkInTs: null,
+    checkOut: outT||null,
+    checkOutTs: null,
+    isLate: late,
+    otMin: outT ? calcOTMin(outT, inT) : 0,
+    note: note || `[เพิ่มย้อนหลังโดย ${curUser.name}]`
+  };
+  records.push(newRec);
+  // Log this admin action
+  if(typeof saveEditLog === 'function'){
+    saveEditLog({
+      recId: newRec.id, empId: _mhCurrentEmp.id,
+      editorId: curUser.id, editorName: curUser.name,
+      before: null,
+      after: {date, checkIn: inT, checkOut: outT||null, note},
+      ts: Date.now(),
+      action: 'manual_add'
+    });
+  }
+  saveRec();
+  closeModal('add-manual-modal');
+  showToast(`เพิ่มบันทึก ${date} ของ ${_mhCurrentEmp.name}`,'success');
+  renderMemberHistory();
+  if(document.getElementById('page-team').classList.contains('active')) renderTeam();
 }
 
 // ========== RENDER HOME ==========
@@ -4887,8 +5069,9 @@ function renderTeam(){
         <div class="team-stat"><div class="team-stat-val c-green">${totalH.toFixed(1)}</div><div class="team-stat-lbl">ชม.ทำงาน</div></div>
         <div class="team-stat"><div class="team-stat-val c-orange">${(totalOT/60).toFixed(1)}</div><div class="team-stat-lbl">ชม.โอที</div></div>
       </div>
-      ${isAdmin()&&dr.length?`<div style="text-align:right;margin-top:8px">
-        <button class="btn-edit" onclick="event.stopPropagation();openEdit('${dr[0].id}','${emp.email}')">✏️ แก้ไข</button>
+      ${isAdmin()?`<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end">
+        <button class="btn-edit" onclick="event.stopPropagation();openMemberHistory('${escHtml(emp.email)}')" title="ดูประวัติย้อนหลัง">📋 ประวัติ</button>
+        ${dr.length?`<button class="btn-edit" onclick="event.stopPropagation();openEdit('${dr[0].id}','${escHtml(emp.email)}')">✏️ แก้วันนี้</button>`:''}
       </div>`:''}
     </div>`;
   }).join('');
@@ -6421,6 +6604,13 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
 
+// CRITICAL: Force LOCAL persistence (IndexedDB) so users stay logged in
+// across deploys, page reloads, and even when Safari ITP clears cookies.
+// Without this, Firebase may default to SESSION (lost on tab close) on iOS PWA.
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => {
+  console.warn('Auth persistence setup failed:', err);
+});
+
 // Monitor Firebase connection state
 db.ref('.info/connected').on('value', snap => {
   if(snap.val() === true) {
@@ -6616,11 +6806,22 @@ async function _syncFirebaseInBackground(fbUser) {
 
 
 // ===== REALTIME LISTENERS =====
+let _recordsLoadedFromFB = false;
+let _employeesLoadedFromFB = false;
+
 function setupRealtimeListeners() {
   // ----- Records realtime -----
   db.ref('records').on('value', snap => {
-    records = snap.val() ? Object.values(snap.val()) : [];
-    localStorage.setItem('tt_rec', JSON.stringify(records));
+    const fbData = snap.val();
+    // GUARD: if Firebase has data, merge it. If empty AND we have local data, DON'T overwrite local.
+    if (fbData) {
+      records = Object.values(fbData);
+      localStorage.setItem('tt_rec', JSON.stringify(records));
+    } else if (!_recordsLoadedFromFB) {
+      // First load and FB is empty — keep whatever we already have (might be local cache)
+      // Don't push it back though — let user actions trigger that
+    }
+    _recordsLoadedFromFB = true;
     if (curUser) {
       updateTodayStatus();
       // Refresh whichever page is currently active
@@ -6643,8 +6844,12 @@ function setupRealtimeListeners() {
 
   // ----- Employees realtime -----
   db.ref('employees').on('value', snap => {
-    employees = snap.val() ? Object.values(snap.val()) : [];
-    localStorage.setItem('tt_emp', JSON.stringify(employees));
+    const fbData = snap.val();
+    if (fbData) {
+      employees = Object.values(fbData);
+      localStorage.setItem('tt_emp', JSON.stringify(employees));
+    }
+    _employeesLoadedFromFB = true;
     // Refresh active page that shows employees
     const activePage = document.querySelector('.page.active');
     if(!activePage) return;
@@ -6698,28 +6903,71 @@ function setupRealtimeListeners() {
 }
 
 // ===== OVERRIDE SAVE FUNCTIONS =====
-// Save record to Firebase
+// Save record to Firebase — SAFE per-record update (never overwrites root)
 const _origSaveRec = window.saveRec || function(){};
+let _lastSyncedRecordIds = new Set();
 window.saveRec = function() {
   // Local first (instant)
   localStorage.setItem('tt_rec', JSON.stringify(records));
-  // Firebase in background (non-blocking)
-  const recObj = {};
-  records.forEach(r => { recObj[r.id] = r; });
-  db.ref('records').set(recObj).catch(e => console.log('FB write err:', e));
+
+  // SAFETY: don't push to Firebase if we haven't loaded yet — would wipe other people's data
+  if (!_recordsLoadedFromFB) {
+    console.warn('saveRec: Firebase not loaded yet, skipping push to avoid data loss');
+    return;
+  }
+
+  // Per-record update — only writes the records we have, doesn't delete others
+  const updates = {};
+  const currentIds = new Set();
+  records.forEach(r => {
+    if (!r || !r.id) return;
+    updates['records/' + r.id] = r;
+    currentIds.add(r.id);
+  });
+
+  // Detect deletions: records that were in last sync but not in current array
+  _lastSyncedRecordIds.forEach(id => {
+    if (!currentIds.has(id)) {
+      updates['records/' + id] = null;  // null = delete this specific record
+    }
+  });
+
+  _lastSyncedRecordIds = currentIds;
+
+  if (Object.keys(updates).length > 0) {
+    db.ref().update(updates).catch(e => console.log('FB write err:', e));
+  }
 };
 
-// Save employees to Firebase
+// Save employees to Firebase — SAFE per-employee update
 const _origSaveEmp = window.saveEmp || function(){};
+let _lastSyncedEmployeeIds = new Set();
 window.saveEmp = function() {
   // Local first (instant)
   localStorage.setItem('tt_emp', JSON.stringify(employees));
   // Update user cache too
   if(curUser) localStorage.setItem('tt_user_' + curUser.id, JSON.stringify(curUser));
-  // Firebase in background (non-blocking)
-  const empObj = {};
-  employees.forEach(e => { empObj[e.id] = e; });
-  db.ref('employees').set(empObj).catch(e => console.log('FB write err:', e));
+
+  if (!_employeesLoadedFromFB) {
+    console.warn('saveEmp: Firebase not loaded yet, skipping push');
+    return;
+  }
+
+  const updates = {};
+  const currentIds = new Set();
+  employees.forEach(e => {
+    if (!e || !e.id) return;
+    updates['employees/' + e.id] = e;
+    currentIds.add(e.id);
+  });
+  _lastSyncedEmployeeIds.forEach(id => {
+    if (!currentIds.has(id)) updates['employees/' + id] = null;
+  });
+  _lastSyncedEmployeeIds = currentIds;
+
+  if (Object.keys(updates).length > 0) {
+    db.ref().update(updates).catch(e => console.log('FB write err:', e));
+  }
 };
 
 // ===== REGISTER FUNCTIONS =====
@@ -6874,7 +7122,10 @@ function _validateAndCleanCache() {
 }
 _validateAndCleanCache();
 
-// ⚡ TIMEOUT FALLBACK: ถ้า Firebase ไม่ตอบใน 5 วินาที → แสดง login เลย
+// ⚡ TIMEOUT FALLBACK: ถ้า Firebase ไม่ตอบใน 12 วินาที → แสดง login
+// Note: Increased from 5s to 12s because Safari ITP + cold start of IndexedDB
+// can take 6-10s to restore the persisted auth session, especially right after
+// a fresh deploy when the SW cache is being rebuilt.
 const _authTimeout = setTimeout(() => {
   if(_authHandled) return;
   console.log('[Auth] Timeout — showing login');
@@ -6884,7 +7135,7 @@ const _authTimeout = setTimeout(() => {
   // Update loading text
   const loadingTxt = document.querySelector('#init-overlay div:last-child');
   if(loadingTxt) loadingTxt.textContent = 'หมดเวลา กรุณา login';
-}, 5000);
+}, 12000);
 
 auth.onAuthStateChanged(fbUser => {
   clearTimeout(_authTimeout); // Cancel timeout
