@@ -970,6 +970,46 @@ body.dark .modal{
   box-shadow:0 4px 10px rgba(10,132,255,0.3);
 }
 
+/* Team sub-tabs — segmented control */
+.team-subtabs{
+  display:flex;
+  gap:4px;
+  background:var(--glass-3);
+  -webkit-backdrop-filter:var(--blur-light); backdrop-filter:var(--blur-light);
+  border:1px solid var(--glass-stroke-dim);
+  border-radius:var(--r-pill);
+  padding:4px;
+  margin-bottom:14px;
+  overflow-x:auto;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+.team-subtabs::-webkit-scrollbar{ display:none; }
+.team-subtab{
+  flex:1; min-width:max-content;
+  background:transparent;
+  border:none;
+  color:var(--ink-3);
+  padding:8px 12px;
+  border-radius:var(--r-pill);
+  font-size:13px; font-weight:600;
+  cursor:pointer; font-family:inherit;
+  transition:all 0.2s var(--ease-out);
+  white-space:nowrap;
+  letter-spacing:-0.01em;
+}
+.team-subtab.active{
+  background:var(--sys-blue); color:#fff;
+  box-shadow:0 4px 10px rgba(10,132,255,0.3);
+}
+.team-subtab:not(.active):hover{
+  color:var(--ink);
+  background:rgba(10,132,255,0.08);
+}
+body.dark .team-subtab:not(.active):hover{
+  background:rgba(10,132,255,0.15);
+}
+
 .announce-card, .poll-card{
   background:var(--glass-2);
   -webkit-backdrop-filter:var(--blur-card); backdrop-filter:var(--blur-card);
@@ -2297,9 +2337,6 @@ body.dark .punct-card{
     <button class="nav-btn active" data-page="home" onclick="showPage('home',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>หน้าหลัก
     </button>
-    <button class="nav-btn admin-tab" data-page="dashboard" onclick="showPage('dashboard',this)" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>ภาพรวม
-    </button>
     <button class="nav-btn" data-page="calendar" onclick="showPage('calendar',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>ปฏิทิน
     </button>
@@ -2308,9 +2345,6 @@ body.dark .punct-card{
     </button>
     <button class="nav-btn" data-page="history" onclick="showPage('history',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>ประวัติ
-    </button>
-    <button class="nav-btn admin-tab" data-page="status" onclick="showPage('status',this)" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>สถานะ
     </button>
     <button class="nav-btn" data-page="summary" onclick="showPage('summary',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>สรุป
@@ -2448,49 +2482,63 @@ body.dark .punct-card{
     <div id="history-list"></div>
   </div>
 
-  <!-- DASHBOARD (ADMIN) -->
-  <div class="page" id="page-dashboard">
-    <div style="font-size:17px;font-weight:700;margin-bottom:14px">📊 ภาพรวมทีม</div>
-    <div class="filter-row">
-      <select class="sel" id="dash-month" onchange="renderDashboard()"></select>
-      <select class="sel" id="dash-year" onchange="renderDashboard()"></select>
-    </div>
-    <div id="dash-content"></div>
-  </div>
-
-  <!-- STATUS PAGE (ADMIN) -->
-  <div class="page" id="page-status">
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-      <button class="status-filter-btn active" id="sf-all" onclick="setStatusFilter('all',this)">ทั้งหมด <span id="stat-total" style="opacity:.7">0</span></button>
-      <button class="status-filter-btn" id="sf-in" onclick="setStatusFilter('in',this)">🟢 ในงาน <span id="stat-in" style="opacity:.7">0</span></button>
-      <button class="status-filter-btn" id="sf-out" onclick="setStatusFilter('out',this)">⭕ ไม่อยู่ <span id="stat-out" style="opacity:.7">0</span></button>
-    </div>
-    <div class="section-label">สถานะพนักงานวันนี้</div>
-    <div class="status-grid" id="status-grid"></div>
-  </div>
-
-  <!-- TEAM (ADMIN) -->
+  <!-- TEAM (ADMIN) — Consolidated: live status / by date / by month / by member -->
   <div class="page" id="page-team">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-size:17px;font-weight:700">👥 สถานะทีม</div>
-      <input type="date" id="team-date" class="sel" style="max-width:160px" onchange="renderTeam()"/>
-    </div>
-    <div class="stats-grid" id="team-stats-bar"></div>
+    <div style="font-size:17px;font-weight:700;margin-bottom:14px">👥 จัดการทีม</div>
 
-    <div style="margin-bottom:12px" id="admin-add-section">
-      <div class="section-label">เพิ่มพนักงาน</div>
+    <!-- Sub-tabs -->
+    <div class="team-subtabs" id="team-subtabs">
+      <button class="team-subtab active" data-sub="live" onclick="switchTeamSub('live',this)">🟢 สด</button>
+      <button class="team-subtab" data-sub="daily" onclick="switchTeamSub('daily',this)">📅 รายวัน</button>
+      <button class="team-subtab" data-sub="monthly" onclick="switchTeamSub('monthly',this)">📊 รายเดือน</button>
+      <button class="team-subtab" data-sub="member" onclick="switchTeamSub('member',this)">👤 รายคน</button>
     </div>
 
-    <div class="section-label">รายชื่อทีม</div>
-    <div id="team-list"></div>
-
-    <div class="divider"></div>
-    <div class="section-label">สรุปทีมรายเดือน</div>
-    <div class="filter-row">
-      <select class="sel" id="ts-month" onchange="renderTeamSummary()"></select>
-      <select class="sel" id="ts-year" onchange="renderTeamSummary()"></select>
+    <!-- SUB-TAB 1: Live status (was page-status) -->
+    <div class="team-sub-content" id="team-sub-live">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="status-filter-btn active" id="sf-all" onclick="setStatusFilter('all',this)">ทั้งหมด <span id="stat-total" style="opacity:.7">0</span></button>
+        <button class="status-filter-btn" id="sf-in" onclick="setStatusFilter('in',this)">🟢 ในงาน <span id="stat-in" style="opacity:.7">0</span></button>
+        <button class="status-filter-btn" id="sf-out" onclick="setStatusFilter('out',this)">⭕ ไม่อยู่ <span id="stat-out" style="opacity:.7">0</span></button>
+      </div>
+      <div class="section-label">สถานะพนักงานวันนี้</div>
+      <div class="status-grid" id="status-grid"></div>
     </div>
-    <div id="team-summary-table"></div>
+
+    <!-- SUB-TAB 2: Daily view (was page-team) -->
+    <div class="team-sub-content" id="team-sub-daily" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;flex-wrap:wrap">
+        <div style="font-size:14px;color:var(--text2)">เลือกวันที่</div>
+        <input type="date" id="team-date" class="sel" style="max-width:200px" onchange="renderTeam()"/>
+      </div>
+      <div class="stats-grid" id="team-stats-bar"></div>
+      <div class="section-label" style="margin-top:14px">รายชื่อทีม</div>
+      <div id="team-list"></div>
+    </div>
+
+    <!-- SUB-TAB 3: Monthly view (was page-dashboard + summary table) -->
+    <div class="team-sub-content" id="team-sub-monthly" style="display:none">
+      <div class="filter-row">
+        <select class="sel" id="dash-month" onchange="renderDashboard();renderTeamSummary()"></select>
+        <select class="sel" id="dash-year" onchange="renderDashboard();renderTeamSummary()"></select>
+      </div>
+      <div id="dash-content"></div>
+      <div class="divider"></div>
+      <div class="section-label">ตารางสรุปแต่ละคน</div>
+      <select class="sel" id="ts-month" style="display:none"></select>
+      <select class="sel" id="ts-year" style="display:none"></select>
+      <div id="team-summary-table"></div>
+    </div>
+
+    <!-- SUB-TAB 4: By member (search + history) — NEW -->
+    <div class="team-sub-content" id="team-sub-member" style="display:none">
+      <input type="search" id="member-search" class="form-inp" placeholder="🔍 ค้นหาชื่อหรืออีเมลพนักงาน..." oninput="renderMemberPicker()" style="margin-bottom:12px"/>
+      <div id="member-picker-list"></div>
+    </div>
+
+    <div class="divider" style="margin:20px 0"></div>
+    <div class="section-label">⚙️ จัดการพนักงาน</div>
+    <button class="btn-primary" style="margin-top:8px" onclick="openAddEmpModal()">➕ เพิ่มพนักงาน</button>
   </div>
 
   <!-- SUMMARY PAGE -->
@@ -4331,6 +4379,67 @@ function deleteRec(id,empId){
 // ========== MEMBER HISTORY (ADMIN) ==========
 let _mhCurrentEmp = null; // currently viewed employee object
 
+// ========== TEAM SUB-TABS (ADMIN) ==========
+let _currentTeamSub = 'live';
+
+function switchTeamSub(sub, btn){
+  if(!isAdmin()) return;
+  _currentTeamSub = sub;
+  // Update button states
+  document.querySelectorAll('.team-subtab').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  // Show/hide content panels
+  ['live','daily','monthly','member'].forEach(name => {
+    const el = document.getElementById('team-sub-'+name);
+    if(el) el.style.display = (name === sub) ? '' : 'none';
+  });
+  // Render the active panel
+  if(sub === 'live'){
+    if(typeof renderStatus === 'function') renderStatus();
+  } else if(sub === 'daily'){
+    if(typeof renderTeam === 'function') renderTeam();
+  } else if(sub === 'monthly'){
+    if(typeof renderDashboard === 'function') renderDashboard();
+    if(typeof renderTeamSummary === 'function') renderTeamSummary();
+  } else if(sub === 'member'){
+    renderMemberPicker();
+  }
+}
+
+function renderMemberPicker(){
+  if(!isAdmin()) return;
+  const search = (document.getElementById('member-search')?.value || '').trim().toLowerCase();
+  const list = employees.filter(e => {
+    if(!search) return true;
+    return e.name.toLowerCase().includes(search) ||
+           e.email.toLowerCase().includes(search) ||
+           (e.dept || '').toLowerCase().includes(search);
+  });
+  const el = document.getElementById('member-picker-list');
+  if(!el) return;
+  if(list.length === 0){
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div>ไม่พบพนักงาน</div></div>`;
+    return;
+  }
+  el.innerHTML = list.map(emp => {
+    const photo = getPhoto(emp.email);
+    const empRecs = records.filter(r => r.empId === emp.id);
+    const totalDays = new Set(empRecs.map(r => r.date)).size;
+    const totalH = empRecs.filter(r => r.checkOut).reduce((s,r) => s + calcHours(r.checkIn, r.checkOut), 0);
+    return `<div class="card" style="padding:12px;margin-bottom:8px;cursor:pointer" onclick="openMemberHistory('${escHtml(emp.email)}')">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="team-av" style="background:${photo?'none':avatarGrad(emp.name)};width:44px;height:44px;flex-shrink:0">${photo?`<img src="${photo}">`:avatarLetter(emp.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:14px;color:var(--ink)">${escHtml(emp.name)}</div>
+          <div style="font-size:11px;color:var(--ink-4);margin-top:1px">${escHtml(emp.email)}</div>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:3px">📋 ${totalDays} วัน · ${totalH.toFixed(0)} ชม. รวม</div>
+        </div>
+        <div style="color:var(--sys-blue);font-size:18px;flex-shrink:0">›</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function openMemberHistory(empEmail){
   if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   const emp = employees.find(e => e.email === empEmail);
@@ -6114,10 +6223,18 @@ function showPage(id,btn){
   }
   if(btn)btn.classList.add('active');
   if(id==='stats')    { showSkeletonStats(); renderStats() }
-  if(id==='dashboard'){ renderDashboard() }
-  if(id==='status')   { renderStatus() }
   if(id==='summary')  { renderSummary() }
-  if(id==='team')     { showSkeletonTeam(); renderTeam() }
+  if(id==='team')     {
+    showSkeletonTeam();
+    // Render the currently active team sub-tab (default: live)
+    if(typeof switchTeamSub === 'function'){
+      const activeBtn = document.querySelector('.team-subtab.active') ||
+                        document.querySelector('.team-subtab[data-sub="live"]');
+      switchTeamSub(_currentTeamSub || 'live', activeBtn);
+    } else {
+      renderTeam();
+    }
+  }
   if(id==='salary')   { renderSalary() }
   if(id==='settings') { renderEmpListSettings(); updateThemeBtn(); initPushSettings() }
   if(id==='calendar') { renderCalendar() }
@@ -6276,7 +6393,7 @@ function updateClockGlow() {
 // 🎯 EFFECT 6: PAGE TRANSITION - slide
 // ============================================================
 let _lastPageIdx = 0;
-const _pageOrder = ['home','calendar','stats','history','status','summary','dashboard','team','salary','settings'];
+const _pageOrder = ['home','calendar','stats','history','summary','team','salary','settings'];
 
 // ============================================================
 // 🎯 EFFECT 7: SKELETON LOADING
@@ -6849,14 +6966,12 @@ function setupRealtimeListeners() {
       const id = activePage.id;
       try{
         if (id === 'page-home')      renderHome();
-        else if (id === 'page-status')   renderStatus();
         else if (id === 'page-history')  renderHistory();
         else if (id === 'page-stats')    renderStats();
         else if (id === 'page-calendar') renderCalendar();
         else if (id === 'page-summary')  renderSummary();
-        else if (id === 'page-dashboard')renderDashboard();
         else if (id === 'page-salary')   renderSalary();
-        else if (id === 'page-team' && isAdmin()) renderTeam();
+        else if (id === 'page-team' && isAdmin()) { if(typeof switchTeamSub==='function') switchTeamSub(_currentTeamSub || 'live', document.querySelector('.team-subtab.active')); }
       }catch(e){ console.warn('Re-render error:', e); }
     }
   }, err => console.warn('records listen err:', err));
@@ -6874,10 +6989,8 @@ function setupRealtimeListeners() {
     if(!activePage) return;
     const id = activePage.id;
     try{
-      if (id === 'page-status')        renderStatus();
-      else if (id === 'page-team' && isAdmin()) renderTeam();
+      if (id === 'page-team' && isAdmin()) { if(typeof switchTeamSub==='function') switchTeamSub(_currentTeamSub || 'live', document.querySelector('.team-subtab.active')); }
       else if (id === 'page-summary')  renderSummary();
-      else if (id === 'page-dashboard')renderDashboard();
       else if (id === 'page-salary')   renderSalary();
     }catch(e){ console.warn('Emp re-render error:', e); }
   }, err => console.warn('employees listen err:', err));
@@ -6911,10 +7024,8 @@ function setupRealtimeListeners() {
       if(activePage){
         const id = activePage.id;
         try{
-          if (id === 'page-status')        renderStatus();
-          else if (id === 'page-team' && isAdmin()) renderTeam();
+          if (id === 'page-team' && isAdmin()) { if(typeof switchTeamSub==='function') switchTeamSub(_currentTeamSub || 'live', document.querySelector('.team-subtab.active')); }
           else if (id === 'page-summary')  renderSummary();
-          else if (id === 'page-dashboard')renderDashboard();
         }catch(e){}
       }
     }
