@@ -4527,6 +4527,12 @@ function openEdit(id,ownerEmail){
 function saveEdit(){
   const id=document.getElementById('edit-id').value;
   const ownerEmail=document.getElementById('edit-owner').value;
+  // GUARD: Only admin can edit others' records. Subadmin/employee can only edit their own.
+  if(ownerEmail !== curUser.email && !isAdmin()){
+    showToast('ไม่มีสิทธิ์แก้ไขรายการของคนอื่น','error');
+    closeModal('edit-modal');
+    return;
+  }
   const eid=employees.find(e=>e.email===ownerEmail)?.id;
   const date=document.getElementById('edit-date').value;
   const inT=document.getElementById('edit-in').value;
@@ -4551,6 +4557,11 @@ function saveEdit(){
   if(document.getElementById('member-history-modal').classList.contains('open'))renderMemberHistory();
 }
 function deleteRec(id,empId){
+  // GUARD: Only admin can delete others' records.
+  if(empId !== curUser.id && !isAdmin()){
+    showToast('ไม่มีสิทธิ์ลบรายการของคนอื่น','error');
+    return;
+  }
   showConfirm('🗑 ลบรายการ','ยืนยันลบรายการบันทึกเวลานี้? ไม่สามารถกู้คืนได้',()=>{
     records=records.filter(r=>!(r.id===id&&r.empId===empId));
     saveRec();showToast('ลบแล้ว','success');
@@ -5153,7 +5164,7 @@ function renderHistory(resetPage){
 
 // ========== DASHBOARD (ADMIN) ==========
 function renderDashboard() {
-  if(!isAdmin()) return;
+  if(!canView()) return;
   const month = parseInt(document.getElementById('dash-month')?.value ?? new Date().getMonth());
   const year  = parseInt(document.getElementById('dash-year')?.value  ?? new Date().getFullYear());
   const mons  = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -5334,7 +5345,7 @@ function setStatusFilter(type, btn) {
 }
 
 function renderStatus() {
-  if(!isAdmin()) return;
+  if(!canView()) return;
   const today = todayStr();
   let inCount = 0;
   const allCards = employees.map(emp => {
@@ -5415,7 +5426,7 @@ function renderSummary() {
 
 // ========== TEAM (ADMIN) ==========
 function renderTeam(){
-  if(!isAdmin())return;
+  if(!canView())return;
   showSkeleton('team-list',3);
   setTimeout(()=>{
   const dateKey=document.getElementById('team-date').value||todayStr();
@@ -5472,7 +5483,7 @@ function renderTeam(){
 }
 
 function renderTeamSummary(){
-  if(!isAdmin())return;
+  if(!canView())return;
   const month=parseInt(document.getElementById('ts-month').value);
   const year=parseInt(document.getElementById('ts-year').value);
   const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -5954,8 +5965,13 @@ function changeEmpRole(id){
     }
   );
 }
-function openAddEmpModal(){renderEmpListSettings();document.getElementById('add-emp-modal').classList.add('open')}
+function openAddEmpModal(){
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
+  renderEmpListSettings();
+  document.getElementById('add-emp-modal').classList.add('open');
+}
 function removeEmp(id){
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   if(id===curUser.id){showToast('ไม่สามารถลบตัวเองได้','error');return}
   const emp=employees.find(e=>e.id===id);
   showConfirm('🗑 ลบพนักงาน',`ยืนยันลบ "${emp?.name||'พนักงาน'}" ออกจากระบบ? ข้อมูลทั้งหมดจะหายไป`,()=>{
@@ -5963,6 +5979,7 @@ function removeEmp(id){
   });
 }
 function addEmp(){
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   const name=document.getElementById('n-name').value.trim();
   const email=document.getElementById('n-email').value.trim().toLowerCase();
   const pass=document.getElementById('n-pass').value;
@@ -6282,6 +6299,7 @@ function loadAnnounces() {
 }
 
 function saveAnnounce(ann) {
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   announces.unshift(ann);
   announces.sort((a,b) => { if(a.pinned&&!b.pinned)return -1; if(!a.pinned&&b.pinned)return 1; return b.ts-a.ts; });
   localStorage.setItem('tt_announces', JSON.stringify(announces));
@@ -6289,6 +6307,7 @@ function saveAnnounce(ann) {
 }
 
 function openCreateAnnounce() {
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   document.getElementById('ann-title').value = '';
   document.getElementById('ann-body').value = '';
   document.getElementById('ann-pin').checked = false;
@@ -6298,6 +6317,7 @@ function openCreateAnnounce() {
 }
 
 function submitAnnounce() {
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   const title = document.getElementById('ann-title').value.trim();
   const body  = document.getElementById('ann-body').value.trim();
   if(!title||!body) { showToast('กรุณากรอกหัวข้อและเนื้อหา','error'); return; }
@@ -6315,6 +6335,7 @@ function submitAnnounce() {
 }
 
 function deleteAnnounce(id) {
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   showConfirm('🗑 ลบประกาศ','ยืนยันลบประกาศนี้?', ()=>{
     announces = announces.filter(a=>a.id!==id);
     localStorage.setItem('tt_announces', JSON.stringify(announces));
@@ -6382,6 +6403,7 @@ function updateAnnounceBadge() {
 
 // ========== POLL ==========
 function openCreatePoll() {
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   document.getElementById('poll-q').value = '';
   document.getElementById('poll-multi').checked = false;
   const wrap = document.getElementById('poll-options-wrap');
@@ -6402,6 +6424,7 @@ function addPollOption() {
 }
 
 function submitPoll() {
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   const q = document.getElementById('poll-q').value.trim();
   const multi = document.getElementById('poll-multi').checked;
   const options = [...document.getElementById('poll-options-wrap').querySelectorAll('input')]
