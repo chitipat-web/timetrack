@@ -649,6 +649,17 @@ body.dark .clock-hero{
 }
 .btn-in > *, .btn-out > * { position:relative; z-index:1; }
 .btn-in:active, .btn-out:active { opacity:0.85; }
+
+/* DISABLED state — clearly shows button is locked after check-in/out */
+.btn-in:disabled, .btn-out:disabled {
+  opacity:0.4 !important;
+  cursor:not-allowed !important;
+  filter:grayscale(0.6);
+  pointer-events:none;
+}
+.btn-in:disabled:active, .btn-out:disabled:active {
+  opacity:0.4 !important;
+}
 .btn-sub { font-size:11px; font-weight:500; opacity:0.92; text-shadow:0 1px 2px rgba(0,0,0,0.15); }
 .liquid-cv { display:none !important; }
 
@@ -4136,6 +4147,10 @@ function burst(x, y, emojis) {
 let _lastCheckInTs = 0;
 let _lastCheckOutTs = 0;
 function doCheckIn(){
+  // GUARD 1: Disable button INSTANTLY — before any logic. Prevents rapid-tap entirely.
+  const btnIn = document.getElementById('btn-in');
+  if (btnIn && btnIn.disabled) return;
+  if (btnIn) btnIn.disabled = true;
   // Hard lock: ignore any check-in within 1.5s of the previous one
   const now = Date.now();
   if (now - _lastCheckInTs < 1500) return;
@@ -4148,7 +4163,6 @@ function doCheckIn(){
   records.push({id:Date.now()+'',empId:curUser.id,date:today,checkIn:t,checkInTs:Date.now(),checkOut:null,checkOutTs:null,isLate:late,otMin:0,note:''});
   haptic(late ? 'error' : 'success');
   saveRec();
-  document.getElementById('btn-in').disabled=true;
   document.getElementById('btn-out').disabled=false;
   showToast(`เข้างาน ${t}${late?' ⚠ สาย':''}`,late?'warning':'success');
   const b1=document.getElementById('btn-in');const r1=b1.getBoundingClientRect();
@@ -4170,6 +4184,10 @@ function doCheckIn(){
   renderHome();
 }
 function doCheckOut(){
+  // GUARD 1: Disable button INSTANTLY — before any logic. Prevents rapid-tap entirely.
+  const btnOut = document.getElementById('btn-out');
+  if (btnOut && btnOut.disabled) return;
+  if (btnOut) btnOut.disabled = true;
   const now = Date.now();
   if (now - _lastCheckOutTs < 1500) return;
   _lastCheckOutTs = now;
@@ -4181,7 +4199,6 @@ function doCheckOut(){
   haptic(records[idx].otMin>0 ? 'heavy' : 'success');
   saveRec();
   document.getElementById('btn-in').disabled=false;
-  document.getElementById('btn-out').disabled=true;
   const hrs=((ts-records[idx].checkInTs)/3600000).toFixed(1);
   showToast(`ออกงาน ${t} — ${hrs} ชม.${records[idx].otMin>0?' ⚡ OT!':''}`, 'success');
   const b2=document.getElementById('btn-out');const r2=b2.getBoundingClientRect();
