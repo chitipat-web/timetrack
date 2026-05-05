@@ -4775,7 +4775,7 @@ function addEmp(){
 
 // ========== CONFIRM DIALOG ==========
 let _confirmCallback = null;
-function showConfirm(title, msg, onOk, okLabel='ลบ', okClass='confirm-ok') {
+function showConfirm(title, msg, onOk, okLabel='ลบ', okClass='confirm-ok danger') {
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-msg').textContent = msg;
   const btn = document.getElementById('confirm-ok-btn');
