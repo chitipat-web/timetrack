@@ -6285,29 +6285,35 @@ document.addEventListener('DOMContentLoaded', () => {
   wireBtn('btn-in');
   wireBtn('btn-out');
 
-  // Run count-up + ring animation when a page becomes active
-  const observer = new MutationObserver(() => {
-    document.querySelectorAll('.page.active').forEach(page => {
-      if (!page.dataset.statsAnimated) {
-        page.dataset.statsAnimated = '1';
-        animateStatsIn(page);
-        // Animate progress rings inside this page
-        page.querySelectorAll('.punct-ring-fg[data-target-offset], .progress-ring-fg[data-target-offset]').forEach(circle => {
-          const target = circle.getAttribute('data-target-offset');
-          // Force a reflow so transition picks up the change
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              circle.style.strokeDashoffset = target;
-            });
-          });
+  // Run count-up + ring animation ONLY when switching to a page (not on every internal class change)
+  let lastActivePageId = null;
+  const checkPageSwitch = () => {
+    const activePage = document.querySelector('.page.active');
+    if (!activePage) { lastActivePageId = null; return; }
+    if (activePage.id === lastActivePageId) return; // same page, no re-animation
+    lastActivePageId = activePage.id;
+    // Animate stats inside the now-active page
+    animateStatsIn(activePage);
+    // Animate progress rings inside this page
+    activePage.querySelectorAll('.punct-ring-fg[data-target-offset], .progress-ring-fg[data-target-offset]').forEach(circle => {
+      const target = circle.getAttribute('data-target-offset');
+      // Reset to full circle first so transition has somewhere to come from
+      const circ = circle.getAttribute('stroke-dasharray');
+      circle.style.strokeDashoffset = circ;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          circle.style.strokeDashoffset = target;
         });
-        setTimeout(() => { delete page.dataset.statsAnimated; }, 1500);
-      }
+      });
     });
-  });
+  };
+  const observer = new MutationObserver(checkPageSwitch);
   observer.observe(document.body, {attributes: true, subtree: true, attributeFilter: ['class']});
+  // Also check on initial load
+  setTimeout(checkPageSwitch, 100);
 
-  // Also kick rings when a new ring is inserted dynamically (after re-renders)
+  // Also kick rings when a new ring is inserted dynamically (after re-renders),
+  // but ONLY if it's the first insertion (no inline dashoffset set yet)
   const ringObserver = new MutationObserver((mutations) => {
     mutations.forEach(m => {
       m.addedNodes.forEach(node => {
