@@ -1022,6 +1022,54 @@ body.dark .modal{
   box-shadow:0 4px 10px rgba(10,132,255,0.3);
 }
 
+/* Member history modal tabs */
+.mh-tabs{
+  display:flex; gap:2px;
+  background:var(--glass-3);
+  border:1px solid var(--glass-stroke-dim);
+  border-radius:12px;
+  padding:3px;
+  margin-bottom:14px;
+}
+.mh-tab{
+  flex:1;
+  background:transparent;
+  border:none;
+  color:var(--ink-3);
+  padding:8px 10px;
+  border-radius:9px;
+  font-size:13px; font-weight:600;
+  cursor:pointer; font-family:inherit;
+  transition:all 0.2s var(--ease-out);
+  letter-spacing:-0.01em;
+}
+.mh-tab.active{
+  background:linear-gradient(135deg, var(--sys-blue), #4FA8FF);
+  color:#fff;
+  box-shadow:0 2px 8px rgba(10,132,255,0.3);
+}
+
+/* Login log items */
+.login-log-item{
+  display:flex; gap:10px; align-items:flex-start;
+  padding:10px 12px;
+  background:var(--glass-3);
+  border:1px solid var(--glass-stroke-dim);
+  border-radius:10px;
+  margin-bottom:6px;
+}
+.login-log-icon{
+  width:32px; height:32px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(10,132,255,0.15);
+  border-radius:8px;
+  font-size:14px;
+}
+.login-log-info{ flex:1; min-width:0; }
+.login-log-time{ font-size:13px; font-weight:600; color:var(--ink); }
+.login-log-device{ font-size:11px; color:var(--ink-3); margin-top:2px; }
+.login-log-relative{ font-size:11px; color:var(--ink-4); }
+
 /* Team sub-tabs — segmented control */
 .team-subtabs{
   display:flex;
@@ -2817,15 +2865,31 @@ body.dark .punct-card{
 <div class="modal-overlay" id="member-history-modal">
   <div class="modal" style="max-width:560px">
     <div class="modal-title" id="mh-title">ประวัติพนักงาน<button class="modal-close" onclick="closeModal('member-history-modal')">✕</button></div>
-    <div id="mh-summary" style="margin-bottom:12px"></div>
-    <div class="filter-row" style="margin-bottom:12px">
-      <select class="sel" id="mh-month" onchange="renderMemberHistory()"></select>
-      <select class="sel" id="mh-year" onchange="renderMemberHistory()"></select>
+
+    <!-- Tabs inside member history -->
+    <div class="mh-tabs">
+      <button class="mh-tab active" data-mtab="records" onclick="switchMemberTab('records',this)">📋 บันทึกเวลา</button>
+      <button class="mh-tab" data-mtab="logins" onclick="switchMemberTab('logins',this)">🔐 เข้าระบบ</button>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <button class="btn-secondary" style="flex:1" onclick="openAddManualForMember()">➕ เพิ่มบันทึกย้อนหลัง</button>
+
+    <!-- TAB 1: Records (existing) -->
+    <div id="mh-tab-records">
+      <div id="mh-summary" style="margin-bottom:12px"></div>
+      <div class="filter-row" style="margin-bottom:12px">
+        <select class="sel" id="mh-month" onchange="renderMemberHistory()"></select>
+        <select class="sel" id="mh-year" onchange="renderMemberHistory()"></select>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn-secondary" style="flex:1" onclick="openAddManualForMember()">➕ เพิ่มบันทึกย้อนหลัง</button>
+      </div>
+      <div id="mh-content"></div>
     </div>
-    <div id="mh-content"></div>
+
+    <!-- TAB 2: Login logs (new) -->
+    <div id="mh-tab-logins" style="display:none">
+      <div id="mh-login-summary" style="margin-bottom:12px"></div>
+      <div id="mh-login-content"></div>
+    </div>
   </div>
 </div>
 
@@ -4556,7 +4620,86 @@ function openMemberHistory(empEmail){
 
   document.getElementById('mh-title').innerHTML = `📋 ${escHtml(emp.name)}<button class="modal-close" onclick="closeModal('member-history-modal')">✕</button>`;
   document.getElementById('member-history-modal').classList.add('open');
+  // Reset to records tab when opening
+  document.querySelectorAll('.mh-tab').forEach(b => b.classList.remove('active'));
+  const recTab = document.querySelector('.mh-tab[data-mtab="records"]');
+  if(recTab) recTab.classList.add('active');
+  document.getElementById('mh-tab-records').style.display = '';
+  document.getElementById('mh-tab-logins').style.display = 'none';
   renderMemberHistory();
+}
+
+function switchMemberTab(tab, btn){
+  if(!isAdmin() || !_mhCurrentEmp) return;
+  document.querySelectorAll('.mh-tab').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('mh-tab-records').style.display = (tab==='records') ? '' : 'none';
+  document.getElementById('mh-tab-logins').style.display  = (tab==='logins')  ? '' : 'none';
+  if(tab === 'logins'){
+    renderLoginLogs();
+  }
+}
+
+function formatRelativeTime(ts){
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  const hrs = Math.floor(mins / 60);
+  const days = Math.floor(hrs / 24);
+  if (mins < 1)   return 'เมื่อสักครู่';
+  if (mins < 60)  return `${mins} นาทีที่แล้ว`;
+  if (hrs < 24)   return `${hrs} ชั่วโมงที่แล้ว`;
+  if (days < 7)   return `${days} วันที่แล้ว`;
+  if (days < 30)  return `${Math.floor(days/7)} สัปดาห์ที่แล้ว`;
+  return `${Math.floor(days/30)} เดือนที่แล้ว`;
+}
+
+async function renderLoginLogs(){
+  if(!isAdmin() || !_mhCurrentEmp){ return; }
+  const emp = _mhCurrentEmp;
+  const summaryEl = document.getElementById('mh-login-summary');
+  const contentEl = document.getElementById('mh-login-content');
+  contentEl.innerHTML = '<div class="empty-state"><div style="font-size:13px;color:var(--ink-3)">กำลังโหลด...</div></div>';
+
+  const logs = await getLoginLogs(emp.id, 100);
+
+  // Summary stats
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayMs = today.getTime();
+  const weekMs = todayMs - 6*86400000;
+  const monthMs = todayMs - 29*86400000;
+  const todayCount = logs.filter(l => l.ts >= todayMs).length;
+  const weekCount = logs.filter(l => l.ts >= weekMs).length;
+  const monthCount = logs.filter(l => l.ts >= monthMs).length;
+  const lastLogin = logs[0];
+
+  summaryEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+      <div class="stat-box"><div class="stat-val c-blue">${todayCount}</div><div class="stat-lbl" style="font-size:10px">วันนี้</div></div>
+      <div class="stat-box"><div class="stat-val c-green">${weekCount}</div><div class="stat-lbl" style="font-size:10px">7 วัน</div></div>
+      <div class="stat-box"><div class="stat-val c-purple">${monthCount}</div><div class="stat-lbl" style="font-size:10px">30 วัน</div></div>
+    </div>
+    ${lastLogin ? `<div style="font-size:12px;color:var(--ink-3);text-align:center;padding:6px 0">เข้าระบบล่าสุด: <strong>${formatRelativeTime(lastLogin.ts)}</strong></div>` : ''}
+  `;
+
+  if(logs.length === 0){
+    contentEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🔐</div><div>ยังไม่มีบันทึกการเข้าระบบ</div><div style="font-size:11px;color:var(--ink-4);margin-top:6px">ระบบเริ่มเก็บข้อมูลตั้งแต่อัปเดตเวอร์ชันนี้</div></div>`;
+    return;
+  }
+
+  const mons = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  contentEl.innerHTML = logs.map(l => {
+    const d = new Date(l.ts);
+    const dateStr = `${d.getDate()} ${mons[d.getMonth()]} ${d.getFullYear()+543}`;
+    const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `<div class="login-log-item">
+      <div class="login-log-icon">🔐</div>
+      <div class="login-log-info">
+        <div class="login-log-time">${dateStr} · ${timeStr}</div>
+        <div class="login-log-device">${escHtml(l.device || 'Unknown device')}</div>
+      </div>
+      <div class="login-log-relative">${formatRelativeTime(l.ts)}</div>
+    </div>`;
+  }).join('');
 }
 
 function renderMemberHistory(){
@@ -5873,6 +6016,71 @@ function saveEditLog(entry) {
     }
   } catch(e) {}
 }
+
+// ========== LOGIN LOG ==========
+function detectDevice(){
+  const ua = navigator.userAgent || '';
+  let dev = 'Unknown';
+  if (/iPhone/.test(ua))     dev = '📱 iPhone';
+  else if (/iPad/.test(ua))  dev = '📱 iPad';
+  else if (/Android/.test(ua)){
+    dev = /Mobile/.test(ua) ? '📱 Android' : '📱 Android Tablet';
+  }
+  else if (/Macintosh/.test(ua)) dev = '💻 Mac';
+  else if (/Windows/.test(ua))   dev = '💻 Windows';
+  else if (/Linux/.test(ua))     dev = '💻 Linux';
+  let browser = '';
+  if (/CriOS|Chrome/.test(ua) && !/Edg/.test(ua)) browser = 'Chrome';
+  else if (/FxiOS|Firefox/.test(ua))              browser = 'Firefox';
+  else if (/Edg/.test(ua))                        browser = 'Edge';
+  else if (/Safari/.test(ua))                     browser = 'Safari';
+  const isPWA = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  return `${dev}${browser ? ' · ' + browser : ''}${isPWA ? ' (PWA)' : ''}`;
+}
+
+function saveLoginLog(user){
+  if(!user || !user.id) return;
+  try {
+    const entry = {
+      empId: user.id,
+      empName: user.name || '',
+      empEmail: user.email || '',
+      ts: Date.now(),
+      device: detectDevice()
+    };
+    // Save to Firebase under loginlogs/{empId}/{ts}
+    if(typeof db !== 'undefined') {
+      db.ref('loginlogs/' + user.id + '/' + entry.ts).set(entry).catch(() => {});
+    }
+    // Also keep small local history (last 30)
+    const key = 'tt_loginlog_' + user.id;
+    const logs = JSON.parse(localStorage.getItem(key) || '[]');
+    logs.unshift(entry);
+    localStorage.setItem(key, JSON.stringify(logs.slice(0, 30)));
+  } catch(e) { console.warn('saveLoginLog failed:', e); }
+}
+
+async function getLoginLogs(empId, limit){
+  if(!empId) return [];
+  let logs = [];
+  try {
+    if(typeof db !== 'undefined') {
+      const snap = await db.ref('loginlogs/' + empId)
+        .orderByKey()
+        .limitToLast(limit || 50)
+        .once('value');
+      const data = snap.val() || {};
+      logs = Object.values(data);
+    }
+    // Merge local entries (in case Firebase write failed)
+    const localLogs = JSON.parse(localStorage.getItem('tt_loginlog_' + empId) || '[]');
+    const seen = new Set(logs.map(l => l.ts));
+    localLogs.forEach(l => { if(!seen.has(l.ts)) logs.push(l); });
+    logs.sort((a,b) => b.ts - a.ts);
+  } catch(e) { console.warn('getLoginLogs failed:', e); }
+  return logs;
+}
+
 function getEditLogs(empId) {
   try {
     const logs = JSON.parse(localStorage.getItem('tt_editlog') || '[]');
@@ -6951,7 +7159,8 @@ async function handleFirebaseUser(fbUser) {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'block';
     initApp();
-    // Sync Firebase เบื้องหลัง
+    // Save login log + Sync Firebase เบื้องหลัง
+    if (typeof saveLoginLog === 'function') saveLoginLog(curUser);
     _syncFirebaseInBackground(fbUser);
     return;
   }
@@ -6991,6 +7200,8 @@ async function handleFirebaseUser(fbUser) {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'block';
     initApp();
+    // Save login log
+    if (typeof saveLoginLog === 'function') saveLoginLog(curUser);
   } catch(err) {
     console.error('[Auth] Firebase load error:', err);
     const overlay = document.getElementById('init-overlay');
