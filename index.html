@@ -7504,14 +7504,125 @@ window.burst = function(x, y, emojis) {
 };
 </script>
 <script>
-// ===== SERVICE WORKER REGISTRATION =====
+// ===== SERVICE WORKER AUTO-UPDATE =====
+// Strategy: silent auto-update with safety guards
+// - Detect new SW
+// - Wait for safe moment (no input focused, no modal open, app idle)
+// - Reload only when user is not actively working
 if('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    let _hasNewSW = false;
+    let _reloadInProgress = false;
+
+    // ----- Helper: is it safe to reload right now? -----
+    function isSafeToReload() {
+      // Don't reload if user typing in an input/textarea
+      const ae = document.activeElement;
+      if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) {
+        return false;
+      }
+      // Don't reload if any modal/overlay is open
+      const openModals = document.querySelectorAll('.modal-overlay.open, .confirm-overlay.open');
+      if (openModals.length > 0) return false;
+      // Don't reload if check-in/out happened in last 10s (avoid mid-action reload)
+      const lastAction = parseInt(sessionStorage.getItem('_last_action_ts') || '0', 10);
+      if (Date.now() - lastAction < 10000) return false;
+      // Don't reload if app is hidden — wait until visible to reload silently
+      if (document.visibilityState === 'hidden') return false;
+      return true;
+    }
+
+    // ----- Helper: safe reload (waits for safe moment) -----
+    function safeReload(reason) {
+      if (_reloadInProgress) return;
+      _reloadInProgress = true;
+      console.log('[SW] update available — reason:', reason);
+
+      const tryReload = () => {
+        if (isSafeToReload()) {
+          console.log('[SW] reloading now');
+          location.reload();
+        } else {
+          // Try again in 2 seconds
+          setTimeout(tryReload, 2000);
+        }
+      };
+      // Initial wait — let any current animation/transition finish
+      setTimeout(tryReload, 500);
+    }
+
+    // ----- Track last user action to avoid mid-action reload -----
+    function markAction() {
+      try { sessionStorage.setItem('_last_action_ts', String(Date.now())); } catch(e) {}
+    }
+    document.addEventListener('click', markAction, { passive: true });
+    document.addEventListener('input', markAction, { passive: true });
+
+    // ----- Register SW -----
     navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('[SW] registered:', reg.scope))
-      .catch(err => console.log('[SW] error:', err));
+      .then(reg => {
+        console.log('[SW] registered:', reg.scope);
+
+        // Detect new SW being installed
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          console.log('[SW] new worker installing...');
+          newWorker.addEventListener('statechange', () => {
+            console.log('[SW] new worker state:', newWorker.state);
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New SW is ready, current one still controls — trigger takeover
+              _hasNewSW = true;
+              console.log('[SW] new version installed — telling it to skip waiting');
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+
+        // Force update check on load
+        reg.update().catch(()=>{});
+
+        // Periodic check every 30 minutes (in case app stays open all day)
+        setInterval(() => reg.update().catch(()=>{}), 30 * 60 * 1000);
+      })
+      .catch(err => console.log('[SW] register error:', err));
+
+    // ----- Listen for SW activation messages -----
+    navigator.serviceWorker.addEventListener('message', evt => {
+      if (evt.data && evt.data.type === 'SW_UPDATED') {
+        console.log('[SW] received SW_UPDATED:', evt.data.version);
+        if (_hasNewSW) safeReload('SW_UPDATED message');
+      }
+    });
+
+    // ----- Reload when new SW takes control (only if we knew about update) -----
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      console.log('[SW] controllerchange fired');
+      // Only reload if we explicitly detected a new SW via updatefound
+      // (prevents reload on first-ever SW install)
+      if (_hasNewSW) safeReload('controllerchange');
+    });
   });
 }
+
+// ----- Hook check-in/out actions to mark "do not reload now" -----
+// (these functions exist earlier in the script; we just add a wrapper)
+(function(){
+  if (typeof window.doCheckIn === 'function') {
+    const _origIn = window.doCheckIn;
+    window.doCheckIn = function(){
+      try { sessionStorage.setItem('_last_action_ts', String(Date.now())); } catch(e) {}
+      return _origIn.apply(this, arguments);
+    };
+  }
+  if (typeof window.doCheckOut === 'function') {
+    const _origOut = window.doCheckOut;
+    window.doCheckOut = function(){
+      try { sessionStorage.setItem('_last_action_ts', String(Date.now())); } catch(e) {}
+      return _origOut.apply(this, arguments);
+    };
+  }
+})();
 </script>
 </body>
 </html>
