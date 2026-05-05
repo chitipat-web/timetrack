@@ -435,8 +435,60 @@ body.dark .nav{
 .page.active { display:block; }
 @keyframes pageIn{ from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
-.page-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; gap:10px; }
-.page-title{ font-family:var(--font-display); font-size:30px; font-weight:800; letter-spacing:-0.04em; color:var(--ink); }
+/* === UNIFIED PAGE HEADER === */
+.page-header{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  margin-bottom:20px; gap:12px;
+  padding-bottom:16px;
+  border-bottom:1px solid var(--glass-stroke-dim);
+}
+.page-header-text{ flex:1; min-width:0; }
+.page-title{
+  font-family:var(--font-display);
+  font-size:26px; font-weight:800;
+  letter-spacing:-0.03em; color:var(--ink);
+  line-height:1.15;
+  margin:0;
+}
+.page-subtitle{
+  font-size:13px; color:var(--ink-3);
+  margin-top:4px; line-height:1.4;
+}
+.page-header-actions{
+  display:flex; gap:6px; flex-wrap:wrap; flex-shrink:0;
+}
+
+/* === UNIFIED FILTER ROW === */
+.filter-row{
+  display:flex; gap:8px; flex-wrap:wrap;
+  margin-bottom:14px;
+  align-items:center;
+}
+
+/* === SECTION CARD === */
+.section-card{
+  background:var(--glass-2);
+  -webkit-backdrop-filter:var(--blur-card); backdrop-filter:var(--blur-card);
+  border:1px solid var(--glass-stroke-dim);
+  border-radius:var(--r);
+  padding:16px;
+  margin-bottom:14px;
+  box-shadow:var(--shadow);
+}
+.section-card-title{
+  font-size:12px; font-weight:700;
+  color:var(--ink-3);
+  text-transform:uppercase; letter-spacing:0.08em;
+  margin-bottom:12px;
+  display:flex; align-items:center; gap:6px;
+}
+
+/* Responsive: smaller title on narrow screens */
+@media (max-width: 380px){
+  .page-title{ font-size:22px; }
+  .page-subtitle{ font-size:12px; }
+  .page-header{ padding-bottom:14px; margin-bottom:16px; }
+}
 
 .section-label{
   font-size:11px; font-weight:700;
@@ -973,16 +1025,17 @@ body.dark .modal{
 /* Team sub-tabs — segmented control */
 .team-subtabs{
   display:flex;
-  gap:4px;
+  gap:2px;
   background:var(--glass-3);
   -webkit-backdrop-filter:var(--blur-light); backdrop-filter:var(--blur-light);
   border:1px solid var(--glass-stroke-dim);
-  border-radius:var(--r-pill);
+  border-radius:14px;
   padding:4px;
-  margin-bottom:14px;
+  margin-bottom:16px;
   overflow-x:auto;
   scrollbar-width:none;
   -ms-overflow-style:none;
+  position:sticky; top:8px; z-index:10;
 }
 .team-subtabs::-webkit-scrollbar{ display:none; }
 .team-subtab{
@@ -990,17 +1043,20 @@ body.dark .modal{
   background:transparent;
   border:none;
   color:var(--ink-3);
-  padding:8px 12px;
-  border-radius:var(--r-pill);
+  padding:9px 14px;
+  border-radius:10px;
   font-size:13px; font-weight:600;
   cursor:pointer; font-family:inherit;
-  transition:all 0.2s var(--ease-out);
+  transition:all 0.25s var(--ease-out);
   white-space:nowrap;
   letter-spacing:-0.01em;
 }
 .team-subtab.active{
-  background:var(--sys-blue); color:#fff;
-  box-shadow:0 4px 10px rgba(10,132,255,0.3);
+  background:linear-gradient(135deg, var(--sys-blue), #4FA8FF);
+  color:#fff;
+  box-shadow:
+    0 4px 12px rgba(10,132,255,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.25);
 }
 .team-subtab:not(.active):hover{
   color:var(--ink);
@@ -2428,6 +2484,12 @@ body.dark .punct-card{
 
   <!-- CALENDAR -->
   <div class="page" id="page-calendar">
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2 class="page-title">📅 ปฏิทิน</h2>
+        <div class="page-subtitle">ดูบันทึกตามวันที่</div>
+      </div>
+    </div>
     <div class="cal-nav">
       <button class="cal-nav-btn" onclick="calMove(-1)">‹</button>
       <div class="cal-title" id="cal-title">—</div>
@@ -2448,15 +2510,18 @@ body.dark .punct-card{
 
   <!-- STATS -->
   <div class="page" id="page-stats">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:17px;font-weight:700">📊 สถิติ</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <select class="sel" id="stat-month" onchange="renderStats()"></select>
-        <select class="sel" id="stat-year" onchange="renderStats()"></select>
-        <button class="btn-export btn-csv" onclick="exportCSV()">📥 CSV</button>
-        <button class="btn-export" style="background:linear-gradient(135deg,#107c41,#16a34a);color:#fff" onclick="exportXLSX()">📊 Excel</button>
-        <button class="btn-export btn-pdf" onclick="exportPDF()">📄 PDF</button>
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2 class="page-title">📊 สถิติ</h2>
+        <div class="page-subtitle">ภาพรวมการทำงานของคุณ</div>
       </div>
+    </div>
+    <div class="filter-row">
+      <select class="sel" id="stat-month" onchange="renderStats()"></select>
+      <select class="sel" id="stat-year" onchange="renderStats()"></select>
+      <button class="btn-export btn-csv" onclick="exportCSV()" title="Export CSV">📥 CSV</button>
+      <button class="btn-export" style="background:linear-gradient(135deg,#107c41,#16a34a);color:#fff" onclick="exportXLSX()" title="Export Excel">📊 Excel</button>
+      <button class="btn-export btn-pdf" onclick="exportPDF()" title="Export PDF">📄 PDF</button>
     </div>
     <div id="streak-container"></div>
     <div id="punctuality-container"></div>
@@ -2471,8 +2536,11 @@ body.dark .punct-card{
 
   <!-- HISTORY -->
   <div class="page" id="page-history">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-size:17px;font-weight:700">📋 ประวัติ</div>
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2 class="page-title">📋 ประวัติ</h2>
+        <div class="page-subtitle">บันทึกเข้า-ออกงานย้อนหลัง</div>
+      </div>
     </div>
     <div class="filter-row">
       <select class="sel" id="hist-month" onchange="renderHistory(true)"></select>
@@ -2484,7 +2552,12 @@ body.dark .punct-card{
 
   <!-- TEAM (ADMIN) — Consolidated: live status / by date / by month / by member -->
   <div class="page" id="page-team">
-    <div style="font-size:17px;font-weight:700;margin-bottom:14px">👥 จัดการทีม</div>
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2 class="page-title">👥 จัดการทีม</h2>
+        <div class="page-subtitle">ดูสถานะ แก้ไขเวลา และจัดการพนักงาน</div>
+      </div>
+    </div>
 
     <!-- Sub-tabs -->
     <div class="team-subtabs" id="team-subtabs">
@@ -2536,13 +2609,21 @@ body.dark .punct-card{
       <div id="member-picker-list"></div>
     </div>
 
-    <div class="divider" style="margin:20px 0"></div>
-    <div class="section-label">⚙️ จัดการพนักงาน</div>
-    <button class="btn-primary" style="margin-top:8px" onclick="openAddEmpModal()">➕ เพิ่มพนักงาน</button>
+    <!-- Admin actions -->
+    <div class="section-card" style="margin-top:24px">
+      <div class="section-card-title">⚙️ จัดการพนักงาน</div>
+      <button class="btn-primary" style="width:100%" onclick="openAddEmpModal()">➕ เพิ่มพนักงานใหม่</button>
+    </div>
   </div>
 
   <!-- SUMMARY PAGE -->
   <div class="page" id="page-summary">
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2 class="page-title">📑 สรุป</h2>
+        <div class="page-subtitle">สรุปการทำงานรายเดือน</div>
+      </div>
+    </div>
     <div class="month-sel">
       <button class="month-nav" onclick="changeMonth(-1)">‹</button>
       <div class="month-lbl" id="month-lbl">—</div>
@@ -2553,7 +2634,12 @@ body.dark .punct-card{
 
   <!-- SALARY -->
   <div class="page" id="page-salary">
-    <div style="font-size:17px;font-weight:700;margin-bottom:14px">💰 คำนวณค่าแรง</div>
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2 class="page-title">💰 ค่าแรง</h2>
+        <div class="page-subtitle">คำนวณเงินเดือนและโอที</div>
+      </div>
+    </div>
     <div class="filter-row">
       <select class="sel" id="sal-month" onchange="renderSalary()"></select>
       <select class="sel" id="sal-year" onchange="renderSalary()"></select>
@@ -2576,7 +2662,12 @@ body.dark .punct-card{
 
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
-    <div style="font-size:17px;font-weight:700;margin-bottom:20px">⚙️ ตั้งค่า</div>
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2 class="page-title">⚙️ ตั้งค่า</h2>
+        <div class="page-subtitle">โปรไฟล์และการแจ้งเตือน</div>
+      </div>
+    </div>
     <div class="settings-av-wrap">
       <div class="settings-av" id="settings-av" onclick="openPhotoUpload()">
         ?<div class="settings-av-overlay">📷</div>
@@ -2790,7 +2881,12 @@ body.dark .punct-card{
 
   <!-- ANNOUNCE & POLL PAGE -->
   <div class="page" id="page-announce">
-    <div class="page-header"><h2 class="page-title">📢 ประกาศ & โพล</h2></div>
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2 class="page-title">📢 ประกาศ &amp; โพล</h2>
+        <div class="page-subtitle">ข่าวสารและการสำรวจความคิดเห็น</div>
+      </div>
+    </div>
 
     <!-- Admin: create announce/poll -->
     <div id="admin-announce-section" style="display:none">
