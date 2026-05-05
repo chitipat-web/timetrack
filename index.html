@@ -1022,6 +1022,9 @@ body.dark .modal{
   box-shadow:0 4px 10px rgba(10,132,255,0.3);
 }
 
+/* Subadmin role: hide write-action UI */
+body.role-subadmin .admin-only-action { display:none !important; }
+
 /* Member history modal tabs */
 .mh-tabs{
   display:flex; gap:2px;
@@ -2658,7 +2661,7 @@ body.dark .punct-card{
     </div>
 
     <!-- Admin actions -->
-    <div class="section-card" style="margin-top:24px">
+    <div class="section-card admin-only-action" style="margin-top:24px">
       <div class="section-card-title">⚙️ จัดการพนักงาน</div>
       <button class="btn-primary" style="width:100%" onclick="openAddEmpModal()">➕ เพิ่มพนักงานใหม่</button>
     </div>
@@ -2833,7 +2836,7 @@ body.dark .punct-card{
     <div class="form-group"><label class="form-label">อีเมล (ใช้ Login)</label><input class="form-inp" id="n-email" type="email" placeholder="somying@company.com"/></div>
     <div class="form-group"><label class="form-label">รหัสผ่าน</label><input class="form-inp" id="n-pass" type="password" placeholder="ตั้งรหัสผ่าน"/></div>
     <div class="form-group"><label class="form-label">แผนก</label><input class="form-inp" id="n-dept" placeholder="การตลาด"/></div>
-    <div class="form-group"><label class="form-label">บทบาท</label><select class="form-inp" id="n-role"><option value="employee">👤 พนักงาน</option><option value="admin">👑 Admin</option></select></div>
+    <div class="form-group"><label class="form-label">บทบาท</label><select class="form-inp" id="n-role"><option value="employee">👤 พนักงาน</option><option value="subadmin">👁 รองแอดมิน (ดูได้อย่างเดียว)</option><option value="admin">👑 Admin (เต็มสิทธิ์)</option></select></div>
     <button class="btn-primary" onclick="addEmp()">เพิ่มพนักงาน</button>
     <button class="btn-secondary" onclick="closeModal('add-emp-modal')">ยกเลิก</button>
   </div>
@@ -2879,7 +2882,7 @@ body.dark .punct-card{
         <select class="sel" id="mh-month" onchange="renderMemberHistory()"></select>
         <select class="sel" id="mh-year" onchange="renderMemberHistory()"></select>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div class="admin-only-action" style="display:flex;gap:8px;margin-bottom:12px">
         <button class="btn-secondary" style="flex:1" onclick="openAddManualForMember()">➕ เพิ่มบันทึกย้อนหลัง</button>
       </div>
       <div id="mh-content"></div>
@@ -3278,6 +3281,11 @@ window.addEventListener('cloudKeyChanged', e => {
 });
 
 function isAdmin(){return !!(curUser&&curUser.role==='admin')}
+function isSubAdmin(){return !!(curUser&&curUser.role==='subadmin')}
+// canView: รองแอดมิน + admin เห็นทุกอย่าง (ใช้แทน isAdmin() ในฟีเจอร์ "ดู")
+function canView(){return !!(curUser&&(curUser.role==='admin'||curUser.role==='subadmin'))}
+// canEdit: เฉพาะ admin เท่านั้นที่แก้ไขได้ (alias ของ isAdmin สำหรับความชัดเจน)
+function canEdit(){return isAdmin()}
 function getPhoto(email){return localStorage.getItem('tt_photo_'+email.replace(/[^a-zA-Z0-9]/g,'_'))||''}
 function savePhoto(email,d){localStorage.setItem('tt_photo_'+email.replace(/[^a-zA-Z0-9]/g,'_'),d)}
 
@@ -3431,9 +3439,25 @@ function initApp(){
   document.body.appendChild(banner);
   setTimeout(()=>{ if(banner.parentElement) banner.remove(); }, 5500);
   const admin=isAdmin();
-  // Show/hide admin tabs based on role
-  document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=admin?'flex':'none');
-  document.getElementById('admin-badge').style.display=admin?'inline-block':'none';
+  const viewer=canView(); // admin OR subadmin
+  // Tag body with role for CSS targeting
+  document.body.classList.remove('role-admin','role-subadmin','role-employee');
+  if(curUser && curUser.role) document.body.classList.add('role-' + curUser.role);
+  // Show admin tabs for both admin and subadmin
+  document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=viewer?'flex':'none');
+  document.getElementById('admin-badge').style.display=viewer?'inline-block':'none';
+  // Customize badge for subadmin
+  const badgeEl = document.getElementById('admin-badge');
+  if(badgeEl){
+    if(isSubAdmin()){
+      badgeEl.textContent = '👁';
+      badgeEl.title = 'รองแอดมิน (ดูได้อย่างเดียว)';
+    } else if(admin){
+      badgeEl.textContent = '👑';
+      badgeEl.title = 'แอดมิน';
+    }
+  }
+  // Sections for write actions: admin only
   document.getElementById('admin-sal-section').style.display=admin?'block':'none';
   document.getElementById('admin-pw-section').style.display=admin?'block':'none';
   document.getElementById('admin-announce-section').style.display=admin?'block':'none';
@@ -4543,7 +4567,7 @@ let _mhCurrentEmp = null; // currently viewed employee object
 let _currentTeamSub = 'live';
 
 function switchTeamSub(sub, btn){
-  if(!isAdmin()) return;
+  if (!canView()) return;
   _currentTeamSub = sub;
   // Update button states
   document.querySelectorAll('.team-subtab').forEach(b => b.classList.remove('active'));
@@ -4567,7 +4591,7 @@ function switchTeamSub(sub, btn){
 }
 
 function renderMemberPicker(){
-  if(!isAdmin()) return;
+  if (!canView()) return;
   const search = (document.getElementById('member-search')?.value || '').trim().toLowerCase();
   const list = employees.filter(e => {
     if(!search) return true;
@@ -4601,7 +4625,7 @@ function renderMemberPicker(){
 }
 
 function openMemberHistory(empEmail){
-  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
+  if (!canView()){ showToast('เฉพาะ Admin','warning'); return; }
   const emp = employees.find(e => e.email === empEmail);
   if(!emp){ showToast('ไม่พบพนักงาน','error'); return; }
   _mhCurrentEmp = emp;
@@ -4630,7 +4654,7 @@ function openMemberHistory(empEmail){
 }
 
 function switchMemberTab(tab, btn){
-  if(!isAdmin() || !_mhCurrentEmp) return;
+  if (!canView() || !_mhCurrentEmp) return;
   document.querySelectorAll('.mh-tab').forEach(b => b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   document.getElementById('mh-tab-records').style.display = (tab==='records') ? '' : 'none';
@@ -4654,7 +4678,7 @@ function formatRelativeTime(ts){
 }
 
 async function renderLoginLogs(){
-  if(!isAdmin() || !_mhCurrentEmp){ return; }
+  if (!canView() || !_mhCurrentEmp){ return; }
   const emp = _mhCurrentEmp;
   const summaryEl = document.getElementById('mh-login-summary');
   const contentEl = document.getElementById('mh-login-content');
@@ -4763,10 +4787,10 @@ function renderMemberHistory(){
             ${r.note?`<span class="badge" style="background:var(--surface2);color:var(--text2)">${escHtml(r.note)}</span>`:''}
           </div>
         </div>
-        <div style="display:flex;gap:4px;flex-shrink:0">
+        ${canEdit() ? `<div style="display:flex;gap:4px;flex-shrink:0">
           <button class="btn-edit" style="padding:6px 10px" onclick="closeModal('member-history-modal');openEdit('${r.id}','${escHtml(emp.email)}')" title="แก้ไข">✏️</button>
           <button class="btn-edit" style="padding:6px 10px;background:rgba(255,69,58,0.18);color:#FF453A" onclick="deleteRec('${r.id}','${emp.id}')" title="ลบ">🗑</button>
-        </div>
+        </div>` : ''}
       </div>`).join('')}
     </div>`;
   }).join('');
@@ -5436,9 +5460,9 @@ function renderTeam(){
         <div class="team-stat"><div class="team-stat-val c-green">${totalH.toFixed(1)}</div><div class="team-stat-lbl">ชม.ทำงาน</div></div>
         <div class="team-stat"><div class="team-stat-val c-orange">${(totalOT/60).toFixed(1)}</div><div class="team-stat-lbl">ชม.โอที</div></div>
       </div>
-      ${isAdmin()?`<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end">
+      ${canView()?`<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end">
         <button class="btn-edit" onclick="event.stopPropagation();openMemberHistory('${escHtml(emp.email)}')" title="ดูประวัติย้อนหลัง">📋 ประวัติ</button>
-        ${dr.length?`<button class="btn-edit" onclick="event.stopPropagation();openEdit('${dr[0].id}','${escHtml(emp.email)}')">✏️ แก้วันนี้</button>`:''}
+        ${(canEdit() && dr.length)?`<button class="btn-edit" onclick="event.stopPropagation();openEdit('${dr[0].id}','${escHtml(emp.email)}')">✏️ แก้วันนี้</button>`:''}
       </div>`:''}
     </div>`;
   }).join('');
@@ -5894,15 +5918,41 @@ function openPhotoUpload(){
 // ========== MANAGE EMPLOYEES (ADMIN) ==========
 function renderEmpListSettings(){
   const el=document.getElementById('emp-list-settings');if(!el)return;
+  const roleLabel = (r) => {
+    if(r === 'admin')    return '<span style="color:var(--yellow);font-size:10px;font-weight:700">👑 Admin</span>';
+    if(r === 'subadmin') return '<span style="color:var(--sys-blue);font-size:10px;font-weight:700">👁 รองแอดมิน</span>';
+    return '';
+  };
   el.innerHTML=employees.map(emp=>`
     <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="width:30px;height:30px;border-radius:8px;background:${avatarGrad(emp.name)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">${avatarLetter(emp.name)}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600">${escHtml(emp.name)} ${emp.role==='admin'?'<span style="color:var(--yellow);font-size:10px">Admin</span>':''}</div>
+        <div style="font-size:13px;font-weight:600">${escHtml(emp.name)} ${roleLabel(emp.role)}</div>
         <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(emp.email)}</div>
       </div>
+      ${emp.id !== curUser.id ? `<button class="btn-edit" style="padding:4px 8px;font-size:11px" onclick="changeEmpRole('${emp.id}')" title="เปลี่ยนบทบาท">⚙️</button>` : ''}
       <button class="btn-del" onclick="removeEmp('${emp.id}')">🗑</button>
     </div>`).join('');
+}
+function changeEmpRole(id){
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
+  const emp = employees.find(e => e.id === id);
+  if(!emp){ showToast('ไม่พบพนักงาน','error'); return; }
+  if(emp.id === curUser.id){ showToast('ไม่สามารถเปลี่ยนบทบาทของตัวเอง','warning'); return; }
+  const labels = { employee: '👤 พนักงาน', subadmin: '👁 รองแอดมิน', admin: '👑 Admin' };
+  const cur = emp.role || 'employee';
+  // Cycle: employee → subadmin → admin → employee
+  const next = cur === 'employee' ? 'subadmin' : (cur === 'subadmin' ? 'admin' : 'employee');
+  showConfirm(
+    '⚙️ เปลี่ยนบทบาท',
+    `ต้องการเปลี่ยน "${emp.name}" จาก ${labels[cur]} → ${labels[next]} หรือไม่?`,
+    () => {
+      emp.role = next;
+      saveEmp();
+      renderEmpListSettings();
+      showToast(`เปลี่ยน ${emp.name} เป็น ${labels[next]}`, 'success');
+    }
+  );
 }
 function openAddEmpModal(){renderEmpListSettings();document.getElementById('add-emp-modal').classList.add('open')}
 function removeEmp(id){
@@ -7221,10 +7271,15 @@ async function _syncFirebaseInBackground(fbUser) {
     } else {
       curUser = profile;
       localStorage.setItem('tt_user_' + fbUser.uid, JSON.stringify(profile));
-      // Re-apply admin status if changed
+      // Re-apply admin/subadmin status if changed
+      const isView = profile.role === 'admin' || profile.role === 'subadmin';
       const adminEl = document.getElementById('admin-badge');
-      if(adminEl) adminEl.style.display = profile.role==='admin' ? 'inline-block' : 'none';
-      document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=profile.role==='admin'?'flex':'none');
+      if(adminEl){
+        adminEl.style.display = isView ? 'inline-block' : 'none';
+        if(profile.role === 'subadmin'){ adminEl.textContent = '👁'; adminEl.title = 'รองแอดมิน'; }
+        else if(profile.role === 'admin'){ adminEl.textContent = '👑'; adminEl.title = 'แอดมิน'; }
+      }
+      document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=isView?'flex':'none');
     }
     const [empSnap, recSnap] = await Promise.all([
       db.ref('employees').once('value'),
@@ -7278,7 +7333,7 @@ function setupRealtimeListeners() {
         else if (id === 'page-calendar') renderCalendar();
         else if (id === 'page-summary')  renderSummary();
         else if (id === 'page-salary')   renderSalary();
-        else if (id === 'page-team' && isAdmin()) { if(typeof switchTeamSub==='function') switchTeamSub(_currentTeamSub || 'live', document.querySelector('.team-subtab.active')); }
+        else if (id === 'page-team' && canView()) { if(typeof switchTeamSub==='function') switchTeamSub(_currentTeamSub || 'live', document.querySelector('.team-subtab.active')); }
       }catch(e){ console.warn('Re-render error:', e); }
     }
   }, err => console.warn('records listen err:', err));
@@ -7296,7 +7351,7 @@ function setupRealtimeListeners() {
     if(!activePage) return;
     const id = activePage.id;
     try{
-      if (id === 'page-team' && isAdmin()) { if(typeof switchTeamSub==='function') switchTeamSub(_currentTeamSub || 'live', document.querySelector('.team-subtab.active')); }
+      if (id === 'page-team' && canView()) { if(typeof switchTeamSub==='function') switchTeamSub(_currentTeamSub || 'live', document.querySelector('.team-subtab.active')); }
       else if (id === 'page-summary')  renderSummary();
       else if (id === 'page-salary')   renderSalary();
     }catch(e){ console.warn('Emp re-render error:', e); }
@@ -7331,7 +7386,7 @@ function setupRealtimeListeners() {
       if(activePage){
         const id = activePage.id;
         try{
-          if (id === 'page-team' && isAdmin()) { if(typeof switchTeamSub==='function') switchTeamSub(_currentTeamSub || 'live', document.querySelector('.team-subtab.active')); }
+          if (id === 'page-team' && canView()) { if(typeof switchTeamSub==='function') switchTeamSub(_currentTeamSub || 'live', document.querySelector('.team-subtab.active')); }
           else if (id === 'page-summary')  renderSummary();
         }catch(e){}
       }

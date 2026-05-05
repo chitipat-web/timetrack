@@ -1,7 +1,7 @@
 // ===== RUDY Service Worker =====
-// v61 — self-cleaning: deletes ALL old caches and force-reloads clients
-const STATIC_CACHE = 'rudy-static-v61';
-const FIREBASE_CACHE = 'rudy-firebase-v61';
+// v62 — self-cleaning: deletes ALL old caches and force-reloads clients
+const STATIC_CACHE = 'rudy-static-v62';
+const FIREBASE_CACHE = 'rudy-firebase-v62';
 const CURRENT_CACHES = [STATIC_CACHE, FIREBASE_CACHE];
 
 const STATIC_ASSETS = [
@@ -29,25 +29,25 @@ const FONT_ASSETS = [
 
 // ==================== INSTALL ====================
 self.addEventListener('install', event => {
-  console.log('[SW v61] Installing...');
+  console.log('[SW v62] Installing...');
   event.waitUntil(
     Promise.all([
       caches.open(STATIC_CACHE).then(cache => {
-        console.log('[SW v61] Caching static assets');
+        console.log('[SW v62] Caching static assets');
         return cache.addAll(STATIC_ASSETS).catch(err => {
-          console.log('[SW v61] Static cache error:', err);
+          console.log('[SW v62] Static cache error:', err);
         });
       }),
       caches.open(FIREBASE_CACHE).then(cache => {
-        console.log('[SW v61] Caching Firebase SDK + Fonts');
+        console.log('[SW v62] Caching Firebase SDK + Fonts');
         return Promise.all(
           [...FIREBASE_ASSETS, ...FONT_ASSETS].map(url =>
-            cache.add(url).catch(err => console.log('[SW v61] Cache error:', url, err))
+            cache.add(url).catch(err => console.log('[SW v62] Cache error:', url, err))
           )
         );
       }),
     ]).then(() => {
-      console.log('[SW v61] Installed — skipping waiting');
+      console.log('[SW v62] Installed — skipping waiting');
       return self.skipWaiting();
     })
   );
@@ -57,28 +57,28 @@ self.addEventListener('install', event => {
 // On activation, NUKE every cache that is not in CURRENT_CACHES.
 // Any old caches from previous versions get wiped automatically.
 self.addEventListener('activate', event => {
-  console.log('[SW v61] Activating — cleaning ALL old caches');
+  console.log('[SW v62] Activating — cleaning ALL old caches');
   event.waitUntil(
     (async () => {
       const allKeys = await caches.keys();
-      console.log('[SW v61] Found caches:', allKeys);
+      console.log('[SW v62] Found caches:', allKeys);
 
       const deletions = allKeys
         .filter(key => !CURRENT_CACHES.includes(key))
         .map(key => {
-          console.log('[SW v61]   x Deleting:', key);
+          console.log('[SW v62]   x Deleting:', key);
           return caches.delete(key);
         });
 
       await Promise.all(deletions);
-      console.log('[SW v61] Cache cleanup complete. Active:', CURRENT_CACHES);
+      console.log('[SW v62] Cache cleanup complete. Active:', CURRENT_CACHES);
 
       await self.clients.claim();
 
       const clients = await self.clients.matchAll({ type: 'window' });
-      console.log('[SW v61] Notifying ' + clients.length + ' client(s) to reload');
+      console.log('[SW v62] Notifying ' + clients.length + ' client(s) to reload');
       for (const client of clients) {
-        client.postMessage({ type: 'SW_UPDATED', version: 'v61' });
+        client.postMessage({ type: 'SW_UPDATED', version: 'v62' });
       }
     })()
   );
@@ -138,7 +138,7 @@ self.addEventListener('fetch', event => {
 // ==================== MESSAGE ====================
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting' || (event.data && event.data.type === 'SKIP_WAITING')) {
-    console.log('[SW v61] Manual skipWaiting');
+    console.log('[SW v62] Manual skipWaiting');
     self.skipWaiting();
   }
 
@@ -146,7 +146,7 @@ self.addEventListener('message', event => {
     event.waitUntil((async () => {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
-      console.log('[SW v61] PURGE_ALL: deleted', keys.length, 'caches');
+      console.log('[SW v62] PURGE_ALL: deleted', keys.length, 'caches');
       if (event.source) {
         event.source.postMessage({ type: 'PURGE_DONE', deleted: keys });
       }
