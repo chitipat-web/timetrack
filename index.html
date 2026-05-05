@@ -1085,12 +1085,12 @@ body.dark .modal{
 }
 /* Glow burst on button after press */
 @keyframes glowBurst {
-  0%   { box-shadow:0 8px 22px rgba(48,209,88,0.5), 0 0 0 0 rgba(48,209,88,0.9); }
-  100% { box-shadow:0 8px 22px rgba(48,209,88,0.5), 0 0 0 22px rgba(48,209,88,0); }
+  0%   { box-shadow:0 8px 22px rgba(48,209,88,0.5), 0 0 0 0 rgba(48,209,88,0.7); }
+  100% { box-shadow:0 8px 22px rgba(48,209,88,0.5), 0 0 0 12px rgba(48,209,88,0); }
 }
 @keyframes glowBurstRed {
-  0%   { box-shadow:0 8px 22px rgba(255,69,58,0.5), 0 0 0 0 rgba(255,69,58,0.9); }
-  100% { box-shadow:0 8px 22px rgba(255,69,58,0.5), 0 0 0 22px rgba(255,69,58,0); }
+  0%   { box-shadow:0 8px 22px rgba(255,69,58,0.5), 0 0 0 0 rgba(255,69,58,0.7); }
+  100% { box-shadow:0 8px 22px rgba(255,69,58,0.5), 0 0 0 12px rgba(255,69,58,0); }
 }
 .btn-in.bursting { animation:glowBurst 0.8s ease-out; }
 .btn-out.bursting { animation:glowBurstRed 0.8s ease-out; }
@@ -2309,8 +2309,8 @@ body.dark .punct-card{
       <div class="clock-date" id="clock-date">—</div>
       <div class="clock-btns">
         <div class="btn-row">
-          <button class="btn-in btn-liquid tilt-card" id="btn-in" onclick="doCheckIn()"><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:26px;position:relative;z-index:1">▶</span><span style="position:relative;z-index:1">เข้างาน</span><span class="btn-sub" style="position:relative;z-index:1">บันทึกเวลาเข้า</span></button>
-          <button class="btn-out btn-liquid tilt-card" id="btn-out" onclick="doCheckOut()"><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:26px;position:relative;z-index:1">⏹</span><span style="position:relative;z-index:1">ออกงาน</span><span class="btn-sub" style="position:relative;z-index:1">บันทึกเวลาออก</span></button>
+          <button class="btn-in btn-liquid tilt-card" id="btn-in" onclick="doCheckIn()"><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">▶</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">เข้างาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาเข้า</span></button>
+          <button class="btn-out btn-liquid tilt-card" id="btn-out" onclick="doCheckOut()"><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">⏹</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">ออกงาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาออก</span></button>
         </div>
       </div>
     </div>
@@ -6294,7 +6294,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const now = Date.now();
       if (now - lastFx < 400) return;
       lastFx = now;
-      addRipple(btn, e);
+      // NOTE: ripple effect intentionally removed for in/out buttons — appending DOM nodes
+      // inside a flex container during rapid taps caused icon distortion. Glow + confetti remain.
       burstGlowRing(btn);
       const rect = btn.getBoundingClientRect();
       richConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2,
