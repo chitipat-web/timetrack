@@ -601,6 +601,10 @@ body.dark .clock-hero{
   transition:transform 0.15s var(--ease-spring), box-shadow 0.3s var(--ease-out);
   letter-spacing:-0.01em;
   isolation:isolate;
+  min-height:88px;
+}
+.btn-in > span, .btn-out > span, .btn-liquid > span{
+  flex:none; line-height:1;
 }
 .btn-in{
   background:linear-gradient(135deg, #5BFFB5 0%, #30D158 50%, #1F9D40 100%);
@@ -1076,6 +1080,8 @@ body.dark .modal{
   margin-left:-30px; margin-top:-30px;
   pointer-events:none; z-index:5;
   animation:ripple 0.7s ease-out forwards;
+  flex:none;
+  contain:strict;
 }
 /* Glow burst on button after press */
 @keyframes glowBurst {
@@ -4119,7 +4125,13 @@ function burst(x, y, emojis) {
   });
 }
 
+let _lastCheckInTs = 0;
+let _lastCheckOutTs = 0;
 function doCheckIn(){
+  // Hard lock: ignore any check-in within 1.5s of the previous one
+  const now = Date.now();
+  if (now - _lastCheckInTs < 1500) return;
+  _lastCheckInTs = now;
   const today=todayStr();
   const open=records.find(r=>r.empId===curUser.id&&r.date===today&&!r.checkOut);
   if(open){showToast('มีการเข้างานที่ยังไม่ออก','warning');return}
@@ -4156,6 +4168,9 @@ function doCheckIn(){
   renderHome();
 }
 function doCheckOut(){
+  const now = Date.now();
+  if (now - _lastCheckOutTs < 1500) return;
+  _lastCheckOutTs = now;
   const today=todayStr();
   const idx=records.findIndex(r=>r.empId===curUser.id&&r.date===today&&!r.checkOut);
   if(idx===-1){showToast('ไม่พบการเข้างาน','error');return}
@@ -6273,7 +6288,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const wireBtn = (id) => {
     const btn = document.getElementById(id);
     if (!btn) return;
+    let lastFx = 0;
     btn.addEventListener('click', (e) => {
+      // Throttle visual effects to once per 400ms — avoid layout thrashing on rapid clicks
+      const now = Date.now();
+      if (now - lastFx < 400) return;
+      lastFx = now;
       addRipple(btn, e);
       burstGlowRing(btn);
       const rect = btn.getBoundingClientRect();
