@@ -601,8 +601,15 @@ body.dark .clock-hero{
   transition:opacity 0.15s ease-out;
   letter-spacing:-0.01em;
   isolation:isolate;
-  min-height:88px;
+  height:88px; min-height:88px; max-height:88px;
+  /* FORTRESS: lock everything down */
   transform:none !important;
+  touch-action:manipulation;
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  user-select:none;
+  contain:layout style;
+  animation:none !important;
 }
 .btn-in > span, .btn-out > span, .btn-liquid > span{
   flex:none; line-height:1;
@@ -2310,8 +2317,8 @@ body.dark .punct-card{
       <div class="clock-date" id="clock-date">—</div>
       <div class="clock-btns">
         <div class="btn-row">
-          <button class="btn-in btn-liquid tilt-card" id="btn-in" onclick="doCheckIn()"><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">▶</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">เข้างาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาเข้า</span></button>
-          <button class="btn-out btn-liquid tilt-card" id="btn-out" onclick="doCheckOut()"><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">⏹</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">ออกงาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาออก</span></button>
+          <button class="btn-in btn-liquid" id="btn-in" onclick="doCheckIn()"><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">▶</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">เข้างาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาเข้า</span></button>
+          <button class="btn-out btn-liquid" id="btn-out" onclick="doCheckOut()"><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">⏹</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">ออกงาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาออก</span></button>
         </div>
       </div>
     </div>
@@ -6299,6 +6306,35 @@ document.addEventListener('DOMContentLoaded', () => {
   wireBtn('btn-in');
   wireBtn('btn-out');
 
+  // FORTRESS: Watch buttons for ANY inline style or class mutation that could cause stretching.
+  // If anything sets transform/animation via inline style, immediately reset it.
+  ['btn-in', 'btn-out'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const sanitize = () => {
+      // Strip any inline transform / animation that 3rd-party code might add
+      if (btn.style.transform && btn.style.transform !== 'none' && btn.style.transform !== '') {
+        btn.style.transform = 'none';
+      }
+      if (btn.style.animation) btn.style.animation = '';
+      if (btn.style.scale) btn.style.scale = '';
+      if (btn.style.zoom) btn.style.zoom = '';
+      // Remove any class that might have been added by other effects
+      ['tilt-card', 'magnetic', 'liquid-morph-active', 'bursting',
+       'spotlight-active', 'spotlight-card', 'burst-glow', 'glitch-active',
+       'shaking', 'scrambling'].forEach(cls => {
+        if (btn.classList.contains(cls)) btn.classList.remove(cls);
+      });
+    };
+    sanitize();
+    const guard = new MutationObserver(sanitize);
+    guard.observe(btn, {attributes: true, attributeFilter: ['style', 'class']});
+    // Also block touchmove from bubbling up (prevents tilt and other touch effects)
+    btn.addEventListener('touchmove', e => {
+      e.stopImmediatePropagation();
+    }, {passive: true, capture: true});
+  });
+
   // Run count-up + ring animation ONLY when switching to a page (not on every internal class change)
   let lastActivePageId = null;
   const checkPageSwitch = () => {
@@ -8016,24 +8052,12 @@ function initAurora() {
   if(wrap) wrap.style.display = 'block';
 }
 
-// ===== EFFECT: 3D TILT CARD =====
+// ===== EFFECT: 3D TILT CARD (DISABLED — caused button stretch on rapid taps) =====
 function initTiltCards() {
-  document.querySelectorAll('.tilt-card').forEach(card => {
-    card.addEventListener('touchmove', e => {
-      const t = e.touches[0];
-      const rect = card.getBoundingClientRect();
-      const cx = rect.left + rect.width/2;
-      const cy = rect.top  + rect.height/2;
-      const dx = (t.clientX - cx) / (rect.width/2);
-      const dy = (t.clientY - cy) / (rect.height/2);
-      const tiltX = dy * -8;  // max 8 deg
-      const tiltY = dx *  8;
-      card.style.transform = `perspective(600px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(1.02)`;
-    }, {passive:true});
-    card.addEventListener('touchend', () => {
-      card.style.transform = '';
-    }, {passive:true});
-  });
+  // Intentionally disabled. The original code added inline transform:scale(1.02)
+  // on touchmove, which overrode CSS !important rules and caused buttons to
+  // visibly stretch/grow when users tapped them rapidly.
+  return;
 }
 
 // ===== EFFECT: LIQUID WAVE BUTTON =====
