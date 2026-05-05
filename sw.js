@@ -1,6 +1,6 @@
 // ===== RUDY Service Worker =====
-const STATIC_CACHE = 'rudy-static-v33';
-const FIREBASE_CACHE = 'rudy-firebase-v33';
+const STATIC_CACHE = 'rudy-static-v34';
+const FIREBASE_CACHE = 'rudy-firebase-v34';
 
 const STATIC_ASSETS = [
   './index.html',
@@ -22,7 +22,7 @@ const FIREBASE_ASSETS = [
 ];
 
 const FONT_ASSETS = [
-  'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap',
+  'https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap',
 ];
 
 self.addEventListener('install', event => {
