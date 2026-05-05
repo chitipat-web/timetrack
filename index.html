@@ -1133,7 +1133,10 @@ body.dark .confirm-cancel { background:rgba(255,255,255,0.08); }
   letter-spacing:-0.01em;
   color:var(--ink);
 }
-.report-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
+.report-grid{ display:grid; grid-template-columns:1fr; gap:10px; }
+@media (min-width: 640px){
+  .report-grid{ grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+}
 
 /* Team stats */
 .team-stats-row{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
@@ -1460,7 +1463,7 @@ body.dark .confirm-cancel { background:rgba(255,255,255,0.08); }
 .bday-sub{ font-size:11px; color:var(--ink-4); margin-top:2px; }
 
 /* Status grid (admin) */
-.status-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.status-grid{ display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
 
 /* Compare card (admin dashboard) */
 .compare-wrap{ display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; padding:10px 0; }
