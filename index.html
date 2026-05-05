@@ -1020,6 +1020,38 @@ body.dark .modal{
 }
 @keyframes spin { to { transform:rotate(360deg); } }
 
+/* ===== Splash Screen Animations ===== */
+@keyframes splashLogo {
+  0%   { transform:scale(1) rotate(-2deg); box-shadow:0 0 40px rgba(10,132,255,0.6), 0 0 80px rgba(191,90,242,0.5); }
+  100% { transform:scale(1.05) rotate(2deg); box-shadow:0 0 60px rgba(10,132,255,0.85), 0 0 120px rgba(191,90,242,0.7); }
+}
+@keyframes splashPulse {
+  0%   { transform:scale(0.8); opacity:0.8; }
+  100% { transform:scale(1.4); opacity:0; }
+}
+@keyframes splashOrbit {
+  to { transform:rotate(360deg); }
+}
+@keyframes splashOrbitReverse {
+  to { transform:rotate(-360deg); }
+}
+@keyframes splashSparkle {
+  0%, 100% { opacity:0; transform:scale(0.5); }
+  50%      { opacity:1; transform:scale(1.2); }
+}
+@keyframes splashBar {
+  0%   { left:-30%; }
+  100% { left:100%; }
+}
+@keyframes splashFadeIn {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes splashMesh {
+  0%   { transform:translate(0,0) scale(1); }
+  100% { transform:translate(20px,-15px) scale(1.1); }
+}
+
 .error-banner{
   background:linear-gradient(135deg, rgba(255,69,58,0.18), rgba(255,159,10,0.12));
   border:1px solid rgba(255,69,58,0.3);
@@ -1946,14 +1978,56 @@ body.dark .punct-card{
 <body>
 
 <!-- INITIAL LOADING OVERLAY -->
-<div id="init-overlay" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(180deg,#051428,#0a2440);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
-  <div style="width:52px;height:52px;background:linear-gradient(135deg,#0077cc,#00e5ff);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;font-family:monospace;box-shadow:0 0 30px rgba(0,191,255,.4)">T</div>
-  <div style="font-size:18px;font-weight:700;color:#e0f7ff;display:flex;align-items:center;gap:6px"><img src="icon-120.png" style="width:24px;height:24px;border-radius:5px"/>RUDY</div>
-  <div style="width:40px;height:40px;border:3px solid rgba(0,191,255,.2);border-top-color:#00bfff;border-radius:50%;animation:spin .7s linear infinite"></div>
-  <div id="overlay-status" style="font-size:13px;color:#3a7ca5">กำลังโหลด...</div>
+<div id="init-overlay" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(180deg,#0a1729 0%,#1a3873 50%,#0a1729 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;overflow:hidden">
+  <!-- Animated background mesh -->
+  <div style="position:absolute;inset:-20%;background:radial-gradient(ellipse 50% 40% at 30% 30%,rgba(94,200,250,0.4),transparent 60%),radial-gradient(ellipse 60% 50% at 70% 70%,rgba(191,90,242,0.35),transparent 55%),radial-gradient(ellipse 40% 50% at 50% 50%,rgba(94,92,230,0.3),transparent 60%);filter:blur(60px);animation:splashMesh 8s ease-in-out infinite alternate;pointer-events:none"></div>
+
+  <!-- Logo container with orbit rings -->
+  <div style="position:relative;width:160px;height:160px;display:flex;align-items:center;justify-content:center">
+    <!-- Outer pulse ring -->
+    <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(94,200,250,0.4);animation:splashPulse 2s ease-out infinite"></div>
+    <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(191,90,242,0.4);animation:splashPulse 2s ease-out infinite 1s"></div>
+
+    <!-- Orbit ring with dot -->
+    <div style="position:absolute;inset:8px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);animation:splashOrbit 4s linear infinite">
+      <div style="position:absolute;top:-4px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:#5AC8FA;box-shadow:0 0 12px #5AC8FA,0 0 24px rgba(90,200,250,0.6)"></div>
+    </div>
+
+    <!-- Counter-rotating ring -->
+    <div style="position:absolute;inset:18px;border-radius:50%;border:1px dashed rgba(255,255,255,0.1);animation:splashOrbitReverse 6s linear infinite"></div>
+
+    <!-- R Logo box -->
+    <div id="splash-logo" style="position:relative;width:96px;height:96px;border-radius:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(10,132,255,0.6),0 0 80px rgba(191,90,242,0.5);animation:splashLogo 2s ease-in-out infinite alternate;overflow:hidden;isolation:isolate">
+      <!-- App icon -->
+      <img src="icon-180.png" alt="RUDY" style="width:100%;height:100%;object-fit:cover;border-radius:24px;display:block" onerror="this.onerror=null;this.src='icon-120.png'"/>
+      <!-- Specular gloss overlay -->
+      <div style="position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 50%,transparent);border-radius:24px 24px 50% 50% / 24px 24px 100% 100%;pointer-events:none;z-index:2"></div>
+      <!-- Top edge shimmer -->
+      <div style="position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent);pointer-events:none;z-index:2"></div>
+    </div>
+
+    <!-- Sparkle particles -->
+    <div style="position:absolute;top:10%;right:15%;width:4px;height:4px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;animation:splashSparkle 2.5s ease-in-out infinite"></div>
+    <div style="position:absolute;bottom:15%;left:10%;width:3px;height:3px;border-radius:50%;background:#5AC8FA;box-shadow:0 0 6px #5AC8FA;animation:splashSparkle 2.5s ease-in-out infinite 0.8s"></div>
+    <div style="position:absolute;top:50%;right:5%;width:2px;height:2px;border-radius:50%;background:#BF5AF2;box-shadow:0 0 5px #BF5AF2;animation:splashSparkle 2.5s ease-in-out infinite 1.4s"></div>
+  </div>
+
+  <!-- RUDY title -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;animation:splashFadeIn 1s ease-out 0.3s backwards">
+    <div style="font-family:'Inter',-apple-system,sans-serif;font-size:32px;font-weight:800;letter-spacing:-0.03em;background:linear-gradient(135deg,#fff 0%,#5AC8FA 50%,#BF5AF2 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">RUDY</div>
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.5)">TIME TRACKING</div>
+  </div>
+
+  <!-- Loading bar -->
+  <div style="width:140px;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;position:relative">
+    <div style="position:absolute;top:0;left:0;height:100%;width:30%;background:linear-gradient(90deg,transparent,#5AC8FA,#0A84FF,#BF5AF2,transparent);border-radius:2px;animation:splashBar 1.4s ease-in-out infinite;box-shadow:0 0 8px rgba(10,132,255,0.6)"></div>
+  </div>
+
+  <div id="overlay-status" style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.6);letter-spacing:0.02em">กำลังโหลด...</div>
+
   <div id="overlay-skip" style="display:none;margin-top:8px">
-    <button onclick="document.getElementById('init-overlay').style.display='none';document.getElementById('login-screen').style.display='flex'" 
-      style="background:rgba(0,191,255,.15);border:1px solid rgba(0,191,255,.3);color:#00bfff;padding:10px 24px;border-radius:20px;font-size:13px;cursor:pointer;font-family:sans-serif">
+    <button onclick="document.getElementById('init-overlay').style.display='none';document.getElementById('login-screen').style.display='flex'"
+      style="background:rgba(94,200,250,0.15);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(94,200,250,0.3);color:#5AC8FA;padding:10px 24px;border-radius:20px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">
       เข้าสู่ระบบ →
     </button>
   </div>
