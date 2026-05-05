@@ -598,11 +598,11 @@ body.dark .clock-hero{
   border:none; border-radius:var(--r-lg);
   font-family:inherit; font-size:15px; font-weight:700;
   cursor:pointer; color:#fff; overflow:hidden;
-  transition:transform 0.12s ease-out, box-shadow 0.25s ease-out;
+  transition:opacity 0.15s ease-out;
   letter-spacing:-0.01em;
   isolation:isolate;
   min-height:88px;
-  will-change:transform;
+  transform:none !important;
 }
 .btn-in > span, .btn-out > span, .btn-liquid > span{
   flex:none; line-height:1;
@@ -641,7 +641,7 @@ body.dark .clock-hero{
   z-index:0;
 }
 .btn-in > *, .btn-out > * { position:relative; z-index:1; }
-.btn-in:active, .btn-out:active { transform:scale(0.98); }
+.btn-in:active, .btn-out:active { opacity:0.85; }
 .btn-sub { font-size:11px; font-weight:500; opacity:0.92; text-shadow:0 1px 2px rgba(0,0,0,0.15); }
 .liquid-cv { display:none !important; }
 
@@ -1093,8 +1093,8 @@ body.dark .modal{
   0%   { box-shadow:0 8px 22px rgba(255,69,58,0.5), 0 0 0 0 rgba(255,69,58,0.7); }
   100% { box-shadow:0 8px 22px rgba(255,69,58,0.5), 0 0 0 12px rgba(255,69,58,0); }
 }
-.btn-in.bursting { animation:glowBurst 0.5s ease-out; }
-.btn-out.bursting { animation:glowBurstRed 0.5s ease-out; }
+/* glow burst disabled — caused visual stretch on rapid taps */
+.btn-in.bursting, .btn-out.bursting { animation:none; }
 
 /* 2. Number count-up — handled by JS, just provide pulse effect */
 @keyframes countPulse {
@@ -4149,14 +4149,8 @@ function doCheckIn(){
   if(!late) {
     launchConfetti(['#00bfff','#00e5ff','#10b981','#ffd700','#ffffff','#7ecfee']);
     showCheckmarkSuccess('#34c759');
-    if(typeof screenShake === 'function') screenShake();
-    if(typeof liquidMorphPulse === 'function') {
-      liquidMorphPulse(document.getElementById('btn-in'));
-      liquidMorphPulse(document.getElementById('btn-out'));
-    }
-    if(typeof smokeFromButton === 'function') {
-      smokeFromButton(document.getElementById('btn-in'));
-    }
+    // NOTE: liquidMorphPulse / screenShake / smokeFromButton intentionally removed —
+    // they caused the button to visually stretch on rapid taps (transform stacking).
     if(typeof soundCheckIn === 'function') soundCheckIn();
   } else {
     launchConfetti(['#ffd700','#ff9500','#ff6b6b']);
@@ -6295,9 +6289,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const now = Date.now();
       if (now - lastFx < 400) return;
       lastFx = now;
-      // NOTE: ripple effect intentionally removed for in/out buttons — appending DOM nodes
-      // inside a flex container during rapid taps caused icon distortion. Glow + confetti remain.
-      burstGlowRing(btn);
+      // Confetti from button center — does NOT touch the button itself (uses position:fixed)
       const rect = btn.getBoundingClientRect();
       richConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2,
         id === 'btn-in' ? ['#5BFFB5','#30D158','#5AC8FA','#0A84FF','#FFD60A','#ffffff']
@@ -7453,8 +7445,8 @@ function liquidMorphPulse(el){
 // === MAGNETIC HOVER on buttons ===
 function initMagneticButtons(){
   if(document.body.classList.contains('cinema-off')) return;
-  // Apply to btn-primary and big buttons
-  document.querySelectorAll('.btn-primary,.btn-in,.btn-out,.icon-btn').forEach(btn => {
+  // Apply only to icon-btn and primary - NOT in/out buttons (causes stretch on rapid taps)
+  document.querySelectorAll('.btn-primary,.icon-btn').forEach(btn => {
     if(btn._magneticBound) return;
     btn._magneticBound = true;
     btn.classList.add('magnetic');
