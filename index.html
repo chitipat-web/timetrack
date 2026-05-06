@@ -6591,6 +6591,8 @@ function showPage(id,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const pg = document.getElementById('page-'+id);
   pg.classList.add('active');
+  // Scroll to top when switching pages — fixes preserved scroll position from previous page
+  window.scrollTo({top: 0, behavior: 'instant'});
   // Cinematic glitch transition (skip if disabled)
   if(!document.body.classList.contains('cinema-off')){
     pg.classList.add('glitch-active');
