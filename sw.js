@@ -1,7 +1,7 @@
 // ===== RUDY Service Worker =====
-// v75 — added AI Helper for announcements (Claude API integration)
-const STATIC_CACHE = 'rudy-static-v75';
-const FIREBASE_CACHE = 'rudy-firebase-v75';
+// v76 — added AI Helper for announcements (Claude API integration)
+const STATIC_CACHE = 'rudy-static-v76';
+const FIREBASE_CACHE = 'rudy-firebase-v76';
 const CURRENT_CACHES = [STATIC_CACHE, FIREBASE_CACHE];
 
 const STATIC_ASSETS = [
@@ -29,25 +29,25 @@ const FONT_ASSETS = [
 
 // ==================== INSTALL ====================
 self.addEventListener('install', event => {
-  console.log('[SW v75] Installing...');
+  console.log('[SW v76] Installing...');
   event.waitUntil(
     Promise.all([
       caches.open(STATIC_CACHE).then(cache => {
-        console.log('[SW v75] Caching static assets');
+        console.log('[SW v76] Caching static assets');
         return cache.addAll(STATIC_ASSETS).catch(err => {
-          console.log('[SW v75] Static cache error:', err);
+          console.log('[SW v76] Static cache error:', err);
         });
       }),
       caches.open(FIREBASE_CACHE).then(cache => {
-        console.log('[SW v75] Caching Firebase SDK + Fonts');
+        console.log('[SW v76] Caching Firebase SDK + Fonts');
         return Promise.all(
           [...FIREBASE_ASSETS, ...FONT_ASSETS].map(url =>
-            cache.add(url).catch(err => console.log('[SW v75] Cache error:', url, err))
+            cache.add(url).catch(err => console.log('[SW v76] Cache error:', url, err))
           )
         );
       }),
     ]).then(() => {
-      console.log('[SW v75] Installed — skipping waiting');
+      console.log('[SW v76] Installed — skipping waiting');
       return self.skipWaiting();
     })
   );
@@ -55,28 +55,28 @@ self.addEventListener('install', event => {
 
 // ==================== ACTIVATE ====================
 self.addEventListener('activate', event => {
-  console.log('[SW v75] Activating — cleaning ALL old caches');
+  console.log('[SW v76] Activating — cleaning ALL old caches');
   event.waitUntil(
     (async () => {
       const allKeys = await caches.keys();
-      console.log('[SW v75] Found caches:', allKeys);
+      console.log('[SW v76] Found caches:', allKeys);
 
       const deletions = allKeys
         .filter(key => !CURRENT_CACHES.includes(key))
         .map(key => {
-          console.log('[SW v75]   x Deleting:', key);
+          console.log('[SW v76]   x Deleting:', key);
           return caches.delete(key);
         });
 
       await Promise.all(deletions);
-      console.log('[SW v75] Cache cleanup complete. Active:', CURRENT_CACHES);
+      console.log('[SW v76] Cache cleanup complete. Active:', CURRENT_CACHES);
 
       await self.clients.claim();
 
       const clients = await self.clients.matchAll({ type: 'window' });
-      console.log('[SW v75] Notifying ' + clients.length + ' client(s) to reload');
+      console.log('[SW v76] Notifying ' + clients.length + ' client(s) to reload');
       for (const client of clients) {
-        client.postMessage({ type: 'SW_UPDATED', version: 'v75' });
+        client.postMessage({ type: 'SW_UPDATED', version: 'v76' });
       }
     })()
   );
@@ -141,7 +141,7 @@ self.addEventListener('fetch', event => {
 // ==================== MESSAGE ====================
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting' || (event.data && event.data.type === 'SKIP_WAITING')) {
-    console.log('[SW v75] Manual skipWaiting');
+    console.log('[SW v76] Manual skipWaiting');
     self.skipWaiting();
   }
 
@@ -149,10 +149,59 @@ self.addEventListener('message', event => {
     event.waitUntil((async () => {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
-      console.log('[SW v75] PURGE_ALL: deleted', keys.length, 'caches');
+      console.log('[SW v76] PURGE_ALL: deleted', keys.length, 'caches');
       if (event.source) {
         event.source.postMessage({ type: 'PURGE_DONE', deleted: keys });
       }
     })());
   }
+});
+
+// ==================== PUSH EVENT (v76) ====================
+// รับ push จาก server (GitHub Actions) แล้วแสดง notification
+self.addEventListener('push', event => {
+  console.log('[SW v76] Push received');
+  let data = { title: 'RUDY', body: 'มีการแจ้งเตือนใหม่', tag: 'rudy-default' };
+
+  if(event.data){
+    try {
+      data = event.data.json();
+    } catch(e){
+      try { data = { title: 'RUDY', body: event.data.text() }; } catch(e2){}
+    }
+  }
+
+  const title = data.title || 'RUDY';
+  const options = {
+    body: data.body || '',
+    icon: data.icon || './icon-192.png',
+    badge: data.badge || './icon-192.png',
+    tag: data.tag || 'rudy-' + Date.now(),
+    data: { url: data.url || './', tag: data.tag },
+    requireInteraction: false,
+    silent: false
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// ==================== NOTIFICATION CLICK ====================
+self.addEventListener('notificationclick', event => {
+  console.log('[SW v76] Notification click');
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || './';
+
+  event.waitUntil((async () => {
+    const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    // ถ้ามี window เปิดอยู่ → focus
+    for(const client of allClients){
+      if(client.url.includes(self.registration.scope)){
+        if('focus' in client) return client.focus();
+      }
+    }
+    // ไม่มี → เปิดใหม่
+    if(self.clients.openWindow){
+      return self.clients.openWindow(targetUrl);
+    }
+  })());
 });

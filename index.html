@@ -2277,7 +2277,7 @@ body.dark .punct-card{
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
 
-/* ===== AI HELPER (v75 - Team Insight) ===== */
+/* ===== AI HELPER (v76 - Web Push subscribe) ===== */
 .ai-helper-box{
   background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
   border: 1px solid rgba(139,92,246,0.28);
@@ -3132,7 +3132,7 @@ body.dark .punct-card{
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
 
-      <!-- ===== AI HELPER (v75 - Team Insight) ===== -->
+      <!-- ===== AI HELPER (v76 - Web Push subscribe) ===== -->
       <div class="ai-helper-box">
         <div class="ai-helper-head">
           <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
@@ -3695,6 +3695,8 @@ function initApp(){
   updateTodayStatus();
   // Migrate OT calculations to latest logic
   setTimeout(migrateOTIfNeeded, 1500);
+  // Update push subscription lastSeen (v76)
+  setTimeout(() => { _updatePushLastSeen().catch(e => console.log('[Push] init:', e)); }, 2000);
 }
 
 // Legacy session login removed — Firebase Auth handles all session management
@@ -6411,8 +6413,135 @@ async function requestPushPermission() {
   if(!('Notification' in window)) { showToast('เบราว์เซอร์ไม่รองรับ','error'); return; }
   const result = await Notification.requestPermission();
   initPushSettings();
-  if(result === 'granted') showToast('✅ เปิดการแจ้งเตือนสำเร็จ','success');
+  if(result === 'granted') {
+    showToast('✅ เปิดการแจ้งเตือนสำเร็จ','success');
+    // === FCM/Web Push Subscribe (v76) ===
+    try {
+      await subscribePush();
+    } catch(e){
+      console.error('[Push] subscribe failed:', e);
+      // ไม่แสดง error ให้ user ถ้า basic notification ใช้ได้
+    }
+  }
   else showToast('ไม่ได้รับอนุญาต','error');
+}
+
+// ========== WEB PUSH SUBSCRIPTION (v76) ==========
+const VAPID_PUBLIC_KEY = 'BGa3RektoCyxgL0ULEyN0Br0N5apo67Dhun4r9A-4oge5rmuaz6OBoGd5d1XGaXWtNTF_INqo9YGkU5PE0VKRIU';
+
+// แปลง base64url → Uint8Array (ที่ pushManager ต้องการ)
+function _urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for(let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+// device id แต่ละเครื่อง — เก็บใน localStorage
+function _getDeviceId(){
+  let id = localStorage.getItem('tt_device_id');
+  if(!id){
+    id = 'd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+    localStorage.setItem('tt_device_id', id);
+  }
+  return id;
+}
+
+// path ที่เก็บใน Firebase: fcm_subs/{userId}/{deviceId}
+function _subPath(){
+  if(!curUser) return null;
+  return 'fcm_subs/' + curUser.id.replace(/[.@#$\[\]/]/g, '_') + '/' + _getDeviceId();
+}
+
+async function subscribePush(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+    console.log('[Push] not supported');
+    return null;
+  }
+  if(Notification.permission !== 'granted'){
+    console.log('[Push] permission not granted');
+    return null;
+  }
+  if(!curUser){
+    console.log('[Push] no user');
+    return null;
+  }
+
+  const reg = await navigator.serviceWorker.ready;
+
+  // เช็คว่ามี subscription อยู่แล้วไหม
+  let sub = await reg.pushManager.getSubscription();
+  if(!sub){
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+      console.log('[Push] new subscription created');
+    } catch(e){
+      console.error('[Push] subscribe error:', e);
+      throw e;
+    }
+  } else {
+    console.log('[Push] existing subscription found');
+  }
+
+  // เก็บ subscription ลง Firebase
+  const subJson = sub.toJSON(); // { endpoint, keys: { p256dh, auth }, expirationTime }
+  const path = _subPath();
+  if(path && fbConn){
+    const data = {
+      endpoint: subJson.endpoint,
+      keys: subJson.keys,
+      userAgent: (navigator.userAgent || '').substring(0, 200),
+      userName: curUser.name || '',
+      userEmail: curUser.id || '',
+      createdAt: Date.now(),
+      lastSeen: Date.now()
+    };
+    try {
+      await db.ref(path).set(data);
+      console.log('[Push] subscription saved to Firebase:', path);
+    } catch(e){
+      console.error('[Push] save to Firebase failed:', e);
+    }
+  }
+  return sub;
+}
+
+async function unsubscribePush(){
+  if(!('serviceWorker' in navigator)) return;
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if(sub){
+    try { await sub.unsubscribe(); } catch(e){}
+  }
+  // ลบจาก Firebase
+  const path = _subPath();
+  if(path && fbConn){
+    try { await db.ref(path).remove(); } catch(e){}
+  }
+}
+
+// อัพเดท lastSeen ทุกครั้งที่เปิดแอป (เพื่อรู้ว่า device active อยู่)
+async function _updatePushLastSeen(){
+  if(!curUser || !fbConn) return;
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  const path = _subPath();
+  if(!path) return;
+  try {
+    const snap = await db.ref(path + '/endpoint').once('value');
+    if(snap.exists()){
+      await db.ref(path + '/lastSeen').set(Date.now());
+    } else {
+      // มี permission แต่ไม่มี subscription → re-subscribe
+      await subscribePush();
+    }
+  } catch(e){
+    console.log('[Push] updateLastSeen error:', e);
+  }
 }
 
 function sendPush(title, body, tag) {
@@ -6461,7 +6590,7 @@ function checkMonthlyReminder() {
     'monthly-summary');
 }
 
-// ========== AI HELPER (v75 - Team Insight) — Claude API integration ==========
+// ========== AI HELPER (v76 - Web Push subscribe) — Claude API integration ==========
 let _aiTone = 'friendly';
 
 // === DEBUG LOGGER (v68) — บันทึก error ทุกขั้นตอน ===
