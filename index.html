@@ -2277,7 +2277,7 @@ body.dark .punct-card{
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
 
-/* ===== AI HELPER (v67) ===== */
+/* ===== AI HELPER (v68) ===== */
 .ai-helper-box{
   background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
   border: 1px solid rgba(139,92,246,0.28);
@@ -3048,7 +3048,7 @@ body.dark .punct-card{
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
 
-      <!-- ===== AI HELPER (v67) ===== -->
+      <!-- ===== AI HELPER (v68) ===== -->
       <div class="ai-helper-box">
         <div class="ai-helper-head">
           <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
@@ -6368,66 +6368,139 @@ function checkMonthlyReminder() {
     'monthly-summary');
 }
 
-// ========== AI HELPER (v67) — Claude API integration ==========
+// ========== AI HELPER (v68) — Claude API integration ==========
 let _aiTone = 'friendly';
 
 function _getAIKey(){
-  return localStorage.getItem('tt_ai_key') || '';
+  try { return localStorage.getItem('tt_ai_key') || ''; }
+  catch(e){ return ''; }
 }
 function _setAIKey(key){
-  if(key) localStorage.setItem('tt_ai_key', key);
-  else localStorage.removeItem('tt_ai_key');
+  try {
+    if(key) localStorage.setItem('tt_ai_key', key);
+    else localStorage.removeItem('tt_ai_key');
+  } catch(e){}
 }
+
+// ใช้ custom modal แทน prompt() — กันเคส iOS PWA ที่ prompt() ไม่ทำงาน
 function _promptAIKey(){
-  const cur = _getAIKey();
-  const key = prompt(
-    '🔑 ใส่ Anthropic API Key\n\n' +
-    'ขึ้นต้นด้วย sk-ant-...\n' +
-    'ดูที่: https://console.anthropic.com/settings/keys\n\n' +
-    '(เก็บใน localStorage เครื่องนี้ — เว้นว่างเพื่อลบ)',
-    cur
-  );
-  if(key === null) return false; // cancel
-  _setAIKey(key.trim());
-  if(key.trim()){
-    showToast('🔑 บันทึก API Key แล้ว', 'success');
-    return true;
-  }
-  return false;
+  return new Promise((resolve) => {
+    let modal = document.getElementById('ai-key-modal');
+    if(!modal){
+      modal = document.createElement('div');
+      modal.id = 'ai-key-modal';
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal">
+          <div class="modal-title">🔑 ใส่ Anthropic API Key
+            <button class="modal-close" id="ai-key-close">✕</button>
+          </div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5">
+            ขึ้นต้นด้วย <code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:4px">sk-ant-...</code><br>
+            ดูที่ <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#60A5FA">console.anthropic.com</a><br>
+            <span style="opacity:0.7">เก็บใน localStorage เครื่องนี้เท่านั้น</span>
+          </div>
+          <input class="modal-inp" id="ai-key-input" type="password"
+                 placeholder="sk-ant-api03-..." autocomplete="off"
+                 autocapitalize="off" autocorrect="off" spellcheck="false"/>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn-secondary" id="ai-key-cancel" style="flex:1">ยกเลิก</button>
+            <button class="btn-primary" id="ai-key-save" style="flex:1;margin:0">บันทึก</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    const input = modal.querySelector('#ai-key-input');
+    const cur = _getAIKey();
+    input.value = cur || '';
+    modal.classList.add('open');
+    setTimeout(() => input.focus(), 100);
+
+    const cleanup = (result) => {
+      modal.classList.remove('open');
+      modal.querySelector('#ai-key-save').onclick = null;
+      modal.querySelector('#ai-key-cancel').onclick = null;
+      modal.querySelector('#ai-key-close').onclick = null;
+      resolve(result);
+    };
+    modal.querySelector('#ai-key-save').onclick = () => {
+      const k = (input.value || '').trim();
+      if(k){
+        _setAIKey(k);
+        showToast('🔑 บันทึก API Key แล้ว', 'success');
+        cleanup(true);
+      } else {
+        showToast('กรุณาใส่ API Key', 'warning');
+      }
+    };
+    modal.querySelector('#ai-key-cancel').onclick = () => cleanup(false);
+    modal.querySelector('#ai-key-close').onclick = () => cleanup(false);
+  });
 }
 
 function toggleAIHelper(){
-  const body = document.getElementById('ai-helper-body');
-  const toggle = document.querySelector('.ai-helper-toggle');
-  const isHidden = body.style.display === 'none';
-  body.style.display = isHidden ? 'block' : 'none';
-  if(toggle) toggle.classList.toggle('open', isHidden);
+  try {
+    const body = document.getElementById('ai-helper-body');
+    const toggle = document.querySelector('.ai-helper-toggle');
+    if(!body) return;
+    const isHidden = body.style.display === 'none' || body.style.display === '';
+    body.style.display = isHidden ? 'block' : 'none';
+    if(toggle) toggle.classList.toggle('open', isHidden);
+  } catch(e){
+    console.error('[AI] toggleAIHelper error:', e);
+  }
 }
 
 function setAITone(tone, btn){
-  _aiTone = tone;
-  document.querySelectorAll('.ai-tone-btn').forEach(b => b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
+  try {
+    _aiTone = tone || 'friendly';
+    document.querySelectorAll('.ai-tone-btn').forEach(b => b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+  } catch(e){
+    console.error('[AI] setAITone error:', e);
+  }
 }
 
 async function generateAnnouncement(){
-  const keyword = document.getElementById('ai-keyword').value.trim();
+  console.log('[AI] generateAnnouncement called');
+
+  // STEP 1: ดึง keyword
+  const kwEl = document.getElementById('ai-keyword');
+  if(!kwEl){
+    showToast('❌ ไม่พบช่อง keyword (DOM)', 'error');
+    return;
+  }
+  const keyword = (kwEl.value || '').trim();
   if(!keyword){
     showToast('พิมพ์ keyword ก่อน เช่น "หยุดสงกรานต์"', 'warning');
     return;
   }
 
+  // STEP 2: เช็ค API key — ถ้าไม่มีให้เปิด custom modal
   let apiKey = _getAIKey();
   if(!apiKey){
-    if(!_promptAIKey()) return;
+    console.log('[AI] No API key, prompting...');
+    try {
+      const ok = await _promptAIKey();
+      if(!ok) return;
+    } catch(e){
+      console.error('[AI] _promptAIKey error:', e);
+      showToast('❌ เปิดหน้าใส่ API key ไม่ได้: ' + (e.message||e), 'error');
+      return;
+    }
     apiKey = _getAIKey();
-    if(!apiKey) return;
+    if(!apiKey){
+      showToast('❌ ยังไม่มี API Key', 'warning');
+      return;
+    }
   }
 
+  // STEP 3: lock ปุ่ม
   const btn = document.querySelector('.btn-ai-gen');
   const label = document.getElementById('ai-gen-label');
-  btn.disabled = true;
-  label.innerHTML = '<span class="ai-spinner"></span>กำลังเขียน...';
+  if(btn) btn.disabled = true;
+  if(label) label.innerHTML = '<span class="ai-spinner"></span>กำลังเขียน...';
 
   const toneMap = {
     friendly: 'เป็นกันเอง อบอุ่น แต่ยังดูเป็นทางการพอสมควร',
@@ -6435,18 +6508,18 @@ async function generateAnnouncement(){
     fun: 'สนุกสนาน ใช้ emoji เยอะ ให้คนอ่านยิ้มได้'
   };
 
-  const systemPrompt = `คุณเป็นผู้ช่วยเขียนประกาศบริษัทภาษาไทย สำหรับแอป HR ชื่อ RUDY
-สไตล์การเขียน: ${toneMap[_aiTone] || toneMap.friendly}
-
-กฎ:
-- เขียนเป็นภาษาไทยทั้งหมด
-- ตอบกลับเป็น JSON เท่านั้น ไม่มี markdown, ไม่มี \`\`\`
-- รูปแบบ: {"title": "หัวข้อสั้นๆ ไม่เกิน 60 ตัวอักษร", "body": "เนื้อหาประกาศ 2-4 ย่อหน้าสั้น"}
-- ขึ้นต้น title ด้วย emoji ที่เหมาะสม 1 ตัว
-- เนื้อหา body ใส่บรรทัดเว้นด้วย \\n\\n ระหว่างย่อหน้า
-- ห้ามใส่วันที่ปลอม ใช้ข้อมูลที่ผู้ใช้ให้มาเท่านั้น`;
+  const systemPrompt = 'คุณเป็นผู้ช่วยเขียนประกาศบริษัทภาษาไทย สำหรับแอป HR ชื่อ RUDY\n' +
+    'สไตล์การเขียน: ' + (toneMap[_aiTone] || toneMap.friendly) + '\n\n' +
+    'กฎ:\n' +
+    '- เขียนเป็นภาษาไทยทั้งหมด\n' +
+    '- ตอบกลับเป็น JSON เท่านั้น ไม่มี markdown\n' +
+    '- รูปแบบ: {"title": "หัวข้อสั้นๆ ไม่เกิน 60 ตัวอักษร", "body": "เนื้อหา 2-4 ย่อหน้าสั้น"}\n' +
+    '- ขึ้นต้น title ด้วย emoji ที่เหมาะสม 1 ตัว\n' +
+    '- เนื้อหา body ใส่บรรทัดเว้นด้วย \\n\\n ระหว่างย่อหน้า\n' +
+    '- ห้ามใส่วันที่ปลอม ใช้ข้อมูลที่ผู้ใช้ให้มาเท่านั้น';
 
   try {
+    console.log('[AI] Calling Anthropic API...');
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -6460,64 +6533,99 @@ async function generateAnnouncement(){
         max_tokens: 800,
         system: systemPrompt,
         messages: [
-          { role: 'user', content: `เขียนประกาศเรื่อง: ${keyword}` }
+          { role: 'user', content: 'เขียนประกาศเรื่อง: ' + keyword }
         ]
       })
     });
 
+    console.log('[AI] Response status:', response.status);
+
     if(!response.ok){
-      const errText = await response.text();
-      let errMsg = 'API error: ' + response.status;
+      const errText = await response.text().catch(() => '');
+      console.error('[AI] API error body:', errText);
+      let errMsg = 'API error ' + response.status;
       try {
         const errJson = JSON.parse(errText);
-        if(errJson.error && errJson.error.message) errMsg = errJson.error.message;
-      } catch(e) {}
+        if(errJson && errJson.error && errJson.error.message){
+          errMsg = errJson.error.message;
+        }
+      } catch(e){}
+
       if(response.status === 401){
-        errMsg = 'API Key ไม่ถูกต้อง — ตั้งใหม่?';
-        if(confirm(errMsg)) _promptAIKey();
+        showToast('❌ API Key ไม่ถูกต้อง', 'error');
+        setTimeout(() => _promptAIKey(), 800);
+      } else if(response.status === 400){
+        showToast('❌ ' + errMsg, 'error');
+      } else if(response.status === 429){
+        showToast('❌ ใช้บ่อยเกินไป รอสักครู่', 'error');
       } else {
         showToast('❌ ' + errMsg, 'error');
       }
-      throw new Error(errMsg);
+      return;
     }
 
     const data = await response.json();
-    const text = (data.content || [])
-      .filter(b => b.type === 'text')
+    console.log('[AI] Response data:', data);
+
+    if(!data || !Array.isArray(data.content)){
+      showToast('❌ AI ตอบมารูปแบบแปลก', 'error');
+      console.error('[AI] Unexpected response shape:', data);
+      return;
+    }
+
+    const text = data.content
+      .filter(b => b && b.type === 'text' && typeof b.text === 'string')
       .map(b => b.text)
       .join('')
       .trim();
 
-    // ดึง JSON ออกมา (กันโมเดลใส่ ```)
+    if(!text){
+      showToast('❌ AI ไม่ตอบข้อความกลับมา', 'error');
+      return;
+    }
+
+    // ดึง JSON ออกมา (กันโมเดลใส่ ``` ครอบ)
     let cleaned = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
-    let parsed;
+    let parsed = null;
     try {
       parsed = JSON.parse(cleaned);
     } catch(e) {
-      // fallback: ลองหา {...} ในข้อความ
       const m = cleaned.match(/\{[\s\S]*\}/);
-      if(m) parsed = JSON.parse(m[0]);
-      else throw new Error('AI ตอบกลับมาในรูปแบบที่อ่านไม่ได้');
+      if(m){
+        try { parsed = JSON.parse(m[0]); } catch(e2){}
+      }
     }
 
-    if(parsed.title) document.getElementById('ann-title').value = parsed.title;
-    if(parsed.body)  document.getElementById('ann-body').value  = parsed.body;
+    if(!parsed || typeof parsed !== 'object'){
+      showToast('❌ AI ตอบมาในรูปแบบที่อ่านไม่ได้', 'error');
+      console.error('[AI] Parse failed. Raw text:', text);
+      return;
+    }
+
+    const titleEl = document.getElementById('ann-title');
+    const bodyEl  = document.getElementById('ann-body');
+    if(titleEl && parsed.title) titleEl.value = String(parsed.title);
+    if(bodyEl  && parsed.body)  bodyEl.value  = String(parsed.body);
     showToast('✨ AI ร่างให้แล้ว — ตรวจก่อนกดประกาศนะ', 'success');
 
   } catch(err) {
-    console.error('[AI] generateAnnouncement error:', err);
-    if(!err.message.includes('API error') && !err.message.includes('API Key')){
-      showToast('❌ ' + (err.message || 'เกิดข้อผิดพลาด'), 'error');
+    console.error('[AI] generateAnnouncement caught:', err);
+    const msg = (err && err.message) ? err.message : 'เกิดข้อผิดพลาด';
+    // network error / CORS / etc.
+    if(msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('network')){
+      showToast('❌ เชื่อมต่อ API ไม่ได้ (network)', 'error');
+    } else {
+      showToast('❌ ' + msg, 'error');
     }
   } finally {
-    btn.disabled = false;
-    label.textContent = '✨ สร้างประกาศ';
+    if(btn) btn.disabled = false;
+    if(label) label.textContent = '✨ สร้างประกาศ';
   }
 }
 
 // เปิดเมนูตั้งค่า API key (เผื่ออยากเปลี่ยนทีหลัง)
 function openAISettings(){
-  _promptAIKey();
+  _promptAIKey().catch(e => console.error('[AI] openAISettings:', e));
 }
 
 // ========== ANNOUNCE ==========

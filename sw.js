@@ -1,7 +1,7 @@
 // ===== RUDY Service Worker =====
-// v67 — added AI Helper for announcements (Claude API integration)
-const STATIC_CACHE = 'rudy-static-v67';
-const FIREBASE_CACHE = 'rudy-firebase-v67';
+// v68 — added AI Helper for announcements (Claude API integration)
+const STATIC_CACHE = 'rudy-static-v68';
+const FIREBASE_CACHE = 'rudy-firebase-v68';
 const CURRENT_CACHES = [STATIC_CACHE, FIREBASE_CACHE];
 
 const STATIC_ASSETS = [
@@ -29,25 +29,25 @@ const FONT_ASSETS = [
 
 // ==================== INSTALL ====================
 self.addEventListener('install', event => {
-  console.log('[SW v67] Installing...');
+  console.log('[SW v68] Installing...');
   event.waitUntil(
     Promise.all([
       caches.open(STATIC_CACHE).then(cache => {
-        console.log('[SW v67] Caching static assets');
+        console.log('[SW v68] Caching static assets');
         return cache.addAll(STATIC_ASSETS).catch(err => {
-          console.log('[SW v67] Static cache error:', err);
+          console.log('[SW v68] Static cache error:', err);
         });
       }),
       caches.open(FIREBASE_CACHE).then(cache => {
-        console.log('[SW v67] Caching Firebase SDK + Fonts');
+        console.log('[SW v68] Caching Firebase SDK + Fonts');
         return Promise.all(
           [...FIREBASE_ASSETS, ...FONT_ASSETS].map(url =>
-            cache.add(url).catch(err => console.log('[SW v67] Cache error:', url, err))
+            cache.add(url).catch(err => console.log('[SW v68] Cache error:', url, err))
           )
         );
       }),
     ]).then(() => {
-      console.log('[SW v67] Installed — skipping waiting');
+      console.log('[SW v68] Installed — skipping waiting');
       return self.skipWaiting();
     })
   );
@@ -55,28 +55,28 @@ self.addEventListener('install', event => {
 
 // ==================== ACTIVATE ====================
 self.addEventListener('activate', event => {
-  console.log('[SW v67] Activating — cleaning ALL old caches');
+  console.log('[SW v68] Activating — cleaning ALL old caches');
   event.waitUntil(
     (async () => {
       const allKeys = await caches.keys();
-      console.log('[SW v67] Found caches:', allKeys);
+      console.log('[SW v68] Found caches:', allKeys);
 
       const deletions = allKeys
         .filter(key => !CURRENT_CACHES.includes(key))
         .map(key => {
-          console.log('[SW v67]   x Deleting:', key);
+          console.log('[SW v68]   x Deleting:', key);
           return caches.delete(key);
         });
 
       await Promise.all(deletions);
-      console.log('[SW v67] Cache cleanup complete. Active:', CURRENT_CACHES);
+      console.log('[SW v68] Cache cleanup complete. Active:', CURRENT_CACHES);
 
       await self.clients.claim();
 
       const clients = await self.clients.matchAll({ type: 'window' });
-      console.log('[SW v67] Notifying ' + clients.length + ' client(s) to reload');
+      console.log('[SW v68] Notifying ' + clients.length + ' client(s) to reload');
       for (const client of clients) {
-        client.postMessage({ type: 'SW_UPDATED', version: 'v67' });
+        client.postMessage({ type: 'SW_UPDATED', version: 'v68' });
       }
     })()
   );
@@ -137,7 +137,7 @@ self.addEventListener('fetch', event => {
 // ==================== MESSAGE ====================
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting' || (event.data && event.data.type === 'SKIP_WAITING')) {
-    console.log('[SW v67] Manual skipWaiting');
+    console.log('[SW v68] Manual skipWaiting');
     self.skipWaiting();
   }
 
@@ -145,7 +145,7 @@ self.addEventListener('message', event => {
     event.waitUntil((async () => {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
-      console.log('[SW v67] PURGE_ALL: deleted', keys.length, 'caches');
+      console.log('[SW v68] PURGE_ALL: deleted', keys.length, 'caches');
       if (event.source) {
         event.source.postMessage({ type: 'PURGE_DONE', deleted: keys });
       }
