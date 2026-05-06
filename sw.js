@@ -1,7 +1,7 @@
 // ===== RUDY Service Worker =====
-// v70 — added AI Helper for announcements (Claude API integration)
-const STATIC_CACHE = 'rudy-static-v70';
-const FIREBASE_CACHE = 'rudy-firebase-v70';
+// v71 — added AI Helper for announcements (Claude API integration)
+const STATIC_CACHE = 'rudy-static-v71';
+const FIREBASE_CACHE = 'rudy-firebase-v71';
 const CURRENT_CACHES = [STATIC_CACHE, FIREBASE_CACHE];
 
 const STATIC_ASSETS = [
@@ -29,25 +29,25 @@ const FONT_ASSETS = [
 
 // ==================== INSTALL ====================
 self.addEventListener('install', event => {
-  console.log('[SW v70] Installing...');
+  console.log('[SW v71] Installing...');
   event.waitUntil(
     Promise.all([
       caches.open(STATIC_CACHE).then(cache => {
-        console.log('[SW v70] Caching static assets');
+        console.log('[SW v71] Caching static assets');
         return cache.addAll(STATIC_ASSETS).catch(err => {
-          console.log('[SW v70] Static cache error:', err);
+          console.log('[SW v71] Static cache error:', err);
         });
       }),
       caches.open(FIREBASE_CACHE).then(cache => {
-        console.log('[SW v70] Caching Firebase SDK + Fonts');
+        console.log('[SW v71] Caching Firebase SDK + Fonts');
         return Promise.all(
           [...FIREBASE_ASSETS, ...FONT_ASSETS].map(url =>
-            cache.add(url).catch(err => console.log('[SW v70] Cache error:', url, err))
+            cache.add(url).catch(err => console.log('[SW v71] Cache error:', url, err))
           )
         );
       }),
     ]).then(() => {
-      console.log('[SW v70] Installed — skipping waiting');
+      console.log('[SW v71] Installed — skipping waiting');
       return self.skipWaiting();
     })
   );
@@ -55,28 +55,28 @@ self.addEventListener('install', event => {
 
 // ==================== ACTIVATE ====================
 self.addEventListener('activate', event => {
-  console.log('[SW v70] Activating — cleaning ALL old caches');
+  console.log('[SW v71] Activating — cleaning ALL old caches');
   event.waitUntil(
     (async () => {
       const allKeys = await caches.keys();
-      console.log('[SW v70] Found caches:', allKeys);
+      console.log('[SW v71] Found caches:', allKeys);
 
       const deletions = allKeys
         .filter(key => !CURRENT_CACHES.includes(key))
         .map(key => {
-          console.log('[SW v70]   x Deleting:', key);
+          console.log('[SW v71]   x Deleting:', key);
           return caches.delete(key);
         });
 
       await Promise.all(deletions);
-      console.log('[SW v70] Cache cleanup complete. Active:', CURRENT_CACHES);
+      console.log('[SW v71] Cache cleanup complete. Active:', CURRENT_CACHES);
 
       await self.clients.claim();
 
       const clients = await self.clients.matchAll({ type: 'window' });
-      console.log('[SW v70] Notifying ' + clients.length + ' client(s) to reload');
+      console.log('[SW v71] Notifying ' + clients.length + ' client(s) to reload');
       for (const client of clients) {
-        client.postMessage({ type: 'SW_UPDATED', version: 'v70' });
+        client.postMessage({ type: 'SW_UPDATED', version: 'v71' });
       }
     })()
   );
@@ -86,11 +86,8 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = event.request.url;
 
-  // ⚠️ HARD BYPASS: Anthropic API — ห้าม Service Worker แตะเด็ดขาด
-  // Safari iOS มีบั๊ก: ถ้า SW มี fetch handler ที่ register URL นี้
-  // (แม้จะแค่ early return) บางทีก็จะ rewrite request mode เป็น cors
-  // ทำให้ preflight fail → "TypeError: Type error"
-  if (url.indexOf('api.anthropic.com') !== -1) {
+  // ⚠️ HARD BYPASS: Gemini API — ห้าม Service Worker แตะเด็ดขาด
+  if (url.indexOf('generativelanguage.googleapis.com') !== -1) {
     return; // ไม่เรียก event.respondWith() = browser handle เอง
   }
 
@@ -144,7 +141,7 @@ self.addEventListener('fetch', event => {
 // ==================== MESSAGE ====================
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting' || (event.data && event.data.type === 'SKIP_WAITING')) {
-    console.log('[SW v70] Manual skipWaiting');
+    console.log('[SW v71] Manual skipWaiting');
     self.skipWaiting();
   }
 
@@ -152,7 +149,7 @@ self.addEventListener('message', event => {
     event.waitUntil((async () => {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
-      console.log('[SW v70] PURGE_ALL: deleted', keys.length, 'caches');
+      console.log('[SW v71] PURGE_ALL: deleted', keys.length, 'caches');
       if (event.source) {
         event.source.postMessage({ type: 'PURGE_DONE', deleted: keys });
       }

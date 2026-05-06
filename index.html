@@ -2277,7 +2277,7 @@ body.dark .punct-card{
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
 
-/* ===== AI HELPER (v70) ===== */
+/* ===== AI HELPER (v71 - Gemini) ===== */
 .ai-helper-box{
   background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
   border: 1px solid rgba(139,92,246,0.28);
@@ -3048,7 +3048,7 @@ body.dark .punct-card{
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
 
-      <!-- ===== AI HELPER (v70) ===== -->
+      <!-- ===== AI HELPER (v71 - Gemini) ===== -->
       <div class="ai-helper-box">
         <div class="ai-helper-head">
           <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
@@ -6368,7 +6368,7 @@ function checkMonthlyReminder() {
     'monthly-summary');
 }
 
-// ========== AI HELPER (v70) — Claude API integration ==========
+// ========== AI HELPER (v71 - Gemini) — Claude API integration ==========
 let _aiTone = 'friendly';
 
 // === DEBUG LOGGER (v68) — บันทึก error ทุกขั้นตอน ===
@@ -6419,16 +6419,16 @@ function _promptAIKey(){
       modal.className = 'modal-overlay';
       modal.innerHTML = `
         <div class="modal">
-          <div class="modal-title">🔑 ใส่ Anthropic API Key
+          <div class="modal-title">🔑 ใส่ Gemini API Key
             <button class="modal-close" id="ai-key-close">✕</button>
           </div>
           <div style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5">
-            ขึ้นต้นด้วย <code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:4px">sk-ant-...</code><br>
-            ดูที่ <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#60A5FA">console.anthropic.com</a><br>
+            ขึ้นต้นด้วย <code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:4px">AIza...</code><br>
+            ขอฟรีที่ <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#60A5FA">aistudio.google.com/apikey</a><br>
             <span style="opacity:0.7">เก็บใน localStorage เครื่องนี้เท่านั้น</span>
           </div>
           <input class="modal-inp" id="ai-key-input" type="password"
-                 placeholder="sk-ant-api03-..." autocomplete="off"
+                 placeholder="AIzaSy..." autocomplete="off"
                  autocapitalize="off" autocorrect="off" spellcheck="false"/>
           <div style="display:flex;gap:8px;margin-top:12px">
             <button class="btn-secondary" id="ai-key-cancel" style="flex:1">ยกเลิก</button>
@@ -6550,32 +6550,35 @@ async function generateAnnouncement(){
 
     let response;
     try {
-      response = await fetch('https://api.anthropic.com/v1/messages', {
+      // Gemini 2.5 Pro API endpoint — key อยู่ใน URL
+      const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + encodeURIComponent(apiKey);
+      response = await fetch(url, {
         method: 'POST',
-        // bypass Service Worker / browser cache อย่างชัดเจน
         mode: 'cors',
         cache: 'no-store',
         credentials: 'omit',
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 800,
-          system: systemPrompt,
-          messages: [
-            { role: 'user', content: 'เขียนประกาศเรื่อง: ' + keyword }
-          ]
+          systemInstruction: {
+            parts: [{ text: systemPrompt }]
+          },
+          contents: [{
+            role: 'user',
+            parts: [{ text: 'เขียนประกาศเรื่อง: ' + keyword }]
+          }],
+          generationConfig: {
+            maxOutputTokens: 2000,
+            temperature: 0.7,
+            responseMimeType: 'application/json'
+          }
         })
       });
     } catch(fetchErr){
       _aiLog('fetch-fail', (fetchErr.name || '') + ': ' + (fetchErr.message || fetchErr));
-      alert('❌ เรียก API ไม่ได้ (น่าจะเป็น CORS หรือ network)\n\n' +
-            (fetchErr.name || 'Error') + ': ' + (fetchErr.message || fetchErr) + '\n\n' +
-            'ลอง: เปิดในเบราว์เซอร์ปกติ ไม่ใช่ PWA');
+      alert('❌ เรียก API ไม่ได้ (network)\n\n' +
+            (fetchErr.name || 'Error') + ': ' + (fetchErr.message || fetchErr));
       return;
     }
 
@@ -6603,16 +6606,26 @@ async function generateAnnouncement(){
 
     _aiLog('step4', 'parsing response...');
     const data = await response.json();
-    _aiLog('step4-ok', 'got data, content blocks=' + (data.content||[]).length);
+    _aiLog('step4-ok', 'got data, candidates=' + ((data.candidates||[]).length));
 
-    if(!data || !Array.isArray(data.content)){
-      alert('❌ AI ตอบมารูปแบบแปลก\n\n' + JSON.stringify(data).substring(0, 300));
+    // Gemini format: data.candidates[0].content.parts[0].text
+    if(!data || !Array.isArray(data.candidates) || !data.candidates.length){
+      // Gemini อาจ block content เพราะ safety filter
+      const reason = data && data.promptFeedback ? JSON.stringify(data.promptFeedback) : '';
+      alert('❌ Gemini ไม่ตอบ\n\n' + (reason || JSON.stringify(data).substring(0, 300)));
       return;
     }
 
-    const text = data.content
-      .filter(b => b && b.type === 'text' && typeof b.text === 'string')
-      .map(b => b.text)
+    const candidate = data.candidates[0];
+    if(candidate.finishReason && candidate.finishReason !== 'STOP' && candidate.finishReason !== 'MAX_TOKENS'){
+      alert('❌ Gemini หยุดเพราะ: ' + candidate.finishReason);
+      return;
+    }
+
+    const parts = (candidate.content && candidate.content.parts) || [];
+    const text = parts
+      .filter(p => p && typeof p.text === 'string')
+      .map(p => p.text)
       .join('')
       .trim();
 
