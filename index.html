@@ -2277,7 +2277,7 @@ body.dark .punct-card{
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
 
-/* ===== AI HELPER (v69) ===== */
+/* ===== AI HELPER (v70) ===== */
 .ai-helper-box{
   background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
   border: 1px solid rgba(139,92,246,0.28);
@@ -3048,7 +3048,7 @@ body.dark .punct-card{
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
 
-      <!-- ===== AI HELPER (v69) ===== -->
+      <!-- ===== AI HELPER (v70) ===== -->
       <div class="ai-helper-box">
         <div class="ai-helper-head">
           <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
@@ -6368,7 +6368,7 @@ function checkMonthlyReminder() {
     'monthly-summary');
 }
 
-// ========== AI HELPER (v69) — Claude API integration ==========
+// ========== AI HELPER (v70) — Claude API integration ==========
 let _aiTone = 'friendly';
 
 // === DEBUG LOGGER (v68) — บันทึก error ทุกขั้นตอน ===
@@ -6552,6 +6552,10 @@ async function generateAnnouncement(){
     try {
       response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
+        // bypass Service Worker / browser cache อย่างชัดเจน
+        mode: 'cors',
+        cache: 'no-store',
+        credentials: 'omit',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
