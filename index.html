@@ -2277,7 +2277,7 @@ body.dark .punct-card{
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
 
-/* ===== AI HELPER (v68) ===== */
+/* ===== AI HELPER (v69) ===== */
 .ai-helper-box{
   background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
   border: 1px solid rgba(139,92,246,0.28);
@@ -3048,7 +3048,7 @@ body.dark .punct-card{
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
 
-      <!-- ===== AI HELPER (v68) ===== -->
+      <!-- ===== AI HELPER (v69) ===== -->
       <div class="ai-helper-box">
         <div class="ai-helper-head">
           <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
@@ -6368,8 +6368,35 @@ function checkMonthlyReminder() {
     'monthly-summary');
 }
 
-// ========== AI HELPER (v68) — Claude API integration ==========
+// ========== AI HELPER (v69) — Claude API integration ==========
 let _aiTone = 'friendly';
+
+// === DEBUG LOGGER (v68) — บันทึก error ทุกขั้นตอน ===
+function _aiLog(stage, data){
+  try {
+    const logs = JSON.parse(localStorage.getItem('tt_ai_debug') || '[]');
+    logs.push({ t: new Date().toISOString(), stage, data: String(data).substring(0, 500) });
+    if(logs.length > 50) logs.shift();
+    localStorage.setItem('tt_ai_debug', JSON.stringify(logs));
+    console.log('[AI:' + stage + ']', data);
+  } catch(e){}
+}
+
+// เปิดดู debug log — เรียก showAIDebugLog() ใน console หรือผูกกับปุ่ม
+function showAIDebugLog(){
+  try {
+    const logs = JSON.parse(localStorage.getItem('tt_ai_debug') || '[]');
+    if(!logs.length){ alert('ยังไม่มี debug log'); return; }
+    const text = logs.map(l => '[' + l.t.substring(11,19) + '] ' + l.stage + ': ' + l.data).join('\n\n');
+    alert('=== AI DEBUG LOG (' + logs.length + ') ===\n\n' + text);
+  } catch(e){
+    alert('อ่าน log ไม่ได้: ' + e.message);
+  }
+}
+function clearAIDebugLog(){
+  try { localStorage.removeItem('tt_ai_debug'); showToast('🗑 ล้าง log แล้ว','success'); }
+  catch(e){}
+}
 
 function _getAIKey(){
   try { return localStorage.getItem('tt_ai_key') || ''; }
@@ -6463,86 +6490,96 @@ function setAITone(tone, btn){
 }
 
 async function generateAnnouncement(){
-  console.log('[AI] generateAnnouncement called');
-
-  // STEP 1: ดึง keyword
-  const kwEl = document.getElementById('ai-keyword');
-  if(!kwEl){
-    showToast('❌ ไม่พบช่อง keyword (DOM)', 'error');
-    return;
-  }
-  const keyword = (kwEl.value || '').trim();
-  if(!keyword){
-    showToast('พิมพ์ keyword ก่อน เช่น "หยุดสงกรานต์"', 'warning');
-    return;
-  }
-
-  // STEP 2: เช็ค API key — ถ้าไม่มีให้เปิด custom modal
-  let apiKey = _getAIKey();
-  if(!apiKey){
-    console.log('[AI] No API key, prompting...');
-    try {
-      const ok = await _promptAIKey();
-      if(!ok) return;
-    } catch(e){
-      console.error('[AI] _promptAIKey error:', e);
-      showToast('❌ เปิดหน้าใส่ API key ไม่ได้: ' + (e.message||e), 'error');
-      return;
-    }
-    apiKey = _getAIKey();
-    if(!apiKey){
-      showToast('❌ ยังไม่มี API Key', 'warning');
-      return;
-    }
-  }
-
-  // STEP 3: lock ปุ่ม
-  const btn = document.querySelector('.btn-ai-gen');
-  const label = document.getElementById('ai-gen-label');
-  if(btn) btn.disabled = true;
-  if(label) label.innerHTML = '<span class="ai-spinner"></span>กำลังเขียน...';
-
-  const toneMap = {
-    friendly: 'เป็นกันเอง อบอุ่น แต่ยังดูเป็นทางการพอสมควร',
-    formal: 'ทางการ สุภาพ เหมาะกับเอกสารบริษัท',
-    fun: 'สนุกสนาน ใช้ emoji เยอะ ให้คนอ่านยิ้มได้'
-  };
-
-  const systemPrompt = 'คุณเป็นผู้ช่วยเขียนประกาศบริษัทภาษาไทย สำหรับแอป HR ชื่อ RUDY\n' +
-    'สไตล์การเขียน: ' + (toneMap[_aiTone] || toneMap.friendly) + '\n\n' +
-    'กฎ:\n' +
-    '- เขียนเป็นภาษาไทยทั้งหมด\n' +
-    '- ตอบกลับเป็น JSON เท่านั้น ไม่มี markdown\n' +
-    '- รูปแบบ: {"title": "หัวข้อสั้นๆ ไม่เกิน 60 ตัวอักษร", "body": "เนื้อหา 2-4 ย่อหน้าสั้น"}\n' +
-    '- ขึ้นต้น title ด้วย emoji ที่เหมาะสม 1 ตัว\n' +
-    '- เนื้อหา body ใส่บรรทัดเว้นด้วย \\n\\n ระหว่างย่อหน้า\n' +
-    '- ห้ามใส่วันที่ปลอม ใช้ข้อมูลที่ผู้ใช้ให้มาเท่านั้น';
+  _aiLog('start', 'generateAnnouncement called');
 
   try {
-    console.log('[AI] Calling Anthropic API...');
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 800,
-        system: systemPrompt,
-        messages: [
-          { role: 'user', content: 'เขียนประกาศเรื่อง: ' + keyword }
-        ]
-      })
-    });
+    // STEP 1: ดึง keyword
+    _aiLog('step1', 'reading keyword input');
+    const kwEl = document.getElementById('ai-keyword');
+    if(!kwEl){
+      _aiLog('step1-fail', 'ai-keyword element not found');
+      alert('❌ ไม่พบช่อง keyword ใน DOM\nกรุณา reload หน้านี้');
+      return;
+    }
+    const keyword = (kwEl.value || '').trim();
+    _aiLog('step1-ok', 'keyword=' + keyword);
+    if(!keyword){
+      showToast('พิมพ์ keyword ก่อน เช่น "หยุดสงกรานต์"', 'warning');
+      return;
+    }
 
-    console.log('[AI] Response status:', response.status);
+    // STEP 2: เช็ค API key
+    _aiLog('step2', 'checking API key');
+    let apiKey = _getAIKey();
+    if(!apiKey){
+      _aiLog('step2-prompt', 'no key, opening modal');
+      const ok = await _promptAIKey();
+      _aiLog('step2-prompt-result', 'ok=' + ok);
+      if(!ok) return;
+      apiKey = _getAIKey();
+      if(!apiKey){
+        showToast('❌ ยังไม่มี API Key', 'warning');
+        return;
+      }
+    }
+    _aiLog('step2-ok', 'have key (len=' + apiKey.length + ')');
+
+    // STEP 3: lock ปุ่ม
+    const btn = document.querySelector('.btn-ai-gen');
+    const label = document.getElementById('ai-gen-label');
+    if(btn) btn.disabled = true;
+    if(label) label.innerHTML = '<span class="ai-spinner"></span>กำลังเขียน...';
+
+    const toneMap = {
+      friendly: 'เป็นกันเอง อบอุ่น แต่ยังดูเป็นทางการพอสมควร',
+      formal: 'ทางการ สุภาพ เหมาะกับเอกสารบริษัท',
+      fun: 'สนุกสนาน ใช้ emoji เยอะ ให้คนอ่านยิ้มได้'
+    };
+
+    const systemPrompt = 'คุณเป็นผู้ช่วยเขียนประกาศบริษัทภาษาไทย สำหรับแอป HR ชื่อ RUDY\n' +
+      'สไตล์การเขียน: ' + (toneMap[_aiTone] || toneMap.friendly) + '\n\n' +
+      'กฎ:\n' +
+      '- เขียนเป็นภาษาไทยทั้งหมด\n' +
+      '- ตอบกลับเป็น JSON เท่านั้น ไม่มี markdown\n' +
+      '- รูปแบบ: {"title": "หัวข้อสั้นๆ ไม่เกิน 60 ตัวอักษร", "body": "เนื้อหา 2-4 ย่อหน้าสั้น"}\n' +
+      '- ขึ้นต้น title ด้วย emoji ที่เหมาะสม 1 ตัว\n' +
+      '- เนื้อหา body ใส่บรรทัดเว้นด้วย \\n\\n ระหว่างย่อหน้า\n' +
+      '- ห้ามใส่วันที่ปลอม ใช้ข้อมูลที่ผู้ใช้ให้มาเท่านั้น';
+
+    _aiLog('step3', 'calling API...');
+
+    let response;
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 800,
+          system: systemPrompt,
+          messages: [
+            { role: 'user', content: 'เขียนประกาศเรื่อง: ' + keyword }
+          ]
+        })
+      });
+    } catch(fetchErr){
+      _aiLog('fetch-fail', (fetchErr.name || '') + ': ' + (fetchErr.message || fetchErr));
+      alert('❌ เรียก API ไม่ได้ (น่าจะเป็น CORS หรือ network)\n\n' +
+            (fetchErr.name || 'Error') + ': ' + (fetchErr.message || fetchErr) + '\n\n' +
+            'ลอง: เปิดในเบราว์เซอร์ปกติ ไม่ใช่ PWA');
+      return;
+    }
+
+    _aiLog('step3-ok', 'status=' + response.status);
 
     if(!response.ok){
       const errText = await response.text().catch(() => '');
-      console.error('[AI] API error body:', errText);
+      _aiLog('api-error', response.status + ' ' + errText.substring(0, 200));
       let errMsg = 'API error ' + response.status;
       try {
         const errJson = JSON.parse(errText);
@@ -6552,24 +6589,20 @@ async function generateAnnouncement(){
       } catch(e){}
 
       if(response.status === 401){
-        showToast('❌ API Key ไม่ถูกต้อง', 'error');
+        alert('❌ API Key ไม่ถูกต้อง\n\nกรุณาตรวจสอบ key ใหม่');
         setTimeout(() => _promptAIKey(), 800);
-      } else if(response.status === 400){
-        showToast('❌ ' + errMsg, 'error');
-      } else if(response.status === 429){
-        showToast('❌ ใช้บ่อยเกินไป รอสักครู่', 'error');
       } else {
-        showToast('❌ ' + errMsg, 'error');
+        alert('❌ API Error ' + response.status + '\n\n' + errMsg);
       }
       return;
     }
 
+    _aiLog('step4', 'parsing response...');
     const data = await response.json();
-    console.log('[AI] Response data:', data);
+    _aiLog('step4-ok', 'got data, content blocks=' + (data.content||[]).length);
 
     if(!data || !Array.isArray(data.content)){
-      showToast('❌ AI ตอบมารูปแบบแปลก', 'error');
-      console.error('[AI] Unexpected response shape:', data);
+      alert('❌ AI ตอบมารูปแบบแปลก\n\n' + JSON.stringify(data).substring(0, 300));
       return;
     }
 
@@ -6579,12 +6612,13 @@ async function generateAnnouncement(){
       .join('')
       .trim();
 
+    _aiLog('step5', 'text length=' + text.length);
+
     if(!text){
-      showToast('❌ AI ไม่ตอบข้อความกลับมา', 'error');
+      alert('❌ AI ไม่ตอบข้อความกลับมา');
       return;
     }
 
-    // ดึง JSON ออกมา (กันโมเดลใส่ ``` ครอบ)
     let cleaned = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
     let parsed = null;
     try {
@@ -6597,8 +6631,8 @@ async function generateAnnouncement(){
     }
 
     if(!parsed || typeof parsed !== 'object'){
-      showToast('❌ AI ตอบมาในรูปแบบที่อ่านไม่ได้', 'error');
-      console.error('[AI] Parse failed. Raw text:', text);
+      _aiLog('parse-fail', text.substring(0, 200));
+      alert('❌ อ่าน JSON ไม่ได้\n\nAI ตอบ:\n' + text.substring(0, 300));
       return;
     }
 
@@ -6606,20 +6640,23 @@ async function generateAnnouncement(){
     const bodyEl  = document.getElementById('ann-body');
     if(titleEl && parsed.title) titleEl.value = String(parsed.title);
     if(bodyEl  && parsed.body)  bodyEl.value  = String(parsed.body);
+    _aiLog('done', 'success! title=' + parsed.title);
     showToast('✨ AI ร่างให้แล้ว — ตรวจก่อนกดประกาศนะ', 'success');
 
   } catch(err) {
-    console.error('[AI] generateAnnouncement caught:', err);
-    const msg = (err && err.message) ? err.message : 'เกิดข้อผิดพลาด';
-    // network error / CORS / etc.
-    if(msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('network')){
-      showToast('❌ เชื่อมต่อ API ไม่ได้ (network)', 'error');
-    } else {
-      showToast('❌ ' + msg, 'error');
-    }
+    // catch-all สำหรับ error ที่ไม่คาดคิด
+    const stack = (err && err.stack) ? err.stack.substring(0, 400) : '(no stack)';
+    const name = (err && err.name) || 'Error';
+    const msg = (err && err.message) || String(err);
+    _aiLog('UNCAUGHT', name + ': ' + msg + '\n' + stack);
+    alert('❌ เกิด ' + name + '\n\n' +
+          'ข้อความ: ' + msg + '\n\n' +
+          'Stack:\n' + stack);
   } finally {
-    if(btn) btn.disabled = false;
-    if(label) label.textContent = '✨ สร้างประกาศ';
+    const btn2 = document.querySelector('.btn-ai-gen');
+    const label2 = document.getElementById('ai-gen-label');
+    if(btn2) btn2.disabled = false;
+    if(label2) label2.textContent = '✨ สร้างประกาศ';
   }
 }
 
