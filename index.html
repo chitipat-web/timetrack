@@ -2277,7 +2277,7 @@ body.dark .punct-card{
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
 
-/* ===== AI HELPER (v72 - Gemini Flash) ===== */
+/* ===== AI HELPER (v73 - Gemini Flash + Insight) ===== */
 .ai-helper-box{
   background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
   border: 1px solid rgba(139,92,246,0.28);
@@ -2349,6 +2349,89 @@ body.dark .punct-card{
   vertical-align:middle; margin-right:6px;
 }
 @keyframes ai-spin{ to { transform:rotate(360deg); } }
+
+/* ===== AI INSIGHT CARD (v73) ===== */
+.ai-insight-card{
+  background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
+  border: 1px solid rgba(139,92,246,0.28);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.ai-insight-card::before{
+  content:""; position:absolute; inset:0;
+  background: radial-gradient(800px circle at 0% 0%, rgba(167,139,250,0.08), transparent 40%);
+  pointer-events:none;
+}
+.ai-insight-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom: 10px;
+  position: relative; z-index:1;
+}
+.ai-insight-title{
+  font-size: 14px; font-weight:700;
+  background: linear-gradient(135deg, #A78BFA, #60A5FA);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.01em;
+}
+.ai-insight-empty{
+  text-align:center;
+  padding: 12px 0;
+  position:relative; z-index:1;
+}
+.ai-insight-empty-text{
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.btn-ai-insight{
+  background: linear-gradient(135deg, #A78BFA 0%, #818CF8 50%, #60A5FA 100%);
+  color:#fff; border:none; border-radius:var(--r-sm);
+  padding: 10px 20px; font-size:13px; font-weight:600;
+  cursor:pointer; font-family:inherit;
+  transition: all 0.15s var(--ease-spring);
+  box-shadow:
+    0 4px 14px rgba(139,92,246,0.40),
+    inset 0 1px 0 rgba(255,255,255,0.30);
+  letter-spacing:-0.01em;
+}
+.btn-ai-insight:active{ transform:scale(0.97); }
+.btn-ai-insight:hover{ filter:brightness(1.08); }
+.btn-ai-insight:disabled{
+  opacity: 0.6; cursor:wait;
+  background: linear-gradient(135deg, #9CA3AF, #6B7280);
+}
+.ai-insight-content{
+  position:relative; z-index:1;
+  font-size: 14px; line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ai-insight-content strong{
+  font-weight:700;
+  color: #A78BFA;
+}
+.ai-insight-meta{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-top: 12px;
+  font-size: 11px; color: var(--text3);
+  position:relative; z-index:1;
+}
+.btn-ai-refresh{
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.20);
+  border-radius: var(--r-pill);
+  padding: 4px 10px;
+  font-size: 11px; color: var(--text2);
+  cursor:pointer; font-family:inherit;
+  transition: all 0.15s;
+}
+.btn-ai-refresh:hover{ background: rgba(255,255,255,0.18); }
 </style>
 
 <!-- PWA Manifest -->
@@ -2651,6 +2734,7 @@ body.dark .punct-card{
     <div id="punctuality-container"></div>
     <div id="reports-container"></div>
     <div id="month-summary" class="sum-grid"></div>
+    <div id="ai-insight-container"></div>
     <div id="heatmap-container"></div>
     <div class="chart-card"><div class="chart-title">⏰ ชั่วโมงทำงานรายวัน</div><canvas id="chart-hours" height="180"></canvas></div>
     <div class="chart-card"><div class="chart-title">⚡ ชั่วโมงโอทีรายวัน</div><canvas id="chart-ot" height="120"></canvas></div>
@@ -3048,7 +3132,7 @@ body.dark .punct-card{
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
 
-      <!-- ===== AI HELPER (v72 - Gemini Flash) ===== -->
+      <!-- ===== AI HELPER (v73 - Gemini Flash + Insight) ===== -->
       <div class="ai-helper-box">
         <div class="ai-helper-head">
           <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
@@ -5156,6 +5240,9 @@ function renderStats(){
     </div>`;
   }
 
+  // ===== AI Insight (v73) =====
+  renderAIInsightCard(year, month);
+
   const byDate={};
   myRec.forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r)});
   const days=Object.keys(byDate).length;
@@ -6368,7 +6455,7 @@ function checkMonthlyReminder() {
     'monthly-summary');
 }
 
-// ========== AI HELPER (v72 - Gemini Flash) — Claude API integration ==========
+// ========== AI HELPER (v73 - Gemini Flash + Insight) — Claude API integration ==========
 let _aiTone = 'friendly';
 
 // === DEBUG LOGGER (v68) — บันทึก error ทุกขั้นตอน ===
@@ -6680,6 +6767,300 @@ async function generateAnnouncement(){
 // เปิดเมนูตั้งค่า API key (เผื่ออยากเปลี่ยนทีหลัง)
 function openAISettings(){
   _promptAIKey().catch(e => console.error('[AI] openAISettings:', e));
+}
+
+// ========== SHARED: Call Gemini API (v73) ==========
+// ใช้ร่วมกันสำหรับทุก AI feature
+async function _callGemini(systemPrompt, userPrompt, opts){
+  opts = opts || {};
+  const apiKey = _getAIKey();
+  if(!apiKey){
+    const ok = await _promptAIKey();
+    if(!ok) throw new Error('CANCELLED');
+  }
+  const finalKey = _getAIKey();
+  if(!finalKey) throw new Error('NO_KEY');
+
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(finalKey);
+  const body = {
+    contents: [{
+      role: 'user',
+      parts: [{ text: userPrompt }]
+    }],
+    generationConfig: {
+      maxOutputTokens: opts.maxTokens || 1500,
+      temperature: opts.temperature != null ? opts.temperature : 0.7
+    }
+  };
+  if(systemPrompt){
+    body.systemInstruction = { parts: [{ text: systemPrompt }] };
+  }
+  if(opts.json){
+    body.generationConfig.responseMimeType = 'application/json';
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    mode: 'cors',
+    cache: 'no-store',
+    credentials: 'omit',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if(!response.ok){
+    const errText = await response.text().catch(() => '');
+    let errMsg = 'API error ' + response.status;
+    try {
+      const errJson = JSON.parse(errText);
+      if(errJson && errJson.error && errJson.error.message) errMsg = errJson.error.message;
+    } catch(e){}
+    const err = new Error(errMsg);
+    err.status = response.status;
+    throw err;
+  }
+
+  const data = await response.json();
+  if(!data || !Array.isArray(data.candidates) || !data.candidates.length){
+    throw new Error('AI ไม่ตอบกลับมา');
+  }
+  const candidate = data.candidates[0];
+  const parts = (candidate.content && candidate.content.parts) || [];
+  const text = parts
+    .filter(p => p && typeof p.text === 'string')
+    .map(p => p.text)
+    .join('')
+    .trim();
+  if(!text) throw new Error('AI ตอบมาว่าง');
+  return text;
+}
+
+// ========== AI INSIGHT — STATS PAGE (v73) ==========
+const AI_INSIGHT_TTL = 6 * 60 * 60 * 1000; // 6 ชม.
+
+function _aiInsightKey(year, month){
+  return 'tt_ai_insight_' + curUser.id + '_' + year + '_' + month;
+}
+
+function _getCachedInsight(year, month){
+  try {
+    const raw = localStorage.getItem(_aiInsightKey(year, month));
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    if(!obj || !obj.text || !obj.ts) return null;
+    if(Date.now() - obj.ts > AI_INSIGHT_TTL) return null;
+    return obj;
+  } catch(e){ return null; }
+}
+
+function _saveCachedInsight(year, month, text){
+  try {
+    localStorage.setItem(_aiInsightKey(year, month), JSON.stringify({
+      text: text, ts: Date.now()
+    }));
+  } catch(e){}
+}
+
+// รวบสถิติของผู้ใช้สำหรับเดือนที่เลือก
+function _gatherUserStats(year, month){
+  const myRec = records.filter(r => {
+    const [y,m] = r.date.split('-').map(Number);
+    return r.empId === curUser.id && y === year && m === month + 1;
+  });
+
+  const byDate = {};
+  myRec.forEach(r => {
+    if(!byDate[r.date]) byDate[r.date] = [];
+    byDate[r.date].push(r);
+  });
+
+  const days = Object.keys(byDate).length;
+  const completed = myRec.filter(r => r.checkOut);
+  const totalH = completed.reduce((s,r) => s + calcHours(r.checkIn, r.checkOut), 0);
+  const totalOTmin = completed.reduce((s,r) => s + (r.otMin||0), 0);
+  const lateCount = Object.values(byDate).filter(rs => rs.some(r => r.isLate)).length;
+
+  // Days in month + working days passed
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const isCurrent = (today.getFullYear() === year && today.getMonth() === month);
+
+  // Peak time (most common check-in hour)
+  const inHours = {};
+  myRec.forEach(r => {
+    if(r.checkIn){
+      const h = parseInt(r.checkIn.split(':')[0]);
+      inHours[h] = (inHours[h]||0) + 1;
+    }
+  });
+  let peakIn = null, peakCnt = 0;
+  Object.entries(inHours).forEach(([h,c]) => { if(c > peakCnt){ peakCnt = c; peakIn = h; }});
+
+  // Average hours per day
+  const avgH = days > 0 ? (totalH / days) : 0;
+
+  // Late days list
+  const lateDates = Object.keys(byDate).filter(d => byDate[d].some(r => r.isLate));
+
+  // เทียบกับเดือนก่อน
+  let prevMonth = month - 1, prevYear = year;
+  if(prevMonth < 0){ prevMonth = 11; prevYear -= 1; }
+  const prevRec = records.filter(r => {
+    const [y,m] = r.date.split('-').map(Number);
+    return r.empId === curUser.id && y === prevYear && m === prevMonth + 1;
+  });
+  const prevByDate = {};
+  prevRec.forEach(r => { if(!prevByDate[r.date]) prevByDate[r.date]=[]; prevByDate[r.date].push(r); });
+  const prevDays = Object.keys(prevByDate).length;
+  const prevH = prevRec.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
+  const prevOT = prevRec.filter(r=>r.checkOut).reduce((s,r)=>s+(r.otMin||0),0);
+  const prevLate = Object.values(prevByDate).filter(rs => rs.some(r => r.isLate)).length;
+
+  // Streak
+  let streak = 0;
+  try { streak = calcStreak(curUser.id) || 0; } catch(e){}
+
+  // Punctuality score (this month)
+  let punctuality = null;
+  try {
+    const p = calcPunctuality(curUser.id, year, month);
+    if(p && typeof p.score === 'number') punctuality = Math.round(p.score);
+  } catch(e){}
+
+  const mons = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+  return {
+    period: mons[month] + ' ' + year,
+    isCurrentMonth: isCurrent,
+    daysInMonth: daysInMonth,
+    daysWorked: days,
+    totalHours: +totalH.toFixed(1),
+    avgHoursPerDay: +avgH.toFixed(1),
+    overtimeHours: +(totalOTmin/60).toFixed(1),
+    lateCount: lateCount,
+    lateDates: lateDates.slice(0, 5),
+    peakCheckInHour: peakIn,
+    streak: streak,
+    punctualityScore: punctuality,
+    previousMonth: {
+      daysWorked: prevDays,
+      totalHours: +prevH.toFixed(1),
+      overtimeHours: +(prevOT/60).toFixed(1),
+      lateCount: prevLate
+    }
+  };
+}
+
+function renderAIInsightCard(year, month){
+  const c = document.getElementById('ai-insight-container');
+  if(!c) return;
+
+  const cached = _getCachedInsight(year, month);
+  if(cached){
+    const ageMin = Math.floor((Date.now() - cached.ts) / 60000);
+    const ageStr = ageMin < 60 ? (ageMin + ' นาทีที่แล้ว') : (Math.floor(ageMin/60) + ' ชม.ที่แล้ว');
+    c.innerHTML = `
+      <div class="ai-insight-card">
+        <div class="ai-insight-head">
+          <span class="ai-insight-title">✨ AI วิเคราะห์ให้</span>
+        </div>
+        <div class="ai-insight-content" id="ai-insight-text"></div>
+        <div class="ai-insight-meta">
+          <span>อัปเดต ${ageStr}</span>
+          <button class="btn-ai-refresh" onclick="generateAIInsight(${year}, ${month}, true)">↻ วิเคราะห์ใหม่</button>
+        </div>
+      </div>
+    `;
+    // ใช้ textContent แล้วแปลง **bold** → <strong>
+    const textEl = document.getElementById('ai-insight-text');
+    if(textEl){
+      const html = escHtml(cached.text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      textEl.innerHTML = html;
+    }
+    return;
+  }
+
+  // ยังไม่มี — แสดงปุ่ม
+  c.innerHTML = `
+    <div class="ai-insight-card">
+      <div class="ai-insight-head">
+        <span class="ai-insight-title">✨ AI วิเคราะห์ให้</span>
+      </div>
+      <div class="ai-insight-empty">
+        <div class="ai-insight-empty-text">
+          ให้ AI ดูสถิติของเดือนนี้แล้วบอกว่าควรปรับปรุงตรงไหน
+        </div>
+        <button class="btn-ai-insight" onclick="generateAIInsight(${year}, ${month})">
+          <span id="ai-insight-btn-label">✨ วิเคราะห์เดือนนี้</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+async function generateAIInsight(year, month, force){
+  const c = document.getElementById('ai-insight-container');
+  if(!c) return;
+
+  // ถ้ามี cache แล้วและไม่ force → ใช้ cache
+  if(!force){
+    const cached = _getCachedInsight(year, month);
+    if(cached){ renderAIInsightCard(year, month); return; }
+  }
+
+  const stats = _gatherUserStats(year, month);
+
+  // Lock UI
+  c.innerHTML = `
+    <div class="ai-insight-card">
+      <div class="ai-insight-head">
+        <span class="ai-insight-title">✨ AI วิเคราะห์ให้</span>
+      </div>
+      <div class="ai-insight-empty">
+        <div class="ai-insight-empty-text">
+          <span class="ai-spinner"></span>กำลังวิเคราะห์...
+        </div>
+      </div>
+    </div>
+  `;
+
+  const systemPrompt =
+    'คุณเป็นผู้ช่วย HR ที่วิเคราะห์ข้อมูลการทำงานของพนักงาน ให้คำแนะนำเป็นภาษาไทย\n\n' +
+    'กฎ:\n' +
+    '- ตอบเป็นภาษาไทย ใช้ภาษาที่อบอุ่น เป็นกันเอง\n' +
+    '- 3-5 ย่อหน้าสั้น ๆ ขึ้นบรรทัดใหม่ด้วย \\n\\n\n' +
+    '- ใช้ **ตัวหนา** สำหรับเลข/คำสำคัญ (markdown bold เท่านั้น)\n' +
+    '- ขึ้นต้นแต่ละย่อหน้าด้วย emoji ที่เหมาะ 1 ตัว\n' +
+    '- ชมในจุดที่ดี และแนะนำการปรับปรุงในจุดที่ควรพัฒนา (ไม่ตำหนิ)\n' +
+    '- เปรียบเทียบกับเดือนก่อนถ้ามีข้อมูล\n' +
+    '- ห้ามใช้ heading (# ##), ห้ามใช้ bullet list, ใช้แค่ย่อหน้าธรรมดา\n' +
+    '- จบด้วยกำลังใจสั้น ๆ';
+
+  const userPrompt =
+    'ช่วยวิเคราะห์สถิติของเดือน ' + stats.period + ' ให้หน่อย\n\n' +
+    'ข้อมูล (JSON):\n' + JSON.stringify(stats, null, 2);
+
+  try {
+    const text = await _callGemini(systemPrompt, userPrompt, { maxTokens: 1200, temperature: 0.7 });
+    _saveCachedInsight(year, month, text);
+    renderAIInsightCard(year, month);
+    showToast('✨ วิเคราะห์เสร็จแล้ว', 'success');
+  } catch(err){
+    console.error('[AI Insight] error:', err);
+    if(err.message === 'CANCELLED' || err.message === 'NO_KEY'){
+      renderAIInsightCard(year, month); // กลับไปแสดงปุ่ม
+      return;
+    }
+    if(err.status === 401 || err.status === 403){
+      alert('❌ API Key ไม่ถูกต้อง');
+      setTimeout(() => _promptAIKey(), 800);
+    } else if(err.status === 429){
+      alert('❌ ใช้บ่อยเกินไป รอสักครู่แล้วลองใหม่');
+    } else {
+      alert('❌ ' + (err.message || 'เกิดข้อผิดพลาด'));
+    }
+    renderAIInsightCard(year, month); // กลับไปแสดงปุ่ม
+  }
 }
 
 // ========== ANNOUNCE ==========
