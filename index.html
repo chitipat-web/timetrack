@@ -2277,7 +2277,7 @@ body.dark .punct-card{
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
 
-/* ===== AI HELPER (v74 - Insight v2 longer) ===== */
+/* ===== AI HELPER (v75 - Team Insight) ===== */
 .ai-helper-box{
   background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
   border: 1px solid rgba(139,92,246,0.28);
@@ -3132,7 +3132,7 @@ body.dark .punct-card{
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
 
-      <!-- ===== AI HELPER (v74 - Insight v2 longer) ===== -->
+      <!-- ===== AI HELPER (v75 - Team Insight) ===== -->
       <div class="ai-helper-box">
         <div class="ai-helper-head">
           <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
@@ -5386,6 +5386,9 @@ function renderDashboard() {
       <div class="stat-box"><div class="stat-val c-red">${totalLate}</div><div class="stat-lbl">ครั้งสายรวม</div></div>
     </div>
 
+    <!-- AI Team Insight (v75) -->
+    <div id="ai-team-insight-container"></div>
+
     <!-- Awards -->
     <div class="card" style="margin-bottom:12px">
       <div class="section-title">🏆 รางวัลประจำเดือน ${mons[month]}</div>
@@ -5481,6 +5484,9 @@ function renderDashboard() {
       }, options:{...cfg}});
     }
   }, 100);
+
+  // ===== AI Team Insight (v75) =====
+  renderAITeamInsightCard(year, month, empStats);
 }
 
 // ========== UPDATE TODAY STATUS ==========
@@ -6455,7 +6461,7 @@ function checkMonthlyReminder() {
     'monthly-summary');
 }
 
-// ========== AI HELPER (v74 - Insight v2 longer) — Claude API integration ==========
+// ========== AI HELPER (v75 - Team Insight) — Claude API integration ==========
 let _aiTone = 'friendly';
 
 // === DEBUG LOGGER (v68) — บันทึก error ทุกขั้นตอน ===
@@ -7065,6 +7071,241 @@ async function generateAIInsight(year, month, force){
       alert('❌ ' + (err.message || 'เกิดข้อผิดพลาด'));
     }
     renderAIInsightCard(year, month); // กลับไปแสดงปุ่ม
+  }
+}
+
+// ========== AI TEAM INSIGHT — DASHBOARD (v75) ==========
+function _aiTeamInsightKey(year, month){
+  return 'tt_ai_team_insight_' + year + '_' + month;
+}
+
+function _getCachedTeamInsight(year, month){
+  try {
+    const raw = localStorage.getItem(_aiTeamInsightKey(year, month));
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    if(!obj || !obj.text || !obj.ts) return null;
+    if(Date.now() - obj.ts > AI_INSIGHT_TTL) return null;
+    return obj;
+  } catch(e){ return null; }
+}
+
+function _saveCachedTeamInsight(year, month, text){
+  try {
+    localStorage.setItem(_aiTeamInsightKey(year, month), JSON.stringify({
+      text: text, ts: Date.now()
+    }));
+  } catch(e){}
+}
+
+// รวบสถิติทีม + ไฮไลต์รายคน
+function _gatherTeamStats(year, month, empStats){
+  const mons = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+  // เทียบเดือนก่อน (รวมทีม)
+  let prevMonth = month - 1, prevYear = year;
+  if(prevMonth < 0){ prevMonth = 11; prevYear -= 1; }
+  const prevPrefix = prevYear + '-' + String(prevMonth+1).padStart(2,'0');
+  const prevRec = records.filter(r => r.date.startsWith(prevPrefix));
+  const prevByEmp = {};
+  prevRec.forEach(r => {
+    if(!prevByEmp[r.empId]) prevByEmp[r.empId] = { days:new Set(), hours:0, ot:0, late:0 };
+    const ent = prevByEmp[r.empId];
+    ent.days.add(r.date);
+    if(r.checkOut){
+      ent.hours += calcHours(r.checkIn, r.checkOut);
+      ent.ot += (r.otMin || 0);
+    }
+    if(r.isLate) ent.late += 1;
+  });
+  let prevTotalH = 0, prevTotalOT = 0, prevTotalLate = 0, prevTotalDays = 0;
+  Object.values(prevByEmp).forEach(e => {
+    prevTotalH += e.hours;
+    prevTotalOT += e.ot;
+    prevTotalLate += e.late;
+    prevTotalDays += e.days.size;
+  });
+
+  // ทีมรวมเดือนนี้
+  const teamHours = empStats.reduce((s,e) => s + e.totalH, 0);
+  const teamOTmin = empStats.reduce((s,e) => s + e.totalOT, 0);
+  const teamLate = empStats.reduce((s,e) => s + e.lateCount, 0);
+  const teamDays = empStats.reduce((s,e) => s + e.days, 0);
+
+  // จัดอันดับ Top 3 / Bottom 3
+  const sortedByOT     = [...empStats].sort((a,b) => b.totalOT - a.totalOT);
+  const sortedByAttend = [...empStats].sort((a,b) => b.days - a.days);
+  const sortedByLate   = [...empStats].sort((a,b) => b.lateCount - a.lateCount);
+  const sortedByHours  = [...empStats].sort((a,b) => b.totalH - a.totalH);
+
+  // Per-employee summary (ส่งไปไม่เกิน 15 คน กัน token เกิน)
+  const employees = empStats.slice(0, 15).map(e => ({
+    name: e.emp.name,
+    days: e.days,
+    hours: +e.totalH.toFixed(1),
+    overtimeHours: +(e.totalOT/60).toFixed(1),
+    lateCount: e.lateCount,
+    attendancePct: e.attendPct
+  }));
+
+  return {
+    period: mons[month] + ' ' + year,
+    teamSize: empStats.length,
+    team: {
+      totalDays: teamDays,
+      totalHours: +teamHours.toFixed(1),
+      overtimeHours: +(teamOTmin/60).toFixed(1),
+      totalLate: teamLate,
+      avgHoursPerEmployee: empStats.length ? +(teamHours/empStats.length).toFixed(1) : 0
+    },
+    previousMonth: {
+      totalDays: prevTotalDays,
+      totalHours: +prevTotalH.toFixed(1),
+      overtimeHours: +(prevTotalOT/60).toFixed(1),
+      totalLate: prevTotalLate
+    },
+    highlights: {
+      mostOT: sortedByOT[0] ? { name: sortedByOT[0].emp.name, hours: +(sortedByOT[0].totalOT/60).toFixed(1) } : null,
+      bestAttendance: sortedByAttend[0] ? { name: sortedByAttend[0].emp.name, days: sortedByAttend[0].days } : null,
+      mostLate: (sortedByLate[0] && sortedByLate[0].lateCount > 0) ? { name: sortedByLate[0].emp.name, count: sortedByLate[0].lateCount } : null,
+      mostHours: sortedByHours[0] ? { name: sortedByHours[0].emp.name, hours: +sortedByHours[0].totalH.toFixed(1) } : null
+    },
+    employees: employees
+  };
+}
+
+function renderAITeamInsightCard(year, month, empStats){
+  const c = document.getElementById('ai-team-insight-container');
+  if(!c) return;
+
+  const cached = _getCachedTeamInsight(year, month);
+  if(cached){
+    const ageMin = Math.floor((Date.now() - cached.ts) / 60000);
+    const ageStr = ageMin < 60 ? (ageMin + ' นาทีที่แล้ว') : (Math.floor(ageMin/60) + ' ชม.ที่แล้ว');
+    c.innerHTML = `
+      <div class="ai-insight-card" style="margin-bottom:14px">
+        <div class="ai-insight-head">
+          <span class="ai-insight-title">📊 AI สรุปภาพรวมทีม</span>
+        </div>
+        <div class="ai-insight-content" id="ai-team-insight-text"></div>
+        <div class="ai-insight-meta">
+          <span>อัปเดต ${ageStr}</span>
+          <button class="btn-ai-refresh" onclick="generateAITeamInsight(${year}, ${month}, true)">↻ สรุปใหม่</button>
+        </div>
+      </div>
+    `;
+    const textEl = document.getElementById('ai-team-insight-text');
+    if(textEl){
+      const html = escHtml(cached.text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      textEl.innerHTML = html;
+    }
+    return;
+  }
+
+  c.innerHTML = `
+    <div class="ai-insight-card" style="margin-bottom:14px">
+      <div class="ai-insight-head">
+        <span class="ai-insight-title">📊 AI สรุปภาพรวมทีม</span>
+      </div>
+      <div class="ai-insight-empty">
+        <div class="ai-insight-empty-text">
+          ให้ AI สรุปสถานการณ์ทีมเดือนนี้เป็นย่อหน้าเดียว — ใครเก่ง ใครต้องดูแล อะไรน่าห่วง
+        </div>
+        <button class="btn-ai-insight" onclick="generateAITeamInsight(${year}, ${month})">
+          ✨ สรุปทีมเดือนนี้
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+async function generateAITeamInsight(year, month, force){
+  const c = document.getElementById('ai-team-insight-container');
+  if(!c) return;
+
+  if(!force){
+    const cached = _getCachedTeamInsight(year, month);
+    if(cached){ renderAITeamInsightCard(year, month); return; }
+  }
+
+  // รวบ stats ใหม่ (เพราะตอน refresh เราไม่มี empStats ส่งมา)
+  const mons = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const prefix = year + '-' + String(month+1).padStart(2,'0');
+  const workDays = 22;
+  const empStats = employees.map(emp => {
+    const mr = records.filter(r => r.empId === emp.id && r.date.startsWith(prefix));
+    const byDate = {};
+    mr.forEach(r => { if(!byDate[r.date]) byDate[r.date]=[]; byDate[r.date].push(r); });
+    const days = Object.keys(byDate).length;
+    const comp = mr.filter(r => r.checkOut);
+    const totalH = comp.reduce((s,r) => s + calcHours(r.checkIn, r.checkOut), 0);
+    const totalOT = comp.reduce((s,r) => s + (r.otMin||0), 0);
+    const lateCount = Object.values(byDate).filter(rs => rs.some(r => r.isLate)).length;
+    const attendPct = Math.min(100, Math.round((days/workDays)*100));
+    return { emp, days, totalH, totalOT, lateCount, attendPct };
+  });
+
+  if(empStats.length === 0){
+    alert('❌ ยังไม่มีพนักงานในทีม');
+    return;
+  }
+
+  const stats = _gatherTeamStats(year, month, empStats);
+
+  // Lock UI
+  c.innerHTML = `
+    <div class="ai-insight-card" style="margin-bottom:14px">
+      <div class="ai-insight-head">
+        <span class="ai-insight-title">📊 AI สรุปภาพรวมทีม</span>
+      </div>
+      <div class="ai-insight-empty">
+        <div class="ai-insight-empty-text">
+          <span class="ai-spinner"></span>กำลังสรุป...
+        </div>
+      </div>
+    </div>
+  `;
+
+  const systemPrompt =
+    'คุณเป็นที่ปรึกษา HR ที่สรุปภาพรวมทีมให้ผู้บริหาร/หัวหน้างานเป็นภาษาไทย\n\n' +
+    'รูปแบบการตอบ (สำคัญมาก):\n' +
+    '- เขียน **4 ย่อหน้า** ห้ามสั้นกว่านี้\n' +
+    '- แต่ละย่อหน้า 2-4 ประโยค ขึ้นต้นด้วย emoji ที่เหมาะสม\n' +
+    '- คั่นย่อหน้าด้วย \\n\\n\n' +
+    '- ใช้ **ตัวหนา** เน้นชื่อคน ตัวเลข % สำคัญ (markdown bold)\n' +
+    '- ห้ามใช้ heading, ห้าม bullet list, ใช้ย่อหน้าธรรมดา\n\n' +
+    'เนื้อหา 4 ย่อหน้า:\n' +
+    '1. **ภาพรวมทีม** — ตัวเลขรวม (ชม., OT, สาย) เทียบเดือนก่อนเป็น % หรือเลขจริง\n' +
+    '2. **ดาวเด่นของเดือน** — ใครเก่งเรื่องอะไร อ้างชื่อ + ตัวเลข\n' +
+    '3. **จุดที่น่าห่วง** — ใครต้องดูแลเป็นพิเศษ (มาสายเยอะ, OT มากผิดปกติ ระวัง burnout) อ้างชื่อ + ตัวเลข แต่ใช้น้ำเสียงห่วงใย ไม่ตำหนิ\n' +
+    '4. **ข้อแนะนำสำหรับ Admin** — 1-2 ข้อที่ควรทำต่อ (เช่น คุย 1:1, ปรับ workload, ชมในที่ประชุม)\n\n' +
+    'น้ำเสียง: เป็นมืออาชีพแต่อบอุ่น เหมือนที่ปรึกษาที่เข้าใจคนทำงาน';
+
+  const userPrompt =
+    'ช่วยสรุปภาพรวมทีมเดือน ' + stats.period + ' ให้หน่อย เขียนให้ครบ 4 ย่อหน้านะ\n\n' +
+    'ข้อมูล (JSON):\n```json\n' + JSON.stringify(stats, null, 2) + '\n```\n\n' +
+    'หมายเหตุ: ถ้า previousMonth เป็น 0 หมด แปลว่าไม่มีข้อมูลเดือนก่อน ให้ข้ามการเปรียบเทียบ';
+
+  try {
+    const text = await _callGemini(systemPrompt, userPrompt, { maxTokens: 2500, temperature: 0.85 });
+    _saveCachedTeamInsight(year, month, text);
+    renderAITeamInsightCard(year, month);
+    showToast('📊 สรุปเสร็จแล้ว', 'success');
+  } catch(err){
+    console.error('[AI Team] error:', err);
+    if(err.message === 'CANCELLED' || err.message === 'NO_KEY'){
+      renderAITeamInsightCard(year, month);
+      return;
+    }
+    if(err.status === 401 || err.status === 403){
+      alert('❌ API Key ไม่ถูกต้อง');
+      setTimeout(() => _promptAIKey(), 800);
+    } else if(err.status === 429){
+      alert('❌ ใช้บ่อยเกินไป รอสักครู่');
+    } else {
+      alert('❌ ' + (err.message || 'เกิดข้อผิดพลาด'));
+    }
+    renderAITeamInsightCard(year, month);
   }
 }
 
