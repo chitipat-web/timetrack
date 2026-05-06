@@ -2277,7 +2277,7 @@ body.dark .punct-card{
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
 
-/* ===== AI HELPER (v73 - Gemini Flash + Insight) ===== */
+/* ===== AI HELPER (v74 - Insight v2 longer) ===== */
 .ai-helper-box{
   background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
   border: 1px solid rgba(139,92,246,0.28);
@@ -3132,7 +3132,7 @@ body.dark .punct-card{
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
 
-      <!-- ===== AI HELPER (v73 - Gemini Flash + Insight) ===== -->
+      <!-- ===== AI HELPER (v74 - Insight v2 longer) ===== -->
       <div class="ai-helper-box">
         <div class="ai-helper-head">
           <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
@@ -6455,7 +6455,7 @@ function checkMonthlyReminder() {
     'monthly-summary');
 }
 
-// ========== AI HELPER (v73 - Gemini Flash + Insight) — Claude API integration ==========
+// ========== AI HELPER (v74 - Insight v2 longer) — Claude API integration ==========
 let _aiTone = 'friendly';
 
 // === DEBUG LOGGER (v68) — บันทึก error ทุกขั้นตอน ===
@@ -7025,23 +7025,28 @@ async function generateAIInsight(year, month, force){
   `;
 
   const systemPrompt =
-    'คุณเป็นผู้ช่วย HR ที่วิเคราะห์ข้อมูลการทำงานของพนักงาน ให้คำแนะนำเป็นภาษาไทย\n\n' +
-    'กฎ:\n' +
-    '- ตอบเป็นภาษาไทย ใช้ภาษาที่อบอุ่น เป็นกันเอง\n' +
-    '- 3-5 ย่อหน้าสั้น ๆ ขึ้นบรรทัดใหม่ด้วย \\n\\n\n' +
-    '- ใช้ **ตัวหนา** สำหรับเลข/คำสำคัญ (markdown bold เท่านั้น)\n' +
-    '- ขึ้นต้นแต่ละย่อหน้าด้วย emoji ที่เหมาะ 1 ตัว\n' +
-    '- ชมในจุดที่ดี และแนะนำการปรับปรุงในจุดที่ควรพัฒนา (ไม่ตำหนิ)\n' +
-    '- เปรียบเทียบกับเดือนก่อนถ้ามีข้อมูล\n' +
-    '- ห้ามใช้ heading (# ##), ห้ามใช้ bullet list, ใช้แค่ย่อหน้าธรรมดา\n' +
-    '- จบด้วยกำลังใจสั้น ๆ';
+    'คุณเป็นโค้ช HR ส่วนตัวที่วิเคราะห์ข้อมูลการทำงานของพนักงานเป็นภาษาไทย\n\n' +
+    'รูปแบบการตอบ (สำคัญมาก):\n' +
+    '- เขียน **5 ย่อหน้าเต็ม** ห้ามสั้นกว่านี้\n' +
+    '- แต่ละย่อหน้า 2-4 ประโยค ขึ้นต้นด้วย emoji ที่เหมาะสม\n' +
+    '- คั่นย่อหน้าด้วย \\n\\n\n' +
+    '- ใช้ **ตัวหนา** เน้นตัวเลขสำคัญและคำสำคัญ (markdown bold)\n' +
+    '- ห้ามใช้ heading (#, ##), ห้ามใช้ bullet list, ใช้ย่อหน้าธรรมดาเท่านั้น\n\n' +
+    'เนื้อหาที่ต้องครอบคลุม (5 ย่อหน้า):\n' +
+    '1. **ทักทาย + ชมจุดเด่น** — หาจุดที่ทำได้ดีจากข้อมูล แล้วชมจริงจัง อ้างเลขประกอบ\n' +
+    '2. **เปรียบเทียบกับเดือนก่อน** — ดีขึ้นหรือแย่ลงตรงไหน คิดเป็น % หรือเลขจริง\n' +
+    '3. **วิเคราะห์ pattern** — ชั่วโมงเข้างาน, ชั่วโมงเฉลี่ย, OT บอกอะไรเกี่ยวกับสไตล์การทำงาน\n' +
+    '4. **คำแนะนำ** — แนะนำ 1-2 ข้อจริงจังที่ปรับปรุงได้ ไม่ตำหนิ ใช้น้ำเสียงเพื่อน\n' +
+    '5. **กำลังใจปิดท้าย** — สั้น อบอุ่น สร้างพลังใจ\n\n' +
+    'น้ำเสียง: อบอุ่น เป็นกันเอง เหมือนเพื่อนสนิทที่เข้าใจการทำงาน ไม่เคร่งเครียด ไม่ทางการเกิน';
 
   const userPrompt =
-    'ช่วยวิเคราะห์สถิติของเดือน ' + stats.period + ' ให้หน่อย\n\n' +
-    'ข้อมูล (JSON):\n' + JSON.stringify(stats, null, 2);
+    'นี่คือข้อมูลของฉันในเดือน ' + stats.period + ' ช่วยวิเคราะห์ให้หน่อย เขียนให้ครบ 5 ย่อหน้าตามรูปแบบที่กำหนดนะ\n\n' +
+    'ข้อมูล (JSON):\n```json\n' + JSON.stringify(stats, null, 2) + '\n```\n\n' +
+    'หมายเหตุ: ถ้าข้อมูลเดือนก่อน (previousMonth) มีตัวเลขเป็น 0 หมด แปลว่ายังไม่มีข้อมูลย้อนหลัง ให้ข้ามการเปรียบเทียบและพูดถึงสิ่งอื่นแทนในย่อหน้าที่ 2';
 
   try {
-    const text = await _callGemini(systemPrompt, userPrompt, { maxTokens: 1200, temperature: 0.7 });
+    const text = await _callGemini(systemPrompt, userPrompt, { maxTokens: 2500, temperature: 0.85 });
     _saveCachedInsight(year, month, text);
     renderAIInsightCard(year, month);
     showToast('✨ วิเคราะห์เสร็จแล้ว', 'success');
