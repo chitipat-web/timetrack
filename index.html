@@ -2276,6 +2276,79 @@ body.dark .punct-card{
 .skel-stat{ height:80px; border-radius:var(--r); }
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
+
+/* ===== AI HELPER (v67) ===== */
+.ai-helper-box{
+  background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
+  border: 1px solid rgba(139,92,246,0.28);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+.ai-helper-head{
+  display:flex; align-items:center; justify-content:space-between;
+  cursor:pointer;
+}
+.ai-helper-title{
+  font-size: 13px; font-weight:600;
+  background: linear-gradient(135deg, #A78BFA, #60A5FA);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.01em;
+}
+.ai-helper-toggle{
+  background:transparent; border:none; cursor:pointer;
+  color: var(--text2); font-size:16px; padding:2px 6px;
+  font-family:inherit;
+  transition: transform 0.2s var(--ease-out);
+}
+.ai-helper-toggle.open{ transform: rotate(180deg); }
+.ai-helper-body{ margin-top:10px; }
+.ai-tone-row{
+  display:flex; gap:6px; margin: 8px 0; flex-wrap:wrap;
+}
+.ai-tone-btn{
+  flex:1; min-width:0;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.20);
+  border-radius: var(--r-xs);
+  padding: 8px 6px;
+  font-size: 12px; font-weight:500;
+  color: var(--text); cursor:pointer; font-family:inherit;
+  transition: all 0.15s var(--ease-out);
+  white-space: nowrap;
+}
+.ai-tone-btn.active{
+  background: linear-gradient(135deg, rgba(167,139,250,0.30), rgba(96,165,250,0.30));
+  border-color: rgba(167,139,250,0.55);
+  box-shadow: 0 2px 8px rgba(139,92,246,0.25);
+}
+.btn-ai-gen{
+  width:100%;
+  background: linear-gradient(135deg, #A78BFA 0%, #818CF8 50%, #60A5FA 100%);
+  color:#fff; border:none; border-radius:var(--r-sm);
+  padding: 12px; font-size:14px; font-weight:600;
+  cursor:pointer; font-family:inherit;
+  transition: all 0.15s var(--ease-spring);
+  box-shadow:
+    0 4px 14px rgba(139,92,246,0.40),
+    inset 0 1px 0 rgba(255,255,255,0.30);
+  letter-spacing:-0.01em;
+}
+.btn-ai-gen:active{ transform:scale(0.97); }
+.btn-ai-gen:hover{ filter:brightness(1.08); }
+.btn-ai-gen:disabled{
+  opacity: 0.6; cursor:wait;
+  background: linear-gradient(135deg, #9CA3AF, #6B7280);
+}
+.ai-spinner{
+  display:inline-block; width:14px; height:14px;
+  border:2px solid rgba(255,255,255,0.3);
+  border-top-color:#fff; border-radius:50%;
+  animation: ai-spin 0.7s linear infinite;
+  vertical-align:middle; margin-right:6px;
+}
+@keyframes ai-spin{ to { transform:rotate(360deg); } }
 </style>
 
 <!-- PWA Manifest -->
@@ -2974,6 +3047,27 @@ body.dark .punct-card{
   <div class="modal-overlay" id="create-announce-modal">
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
+
+      <!-- ===== AI HELPER (v67) ===== -->
+      <div class="ai-helper-box">
+        <div class="ai-helper-head">
+          <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
+          <button class="ai-helper-toggle" type="button" onclick="toggleAIHelper()">▾</button>
+        </div>
+        <div class="ai-helper-body" id="ai-helper-body" style="display:none">
+          <input class="modal-inp" id="ai-keyword" placeholder='เช่น "หยุดสงกรานต์ 13-15 เม.ย." หรือ "ขอบคุณทีมที่ทำยอดเดือนนี้"'/>
+          <div class="ai-tone-row">
+            <button class="ai-tone-btn active" data-tone="friendly" onclick="setAITone('friendly', this)">😊 เป็นกันเอง</button>
+            <button class="ai-tone-btn" data-tone="formal" onclick="setAITone('formal', this)">👔 ทางการ</button>
+            <button class="ai-tone-btn" data-tone="fun" onclick="setAITone('fun', this)">🎉 สนุก</button>
+          </div>
+          <button class="btn-ai-gen" type="button" onclick="generateAnnouncement()">
+            <span id="ai-gen-label">✨ สร้างประกาศ</span>
+          </button>
+        </div>
+      </div>
+      <!-- ===== END AI HELPER ===== -->
+
       <label class="modal-label">หัวข้อ</label>
       <input class="modal-inp" id="ann-title" placeholder="หัวข้อประกาศ"/>
       <label class="modal-label">เนื้อหา</label>
@@ -6272,6 +6366,158 @@ function checkMonthlyReminder() {
   sendPush(`📊 สรุปเดือน${mons[prevMonth.getMonth()]} — RUDY`,
     `มา ${totalDays} วัน | ${totalHrs.toFixed(1)} ชม. | OT ${(totalOT/60).toFixed(1)} ชม.`,
     'monthly-summary');
+}
+
+// ========== AI HELPER (v67) — Claude API integration ==========
+let _aiTone = 'friendly';
+
+function _getAIKey(){
+  return localStorage.getItem('tt_ai_key') || '';
+}
+function _setAIKey(key){
+  if(key) localStorage.setItem('tt_ai_key', key);
+  else localStorage.removeItem('tt_ai_key');
+}
+function _promptAIKey(){
+  const cur = _getAIKey();
+  const key = prompt(
+    '🔑 ใส่ Anthropic API Key\n\n' +
+    'ขึ้นต้นด้วย sk-ant-...\n' +
+    'ดูที่: https://console.anthropic.com/settings/keys\n\n' +
+    '(เก็บใน localStorage เครื่องนี้ — เว้นว่างเพื่อลบ)',
+    cur
+  );
+  if(key === null) return false; // cancel
+  _setAIKey(key.trim());
+  if(key.trim()){
+    showToast('🔑 บันทึก API Key แล้ว', 'success');
+    return true;
+  }
+  return false;
+}
+
+function toggleAIHelper(){
+  const body = document.getElementById('ai-helper-body');
+  const toggle = document.querySelector('.ai-helper-toggle');
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  if(toggle) toggle.classList.toggle('open', isHidden);
+}
+
+function setAITone(tone, btn){
+  _aiTone = tone;
+  document.querySelectorAll('.ai-tone-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+
+async function generateAnnouncement(){
+  const keyword = document.getElementById('ai-keyword').value.trim();
+  if(!keyword){
+    showToast('พิมพ์ keyword ก่อน เช่น "หยุดสงกรานต์"', 'warning');
+    return;
+  }
+
+  let apiKey = _getAIKey();
+  if(!apiKey){
+    if(!_promptAIKey()) return;
+    apiKey = _getAIKey();
+    if(!apiKey) return;
+  }
+
+  const btn = document.querySelector('.btn-ai-gen');
+  const label = document.getElementById('ai-gen-label');
+  btn.disabled = true;
+  label.innerHTML = '<span class="ai-spinner"></span>กำลังเขียน...';
+
+  const toneMap = {
+    friendly: 'เป็นกันเอง อบอุ่น แต่ยังดูเป็นทางการพอสมควร',
+    formal: 'ทางการ สุภาพ เหมาะกับเอกสารบริษัท',
+    fun: 'สนุกสนาน ใช้ emoji เยอะ ให้คนอ่านยิ้มได้'
+  };
+
+  const systemPrompt = `คุณเป็นผู้ช่วยเขียนประกาศบริษัทภาษาไทย สำหรับแอป HR ชื่อ RUDY
+สไตล์การเขียน: ${toneMap[_aiTone] || toneMap.friendly}
+
+กฎ:
+- เขียนเป็นภาษาไทยทั้งหมด
+- ตอบกลับเป็น JSON เท่านั้น ไม่มี markdown, ไม่มี \`\`\`
+- รูปแบบ: {"title": "หัวข้อสั้นๆ ไม่เกิน 60 ตัวอักษร", "body": "เนื้อหาประกาศ 2-4 ย่อหน้าสั้น"}
+- ขึ้นต้น title ด้วย emoji ที่เหมาะสม 1 ตัว
+- เนื้อหา body ใส่บรรทัดเว้นด้วย \\n\\n ระหว่างย่อหน้า
+- ห้ามใส่วันที่ปลอม ใช้ข้อมูลที่ผู้ใช้ให้มาเท่านั้น`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 800,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: `เขียนประกาศเรื่อง: ${keyword}` }
+        ]
+      })
+    });
+
+    if(!response.ok){
+      const errText = await response.text();
+      let errMsg = 'API error: ' + response.status;
+      try {
+        const errJson = JSON.parse(errText);
+        if(errJson.error && errJson.error.message) errMsg = errJson.error.message;
+      } catch(e) {}
+      if(response.status === 401){
+        errMsg = 'API Key ไม่ถูกต้อง — ตั้งใหม่?';
+        if(confirm(errMsg)) _promptAIKey();
+      } else {
+        showToast('❌ ' + errMsg, 'error');
+      }
+      throw new Error(errMsg);
+    }
+
+    const data = await response.json();
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('')
+      .trim();
+
+    // ดึง JSON ออกมา (กันโมเดลใส่ ```)
+    let cleaned = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch(e) {
+      // fallback: ลองหา {...} ในข้อความ
+      const m = cleaned.match(/\{[\s\S]*\}/);
+      if(m) parsed = JSON.parse(m[0]);
+      else throw new Error('AI ตอบกลับมาในรูปแบบที่อ่านไม่ได้');
+    }
+
+    if(parsed.title) document.getElementById('ann-title').value = parsed.title;
+    if(parsed.body)  document.getElementById('ann-body').value  = parsed.body;
+    showToast('✨ AI ร่างให้แล้ว — ตรวจก่อนกดประกาศนะ', 'success');
+
+  } catch(err) {
+    console.error('[AI] generateAnnouncement error:', err);
+    if(!err.message.includes('API error') && !err.message.includes('API Key')){
+      showToast('❌ ' + (err.message || 'เกิดข้อผิดพลาด'), 'error');
+    }
+  } finally {
+    btn.disabled = false;
+    label.textContent = '✨ สร้างประกาศ';
+  }
+}
+
+// เปิดเมนูตั้งค่า API key (เผื่ออยากเปลี่ยนทีหลัง)
+function openAISettings(){
+  _promptAIKey();
 }
 
 // ========== ANNOUNCE ==========
