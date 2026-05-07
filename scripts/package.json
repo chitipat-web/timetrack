@@ -1,0 +1,18 @@
+{
+  "name": "rudy-push-scripts",
+  "version": "1.0.0",
+  "description": "GitHub Actions push notification scripts for RUDY",
+  "private": true,
+  "scripts": {
+    "checkout": "node check-no-checkout.js",
+    "early": "node check-early-reminder.js",
+    "birthday": "node check-birthday.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "web-push": "^3.6.7"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
