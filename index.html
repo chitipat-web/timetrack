@@ -2277,7 +2277,7 @@ body.dark .punct-card{
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
 
-/* ===== AI HELPER (v77 - Web Push subscribe) ===== */
+/* ===== AI HELPER (v78 - Web Push subscribe) ===== */
 .ai-helper-box{
   background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
   border: 1px solid rgba(139,92,246,0.28);
@@ -3132,7 +3132,7 @@ body.dark .punct-card{
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
 
-      <!-- ===== AI HELPER (v77 - Web Push subscribe) ===== -->
+      <!-- ===== AI HELPER (v78 - Web Push subscribe) ===== -->
       <div class="ai-helper-box">
         <div class="ai-helper-head">
           <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
@@ -3695,7 +3695,7 @@ function initApp(){
   updateTodayStatus();
   // Migrate OT calculations to latest logic
   setTimeout(migrateOTIfNeeded, 1500);
-  // Update push subscription lastSeen (v77)
+  // Update push subscription lastSeen (v78)
   setTimeout(() => { _updatePushLastSeen().catch(e => console.log('[Push] init:', e)); }, 2000);
 }
 
@@ -6415,7 +6415,7 @@ async function requestPushPermission() {
   initPushSettings();
   if(result === 'granted') {
     showToast('✅ เปิดการแจ้งเตือนสำเร็จ','success');
-    // === FCM/Web Push Subscribe (v77) ===
+    // === FCM/Web Push Subscribe (v78) ===
     try {
       await subscribePush();
     } catch(e){
@@ -6426,8 +6426,8 @@ async function requestPushPermission() {
   else showToast('ไม่ได้รับอนุญาต','error');
 }
 
-// ========== WEB PUSH SUBSCRIPTION (v77) ==========
-const VAPID_PUBLIC_KEY = 'BGa3RektoCyxgL0ULEyN0Br0N5apo67Dhun4r9A-4oge5rmuaz6OBoGd5d1XGaXWtNTF_INqo9YGkU5PE0VKRIU';
+// ========== WEB PUSH SUBSCRIPTION (v78) ==========
+const VAPID_PUBLIC_KEY = 'BL1cmzaf_FmWd5ZGVy2zcu5TgfLzAwdAWashAWfu6Lm9z0yBnqlUhKqZ4iGcoOZn4u99mCRFr5NyGiWC2rhkO_8';
 
 // แปลง base64url → Uint8Array (ที่ pushManager ต้องการ)
 function _urlBase64ToUint8Array(base64String) {
@@ -6590,7 +6590,7 @@ function checkMonthlyReminder() {
     'monthly-summary');
 }
 
-// ========== AI HELPER (v77 - Web Push subscribe) — Claude API integration ==========
+// ========== AI HELPER (v78 - Web Push subscribe) — Claude API integration ==========
 let _aiTone = 'friendly';
 
 // === DEBUG LOGGER (v68) — บันทึก error ทุกขั้นตอน ===
