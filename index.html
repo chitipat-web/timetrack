@@ -2277,7 +2277,7 @@ body.dark .punct-card{
 
 .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
 
-/* ===== AI HELPER (v78 - Web Push subscribe) ===== */
+/* ===== AI HELPER (v79 - Auto-detect VAPID) ===== */
 .ai-helper-box{
   background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(59,130,246,0.10));
   border: 1px solid rgba(139,92,246,0.28);
@@ -3132,7 +3132,7 @@ body.dark .punct-card{
     <div class="modal">
       <div class="modal-title">📢 สร้างประกาศ<button class="modal-close" onclick="closeModal('create-announce-modal')">✕</button></div>
 
-      <!-- ===== AI HELPER (v78 - Web Push subscribe) ===== -->
+      <!-- ===== AI HELPER (v79 - Auto-detect VAPID) ===== -->
       <div class="ai-helper-box">
         <div class="ai-helper-head">
           <span class="ai-helper-title">✨ ให้ AI ช่วยเขียน</span>
@@ -3695,7 +3695,7 @@ function initApp(){
   updateTodayStatus();
   // Migrate OT calculations to latest logic
   setTimeout(migrateOTIfNeeded, 1500);
-  // Update push subscription lastSeen (v78)
+  // Update push subscription lastSeen (v79)
   setTimeout(() => { _updatePushLastSeen().catch(e => console.log('[Push] init:', e)); }, 2000);
 }
 
@@ -6415,7 +6415,7 @@ async function requestPushPermission() {
   initPushSettings();
   if(result === 'granted') {
     showToast('✅ เปิดการแจ้งเตือนสำเร็จ','success');
-    // === FCM/Web Push Subscribe (v78) ===
+    // === FCM/Web Push Subscribe (v79) ===
     try {
       await subscribePush();
     } catch(e){
@@ -6426,7 +6426,7 @@ async function requestPushPermission() {
   else showToast('ไม่ได้รับอนุญาต','error');
 }
 
-// ========== WEB PUSH SUBSCRIPTION (v78) ==========
+// ========== WEB PUSH SUBSCRIPTION (v79 — auto re-subscribe on VAPID mismatch) ==========
 const VAPID_PUBLIC_KEY = 'BL1cmzaf_FmWd5ZGVy2zcu5TgfLzAwdAWashAWfu6Lm9z0yBnqlUhKqZ4iGcoOZn4u99mCRFr5NyGiWC2rhkO_8';
 
 // แปลง base64url → Uint8Array (ที่ pushManager ต้องการ)
@@ -6439,6 +6439,14 @@ function _urlBase64ToUint8Array(base64String) {
   return arr;
 }
 
+// แปลง ArrayBuffer → base64url (สำหรับเทียบ applicationServerKey)
+function _arrayBufferToBase64Url(buffer){
+  const bytes = new Uint8Array(buffer);
+  let str = '';
+  for(let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 // device id แต่ละเครื่อง — เก็บใน localStorage
 function _getDeviceId(){
   let id = localStorage.getItem('tt_device_id');
@@ -6449,10 +6457,30 @@ function _getDeviceId(){
   return id;
 }
 
+// บังคับสร้าง device id ใหม่ (เรียกตอน re-subscribe เพื่อไม่ให้ทับ entry เก่า)
+function _resetDeviceId(){
+  const id = 'd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+  localStorage.setItem('tt_device_id', id);
+  return id;
+}
+
 // path ที่เก็บใน Firebase: fcm_subs/{userId}/{deviceId}
 function _subPath(){
   if(!curUser) return null;
   return 'fcm_subs/' + curUser.id.replace(/[.@#$\[\]/]/g, '_') + '/' + _getDeviceId();
+}
+
+// เช็คว่า subscription ปัจจุบันใช้ VAPID public key ตรงกับที่กำหนดไว้ไหม
+// คืน true = ตรง, false = ไม่ตรง (ต้อง re-subscribe), null = เช็คไม่ได้ (browser ไม่ expose)
+function _subKeyMatchesVapid(sub){
+  try {
+    if(!sub || !sub.options || !sub.options.applicationServerKey) return null;
+    const askBase64 = _arrayBufferToBase64Url(sub.options.applicationServerKey);
+    return askBase64 === VAPID_PUBLIC_KEY;
+  } catch(e){
+    console.warn('[Push] cannot read applicationServerKey:', e);
+    return null;
+  }
 }
 
 async function subscribePush(){
@@ -6473,20 +6501,69 @@ async function subscribePush(){
 
   // เช็คว่ามี subscription อยู่แล้วไหม
   let sub = await reg.pushManager.getSubscription();
+
+  if(sub){
+    // 🔍 v79: เช็คว่า subscription เก่าใช้ VAPID key ตรงกับปัจจุบันไหม
+    const matches = _subKeyMatchesVapid(sub);
+    const lastVapid = localStorage.getItem('tt_push_vapid');
+
+    let needResubscribe = false;
+    let reason = '';
+
+    if(matches === false){
+      needResubscribe = true;
+      reason = 'VAPID key mismatch (browser confirmed)';
+    } else if(matches === null && lastVapid && lastVapid !== VAPID_PUBLIC_KEY){
+      // browser ไม่ expose key (Safari iOS) — ใช้ค่าที่ save ใน localStorage แทน
+      needResubscribe = true;
+      reason = 'VAPID key changed (localStorage tracking)';
+    } else if(matches === null && !lastVapid){
+      // ไม่เคย save VAPID key ก่อน → ไม่รู้ว่า key เก่าหรือใหม่
+      // เพื่อความปลอดภัย ให้ re-subscribe หนึ่งครั้ง (ครั้งเดียว)
+      const force = localStorage.getItem('tt_push_force_v79');
+      if(!force){
+        needResubscribe = true;
+        reason = 'first run with v79 — force re-subscribe once';
+      }
+    }
+
+    if(needResubscribe){
+      console.log('[Push] 🔄 re-subscribe needed:', reason);
+      try {
+        await sub.unsubscribe();
+        console.log('[Push] old subscription unsubscribed');
+      } catch(e){
+        console.warn('[Push] unsubscribe failed:', e);
+      }
+      // ลบ entry เก่าจาก Firebase (ก่อนเปลี่ยน device id)
+      try {
+        const oldPath = _subPath();
+        if(oldPath && fbConn) await db.ref(oldPath).remove();
+      } catch(e){}
+      // generate device id ใหม่ → จะได้ entry ใหม่ใน Firebase ไม่ทับของเก่า
+      _resetDeviceId();
+      sub = null; // force ไป path subscribe ด้านล่าง
+    } else {
+      console.log('[Push] existing subscription is valid (key matches)');
+    }
+  }
+
   if(!sub){
     try {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
-      console.log('[Push] new subscription created');
+      console.log('[Push] ✅ new subscription created with current VAPID key');
     } catch(e){
       console.error('[Push] subscribe error:', e);
       throw e;
     }
-  } else {
-    console.log('[Push] existing subscription found');
   }
+
+  // บันทึก VAPID key ที่ใช้ลง localStorage (ใช้เช็คครั้งหน้า)
+  localStorage.setItem('tt_push_vapid', VAPID_PUBLIC_KEY);
+  localStorage.setItem('tt_push_force_v79', '1');
 
   // เก็บ subscription ลง Firebase
   const subJson = sub.toJSON(); // { endpoint, keys: { p256dh, auth }, expirationTime }
@@ -6526,21 +6603,15 @@ async function unsubscribePush(){
 }
 
 // อัพเดท lastSeen ทุกครั้งที่เปิดแอป (เพื่อรู้ว่า device active อยู่)
+// v79: เรียก subscribePush() เสมอเพื่อ auto-detect VAPID mismatch
 async function _updatePushLastSeen(){
   if(!curUser || !fbConn) return;
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
-  const path = _subPath();
-  if(!path) return;
+  // v79: call subscribePush() ทุกครั้ง — มันจะเช็ค VAPID match เองและ re-subscribe ถ้าจำเป็น
   try {
-    const snap = await db.ref(path + '/endpoint').once('value');
-    if(snap.exists()){
-      await db.ref(path + '/lastSeen').set(Date.now());
-    } else {
-      // มี permission แต่ไม่มี subscription → re-subscribe
-      await subscribePush();
-    }
+    await subscribePush();
   } catch(e){
-    console.log('[Push] updateLastSeen error:', e);
+    console.log('[Push] auto-resubscribe error:', e);
   }
 }
 
@@ -6590,7 +6661,7 @@ function checkMonthlyReminder() {
     'monthly-summary');
 }
 
-// ========== AI HELPER (v78 - Web Push subscribe) — Claude API integration ==========
+// ========== AI HELPER (v79 - Auto-detect VAPID) — Claude API integration ==========
 let _aiTone = 'friendly';
 
 // === DEBUG LOGGER (v68) — บันทึก error ทุกขั้นตอน ===
