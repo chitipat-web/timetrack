@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>RUDY — Force Re-subscribe</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; min-height: 100vh; }
+  body {
+    font-family: -apple-system, "SF Pro Text", "Sarabun", system-ui, sans-serif;
+    background: linear-gradient(135deg, #1a0b2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff;
+    padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 540px; margin: 0 auto; }
+  h1 {
+    font-size: 24px;
+    margin: 16px 0 8px;
+    background: linear-gradient(135deg, #b794f4, #ed64a6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  .card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(10px);
+  }
+  .label { font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .value { font-size: 13px; word-break: break-all; font-family: "SF Mono", Menlo, monospace; line-height: 1.5; }
+  .ok { color: #68d391; }
+  .err { color: #fc8181; }
+  .warn { color: #f6ad55; }
+  button {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 12px;
+    font-family: inherit;
+    transition: transform 0.1s;
+  }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-main {
+    background: linear-gradient(135deg, #b794f4, #ed64a6);
+    color: #fff;
+  }
+  .btn-secondary {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .log {
+    background: #000;
+    color: #68d391;
+    border-radius: 12px;
+    padding: 14px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 60vh;
+    overflow-y: auto;
+    border: 1px solid rgba(104, 211, 145, 0.2);
+  }
+  .log .err-line { color: #fc8181; }
+  .log .warn-line { color: #f6ad55; }
+  .log .info-line { color: #63b3ed; }
+  .step { margin: 8px 0; }
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(183,148,244,0.2);
+    color: #b794f4;
+    margin-right: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔄 Force Re-subscribe</h1>
+  <p class="sub">
+    ลบ push subscription เก่า + สร้างใหม่ด้วย VAPID key ปัจจุบัน<br>
+    ใช้แก้ปัญหา <code>403 BadJwtToken</code>
+  </p>
+
+  <div class="card">
+    <div class="label">Firebase Project</div>
+    <div class="value">timetrack-63654</div>
+  </div>
+
+  <div class="card">
+    <div class="label">VAPID Public Key (ปัจจุบัน)</div>
+    <div class="value" id="vapidDisplay">—</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Status</div>
+    <div class="value" id="statusDisplay">รอเริ่มทำงาน...</div>
+  </div>
+
+  <button class="btn-main" id="btnRun">🔄 เริ่ม Force Re-subscribe</button>
+  <button class="btn-secondary" id="btnCheck">🔍 ตรวจสอบ Subscription ปัจจุบัน</button>
+
+  <div class="card">
+    <div class="label">Log</div>
+    <div class="log" id="log">รอเริ่ม...</div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+// ============= CONFIG =============
+const VAPID_PUBLIC_KEY = 'BL1cmzaf_FmWd5ZGVy2zcu5TgfLzAwdAWashAWfu6Lm9z0yBnqlUhKqZ4iGcoOZn4u99mCRFr5NyGiWC2rhkO_8';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDLDRJBYV1OYtfIKLhRDz1N3vyYaH5XO9I",
+  authDomain: "timetrack-63654.firebaseapp.com",
+  databaseURL: "https://timetrack-63654-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "timetrack-63654",
+  storageBucket: "timetrack-63654.firebasestorage.app",
+  messagingSenderId: "1052085108418",
+  appId: "1:1052085108418:web:8a8c4e6e8c8e6e8c8e6e8c"
+};
+
+// ============= UI helpers =============
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('statusDisplay');
+const vapidDisplay = document.getElementById('vapidDisplay');
+const btnRun = document.getElementById('btnRun');
+const btnCheck = document.getElementById('btnCheck');
+
+vapidDisplay.textContent = VAPID_PUBLIC_KEY.substring(0, 40) + '...';
+
+function logLine(msg, type = '') {
+  const cls = type === 'err' ? 'err-line' : type === 'warn' ? 'warn-line' : type === 'info' ? 'info-line' : '';
+  const span = document.createElement('span');
+  if (cls) span.className = cls;
+  span.textContent = msg + '\n';
+  logEl.appendChild(span);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function clearLog() { logEl.innerHTML = ''; }
+
+function setStatus(msg, type = '') {
+  statusEl.className = 'value ' + (type === 'err' ? 'err' : type === 'ok' ? 'ok' : type === 'warn' ? 'warn' : '');
+  statusEl.textContent = msg;
+}
+
+// ============= Helpers =============
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+function arrayBufferToBase64Url(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let str = '';
+  for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// ============= Initialize Firebase =============
+let app, auth, db;
+try {
+  app = firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.database();
+  logLine('[INIT] Firebase initialized', 'info');
+} catch (e) {
+  logLine('[INIT] Firebase error: ' + e.message, 'err');
+}
+
+// ============= Check current subscription =============
+async function checkSubscription() {
+  clearLog();
+  setStatus('กำลังตรวจสอบ...', 'warn');
+  
+  try {
+    if (!('serviceWorker' in navigator)) {
+      logLine('[ERR] Browser ไม่รองรับ Service Worker', 'err');
+      setStatus('Browser ไม่รองรับ', 'err');
+      return;
+    }
+    
+    logLine('[1] ตรวจ Service Worker registration...', 'info');
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) {
+      logLine('[!] ไม่มี SW registered ในหน้านี้', 'warn');
+      logLine('    หน้านี้ไม่มี SW — ต้องเปิดในแอพ RUDY (PWA)', 'warn');
+      setStatus('ไม่มี SW — ต้องเปิดผ่าน RUDY PWA', 'warn');
+      return;
+    }
+    logLine('[OK] SW found: ' + reg.scope, 'info');
+    
+    logLine('[2] ตรวจ Push Subscription...', 'info');
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      logLine('[!] ไม่มี subscription อยู่', 'warn');
+      setStatus('ยังไม่มี subscription', 'warn');
+      return;
+    }
+    
+    logLine('[OK] Subscription found:', 'info');
+    logLine('  endpoint: ' + sub.endpoint.substring(0, 80) + '...');
+    
+    const subJson = sub.toJSON();
+    logLine('  p256dh: ' + (subJson.keys && subJson.keys.p256dh || 'N/A').substring(0, 40) + '...');
+    logLine('  auth: ' + (subJson.keys && subJson.keys.auth || 'N/A').substring(0, 20) + '...');
+    
+    // Try to get the applicationServerKey used (browser may not expose it)
+    if (sub.options && sub.options.applicationServerKey) {
+      const askBuffer = sub.options.applicationServerKey;
+      const askBase64 = arrayBufferToBase64Url(askBuffer);
+      logLine('');
+      logLine('[3] VAPID public key ที่ subscription ใช้:', 'info');
+      logLine('  ' + askBase64);
+      logLine('');
+      logLine('[3] VAPID public key ปัจจุบัน:', 'info');
+      logLine('  ' + VAPID_PUBLIC_KEY);
+      logLine('');
+      
+      if (askBase64 === VAPID_PUBLIC_KEY) {
+        logLine('[✅ MATCH] VAPID keys ตรงกัน!', 'info');
+        setStatus('✅ Subscription ใช้ VAPID key ปัจจุบัน', 'ok');
+      } else {
+        logLine('[❌ MISMATCH] VAPID keys ไม่ตรงกัน!', 'err');
+        logLine('→ ต้อง force re-subscribe', 'err');
+        setStatus('❌ Subscription ใช้ VAPID key เก่า — ต้อง re-subscribe', 'err');
+      }
+    } else {
+      logLine('');
+      logLine('[!] Browser ไม่ expose applicationServerKey ออกมา', 'warn');
+      logLine('    (Safari iOS ไม่รองรับ — เป็นเรื่องปกติ)', 'warn');
+      logLine('    → กด "Force Re-subscribe" เพื่อสมัครใหม่ด้วย key ปัจจุบัน', 'warn');
+      setStatus('ไม่ทราบ VAPID key — แนะนำให้ Force Re-subscribe', 'warn');
+    }
+    
+  } catch (e) {
+    logLine('[ERR] ' + e.message, 'err');
+    setStatus('Error: ' + e.message, 'err');
+  }
+}
+
+// ============= Force re-subscribe =============
+async function forceResubscribe() {
+  clearLog();
+  setStatus('กำลังทำงาน...', 'warn');
+  btnRun.disabled = true;
+  btnCheck.disabled = true;
+  
+  try {
+    // Step 1: Check SW support
+    if (!('serviceWorker' in navigator)) {
+      throw new Error('Browser ไม่รองรับ Service Worker');
+    }
+    if (!('PushManager' in window)) {
+      throw new Error('Browser ไม่รองรับ Push Manager');
+    }
+    
+    // Step 2: Auth check
+    logLine('[1/7] ตรวจ Firebase Auth...', 'info');
+    let user = auth.currentUser;
+    if (!user) {
+      logLine('  → ยังไม่ login, รอ auth state...', 'warn');
+      user = await new Promise((res) => {
+        const unsub = auth.onAuthStateChanged(u => { unsub(); res(u); });
+      });
+    }
+    if (!user) {
+      throw new Error('ยังไม่ได้ login — กรุณาเปิดแอพ RUDY แล้ว login ก่อน แล้วค่อยมาที่หน้านี้');
+    }
+    logLine('[OK] Logged in as: ' + (user.email || user.uid), 'info');
+    const uid = user.uid;
+    
+    // Step 3: Get SW registration (need to register sw.js if running standalone)
+    logLine('[2/7] ตรวจ Service Worker...', 'info');
+    let reg = await navigator.serviceWorker.getRegistration('./');
+    if (!reg) {
+      logLine('  → ไม่มี SW, กำลัง register sw.js...', 'warn');
+      reg = await navigator.serviceWorker.register('./sw.js');
+      await navigator.serviceWorker.ready;
+    }
+    logLine('[OK] SW scope: ' + reg.scope, 'info');
+    
+    // Step 4: Notification permission
+    logLine('[3/7] ตรวจ Notification permission...', 'info');
+    if (Notification.permission === 'denied') {
+      throw new Error('Notification ถูก block — ไป Settings > RUDY > Notifications แล้ว Allow');
+    }
+    if (Notification.permission !== 'granted') {
+      logLine('  → กำลังขอ permission...', 'warn');
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        throw new Error('Notification permission ไม่ได้รับอนุญาต');
+      }
+    }
+    logLine('[OK] Permission: granted', 'info');
+    
+    // Step 5: Unsubscribe existing
+    logLine('[4/7] ตรวจ subscription เก่า...', 'info');
+    const oldSub = await reg.pushManager.getSubscription();
+    if (oldSub) {
+      logLine('  → พบ subscription เก่า, กำลัง unsubscribe...', 'warn');
+      logLine('  endpoint: ' + oldSub.endpoint.substring(0, 60) + '...');
+      const ok = await oldSub.unsubscribe();
+      logLine('  → unsubscribe: ' + (ok ? 'success' : 'failed'), ok ? 'info' : 'err');
+    } else {
+      logLine('  → ไม่มี subscription เก่า (ข้ามขั้น unsubscribe)', 'info');
+    }
+    
+    // Step 6: Delete old subs from Firebase for this user
+    logLine('[5/7] ลบ subscriptions เก่าจาก Firebase (uid: ' + uid + ')...', 'info');
+    try {
+      await db.ref('fcm_subs/' + uid).remove();
+      logLine('[OK] ลบ fcm_subs/' + uid + ' เรียบร้อย', 'info');
+    } catch (e) {
+      logLine('[!] ลบไม่ได้ (อาจไม่มีอยู่แล้ว): ' + e.message, 'warn');
+    }
+    
+    // Step 7: Subscribe with current VAPID key
+    logLine('[6/7] Subscribe ใหม่ด้วย VAPID key ปัจจุบัน...', 'info');
+    logLine('  Key: ' + VAPID_PUBLIC_KEY.substring(0, 40) + '...');
+    
+    const appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+    const newSub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: appServerKey
+    });
+    
+    const newJson = newSub.toJSON();
+    logLine('[OK] Subscription ใหม่:', 'info');
+    logLine('  endpoint: ' + newJson.endpoint.substring(0, 60) + '...');
+    logLine('  p256dh: ' + (newJson.keys && newJson.keys.p256dh || '').substring(0, 40) + '...');
+    
+    // Step 8: Save to Firebase
+    logLine('[7/7] บันทึกลง Firebase...', 'info');
+    const deviceId = 'd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+    const subData = {
+      endpoint: newJson.endpoint,
+      keys: {
+        p256dh: newJson.keys.p256dh,
+        auth: newJson.keys.auth
+      },
+      userAgent: navigator.userAgent,
+      userName: user.displayName || user.email || 'unknown',
+      userEmail: user.email || '',
+      createdAt: Date.now(),
+      lastSeen: Date.now()
+    };
+    
+    await db.ref('fcm_subs/' + uid + '/' + deviceId).set(subData);
+    logLine('[OK] บันทึกที่ fcm_subs/' + uid + '/' + deviceId, 'info');
+    
+    logLine('');
+    logLine('═══════════════════════════════', 'info');
+    logLine('✅ เสร็จสมบูรณ์!', 'info');
+    logLine('═══════════════════════════════', 'info');
+    logLine('Device ID: ' + deviceId);
+    logLine('User: ' + (user.email || uid));
+    logLine('');
+    logLine('→ ลองรัน Test Push workflow ได้เลย', 'info');
+    
+    setStatus('✅ Re-subscribe สำเร็จ! ลอง Test Push ได้เลย', 'ok');
+    
+  } catch (e) {
+    logLine('');
+    logLine('═══════════════════════════════', 'err');
+    logLine('❌ ERROR: ' + e.message, 'err');
+    logLine('═══════════════════════════════', 'err');
+    if (e.stack) logLine(e.stack, 'err');
+    setStatus('❌ Error: ' + e.message, 'err');
+  } finally {
+    btnRun.disabled = false;
+    btnCheck.disabled = false;
+  }
+}
+
+// ============= Bind buttons =============
+btnRun.addEventListener('click', forceResubscribe);
+btnCheck.addEventListener('click', checkSubscription);
+
+// Auto-check on load
+window.addEventListener('load', () => {
+  setTimeout(checkSubscription, 500);
+});
+</script>
+</body>
+</html>
