@@ -1,7 +1,8 @@
 // ===== RUDY Service Worker =====
+// v77 — fix: userEmail in fcm_subs (matches index.html v77)
 // v76 — added AI Helper for announcements (Claude API integration)
-const STATIC_CACHE = 'rudy-static-v76';
-const FIREBASE_CACHE = 'rudy-firebase-v76';
+const STATIC_CACHE = 'rudy-static-v77';
+const FIREBASE_CACHE = 'rudy-firebase-v77';
 const CURRENT_CACHES = [STATIC_CACHE, FIREBASE_CACHE];
 
 const STATIC_ASSETS = [
@@ -29,25 +30,25 @@ const FONT_ASSETS = [
 
 // ==================== INSTALL ====================
 self.addEventListener('install', event => {
-  console.log('[SW v76] Installing...');
+  console.log('[SW v77] Installing...');
   event.waitUntil(
     Promise.all([
       caches.open(STATIC_CACHE).then(cache => {
-        console.log('[SW v76] Caching static assets');
+        console.log('[SW v77] Caching static assets');
         return cache.addAll(STATIC_ASSETS).catch(err => {
-          console.log('[SW v76] Static cache error:', err);
+          console.log('[SW v77] Static cache error:', err);
         });
       }),
       caches.open(FIREBASE_CACHE).then(cache => {
-        console.log('[SW v76] Caching Firebase SDK + Fonts');
+        console.log('[SW v77] Caching Firebase SDK + Fonts');
         return Promise.all(
           [...FIREBASE_ASSETS, ...FONT_ASSETS].map(url =>
-            cache.add(url).catch(err => console.log('[SW v76] Cache error:', url, err))
+            cache.add(url).catch(err => console.log('[SW v77] Cache error:', url, err))
           )
         );
       }),
     ]).then(() => {
-      console.log('[SW v76] Installed — skipping waiting');
+      console.log('[SW v77] Installed — skipping waiting');
       return self.skipWaiting();
     })
   );
@@ -55,28 +56,28 @@ self.addEventListener('install', event => {
 
 // ==================== ACTIVATE ====================
 self.addEventListener('activate', event => {
-  console.log('[SW v76] Activating — cleaning ALL old caches');
+  console.log('[SW v77] Activating — cleaning ALL old caches');
   event.waitUntil(
     (async () => {
       const allKeys = await caches.keys();
-      console.log('[SW v76] Found caches:', allKeys);
+      console.log('[SW v77] Found caches:', allKeys);
 
       const deletions = allKeys
         .filter(key => !CURRENT_CACHES.includes(key))
         .map(key => {
-          console.log('[SW v76]   x Deleting:', key);
+          console.log('[SW v77]   x Deleting:', key);
           return caches.delete(key);
         });
 
       await Promise.all(deletions);
-      console.log('[SW v76] Cache cleanup complete. Active:', CURRENT_CACHES);
+      console.log('[SW v77] Cache cleanup complete. Active:', CURRENT_CACHES);
 
       await self.clients.claim();
 
       const clients = await self.clients.matchAll({ type: 'window' });
-      console.log('[SW v76] Notifying ' + clients.length + ' client(s) to reload');
+      console.log('[SW v77] Notifying ' + clients.length + ' client(s) to reload');
       for (const client of clients) {
-        client.postMessage({ type: 'SW_UPDATED', version: 'v76' });
+        client.postMessage({ type: 'SW_UPDATED', version: 'v77' });
       }
     })()
   );
@@ -86,8 +87,15 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = event.request.url;
 
-  // ⚠️ HARD BYPASS: Gemini API — ห้าม Service Worker แตะเด็ดขาด
-  if (url.indexOf('generativelanguage.googleapis.com') !== -1) {
+  // ⚠️ HARD BYPASS: APIs ที่ห้าม Service Worker แตะเด็ดขาด (ที่บรรทัดแรกสุด ก่อนเช็ค method)
+  // Safari iOS PWA bug: SW intercept CORS preflight ทำให้ fail
+  if (url.indexOf('generativelanguage.googleapis.com') !== -1 ||
+      url.indexOf('firebaseinstallations.googleapis.com') !== -1 ||
+      url.indexOf('fcm.googleapis.com') !== -1 ||
+      url.indexOf('fcmregistrations.googleapis.com') !== -1 ||
+      url.indexOf('web.push.apple.com') !== -1 ||
+      url.indexOf('android.googleapis.com') !== -1 ||
+      url.indexOf('updates.push.services.mozilla.com') !== -1) {
     return; // ไม่เรียก event.respondWith() = browser handle เอง
   }
 
@@ -114,7 +122,7 @@ self.addEventListener('fetch', event => {
             caches.open(FIREBASE_CACHE).then(cache => cache.put(event.request, clone));
           }
           return response;
-        });
+        }).catch(() => cached); // เผื่อ offline และไม่มี cache → return undefined (browser จัดการ)
       })
     );
     return;
@@ -123,16 +131,22 @@ self.addEventListener('fetch', event => {
   // Network-first with cache fallback for app shell
   if (url.includes('github.io') || url.endsWith('index.html') || url.endsWith('/')) {
     event.respondWith(
-      caches.open(STATIC_CACHE).then(async cache => {
-        const cached = await cache.match(event.request);
-        const fetchPromise = fetch(event.request)
-          .then(response => {
-            if (response.ok) cache.put(event.request, response.clone());
-            return response;
-          })
-          .catch(() => cached);
-        return fetchPromise.catch(() => cached) || cached;
-      })
+      (async () => {
+        const cache = await caches.open(STATIC_CACHE);
+        try {
+          const response = await fetch(event.request);
+          if (response.ok) {
+            cache.put(event.request, response.clone());
+          }
+          return response;
+        } catch (err) {
+          // Network failed → fallback to cache
+          const cached = await cache.match(event.request);
+          if (cached) return cached;
+          // No cache either → re-throw so browser shows offline page
+          throw err;
+        }
+      })()
     );
     return;
   }
@@ -141,7 +155,7 @@ self.addEventListener('fetch', event => {
 // ==================== MESSAGE ====================
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting' || (event.data && event.data.type === 'SKIP_WAITING')) {
-    console.log('[SW v76] Manual skipWaiting');
+    console.log('[SW v77] Manual skipWaiting');
     self.skipWaiting();
   }
 
@@ -149,7 +163,7 @@ self.addEventListener('message', event => {
     event.waitUntil((async () => {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
-      console.log('[SW v76] PURGE_ALL: deleted', keys.length, 'caches');
+      console.log('[SW v77] PURGE_ALL: deleted', keys.length, 'caches');
       if (event.source) {
         event.source.postMessage({ type: 'PURGE_DONE', deleted: keys });
       }
@@ -157,17 +171,17 @@ self.addEventListener('message', event => {
   }
 });
 
-// ==================== PUSH EVENT (v76) ====================
+// ==================== PUSH EVENT (v77) ====================
 // รับ push จาก server (GitHub Actions) แล้วแสดง notification
 self.addEventListener('push', event => {
-  console.log('[SW v76] Push received');
+  console.log('[SW v77] Push received');
   let data = { title: 'RUDY', body: 'มีการแจ้งเตือนใหม่', tag: 'rudy-default' };
 
-  if(event.data){
+  if (event.data) {
     try {
       data = event.data.json();
-    } catch(e){
-      try { data = { title: 'RUDY', body: event.data.text() }; } catch(e2){}
+    } catch (e) {
+      try { data = { title: 'RUDY', body: event.data.text() }; } catch (e2) {}
     }
   }
 
@@ -179,7 +193,9 @@ self.addEventListener('push', event => {
     tag: data.tag || 'rudy-' + Date.now(),
     data: { url: data.url || './', tag: data.tag },
     requireInteraction: false,
-    silent: false
+    silent: false,
+    vibrate: [200, 100, 200], // สั่นเป็นจังหวะ (Android เท่านั้น — iOS ignore)
+    timestamp: Date.now()
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -187,20 +203,20 @@ self.addEventListener('push', event => {
 
 // ==================== NOTIFICATION CLICK ====================
 self.addEventListener('notificationclick', event => {
-  console.log('[SW v76] Notification click');
+  console.log('[SW v77] Notification click');
   event.notification.close();
   const targetUrl = (event.notification.data && event.notification.data.url) || './';
 
   event.waitUntil((async () => {
     const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     // ถ้ามี window เปิดอยู่ → focus
-    for(const client of allClients){
-      if(client.url.includes(self.registration.scope)){
-        if('focus' in client) return client.focus();
+    for (const client of allClients) {
+      if (client.url.includes(self.registration.scope)) {
+        if ('focus' in client) return client.focus();
       }
     }
     // ไม่มี → เปิดใหม่
-    if(self.clients.openWindow){
+    if (self.clients.openWindow) {
       return self.clients.openWindow(targetUrl);
     }
   })());
