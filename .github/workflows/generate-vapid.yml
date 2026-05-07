@@ -1,0 +1,42 @@
+name: 🔑 Generate VAPID Keys (manual only)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install web-push
+        run: npm install web-push
+
+      - name: Generate VAPID keys
+        run: |
+          node -e "
+            const webpush = require('web-push');
+            const keys = webpush.generateVAPIDKeys();
+            console.log('');
+            console.log('========================================');
+            console.log('  🔑 NEW VAPID KEYPAIR (copy both)');
+            console.log('========================================');
+            console.log('');
+            console.log('VAPID_PUBLIC:');
+            console.log(keys.publicKey);
+            console.log('');
+            console.log('VAPID_PRIVATE:');
+            console.log(keys.privateKey);
+            console.log('');
+            console.log('========================================');
+            console.log('Public key length:  ' + keys.publicKey.length + ' chars (expected 87)');
+            console.log('Private key length: ' + keys.privateKey.length + ' chars (expected 43)');
+            console.log('========================================');
+          "
