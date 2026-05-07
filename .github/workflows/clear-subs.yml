@@ -1,0 +1,51 @@
+name: 🧹 Clear All Push Subscriptions (manual only)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  clear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install firebase-admin
+        run: npm install firebase-admin
+
+      - name: Clear fcm_subs node
+        env:
+          FIREBASE_SERVICE_KEY: ${{ secrets.FIREBASE_SERVICE_KEY }}
+        run: |
+          node -e "
+            const admin = require('firebase-admin');
+            const sa = JSON.parse(process.env.FIREBASE_SERVICE_KEY);
+            admin.initializeApp({
+              credential: admin.credential.cert(sa),
+              databaseURL: 'https://timetrack-63654-default-rtdb.asia-southeast1.firebasedatabase.app'
+            });
+            const db = admin.database();
+            (async () => {
+              console.log('=== 🧹 CLEAR fcm_subs ===');
+              const snap = await db.ref('fcm_subs').once('value');
+              const data = snap.val() || {};
+              const userIds = Object.keys(data);
+              let deviceCount = 0;
+              for (const uid of userIds) {
+                const devs = data[uid] || {};
+                deviceCount += Object.keys(devs).length;
+                console.log('  user', uid, '→', Object.keys(devs).length, 'device(s)');
+              }
+              console.log('Total:', userIds.length, 'user(s),', deviceCount, 'device(s)');
+              await db.ref('fcm_subs').remove();
+              console.log('✅ Deleted all subscriptions');
+              console.log('Team needs to re-open app to subscribe again');
+              process.exit(0);
+            })().catch(err => { console.error(err); process.exit(1); });
+          "
