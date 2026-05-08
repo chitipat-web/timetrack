@@ -1,15 +1,15 @@
-name: Notify - Birthday
+name: 🎂 Birthday Email Reminder (8:00 IDT)
 
 on:
   schedule:
-    # 8:00 ICT (Bangkok) = 1:00 UTC
-    - cron: '0 1 * * *'
+    # 8:00 IDT (Israel Summer Time) = 05:00 UTC
+    # ⚠️ Winter (IST, UTC+2): change to '0 6 * * *'
+    - cron: '0 5 * * *'
   workflow_dispatch:
 
 jobs:
   notify:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -23,11 +23,10 @@ jobs:
         working-directory: scripts
         run: npm ci || npm install
 
-      - name: Run check-birthday
+      - name: Send birthday email
         working-directory: scripts
         env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           FIREBASE_SERVICE_KEY: ${{ secrets.FIREBASE_SERVICE_KEY }}
-          VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
-          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
-          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
-        run: node check-birthday.js
+        run: node notify-birthday.js

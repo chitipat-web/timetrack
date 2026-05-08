@@ -1,9 +1,10 @@
-name: 📧 Check-in Email Reminder (5:45 ICT)
+name: 📧 Check-in Email Reminder (5:45 IDT)
 
 on:
   schedule:
-    # 5:45 ICT = 22:45 UTC (previous day)
-    - cron: '45 22 * * *'
+    # 5:45 IDT (Israel Summer Time) = 02:45 UTC
+    # ⚠️ Winter (IST, UTC+2): change to '45 3 * * *'
+    - cron: '45 2 * * *'
   workflow_dispatch:
 
 jobs:
@@ -27,4 +28,5 @@ jobs:
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          FIREBASE_SERVICE_KEY: ${{ secrets.FIREBASE_SERVICE_KEY }}
         run: node notify-checkin-email.js
