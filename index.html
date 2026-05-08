@@ -6484,41 +6484,66 @@ function _subPath(){
 }
 
 async function subscribePush(){
+  alert('[DEBUG 1] เริ่ม subscribePush');
   if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+    alert('[DEBUG ERROR] ไม่รองรับ ServiceWorker หรือ PushManager');
     console.log('[Push] not supported');
     return null;
   }
   if(Notification.permission !== 'granted'){
+    alert('[DEBUG ERROR] permission ไม่ใช่ granted: ' + Notification.permission);
     console.log('[Push] permission not granted');
     return null;
   }
   if(!curUser){
+    alert('[DEBUG ERROR] ไม่มี curUser');
     console.log('[Push] no user');
     return null;
   }
+  alert('[DEBUG 2] ผ่านการเช็คเบื้องต้น curUser.id = ' + curUser.id);
 
-  const reg = await navigator.serviceWorker.ready;
+  let reg;
+  try {
+    reg = await navigator.serviceWorker.ready;
+    alert('[DEBUG 3] ServiceWorker ready แล้ว');
+  } catch(e){
+    alert('[DEBUG ERROR] ServiceWorker ready ล้มเหลว: ' + e.message);
+    throw e;
+  }
 
   // เช็คว่ามี subscription อยู่แล้วไหม
-  let sub = await reg.pushManager.getSubscription();
+  let sub;
+  try {
+    sub = await reg.pushManager.getSubscription();
+    alert('[DEBUG 4] getSubscription สำเร็จ มี sub = ' + (sub ? 'YES' : 'NO'));
+  } catch(e){
+    alert('[DEBUG ERROR] getSubscription ล้มเหลว: ' + e.message);
+    throw e;
+  }
+
   if(!sub){
     try {
+      alert('[DEBUG 5] กำลัง subscribe ใหม่ ด้วย VAPID key length = ' + VAPID_PUBLIC_KEY.length);
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
+      alert('[DEBUG 6] subscribe สำเร็จ! endpoint = ' + sub.endpoint.substring(0, 50));
       console.log('[Push] new subscription created');
     } catch(e){
+      alert('[DEBUG ERROR] subscribe ล้มเหลว: ' + e.name + ' - ' + e.message);
       console.error('[Push] subscribe error:', e);
       throw e;
     }
   } else {
+    alert('[DEBUG 6] ใช้ sub ที่มีอยู่แล้ว');
     console.log('[Push] existing subscription found');
   }
 
   // เก็บ subscription ลง Firebase
-  const subJson = sub.toJSON(); // { endpoint, keys: { p256dh, auth }, expirationTime }
+  const subJson = sub.toJSON();
   const path = _subPath();
+  alert('[DEBUG 7] path = ' + path + ' / fbConn = ' + fbConn);
   if(path && fbConn){
     const data = {
       endpoint: subJson.endpoint,
@@ -6531,10 +6556,14 @@ async function subscribePush(){
     };
     try {
       await db.ref(path).set(data);
+      alert('[DEBUG 8] บันทึก Firebase สำเร็จ! ✅');
       console.log('[Push] subscription saved to Firebase:', path);
     } catch(e){
+      alert('[DEBUG ERROR] บันทึก Firebase ล้มเหลว: ' + e.message);
       console.error('[Push] save to Firebase failed:', e);
     }
+  } else {
+    alert('[DEBUG ERROR] ไม่ได้บันทึก เพราะ path หรือ fbConn ไม่มี');
   }
   return sub;
 }
