@@ -6455,7 +6455,7 @@ async function requestPushPermission() {
 }
 
 // ========== WEB PUSH SUBSCRIPTION (v76) ==========
-const VAPID_PUBLIC_KEY = 'BGa3RektoCyxgL0ULEyN0Br0N5apo67Dhun4r9A-4oge5rmuaz6OBoGd5d1XGaXWtNTF_INqo9YGkU5PE0VKRIU';
+const VAPID_PUBLIC_KEY = 'BL1cmzaf_FmWd5ZGVy2zcu5TgfLzAwdAWashAWfu6Lm9z0yBnqlUhKqZ4iGcoOZn4u99mCRFr5NyGiWC2rhkO_8';
 
 // แปลง base64url → Uint8Array (ที่ pushManager ต้องการ)
 function _urlBase64ToUint8Array(base64String) {
@@ -6525,7 +6525,7 @@ async function subscribePush(){
       keys: subJson.keys,
       userAgent: (navigator.userAgent || '').substring(0, 200),
       userName: curUser.name || '',
-      userEmail: curUser.id || '',
+      userEmail: curUser.email || '',
       createdAt: Date.now(),
       lastSeen: Date.now()
     };
