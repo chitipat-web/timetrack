@@ -1,10 +1,11 @@
 // ===== RUDY Service Worker =====
+// v82 — bump cache + new VAPID PUBLIC key (matches new keypair)
 // v81 — bump cache to force activation for index.html debug version
 // v80 — bump cache to force activation for v79 (Auto-detect VAPID)
 // v77 — fix: userEmail in fcm_subs (matches index.html v77)
 // v76 — added AI Helper for announcements (Claude API integration)
-const STATIC_CACHE = 'rudy-static-v81';
-const FIREBASE_CACHE = 'rudy-firebase-v81';
+const STATIC_CACHE = 'rudy-static-v82';
+const FIREBASE_CACHE = 'rudy-firebase-v82';
 const CURRENT_CACHES = [STATIC_CACHE, FIREBASE_CACHE];
 
 const STATIC_ASSETS = [
@@ -32,25 +33,25 @@ const FONT_ASSETS = [
 
 // ==================== INSTALL ====================
 self.addEventListener('install', event => {
-  console.log('[SW v81] Installing...');
+  console.log('[SW v82] Installing...');
   event.waitUntil(
     Promise.all([
       caches.open(STATIC_CACHE).then(cache => {
-        console.log('[SW v81] Caching static assets');
+        console.log('[SW v82] Caching static assets');
         return cache.addAll(STATIC_ASSETS).catch(err => {
-          console.log('[SW v81] Static cache error:', err);
+          console.log('[SW v82] Static cache error:', err);
         });
       }),
       caches.open(FIREBASE_CACHE).then(cache => {
-        console.log('[SW v81] Caching Firebase SDK + Fonts');
+        console.log('[SW v82] Caching Firebase SDK + Fonts');
         return Promise.all(
           [...FIREBASE_ASSETS, ...FONT_ASSETS].map(url =>
-            cache.add(url).catch(err => console.log('[SW v81] Cache error:', url, err))
+            cache.add(url).catch(err => console.log('[SW v82] Cache error:', url, err))
           )
         );
       }),
     ]).then(() => {
-      console.log('[SW v81] Installed — skipping waiting');
+      console.log('[SW v82] Installed — skipping waiting');
       return self.skipWaiting();
     })
   );
@@ -58,28 +59,28 @@ self.addEventListener('install', event => {
 
 // ==================== ACTIVATE ====================
 self.addEventListener('activate', event => {
-  console.log('[SW v81] Activating — cleaning ALL old caches');
+  console.log('[SW v82] Activating — cleaning ALL old caches');
   event.waitUntil(
     (async () => {
       const allKeys = await caches.keys();
-      console.log('[SW v81] Found caches:', allKeys);
+      console.log('[SW v82] Found caches:', allKeys);
 
       const deletions = allKeys
         .filter(key => !CURRENT_CACHES.includes(key))
         .map(key => {
-          console.log('[SW v81]   x Deleting:', key);
+          console.log('[SW v82]   x Deleting:', key);
           return caches.delete(key);
         });
 
       await Promise.all(deletions);
-      console.log('[SW v81] Cache cleanup complete. Active:', CURRENT_CACHES);
+      console.log('[SW v82] Cache cleanup complete. Active:', CURRENT_CACHES);
 
       await self.clients.claim();
 
       const clients = await self.clients.matchAll({ type: 'window' });
-      console.log('[SW v81] Notifying ' + clients.length + ' client(s) to reload');
+      console.log('[SW v82] Notifying ' + clients.length + ' client(s) to reload');
       for (const client of clients) {
-        client.postMessage({ type: 'SW_UPDATED', version: 'v81' });
+        client.postMessage({ type: 'SW_UPDATED', version: 'v82' });
       }
     })()
   );
@@ -157,7 +158,7 @@ self.addEventListener('fetch', event => {
 // ==================== MESSAGE ====================
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting' || (event.data && event.data.type === 'SKIP_WAITING')) {
-    console.log('[SW v81] Manual skipWaiting');
+    console.log('[SW v82] Manual skipWaiting');
     self.skipWaiting();
   }
 
@@ -165,7 +166,7 @@ self.addEventListener('message', event => {
     event.waitUntil((async () => {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
-      console.log('[SW v81] PURGE_ALL: deleted', keys.length, 'caches');
+      console.log('[SW v82] PURGE_ALL: deleted', keys.length, 'caches');
       if (event.source) {
         event.source.postMessage({ type: 'PURGE_DONE', deleted: keys });
       }
@@ -176,7 +177,7 @@ self.addEventListener('message', event => {
 // ==================== PUSH EVENT ====================
 // รับ push จาก server (GitHub Actions) แล้วแสดง notification
 self.addEventListener('push', event => {
-  console.log('[SW v81] Push received');
+  console.log('[SW v82] Push received');
   let data = { title: 'RUDY', body: 'มีการแจ้งเตือนใหม่', tag: 'rudy-default' };
 
   if (event.data) {
@@ -205,7 +206,7 @@ self.addEventListener('push', event => {
 
 // ==================== NOTIFICATION CLICK ====================
 self.addEventListener('notificationclick', event => {
-  console.log('[SW v81] Notification click');
+  console.log('[SW v82] Notification click');
   event.notification.close();
   const targetUrl = (event.notification.data && event.notification.data.url) || './';
 
