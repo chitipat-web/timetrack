@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v86
-// Cache: rudy-static-v86, firebase-v86
+// RUDY · Service Worker v87
+// Cache: rudy-static-v87, firebase-v87
 // Build: 2026-05-11 · AAA Effects update
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v86';
-const FIREBASE_CACHE = 'firebase-v86';
-const RUNTIME_CACHE = 'rudy-runtime-v86';
+const STATIC_CACHE  = 'rudy-static-v87';
+const FIREBASE_CACHE = 'firebase-v87';
+const RUNTIME_CACHE = 'rudy-runtime-v87';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v86] Installing...');
+  console.log('[SW v87] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v86] Precache partial fail (ok):', err);
+          console.warn('[SW v87] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v86] Activating...');
+  console.log('[SW v87] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v86] Deleting old cache:', name);
+              console.log('[SW v87] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -213,7 +213,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v86' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v87' });
     return;
   }
 });
@@ -236,7 +236,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v86] Push parse fail:', e);
+    console.warn('[SW v87] Push parse fail:', e);
   }
 });
 
@@ -256,4 +256,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v86] Loaded — AAA Effects update with full iOS bypass list');
+console.log('[SW v87] Loaded — AAA Effects update with full iOS bypass list');
