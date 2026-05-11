@@ -10133,51 +10133,22 @@ function initAllEffects() {
 }
 
 // ===== HOOK TYPEWRITER INTO initApp =====
-// ===== WATER SPLASH BUTTON EFFECT =====
+// ===== WATER SPLASH BUTTON EFFECT (DISABLED) =====
+// BUG FIX 2026-05-11: water-ripple/water-droplet/water-ring CSS classes don't exist,
+// so created <div>s never animate, never fire animationend, never get removed.
+// They pile up inside flex-direction:column buttons and push text off-screen upward.
+// Effect disabled — confetti + ripple-effect + burst-glow already cover visual feedback.
 function addWaterRipple(btn, e) {
-  if(!btn) return;
-  const rect = btn.getBoundingClientRect();
-  const x = (e?.clientX ?? rect.left + rect.width/2) - rect.left;
-  const y = (e?.clientY ?? rect.top  + rect.height/2) - rect.top;
-
-  function mk(cls, extra) {
-    const el = document.createElement('div');
-    el.className = cls;
-    el.style.setProperty('--rx', x + 'px');
-    el.style.setProperty('--ry', y + 'px');
-    if(extra) Object.entries(extra).forEach(([k,v]) => el.style.setProperty(k, v));
-    btn.appendChild(el);
-    el.addEventListener('animationend', () => el.remove(), {once:true});
-    return el;
-  }
-
-  mk('water-ripple');    // main fill
-  mk('water-ripple-2');  // outer ring
-  mk('water-ring');      // flat ellipse impact
-
-  // 8 droplets flying outward
-  for(let i=0; i<8; i++){
-    const angle = (i/8)*Math.PI*2;
-    const dist  = 28 + Math.random()*22;
-    mk('water-droplet',{
-      '--dx':    (Math.cos(angle)*dist)+'px',
-      '--dy':    (Math.sin(angle)*dist - Math.random()*12)+'px',
-      '--ds':    (3+Math.random()*4)+'px',
-      '--dur':   (0.35+Math.random()*0.25)+'s',
-      '--delay': (Math.random()*0.06)+'s',
-    });
-  }
-  // 2 big upward droplets
-  for(let i=0; i<2; i++){
-    const a = -Math.PI/2 + (i===0?-0.5:0.5);
-    mk('water-droplet',{'--dx':(Math.cos(a)*36)+'px','--dy':(Math.sin(a)*36-12)+'px','--ds':'5px','--dur':'0.45s','--delay':'0.02s'});
-  }
+  return; // no-op
 }
 // Attach to check-in/out buttons
 document.addEventListener('DOMContentLoaded', () => {
+  // BUG FIX: water ripple listener removed — was leaking DOM nodes that pushed button text off-screen
+  // Cleanup any stale water-* nodes that might still be inside the buttons from old SW-cached HTML
   ['btn-in','btn-out'].forEach(id => {
     const btn = document.getElementById(id);
-    if(btn) btn.addEventListener('pointerdown', e => addWaterRipple(btn, e));
+    if (!btn) return;
+    btn.querySelectorAll('.water-ripple, .water-ripple-2, .water-ring, .water-droplet').forEach(n => n.remove());
   });
 });
 
