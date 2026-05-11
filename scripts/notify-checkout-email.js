@@ -1,170 +1,194 @@
 // scripts/notify-checkout-email.js
-// Smart logic: ส่ง email check-out reminder เฉพาะคนที่ check-in แล้ว แต่ยังไม่ check-out
+// Smart check-out reminder with AI-generated content
+// Triggered by cron-job.org at 22:00 IDT via workflow_dispatch
 
-const nodemailer = require('nodemailer');
 const admin = require('firebase-admin');
+const nodemailer = require('nodemailer');
+const ai = require('./lib/ai-content');
 
-// ===== Config =====
+const FIREBASE_DB_URL = 'https://timetrack-63654-default-rtdb.asia-southeast1.firebasedatabase.app';
 const GMAIL_USER = process.env.GMAIL_USER;
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-const FIREBASE_SERVICE_KEY = process.env.FIREBASE_SERVICE_KEY;
+const GMAIL_PASS = process.env.GMAIL_APP_PASSWORD;
+const FIREBASE_KEY = process.env.FIREBASE_SERVICE_KEY;
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
-if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
-  throw new Error('GMAIL_USER and GMAIL_APP_PASSWORD env vars are required');
+if (!GMAIL_USER || !GMAIL_PASS || !FIREBASE_KEY) {
+  console.error('❌ Missing required secrets');
+  process.exit(1);
 }
-if (!FIREBASE_SERVICE_KEY) {
-  throw new Error('FIREBASE_SERVICE_KEY env var is required');
-}
 
-// ===== Init Firebase Admin =====
-const serviceAccount = JSON.parse(FIREBASE_SERVICE_KEY);
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://timetrack-63654-default-rtdb.asia-southeast1.firebasedatabase.app'
-});
-const db = admin.database();
-
-// ===== Setup transporter =====
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: GMAIL_USER,
-    pass: GMAIL_APP_PASSWORD
-  }
-});
-
-// ===== Email content =====
-const subject = '🌙 อย่าลืม Check-out ก่อนนอน!';
-
-const html = `
-<div style="font-family:-apple-system,'Sarabun',sans-serif;max-width:520px;margin:0 auto;padding:24px;background:linear-gradient(135deg,#1a0b2e,#16213e);color:#fff;border-radius:16px">
-  <h1 style="margin:0 0 8px;font-size:24px;background:linear-gradient(135deg,#b794f4,#ed64a6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
-    🌙 ราตรีสวัสดิ์!
-  </h1>
-  <p style="font-size:16px;line-height:1.6;color:rgba(255,255,255,0.85);margin:8px 0">
-    ก่อนหลับ อย่าลืมกด <strong style="color:#b794f4">Check-out</strong> ในแอพ RUDY ก่อนนะ<br>
-    ระบบจะได้บันทึกเวลาทำงานครบถ้วน 📊
-  </p>
-  <a href="https://chitipat-web.github.io/timetrack/"
-     style="display:inline-block;margin-top:16px;padding:12px 24px;background:linear-gradient(135deg,#b794f4,#ed64a6);color:#fff;text-decoration:none;border-radius:12px;font-weight:600">
-    เปิดแอพ RUDY
-  </a>
-  <p style="margin-top:24px;font-size:12px;color:rgba(255,255,255,0.4)">
-    — ส่งโดย RUDY Notifier
-  </p>
-</div>
-`;
-
-// ===== Helpers =====
 function getTodayDateIDT() {
-  const now = new Date();
-  const fmt = new Intl.DateTimeFormat('en-CA', {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Jerusalem',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
   });
-  return fmt.format(now);
+  return formatter.format(new Date());
 }
 
-// ===== Main =====
+function getNowInIDT() {
+  const idtString = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' });
+  return new Date(idtString);
+}
+
+function buildEmailHTML({ employee, content }) {
+  const bodyHTML = content.body.replace(/\n/g, '<br>');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; background: #0a0612; }
+  .container { max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #16213e 0%, #1a0b2e 100%); padding: 40px 30px; }
+  .header { text-align: center; margin-bottom: 30px; }
+  .logo { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #ed64a6 0%, #b794f4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .greeting { color: #e2e8f0; font-size: 18px; margin-bottom: 20px; font-weight: 600; }
+  .content { color: #cbd5e0; font-size: 16px; line-height: 1.8; margin-bottom: 30px; padding: 20px; background: rgba(237, 100, 166, 0.08); border-radius: 12px; border-left: 4px solid #ed64a6; }
+  .cta { text-align: center; margin: 30px 0; }
+  .btn { display: inline-block; padding: 14px 36px; background: linear-gradient(135deg, #ed64a6 0%, #b794f4 100%); color: #fff !important; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; }
+  .footer { text-align: center; color: #718096; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(237, 100, 166, 0.2); }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">RUDY</div>
+    </div>
+    <div class="greeting">สวัสดี ${employee.name} 🌙</div>
+    <div class="content">${bodyHTML}</div>
+    <div class="cta">
+      <a href="https://chitipat-web.github.io/timetrack/" class="btn">เปิด RUDY 🌙</a>
+    </div>
+    <div class="footer">
+      RUDY — Smart HR & Time-tracking<br>
+      <small style="opacity: 0.5;">AI-generated · ${new Date().toISOString().split('T')[0]}</small>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 async function main() {
-  console.log('=== 📧 SMART CHECK-OUT EMAIL START ===');
-  console.log('Time:', new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }), 'IDT');
+  console.log('=== 📧 CHECK-OUT EMAIL (Smart + AI) ===');
+  console.log(`Time (IDT): ${getNowInIDT().toLocaleString('th-TH')}`);
 
+  const serviceAccount = JSON.parse(FIREBASE_KEY);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: FIREBASE_DB_URL
+  });
+
+  const db = admin.database();
   const today = getTodayDateIDT();
-  console.log('Today (IDT):', today);
+  console.log(`Today (IDT): ${today}`);
 
-  // 1) Load all employees
-  console.log('\n📥 Loading employees from Firebase...');
-  const empSnap = await db.ref('employees').once('value');
-  const employees = empSnap.val() || {};
-  const empList = Object.entries(employees).map(([uid, emp]) => ({
+  const employeesSnap = await db.ref('employees').once('value');
+  const employeesObj = employeesSnap.val() || {};
+  const employees = Object.entries(employeesObj).map(([uid, data]) => ({
     uid,
-    email: emp.email,
-    name: emp.name || emp.initial || uid
+    name: data.name || 'Unknown',
+    email: data.email || null,
+    role: data.role || 'user'
   }));
-  console.log(`  ✓ Found ${empList.length} employee(s)`);
 
-  // 2) Load today's records — find who checked-in but NOT yet checked-out
-  console.log('\n📥 Loading today\'s records...');
-  const recSnap = await db.ref('records').once('value');
-  const records = recSnap.val() || {};
+  const recordsSnap = await db.ref('records').once('value');
+  const recordsObj = recordsSnap.val() || {};
+  const records = Object.values(recordsObj);
 
-  // Map: empId -> { checkedIn: bool, checkedOut: bool }
-  const status = {};
-  for (const rec of Object.values(records)) {
-    if (!rec || rec.date !== today || !rec.empId) continue;
-    if (!status[rec.empId]) status[rec.empId] = { checkedIn: false, checkedOut: false };
-    if (rec.checkIn) status[rec.empId].checkedIn = true;
-    if (rec.checkOut) status[rec.empId].checkedOut = true;
-  }
-  const checkedInCount = Object.values(status).filter(s => s.checkedIn).length;
-  const checkedOutCount = Object.values(status).filter(s => s.checkedOut).length;
-  console.log(`  ✓ Checked-in today: ${checkedInCount}, Checked-out: ${checkedOutCount}`);
-
-  // 3) Determine who needs reminder
-  // Send to: people who checked-in but didn't check-out yet
-  // Skip: already checked-out OR never checked-in today
-  console.log('\n🔍 Checking who needs reminder:');
-  const needReminder = [];
-  for (const emp of empList) {
-    if (!emp.email) {
-      console.log(`  ⚠️  ${emp.name} - no email, skipped`);
-      continue;
+  const todayRecords = {};
+  for (const r of records) {
+    if (r.date === today) {
+      todayRecords[r.empId] = r;
     }
-    const s = status[emp.uid];
-    if (!s || !s.checkedIn) {
-      console.log(`  ⏭️  ${emp.name} (${emp.email}) - did not check-in today, skipped`);
-      continue;
-    }
-    if (s.checkedOut) {
-      console.log(`  ⏭️  ${emp.name} (${emp.email}) - already checked-out`);
-      continue;
-    }
-    console.log(`  📧 ${emp.name} (${emp.email}) - needs reminder`);
-    needReminder.push(emp);
   }
 
-  // 4) Send emails
-  if (needReminder.length === 0) {
-    console.log('\n🎉 Everyone already checked-out or off-duty! No emails to send.');
-  } else {
-    console.log(`\n📤 Sending ${needReminder.length} email(s)...`);
-  }
+  console.log(`Found ${employees.length} employee(s)\n`);
 
-  let sent = 0;
+  const dayContext = ai.getDayContext(getNowInIDT());
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: GMAIL_USER, pass: GMAIL_PASS }
+  });
+
+  let sentOK = 0;
   let failed = 0;
-  for (const emp of needReminder) {
+  let aiUsed = 0;
+  let fallbackUsed = 0;
+
+  for (const emp of employees) {
+    const todayRec = todayRecords[emp.uid];
+
+    if (!todayRec || !todayRec.checkIn) {
+      console.log(`⏭️  ${emp.name} - ไม่ได้ check-in วันนี้`);
+      continue;
+    }
+
+    if (todayRec.checkOut) {
+      console.log(`✅ ${emp.name} - check-out แล้วเรียบร้อย`);
+      continue;
+    }
+
+    if (!emp.email) {
+      console.log(`⚠️  ${emp.name} - no email, skip`);
+      continue;
+    }
+
+    console.log(`📧 ${emp.name} (${emp.email}) - ยังไม่ check-out`);
+
+    const pattern = ai.analyzeEmployeePattern(emp.uid, records, today);
+    console.log(`   Pattern: ${pattern.label} - ${pattern.detail}`);
+
+    let content;
+    if (GEMINI_KEY) {
+      try {
+        content = await ai.generateCheckoutContent({
+          employee: emp,
+          pattern,
+          dayContext,
+          checkInTime: todayRec.checkIn,
+          apiKey: GEMINI_KEY
+        });
+        console.log(`   🤖 AI [${content.meta.tone}] ${content.subject}`);
+        aiUsed++;
+      } catch (err) {
+        console.warn(`   ⚠️ AI failed: ${err.message}`);
+        content = ai.getFallbackCheckoutContent(emp);
+        fallbackUsed++;
+      }
+    } else {
+      console.log('   ℹ️ No GEMINI_API_KEY, using fallback');
+      content = ai.getFallbackCheckoutContent(emp);
+      fallbackUsed++;
+    }
+
     try {
       await transporter.sendMail({
-        from: `"RUDY 🌙" <${GMAIL_USER}>`,
+        from: `RUDY <${GMAIL_USER}>`,
         to: emp.email,
-        subject: subject,
-        html: html
+        subject: content.subject,
+        html: buildEmailHTML({ employee: emp, content })
       });
-      console.log(`  ✅ ${emp.email}`);
-      sent++;
+      console.log(`   ✅ Sent`);
+      sentOK++;
     } catch (err) {
-      console.log(`  ❌ ${emp.email}: ${err.message}`);
+      console.error(`   ❌ Send failed: ${err.message}`);
       failed++;
     }
   }
 
-  // 5) Summary
-  console.log('\n=== 📊 SUMMARY ===');
-  console.log(`Total employees:    ${empList.length}`);
-  console.log(`Checked-in today:   ${checkedInCount}`);
-  console.log(`Already checked-out:${checkedOutCount}`);
-  console.log(`Need reminder:      ${needReminder.length}`);
-  console.log(`Sent OK:            ${sent}`);
-  console.log(`Failed:             ${failed}`);
-  console.log('=== END ===');
+  console.log(`\n=== Summary ===`);
+  console.log(`Sent OK: ${sentOK}`);
+  console.log(`Failed: ${failed}`);
+  console.log(`AI used: ${aiUsed}`);
+  console.log(`Fallback used: ${fallbackUsed}`);
+
+  process.exit(failed > 0 ? 1 : 0);
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch(err => {
-    console.error('Fatal error:', err);
-    process.exit(1);
-  });
+main().catch(err => {
+  console.error('❌ Fatal error:', err);
+  process.exit(1);
+});
