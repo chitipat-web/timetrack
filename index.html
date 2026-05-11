@@ -8262,9 +8262,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn.classList.contains(cls)) btn.classList.remove(cls);
       });
     };
+    // FORTRESS PART 2: Strip any leaked child element that would push button text off-screen.
+    // Allow-list = elements that are originally part of the button (canvas, span, etc.) +
+    // known safe effect elements (.ripple-effect is position:absolute + flex:none, doesn't push layout).
+    // Anything else (like the old water-ripple/water-droplet divs from prior versions) gets removed.
+    const cleanupLeakedChildren = () => {
+      Array.from(btn.children).forEach(child => {
+        // Keep canvases and spans (the original button content)
+        if (child.tagName === 'CANVAS' || child.tagName === 'SPAN') return;
+        // Keep the known-safe ripple effect (position:absolute, auto-removed in 750ms)
+        if (child.classList && child.classList.contains('ripple-effect')) return;
+        // Anything else is unexpected and gets removed
+        child.remove();
+      });
+    };
     sanitize();
-    const guard = new MutationObserver(sanitize);
-    guard.observe(btn, {attributes: true, attributeFilter: ['style', 'class']});
+    cleanupLeakedChildren();
+    const guard = new MutationObserver((mutations) => {
+      sanitize();
+      // Only run child cleanup if children were actually added/removed
+      if (mutations.some(m => m.type === 'childList' && m.addedNodes.length > 0)) {
+        cleanupLeakedChildren();
+      }
+    });
+    guard.observe(btn, {
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+      childList: true // watch for any element appended into the button
+    });
     // Also block touchmove from bubbling up (prevents tilt and other touch effects)
     btn.addEventListener('touchmove', e => {
       e.stopImmediatePropagation();
