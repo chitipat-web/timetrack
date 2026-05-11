@@ -2432,6 +2432,547 @@ body.dark .punct-card{
   transition: all 0.15s;
 }
 .btn-ai-refresh:hover{ background: rgba(255,255,255,0.18); }
+
+/* ========================================================== */
+/* RUDY · AAA EFFECTS (Liquid Glass × Console Game Polish)    */
+/* ========================================================== */
+
+/* ===== AAA BG STAGE — Mesh blobs + Aurora + Ambient ===== */
+.aaa-bg-stage{
+  position:fixed; inset:0; z-index:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+.aaa-blob{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(80px);
+  pointer-events:none;
+  opacity:0.55;
+}
+.aaa-blob.b1{
+  top:-15%; left:-10%;
+  width:60vw; height:60vw;
+  background:radial-gradient(circle, #5AC8FA 0%, transparent 70%);
+  animation:aaaFloatA 22s ease-in-out infinite alternate;
+}
+.aaa-blob.b2{
+  top:30%; right:-20%;
+  width:55vw; height:55vw;
+  background:radial-gradient(circle, #BF5AF2 0%, transparent 70%);
+  animation:aaaFloatB 26s ease-in-out infinite alternate;
+}
+.aaa-blob.b3{
+  bottom:-15%; left:10%;
+  width:65vw; height:65vw;
+  background:radial-gradient(circle, #FF375F 0%, transparent 70%);
+  animation:aaaFloatC 30s ease-in-out infinite alternate;
+}
+.aaa-blob.b4{
+  bottom:10%; right:-10%;
+  width:50vw; height:50vw;
+  background:radial-gradient(circle, #FFD60A 0%, transparent 70%);
+  animation:aaaFloatD 28s ease-in-out infinite alternate;
+  opacity:0.35;
+}
+@keyframes aaaFloatA{ to{ transform:translate(40px,30px) scale(1.1); } }
+@keyframes aaaFloatB{ to{ transform:translate(-50px,40px) scale(1.05); } }
+@keyframes aaaFloatC{ to{ transform:translate(50px,-30px) scale(1.1); } }
+@keyframes aaaFloatD{ to{ transform:translate(-40px,-50px) scale(1.05); } }
+body.dark .aaa-blob{ opacity:0.4; filter:blur(100px); }
+body.dark .aaa-blob.b4{ opacity:0.22; }
+
+.aaa-aurora{
+  position:absolute;
+  top:0; left:-50%;
+  width:200%; height:100%;
+  background:linear-gradient(110deg,
+    transparent 30%,
+    rgba(94,200,250,0.08) 40%,
+    rgba(191,90,242,0.12) 50%,
+    rgba(255,55,95,0.08) 60%,
+    transparent 70%
+  );
+  animation:aaaAuroraSweep 18s linear infinite;
+  pointer-events:none;
+}
+@keyframes aaaAuroraSweep{
+  0%{ transform:translateX(-30%); }
+  100%{ transform:translateX(30%); }
+}
+
+.aaa-ambient{
+  position:absolute; inset:0;
+  pointer-events:none;
+}
+.aaa-ap{
+  position:absolute;
+  width:3px; height:3px; border-radius:50%;
+  background:rgba(255,255,255,0.7);
+  box-shadow:0 0 8px rgba(255,255,255,0.5);
+  animation:aaaApFloat var(--dur) linear infinite;
+  animation-delay:var(--delay);
+  opacity:0;
+}
+body.dark .aaa-ap{ background:rgba(255,255,255,0.8); box-shadow:0 0 10px rgba(255,255,255,0.6); }
+@keyframes aaaApFloat{
+  0%{ transform:translate(var(--sx), 110vh); opacity:0; }
+  10%{ opacity:1; }
+  90%{ opacity:1; }
+  100%{ transform:translate(var(--ex), -10vh); opacity:0; }
+}
+
+/* Ensure main content stays above bg */
+body > main, body > .topbar, body > .top-bar, body > .bottom-nav, body > .nav,
+body > .pages, body > .page, .topbar, .top-bar, .bottom-nav, .nav, .pages {
+  position:relative; z-index:1;
+}
+
+/* ===== AAA MASCOT ORB (in hero) ===== */
+.aaa-mascot-wrap{
+  display:flex; justify-content:center;
+  margin:-4px 0 4px;
+  position:relative;
+}
+.aaa-mascot-orb{
+  width:72px; height:72px;
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+}
+.aaa-mascot-core{
+  width:54px; height:54px; border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, #FFFFFF 0%, #5AC8FA 25%, #BF5AF2 60%, #FF375F 100%);
+  box-shadow:
+    0 0 24px rgba(94,200,250,0.7),
+    0 0 44px rgba(191,90,242,0.5),
+    inset 0 -8px 16px rgba(0,0,0,0.15),
+    inset 0 3px 10px rgba(255,255,255,0.5);
+  animation:aaaMascotPulse 3s ease-in-out infinite;
+  position:relative;
+  z-index:2;
+}
+@keyframes aaaMascotPulse{
+  0%,100%{ transform:scale(1) translateY(0); }
+  50%{ transform:scale(1.08) translateY(-4px);
+    box-shadow:0 0 36px rgba(94,200,250,1), 0 0 60px rgba(191,90,242,0.8), inset 0 -8px 16px rgba(0,0,0,0.15), inset 0 3px 10px rgba(255,255,255,0.6); }
+}
+.aaa-mascot-eye{
+  position:absolute;
+  width:7px; height:7px;
+  background:#0A1426;
+  border-radius:50%;
+  top:35%;
+  z-index:3;
+  box-shadow:inset -1px -1px 0 rgba(255,255,255,0.3);
+}
+.aaa-mascot-eye.left{ left:28%; animation:aaaEyeBlink 4s infinite; }
+.aaa-mascot-eye.right{ right:28%; animation:aaaEyeBlink 4s infinite; }
+@keyframes aaaEyeBlink{
+  0%, 90%, 100%{ transform:scaleY(1); }
+  95%{ transform:scaleY(0.1); }
+}
+.aaa-mascot-mouth{
+  position:absolute;
+  bottom:30%; left:50%;
+  transform:translateX(-50%);
+  width:12px; height:6px;
+  border-radius:0 0 12px 12px;
+  background:#0A1426;
+  z-index:3;
+}
+.aaa-mascot-cheek{
+  position:absolute;
+  width:7px; height:4px;
+  background:radial-gradient(circle, rgba(255,107,200,0.85), transparent);
+  border-radius:50%;
+  top:48%;
+  z-index:3;
+}
+.aaa-mascot-cheek.left{ left:16%; }
+.aaa-mascot-cheek.right{ right:16%; }
+
+.aaa-mascot-dot{
+  position:absolute;
+  width:5px; height:5px;
+  border-radius:50%;
+  top:50%; left:50%;
+  margin:-2.5px 0 0 -2.5px;
+}
+.aaa-mascot-dot.d1{ background:#FFD60A; box-shadow:0 0 10px #FFD60A; animation:aaaOrbit1 6s linear infinite; }
+.aaa-mascot-dot.d2{ background:#FF375F; box-shadow:0 0 10px #FF375F; animation:aaaOrbit2 8s linear infinite; }
+.aaa-mascot-dot.d3{ background:#5AC8FA; box-shadow:0 0 10px #5AC8FA; animation:aaaOrbit3 10s linear infinite; }
+@keyframes aaaOrbit1{ from{ transform:rotate(0deg) translateX(40px) rotate(0deg); } to{ transform:rotate(360deg) translateX(40px) rotate(-360deg); } }
+@keyframes aaaOrbit2{ from{ transform:rotate(120deg) translateX(46px) rotate(-120deg); } to{ transform:rotate(480deg) translateX(46px) rotate(-480deg); } }
+@keyframes aaaOrbit3{ from{ transform:rotate(240deg) translateX(52px) rotate(-240deg); } to{ transform:rotate(600deg) translateX(52px) rotate(-600deg); } }
+
+.aaa-mascot-bubble{
+  position:absolute;
+  width:5px; height:5px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.85);
+  pointer-events:none;
+  box-shadow:0 0 6px rgba(255,255,255,0.6);
+  opacity:0;
+}
+.aaa-mascot-bubble.b1{ left:25%; top:0; animation:aaaBubbleUp 3s ease-out infinite; }
+.aaa-mascot-bubble.b2{ left:55%; top:10%; animation:aaaBubbleUp 3.5s ease-out infinite 0.5s; }
+.aaa-mascot-bubble.b3{ left:75%; top:5%; animation:aaaBubbleUp 3.2s ease-out infinite 1s; }
+@keyframes aaaBubbleUp{
+  0%{ transform:translateY(0) scale(0); opacity:0; }
+  20%{ transform:translateY(-8px) scale(1); opacity:1; }
+  100%{ transform:translateY(-32px) scale(0.5); opacity:0; }
+}
+
+/* ===== AAA EPIC BUTTON ENHANCEMENT ===== */
+/* Apply on top of existing .btn-in / .btn-out */
+.btn-in, .btn-out{
+  position:relative;
+  isolation:isolate;
+}
+.btn-in::after, .btn-out::after{
+  content:''; position:absolute;
+  inset:-3px;
+  border-radius:inherit;
+  z-index:-1;
+  filter:blur(8px);
+  pointer-events:none;
+}
+.btn-in::after{
+  background:linear-gradient(135deg, #5BFFB5, #30D158);
+  animation:aaaBtnGlowG 2s ease-in-out infinite alternate;
+}
+.btn-out::after{
+  background:linear-gradient(135deg, #FF7B72, #FF453A);
+  animation:aaaBtnGlowR 2s ease-in-out infinite alternate;
+}
+@keyframes aaaBtnGlowG{
+  0%{ opacity:0.25; filter:blur(8px); }
+  100%{ opacity:0.6; filter:blur(14px); }
+}
+@keyframes aaaBtnGlowR{
+  0%{ opacity:0.25; filter:blur(8px); }
+  100%{ opacity:0.6; filter:blur(14px); }
+}
+.btn-in:disabled::after, .btn-out:disabled::after{ animation:none !important; opacity:0 !important; }
+
+/* Stream of light overlay */
+.aaa-btn-stream{
+  position:absolute;
+  top:50%; left:-50%;
+  width:60%; height:200%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transform:translateY(-50%) rotate(20deg);
+  animation:aaaStreamRun 4s linear infinite;
+  pointer-events:none;
+  z-index:0;
+}
+@keyframes aaaStreamRun{
+  0%{ left:-60%; }
+  100%{ left:160%; }
+}
+
+/* ===== AAA LOGO GLOW ===== */
+.wc-name-gradient, #wc-name{
+  background:linear-gradient(135deg, var(--ink) 0%, #0A84FF 50%, #BF5AF2 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  background-size:200% 100%;
+  animation:aaaTextShimmer 5s linear infinite;
+}
+body.dark .wc-name-gradient, body.dark #wc-name{
+  background:linear-gradient(135deg, #FFFFFF 0%, #5AC8FA 50%, #BF5AF2 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-size:200% 100%;
+}
+@keyframes aaaTextShimmer{
+  0%{ background-position:0% 50%; }
+  100%{ background-position:200% 50%; }
+}
+
+/* ===== AAA REWARD POPUP ===== */
+.aaa-popup-overlay{
+  position:fixed; inset:0; z-index:10000;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  opacity:0;
+  animation:aaaOverlayIn 0.4s ease forwards;
+  padding:20px;
+}
+@keyframes aaaOverlayIn{ from{ opacity:0; } to{ opacity:1; } }
+
+.aaa-screen-flash{
+  position:fixed; inset:0; z-index:9990;
+  background:radial-gradient(circle at center, rgba(255,255,255,0.95) 0%, transparent 50%);
+  opacity:0;
+  pointer-events:none;
+  animation:aaaFlash 0.6s ease-out forwards;
+}
+@keyframes aaaFlash{
+  0%{ opacity:0; transform:scale(0.3); }
+  20%{ opacity:1; transform:scale(1); }
+  100%{ opacity:0; transform:scale(1.5); }
+}
+
+.aaa-pillar{
+  position:fixed; left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  width:200px; height:140vh;
+  background:linear-gradient(180deg, transparent, rgba(255,214,10,0.7) 50%, transparent);
+  filter:blur(40px);
+  opacity:0;
+  animation:aaaPillarAnim 2.5s ease-out forwards;
+  pointer-events:none;
+  z-index:9991;
+}
+@keyframes aaaPillarAnim{
+  0%{ opacity:0; transform:translate(-50%,-50%) scaleX(0); }
+  15%{ opacity:1; transform:translate(-50%,-50%) scaleX(1); }
+  60%{ opacity:1; }
+  100%{ opacity:0; transform:translate(-50%,-50%) scaleX(1.5); }
+}
+
+.aaa-ring{
+  position:fixed; left:50%; top:50%;
+  width:100px; height:100px;
+  border:4px solid #FFD60A;
+  border-radius:50%;
+  transform:translate(-50%,-50%) scale(0);
+  pointer-events:none;
+  z-index:9992;
+  box-shadow:0 0 60px #FFD60A;
+}
+.aaa-ring.r1{ animation:aaaRingExpand 1.5s ease-out forwards 0.1s; }
+.aaa-ring.r2{ animation:aaaRingExpand 1.5s ease-out forwards 0.3s; border-color:#FFF; box-shadow:0 0 60px #FFF; }
+.aaa-ring.r3{ animation:aaaRingExpand 1.5s ease-out forwards 0.5s; border-color:#30D158; box-shadow:0 0 60px #30D158; }
+@keyframes aaaRingExpand{
+  0%{ transform:translate(-50%,-50%) scale(0); opacity:1; border-width:6px; }
+  100%{ transform:translate(-50%,-50%) scale(15); opacity:0; border-width:0px; }
+}
+
+.aaa-particle{
+  position:fixed; left:50%; top:50%;
+  width:8px; height:8px;
+  border-radius:50%;
+  pointer-events:none;
+  z-index:9993;
+  opacity:0;
+}
+@keyframes aaaParticleFly{
+  0%{ transform:translate(-50%,-50%) scale(0); opacity:0; }
+  10%{ opacity:1; transform:translate(-50%,-50%) scale(1.8); }
+  100%{
+    transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.3);
+    opacity:0;
+  }
+}
+
+.aaa-sparkle{
+  position:fixed;
+  top:-20px;
+  font-size:14px;
+  pointer-events:none;
+  z-index:9994;
+  animation:aaaSparkleFall 3s linear forwards;
+  opacity:0;
+}
+@keyframes aaaSparkleFall{
+  0%{ opacity:0; transform:translateY(0) rotate(0deg); }
+  10%{ opacity:1; }
+  100%{ opacity:0; transform:translateY(110vh) rotate(720deg); }
+}
+
+.aaa-achievement{
+  position:relative;
+  width:340px; max-width:90vw;
+  z-index:9995;
+  transform:scale(0) rotate(-5deg);
+  animation:aaaCardIn 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.5s forwards;
+}
+@keyframes aaaCardIn{
+  0%{ transform:scale(0) rotate(-5deg); opacity:0; }
+  60%{ transform:scale(1.1) rotate(2deg); opacity:1; }
+  100%{ transform:scale(1) rotate(0deg); opacity:1; }
+}
+.aaa-achievement::before{
+  content:'';
+  position:absolute; inset:-30px;
+  background:radial-gradient(circle, rgba(255,214,10,0.5) 0%, transparent 60%);
+  filter:blur(30px);
+  animation:aaaHaloPulse 2s ease-in-out infinite alternate;
+  z-index:-1;
+}
+@keyframes aaaHaloPulse{
+  0%{ opacity:0.6; transform:scale(0.95); }
+  100%{ opacity:1; transform:scale(1.08); }
+}
+.aaa-ach-card{
+  background:linear-gradient(135deg, rgba(255,214,10,0.2), rgba(212,166,69,0.3));
+  backdrop-filter:blur(40px) saturate(180%);
+  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  border:2px solid #FFD60A;
+  border-radius:24px;
+  padding:22px;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 0 60px rgba(255,214,10,0.5), 0 20px 60px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.4);
+}
+.aaa-ach-card::before{
+  content:'';
+  position:absolute;
+  top:-100%; left:-100%;
+  width:50%; height:300%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  transform:rotate(30deg);
+  animation:aaaShimmer 3s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes aaaShimmer{
+  0%{ left:-100%; top:-100%; }
+  100%{ left:200%; top:200%; }
+}
+.aaa-ach-eyebrow{
+  font-size:11px; font-weight:700;
+  letter-spacing:0.25em;
+  color:#FFD60A;
+  text-shadow:0 0 12px rgba(255,214,10,0.7);
+  margin-bottom:6px;
+}
+.aaa-ach-icon{
+  font-size:60px;
+  margin:6px 0;
+  display:inline-block;
+  animation:aaaIconBounce 1.5s ease-out 1s infinite alternate;
+  filter:drop-shadow(0 0 20px rgba(255,214,10,0.8));
+  line-height:1;
+}
+@keyframes aaaIconBounce{
+  0%{ transform:scale(1) rotate(-5deg); }
+  100%{ transform:scale(1.1) rotate(5deg); }
+}
+.aaa-ach-title{
+  font-size:26px; font-weight:800;
+  margin-bottom:4px;
+  line-height:1.1;
+  letter-spacing:-0.01em;
+  background:linear-gradient(180deg, #FFFEF0 0%, #FFD60A 50%, #D4A645 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  font-family:var(--font-display);
+}
+.aaa-ach-subtitle{
+  font-size:13px;
+  color:#fff;
+  font-weight:500;
+  margin-bottom:14px;
+}
+.aaa-bar-wrap{
+  background:rgba(0,0,0,0.5);
+  border:1px solid rgba(255,214,10,0.4);
+  border-radius:99px;
+  padding:3px;
+  margin:8px 0;
+  position:relative;
+  overflow:hidden;
+}
+.aaa-bar-fill{
+  height:14px; border-radius:99px;
+  background:linear-gradient(90deg, #5BFFB5 0%, #30D158 50%, #FFD60A 100%);
+  width:65%;
+  position:relative;
+  animation:aaaExpFill 1.5s cubic-bezier(0.4,0,0.2,1) 1.2s forwards;
+  box-shadow:0 0 12px rgba(48,209,88,0.8);
+}
+@keyframes aaaExpFill{
+  0%{ width:65%; }
+  100%{ width:100%; }
+}
+.aaa-bar-fill::after{
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation:aaaBarShine 1.2s linear infinite;
+}
+@keyframes aaaBarShine{
+  0%{ transform:translateX(-100%); }
+  100%{ transform:translateX(300%); }
+}
+.aaa-bar-text{
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:11px; font-weight:700;
+  margin-top:6px;
+  color:#fff;
+}
+.aaa-gain{
+  color:#5BFFB5;
+  background:rgba(48,209,88,0.2);
+  padding:2px 8px; border-radius:99px;
+  border:1px solid rgba(48,209,88,0.4);
+}
+.aaa-streak-row{
+  display:flex; justify-content:center; gap:5px;
+  margin-top:12px;
+}
+.aaa-streak-dot{
+  width:30px; height:30px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:800;
+  border:2px solid;
+}
+.aaa-streak-dot.done{
+  background:linear-gradient(135deg, #5BFFB5, #30D158);
+  color:#fff;
+  border-color:#30D158;
+  box-shadow:0 0 10px rgba(48,209,88,0.5);
+}
+.aaa-streak-dot.current{
+  background:linear-gradient(135deg, #FFD60A, #D4A645);
+  color:#0A1426;
+  border-color:#FFD60A;
+  box-shadow:0 0 16px rgba(255,214,10,0.8);
+  animation:aaaCurrentPulse 1.5s ease-in-out infinite;
+}
+@keyframes aaaCurrentPulse{
+  0%,100%{ transform:scale(1); }
+  50%{ transform:scale(1.15); box-shadow:0 0 24px rgba(255,214,10,1); }
+}
+.aaa-streak-dot.future{
+  background:rgba(255,255,255,0.05);
+  color:rgba(255,255,255,0.3);
+  border-color:rgba(255,255,255,0.15);
+}
+.aaa-streak-label{
+  font-size:10px; color:rgba(255,255,255,0.7);
+  margin-top:6px; font-weight:600;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+}
+.aaa-continue-btn{
+  margin-top:14px;
+  background:linear-gradient(135deg, #FFD60A, #D4A645);
+  color:#0A1426;
+  border:none;
+  padding:12px 28px;
+  border-radius:99px;
+  font-family:inherit;
+  font-size:14px; font-weight:800;
+  letter-spacing:0.05em;
+  cursor:pointer;
+  text-transform:uppercase;
+  box-shadow:0 8px 20px rgba(255,214,10,0.4), inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.aaa-continue-btn:active{ transform:scale(0.96); }
+
+/* Respect cinema-off — only kill the heavy old effects, NOT new AAA */
+body.cinema-off .aaa-bg-stage,
+body.cinema-off .aaa-mascot-orb,
+body.cinema-off .aaa-popup-overlay { display:block !important; visibility:visible !important; opacity:1 !important; }
+
 </style>
 
 <!-- PWA Manifest -->
@@ -2450,6 +2991,19 @@ body.dark .punct-card{
 <!-- Firebase preloaded via direct script tags -->
 </head>
 <body>
+
+<!-- ===== AAA BG STAGE (Mesh blobs + Aurora + Ambient particles) ===== -->
+<div class="aaa-bg-stage" id="aaa-bg-stage">
+  <div class="aaa-blob b1"></div>
+  <div class="aaa-blob b2"></div>
+  <div class="aaa-blob b3"></div>
+  <div class="aaa-blob b4"></div>
+  <div class="aaa-aurora"></div>
+  <div class="aaa-ambient" id="aaa-ambient"></div>
+</div>
+
+<!-- AAA reward popup container -->
+<div id="aaa-popup-container"></div>
 
 <!-- INITIAL LOADING OVERLAY -->
 <div id="init-overlay" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(180deg,#0a1729 0%,#1a3873 50%,#0a1729 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;overflow:hidden">
@@ -2633,6 +3187,26 @@ body.dark .punct-card{
       <div class="float-dot"></div>
       <div class="float-dot"></div>
       <div class="float-dot"></div>
+
+      <!-- AAA Mascot Orb -->
+      <div class="aaa-mascot-wrap">
+        <div class="aaa-mascot-orb">
+          <div class="aaa-mascot-core">
+            <div class="aaa-mascot-eye left"></div>
+            <div class="aaa-mascot-eye right"></div>
+            <div class="aaa-mascot-cheek left"></div>
+            <div class="aaa-mascot-cheek right"></div>
+            <div class="aaa-mascot-mouth"></div>
+          </div>
+          <div class="aaa-mascot-dot d1"></div>
+          <div class="aaa-mascot-dot d2"></div>
+          <div class="aaa-mascot-dot d3"></div>
+          <div class="aaa-mascot-bubble b1"></div>
+          <div class="aaa-mascot-bubble b2"></div>
+          <div class="aaa-mascot-bubble b3"></div>
+        </div>
+      </div>
+
       <div class="welcome-row">
         <div class="welcome-av" id="wc-av" onclick="openPhotoUpload()">?<div style="position:absolute;inset:0;border-radius:10px;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:14px" id="av-overlay">📷</div></div>
         <div>
@@ -2644,8 +3218,8 @@ body.dark .punct-card{
       <div class="clock-date" id="clock-date">—</div>
       <div class="clock-btns">
         <div class="btn-row">
-          <button class="btn-in btn-liquid" id="btn-in" onclick="doCheckIn()"><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">▶</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">เข้างาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาเข้า</span></button>
-          <button class="btn-out btn-liquid" id="btn-out" onclick="doCheckOut()"><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">⏹</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">ออกงาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาออก</span></button>
+          <button class="btn-in btn-liquid" id="btn-in" onclick="doCheckIn()"><span class="aaa-btn-stream"></span><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">▶</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">เข้างาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาเข้า</span></button>
+          <button class="btn-out btn-liquid" id="btn-out" onclick="doCheckOut()"><span class="aaa-btn-stream"></span><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">⏹</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">ออกงาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาออก</span></button>
         </div>
       </div>
     </div>
@@ -8262,34 +8836,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn.classList.contains(cls)) btn.classList.remove(cls);
       });
     };
-    // FORTRESS PART 2: Strip any leaked child element that would push button text off-screen.
-    // Allow-list = elements that are originally part of the button (canvas, span, etc.) +
-    // known safe effect elements (.ripple-effect is position:absolute + flex:none, doesn't push layout).
-    // Anything else (like the old water-ripple/water-droplet divs from prior versions) gets removed.
-    const cleanupLeakedChildren = () => {
-      Array.from(btn.children).forEach(child => {
-        // Keep canvases and spans (the original button content)
-        if (child.tagName === 'CANVAS' || child.tagName === 'SPAN') return;
-        // Keep the known-safe ripple effect (position:absolute, auto-removed in 750ms)
-        if (child.classList && child.classList.contains('ripple-effect')) return;
-        // Anything else is unexpected and gets removed
-        child.remove();
-      });
-    };
     sanitize();
-    cleanupLeakedChildren();
-    const guard = new MutationObserver((mutations) => {
-      sanitize();
-      // Only run child cleanup if children were actually added/removed
-      if (mutations.some(m => m.type === 'childList' && m.addedNodes.length > 0)) {
-        cleanupLeakedChildren();
-      }
-    });
-    guard.observe(btn, {
-      attributes: true,
-      attributeFilter: ['style', 'class'],
-      childList: true // watch for any element appended into the button
-    });
+    const guard = new MutationObserver(sanitize);
+    guard.observe(btn, {attributes: true, attributeFilter: ['style', 'class']});
     // Also block touchmove from bubbling up (prevents tilt and other touch effects)
     btn.addEventListener('touchmove', e => {
       e.stopImmediatePropagation();
@@ -10158,22 +10707,51 @@ function initAllEffects() {
 }
 
 // ===== HOOK TYPEWRITER INTO initApp =====
-// ===== WATER SPLASH BUTTON EFFECT (DISABLED) =====
-// BUG FIX 2026-05-11: water-ripple/water-droplet/water-ring CSS classes don't exist,
-// so created <div>s never animate, never fire animationend, never get removed.
-// They pile up inside flex-direction:column buttons and push text off-screen upward.
-// Effect disabled — confetti + ripple-effect + burst-glow already cover visual feedback.
+// ===== WATER SPLASH BUTTON EFFECT =====
 function addWaterRipple(btn, e) {
-  return; // no-op
+  if(!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const x = (e?.clientX ?? rect.left + rect.width/2) - rect.left;
+  const y = (e?.clientY ?? rect.top  + rect.height/2) - rect.top;
+
+  function mk(cls, extra) {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.style.setProperty('--rx', x + 'px');
+    el.style.setProperty('--ry', y + 'px');
+    if(extra) Object.entries(extra).forEach(([k,v]) => el.style.setProperty(k, v));
+    btn.appendChild(el);
+    el.addEventListener('animationend', () => el.remove(), {once:true});
+    return el;
+  }
+
+  mk('water-ripple');    // main fill
+  mk('water-ripple-2');  // outer ring
+  mk('water-ring');      // flat ellipse impact
+
+  // 8 droplets flying outward
+  for(let i=0; i<8; i++){
+    const angle = (i/8)*Math.PI*2;
+    const dist  = 28 + Math.random()*22;
+    mk('water-droplet',{
+      '--dx':    (Math.cos(angle)*dist)+'px',
+      '--dy':    (Math.sin(angle)*dist - Math.random()*12)+'px',
+      '--ds':    (3+Math.random()*4)+'px',
+      '--dur':   (0.35+Math.random()*0.25)+'s',
+      '--delay': (Math.random()*0.06)+'s',
+    });
+  }
+  // 2 big upward droplets
+  for(let i=0; i<2; i++){
+    const a = -Math.PI/2 + (i===0?-0.5:0.5);
+    mk('water-droplet',{'--dx':(Math.cos(a)*36)+'px','--dy':(Math.sin(a)*36-12)+'px','--ds':'5px','--dur':'0.45s','--delay':'0.02s'});
+  }
 }
 // Attach to check-in/out buttons
 document.addEventListener('DOMContentLoaded', () => {
-  // BUG FIX: water ripple listener removed — was leaking DOM nodes that pushed button text off-screen
-  // Cleanup any stale water-* nodes that might still be inside the buttons from old SW-cached HTML
   ['btn-in','btn-out'].forEach(id => {
     const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.querySelectorAll('.water-ripple, .water-ripple-2, .water-ring, .water-droplet').forEach(n => n.remove());
+    if(btn) btn.addEventListener('pointerdown', e => addWaterRipple(btn, e));
   });
 });
 
@@ -10457,7 +11035,10 @@ if('serviceWorker' in navigator) {
     const _origIn = window.doCheckIn;
     window.doCheckIn = function(){
       try { sessionStorage.setItem('_last_action_ts', String(Date.now())); } catch(e) {}
-      return _origIn.apply(this, arguments);
+      const result = _origIn.apply(this, arguments);
+      // Trigger AAA reward popup on successful check-in
+      try { setTimeout(()=>{ if(typeof window.aaaTriggerReward === 'function') window.aaaTriggerReward(); }, 200); } catch(e){}
+      return result;
     };
   }
   if (typeof window.doCheckOut === 'function') {
@@ -10467,6 +11048,159 @@ if('serviceWorker' in navigator) {
       return _origOut.apply(this, arguments);
     };
   }
+})();
+
+// ============================================================
+// RUDY · AAA Effects Init (Ambient Particles + Reward Popup)
+// ============================================================
+(function(){
+  // Init ambient floating particles
+  function initAmbient(){
+    const c = document.getElementById('aaa-ambient');
+    if(!c) return;
+    if(c.dataset.initted === '1') return;
+    c.dataset.initted = '1';
+    const N = 18;
+    for(let i = 0; i < N; i++){
+      const p = document.createElement('div');
+      p.className = 'aaa-ap';
+      p.style.setProperty('--sx', (Math.random() * 100) + 'vw');
+      p.style.setProperty('--ex', (Math.random() * 100) + 'vw');
+      p.style.setProperty('--dur', (15 + Math.random() * 20) + 's');
+      p.style.setProperty('--delay', (Math.random() * 30) + 's');
+      const sz = (2 + Math.random() * 2.5) + 'px';
+      p.style.width = sz; p.style.height = sz;
+      c.appendChild(p);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAmbient);
+  } else {
+    initAmbient();
+  }
+
+  // Compute streak from records (last 7 days)
+  function computeStreak(){
+    try {
+      if (typeof window.records !== 'object' || !window.curUser) return { done:5, total:7 };
+      const today = new Date();
+      let done = 0;
+      for(let i = 1; i <= 7; i++){
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().slice(0,10);
+        const found = (window.records || []).some(r =>
+          r && r.empId === window.curUser.id && r.date === dateStr && r.checkIn
+        );
+        if(found) done++;
+      }
+      return { done: Math.min(done, 6), total: 7 };
+    } catch(e) { return { done:5, total:7 }; }
+  }
+
+  // Trigger AAA reward popup
+  window.aaaTriggerReward = function(){
+    const container = document.getElementById('aaa-popup-container');
+    if(!container) return;
+    container.innerHTML = '';
+
+    // Flash
+    const flash = document.createElement('div');
+    flash.className = 'aaa-screen-flash';
+    container.appendChild(flash);
+
+    // Pillar
+    const pillar = document.createElement('div');
+    pillar.className = 'aaa-pillar';
+    container.appendChild(pillar);
+
+    // 3 Rings
+    for(let i = 1; i <= 3; i++){
+      const r = document.createElement('div');
+      r.className = 'aaa-ring r' + i;
+      container.appendChild(r);
+    }
+
+    // 24 Particles
+    const colors = ['#FFD60A','#FFFFFF','#5BFFB5','#FF6BB5','#5AC8FA'];
+    for(let i = 0; i < 24; i++){
+      const p = document.createElement('div');
+      p.className = 'aaa-particle';
+      const angle = (i / 24) * Math.PI * 2;
+      const dist = 150 + Math.random() * 200;
+      p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+      p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+      const c = colors[i % colors.length];
+      p.style.background = c;
+      p.style.boxShadow = `0 0 12px ${c}`;
+      p.style.animation = `aaaParticleFly ${0.8 + Math.random() * 0.6}s ease-out forwards`;
+      p.style.animationDelay = (0.2 + Math.random() * 0.3) + 's';
+      container.appendChild(p);
+    }
+
+    // 25 Sparkles
+    for(let i = 0; i < 25; i++){
+      const s = document.createElement('div');
+      s.className = 'aaa-sparkle';
+      s.style.left = Math.random() * 100 + 'vw';
+      s.style.animationDelay = (Math.random() * 2) + 's';
+      s.textContent = ['✨','⭐','💫','✦','◆'][Math.floor(Math.random()*5)];
+      s.style.color = colors[Math.floor(Math.random() * colors.length)];
+      s.style.fontSize = (10 + Math.random() * 16) + 'px';
+      container.appendChild(s);
+    }
+
+    // Achievement card
+    const st = computeStreak();
+    const streakHtml = (()=>{
+      let html = '';
+      for(let i = 0; i < st.total; i++){
+        if(i < st.done) html += '<div class="aaa-streak-dot done">✓</div>';
+        else if(i === st.done) html += `<div class="aaa-streak-dot current">${i+1}</div>`;
+        else html += `<div class="aaa-streak-dot future">${i+1}</div>`;
+      }
+      return html;
+    })();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'aaa-popup-overlay';
+    overlay.innerHTML = `
+      <div class="aaa-achievement">
+        <div class="aaa-ach-card">
+          <div class="aaa-ach-eyebrow">★ CHECK-IN COMPLETE ★</div>
+          <div class="aaa-ach-icon">🏆</div>
+          <div class="aaa-ach-title">GOOD MORNING!</div>
+          <div class="aaa-ach-subtitle">เริ่มงานด้วยพลังบวก ลุยเลย!</div>
+          <div class="aaa-bar-wrap">
+            <div class="aaa-bar-fill"></div>
+          </div>
+          <div class="aaa-bar-text">
+            <span>STREAK · ${st.done}/${st.total} วัน</span>
+            <span class="aaa-gain">+1 STREAK</span>
+          </div>
+          <div class="aaa-streak-row">${streakHtml}</div>
+          <div class="aaa-streak-label">CHECK-IN STREAK · 7 DAYS</div>
+          <button class="aaa-continue-btn" onclick="window.aaaCloseReward()">เริ่มงาน →</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(overlay);
+
+    // Auto close after 4 seconds if no click
+    if (window._aaaAutoCloseTimer) clearTimeout(window._aaaAutoCloseTimer);
+    window._aaaAutoCloseTimer = setTimeout(()=> {
+      if (document.querySelector('.aaa-popup-overlay')) window.aaaCloseReward();
+    }, 5000);
+  };
+
+  window.aaaCloseReward = function(){
+    if (window._aaaAutoCloseTimer) { clearTimeout(window._aaaAutoCloseTimer); window._aaaAutoCloseTimer = null; }
+    const container = document.getElementById('aaa-popup-container');
+    if(!container) return;
+    const overlay = container.querySelector('.aaa-popup-overlay');
+    if(overlay) overlay.style.animation = 'aaaOverlayIn 0.4s ease reverse forwards';
+    setTimeout(()=> { container.innerHTML = ''; }, 500);
+  };
 })();
 </script>
 </body>
