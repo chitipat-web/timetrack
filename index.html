@@ -2975,6 +2975,135 @@ body.cinema-off .aaa-bg-stage,
 body.cinema-off .aaa-mascot-orb,
 body.cinema-off .aaa-popup-overlay { display:block !important; visibility:visible !important; opacity:1 !important; }
 
+/* ========================================================== */
+/* RUDY · HOME A (Compact Stack) — applied 2026-05-11          */
+/* ========================================================== */
+
+/* Hide old home elements we replace */
+.home-a .stats-grid,
+.home-a #weekly-card,
+.home-a > .card:not(.home-a-card),
+.home-a > .section-label,
+.home-a > div[style*="background:var(--surface2)"] {
+  display:none !important;
+}
+
+/* Greeting row */
+.ha-greeting{ padding:18px 4px 14px; }
+.ha-greet-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.ha-greet-text{ flex:1; min-width:0; }
+.ha-greet-hi{ font-size:12px; color:var(--ink-3); font-weight:500; margin-bottom:3px; letter-spacing:0.02em; }
+.ha-greet-name{ font-family:var(--font-display); font-size:22px; font-weight:800; letter-spacing:-0.03em; line-height:1.15; }
+.ha-greet-name .accent{ background:linear-gradient(135deg,#5AC8FA,#BF5AF2,#FF375F); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; background-size:200% 100%; animation:aaaTextShimmer 5s linear infinite; }
+.ha-greet-avatar{ width:42px; height:42px; border-radius:13px; background:linear-gradient(135deg,#0A84FF,#BF5AF2); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:16px;
+  box-shadow:0 6px 16px rgba(10,132,255,0.4), inset 0 1px 0 rgba(255,255,255,0.4); flex-shrink:0; font-family:var(--font-display); position:relative; overflow:hidden; }
+.ha-greet-avatar img{ width:100%; height:100%; object-fit:cover; border-radius:13px; }
+
+/* Compact clock hero override */
+.home-a .clock-hero{ padding:18px 18px 20px !important; margin-bottom:12px !important; }
+.home-a .clock-time{ font-size:60px !important; margin:6px 0 0 !important; }
+.home-a .clock-date{ font-size:11px !important; letter-spacing:0.06em !important; text-transform:uppercase !important; margin-bottom:14px !important; }
+.home-a .welcome-row{ display:none !important; }
+.home-a .float-dot{ display:none !important; }
+.home-a .btn-row{ gap:8px !important; }
+.home-a .btn-in, .home-a .btn-out{ padding:14px !important; min-height:auto !important; border-radius:99px !important; font-size:15px !important; flex-direction:row !important; gap:8px !important; align-items:center !important; }
+.home-a .btn-in span:nth-child(3){ font-size:13px !important; width:auto !important; height:auto !important; }
+.home-a .btn-out span:nth-child(3){ font-size:13px !important; width:auto !important; height:auto !important; }
+.home-a .btn-in span:nth-child(4), .home-a .btn-out span:nth-child(4){ font-weight:800 !important; }
+.home-a .btn-sub{ display:none !important; }
+
+/* Section headers */
+.ha-section-h{ display:flex; align-items:center; justify-content:space-between; padding:6px 4px 8px; }
+.ha-section-title{ font-family:var(--font-display); font-size:13px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--ink-3); }
+
+/* Horizontal chips */
+.ha-chips-row{ display:flex; gap:8px; overflow-x:auto; padding:2px 4px 8px; scrollbar-width:none; margin:0 -4px 12px; }
+.ha-chips-row::-webkit-scrollbar{ display:none; }
+.ha-chip{ flex:0 0 auto; background:rgba(255,255,255,0.06); backdrop-filter:saturate(180%) blur(30px); -webkit-backdrop-filter:saturate(180%) blur(30px);
+  border:0.5px solid rgba(255,255,255,0.12); border-radius:14px; padding:11px 14px; min-width:120px; display:flex; flex-direction:column; gap:2px; position:relative; overflow:hidden; }
+body:not(.dark) .ha-chip{ background:rgba(255,255,255,0.55); border-color:rgba(255,255,255,0.35); }
+.ha-chip::before{ content:''; position:absolute; top:0; left:0; right:0; height:40%; background:linear-gradient(180deg,rgba(255,255,255,0.18),transparent); pointer-events:none; }
+body:not(.dark) .ha-chip::before{ background:linear-gradient(180deg,rgba(255,255,255,0.35),transparent); }
+.ha-chip-icon{ position:absolute; right:8px; top:8px; font-size:14px; opacity:0.5; }
+.ha-chip-label{ font-size:10px; color:var(--ink-3); font-weight:600; letter-spacing:0.04em; text-transform:uppercase; }
+.ha-chip-value{ font-family:var(--font-display); font-size:22px; font-weight:700; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; line-height:1; margin-top:2px; color:var(--ink); }
+.ha-chip-value.muted{ color:var(--ink-4); }
+.ha-chip-value .u{ font-size:11px; color:var(--ink-3); font-weight:500; }
+.ha-chip.green .ha-chip-value{ color:#5BFFB5; }
+.ha-chip.orange .ha-chip-value{ color:#FFB84A; }
+.ha-chip.purple .ha-chip-value{ color:#DA8FFF; }
+body:not(.dark) .ha-chip.green .ha-chip-value{ color:#1F9D40; }
+body:not(.dark) .ha-chip.orange .ha-chip-value{ color:#D67400; }
+body:not(.dark) .ha-chip.purple .ha-chip-value{ color:#8E37BD; }
+
+/* Timeline */
+.ha-timeline{ background:rgba(255,255,255,0.06); backdrop-filter:saturate(180%) blur(30px); -webkit-backdrop-filter:saturate(180%) blur(30px);
+  border:0.5px solid rgba(255,255,255,0.12); border-radius:18px; padding:8px 16px; margin-bottom:12px; position:relative; }
+body:not(.dark) .ha-timeline{ background:rgba(255,255,255,0.55); border-color:rgba(255,255,255,0.35); }
+.ha-timeline::before{ content:''; position:absolute; top:0; left:5%; right:5%; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent); pointer-events:none; }
+.ha-tl-row{ display:flex; align-items:center; gap:12px; padding:10px 0; position:relative; }
+.ha-tl-row:not(:last-child)::after{ content:''; position:absolute; left:13px; top:36px; bottom:-4px; width:1.5px; background:linear-gradient(180deg,rgba(255,255,255,0.2),transparent); }
+.ha-tl-dot{ width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; color:#fff; font-weight:700; }
+.ha-tl-dot.done{ background:linear-gradient(135deg,#5BFFB5,#30D158); box-shadow:0 0 14px rgba(48,209,88,0.4); }
+.ha-tl-dot.live{ background:linear-gradient(135deg,#5AC8FA,#0A84FF); box-shadow:0 0 16px rgba(10,132,255,0.5); animation:livePulse 1.5s ease-in-out infinite; }
+.ha-tl-dot.idle{ background:rgba(255,255,255,0.08); color:var(--ink-4); border:1.5px solid rgba(255,255,255,0.15); }
+body:not(.dark) .ha-tl-dot.idle{ background:rgba(0,0,0,0.06); border-color:rgba(0,0,0,0.12); color:var(--ink-4); }
+@keyframes livePulse{ 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.4;transform:scale(0.6);} }
+.ha-tl-text{ flex:1; min-width:0; }
+.ha-tl-title{ font-size:14px; font-weight:700; color:var(--ink); }
+.ha-tl-sub{ font-size:11px; color:var(--ink-3); margin-top:1px; }
+.ha-tl-time{ font-family:var(--font-display); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink-2); }
+.ha-tl-time.live{ color:#5AC8FA; }
+.ha-tl-time.idle{ color:var(--ink-4); }
+
+/* Streak card */
+.ha-streak{ background:linear-gradient(135deg, rgba(255,214,10,0.12), rgba(212,166,69,0.18)); border:1px solid rgba(255,214,10,0.3);
+  border-radius:18px; padding:14px 16px; margin-bottom:12px; display:flex; align-items:center; gap:14px; backdrop-filter:blur(20px); }
+.ha-streak-flame{ font-size:32px; filter:drop-shadow(0 0 16px rgba(255,214,10,0.6)); animation:haStreakFlame 1.5s ease-in-out infinite alternate; }
+@keyframes haStreakFlame{ 0%{transform:scale(1) rotate(-3deg);} 100%{transform:scale(1.1) rotate(3deg);} }
+.ha-streak-info{ flex:1; min-width:0; }
+.ha-streak-num{ font-family:var(--font-display); font-size:24px; font-weight:800; letter-spacing:-0.02em; color:#FFD60A; line-height:1; text-shadow:0 0 16px rgba(255,214,10,0.4); }
+.ha-streak-num .total{ color:var(--ink-3); font-size:14px; font-weight:600; }
+.ha-streak-label{ font-size:11px; color:var(--ink-2); margin-top:2px; font-weight:500; }
+.ha-streak-dots{ display:flex; gap:3px; flex-shrink:0; }
+.ha-sd{ width:8px; height:8px; border-radius:50%; }
+.ha-sd.done{ background:#30D158; box-shadow:0 0 6px #30D158; }
+.ha-sd.current{ background:#FFD60A; box-shadow:0 0 10px #FFD60A; animation:livePulse 1.5s infinite; }
+.ha-sd.future{ background:rgba(255,255,255,0.1); }
+body:not(.dark) .ha-sd.future{ background:rgba(0,0,0,0.1); }
+
+/* Week chart card */
+.ha-week{ background:rgba(255,255,255,0.06); backdrop-filter:saturate(180%) blur(30px); -webkit-backdrop-filter:saturate(180%) blur(30px);
+  border:0.5px solid rgba(255,255,255,0.12); border-radius:18px; padding:16px; margin-bottom:12px; position:relative; }
+body:not(.dark) .ha-week{ background:rgba(255,255,255,0.55); border-color:rgba(255,255,255,0.35); }
+.ha-week::before{ content:''; position:absolute; top:0; left:5%; right:5%; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent); pointer-events:none; }
+.ha-week-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:14px; }
+.ha-week-lbl{ font-size:11px; color:var(--ink-3); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px; }
+.ha-week-val{ font-family:var(--font-display); font-size:24px; font-weight:700; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; line-height:1; color:var(--ink); }
+.ha-week-val .u{ font-size:13px; color:var(--ink-3); font-weight:500; }
+.ha-week-delta{ display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:700; color:#5BFFB5;
+  background:rgba(48,209,88,0.15); padding:2px 8px; border-radius:99px; margin-top:5px; border:0.5px solid rgba(48,209,88,0.3); }
+body:not(.dark) .ha-week-delta{ color:#1F9D40; }
+.ha-week-period{ text-align:right; font-size:10px; color:var(--ink-3); font-weight:600; letter-spacing:0.04em; text-transform:uppercase; }
+.ha-week-period strong{ display:block; font-family:var(--font-display); font-size:14px; color:var(--ink); font-weight:700; margin-top:1px; letter-spacing:0; text-transform:none; }
+.ha-bars{ display:flex; gap:6px; align-items:flex-end; height:72px; }
+.ha-bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; }
+.ha-bar-track{ width:100%; height:54px; display:flex; align-items:flex-end; }
+.ha-bar-fill{ width:100%; border-radius:4px; background:linear-gradient(180deg,#5AC8FA,#0A84FF); box-shadow:0 -1px 2px rgba(10,132,255,0.3);
+  animation:haBarGrow 0.7s ease-out backwards; }
+@keyframes haBarGrow{ from{ height:0; } }
+.ha-bar-col:nth-child(1) .ha-bar-fill{ animation-delay:0.1s; }
+.ha-bar-col:nth-child(2) .ha-bar-fill{ animation-delay:0.18s; }
+.ha-bar-col:nth-child(3) .ha-bar-fill{ animation-delay:0.26s; }
+.ha-bar-col:nth-child(4) .ha-bar-fill{ animation-delay:0.34s; }
+.ha-bar-col:nth-child(5) .ha-bar-fill{ animation-delay:0.42s; }
+.ha-bar-col:nth-child(6) .ha-bar-fill{ animation-delay:0.5s; }
+.ha-bar-col:nth-child(7) .ha-bar-fill{ animation-delay:0.58s; }
+.ha-bar-fill.today{ background:linear-gradient(180deg,#FF375F,#BF5AF2); box-shadow:0 -2px 10px rgba(191,90,242,0.6); animation:haBarGrow 0.7s ease-out backwards, haTodayPulse 2s ease-in-out infinite; }
+@keyframes haTodayPulse{ 0%,100%{box-shadow:0 -2px 10px rgba(191,90,242,0.6);} 50%{box-shadow:0 -2px 18px rgba(191,90,242,1);} }
+.ha-bar-lbl{ font-size:10px; color:var(--ink-3); font-weight:600; }
+.ha-bar-col.today .ha-bar-lbl{ color:#BF5AF2; font-weight:700; }
+
 </style>
 
 <!-- PWA Manifest -->
@@ -3183,8 +3312,20 @@ body.cinema-off .aaa-popup-overlay { display:block !important; visibility:visibl
   </nav>
 
   <!-- HOME -->
-  <div class="page active" id="page-home">
+  <div class="page active home-a" id="page-home">
     <div id="bday-container"></div>
+
+    <!-- HOME A · Compact Stack — Greeting -->
+    <div class="ha-greeting">
+      <div class="ha-greet-row">
+        <div class="ha-greet-text">
+          <div class="ha-greet-hi" id="ha-greet-hi">วันจันทร์ที่ 11 พ.ค. · 15:18 IDT</div>
+          <div class="ha-greet-name">สวัสดี, <span class="accent" id="ha-greet-name">—</span> 👋</div>
+        </div>
+        <div class="ha-greet-avatar" id="ha-greet-avatar" onclick="openPhotoUpload()">?</div>
+      </div>
+    </div>
+
     <div class="clock-hero tilt-card hologram" id="clock-hero">
       <div class="float-dot"></div>
       <div class="float-dot"></div>
@@ -3207,16 +3348,104 @@ body.cinema-off .aaa-popup-overlay { display:block !important; visibility:visibl
       </div>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat-box"><div class="stat-icon">🕐</div><div class="stat-val c-blue" id="s-firstin">--:--</div><div class="stat-lbl">เข้าครั้งแรก</div></div>
-      <div class="stat-box"><div class="stat-icon">⏱</div><div class="stat-val c-green" id="s-hours">0.0</div><div class="stat-lbl">ชม.ทำงาน</div></div>
-      <div class="stat-box"><div class="stat-icon">⚡</div><div class="stat-val c-orange" id="s-ot">0.0</div><div class="stat-lbl">ชม.โอที</div></div>
-      <div class="stat-box"><div class="stat-icon">🔄</div><div class="stat-val c-purple" id="s-rounds">0</div><div class="stat-lbl">รอบเข้า-ออก</div></div>
+    <!-- 📊 วันนี้ — horizontal chips -->
+    <div class="ha-section-h"><div class="ha-section-title">📊 วันนี้</div></div>
+    <div class="ha-chips-row">
+      <div class="ha-chip">
+        <div class="ha-chip-icon">🕐</div>
+        <div class="ha-chip-label">เข้าครั้งแรก</div>
+        <div class="ha-chip-value muted" id="s-firstin">--:--</div>
+      </div>
+      <div class="ha-chip green">
+        <div class="ha-chip-icon">⏱</div>
+        <div class="ha-chip-label">ทำงาน</div>
+        <div class="ha-chip-value"><span id="s-hours">0.0</span><span class="u">ชม</span></div>
+      </div>
+      <div class="ha-chip orange">
+        <div class="ha-chip-icon">⚡</div>
+        <div class="ha-chip-label">โอที</div>
+        <div class="ha-chip-value"><span id="s-ot">0.0</span><span class="u">ชม</span></div>
+      </div>
+      <div class="ha-chip purple">
+        <div class="ha-chip-icon">🔄</div>
+        <div class="ha-chip-label">รอบ</div>
+        <div class="ha-chip-value" id="s-rounds">0</div>
+      </div>
     </div>
 
-    <div class="card" id="weekly-card"></div>
+    <!-- 📅 Timeline -->
+    <div class="ha-section-h"><div class="ha-section-title">📅 Timeline วันนี้</div></div>
+    <div class="ha-timeline" id="ha-timeline">
+      <div class="ha-tl-row" id="ha-tl-in">
+        <div class="ha-tl-dot idle">●</div>
+        <div class="ha-tl-text">
+          <div class="ha-tl-title">เข้างานครั้งแรก</div>
+          <div class="ha-tl-sub">ยังไม่ได้เข้างาน</div>
+        </div>
+        <div class="ha-tl-time idle">--:--</div>
+      </div>
+      <div class="ha-tl-row" id="ha-tl-live">
+        <div class="ha-tl-dot idle">●</div>
+        <div class="ha-tl-text">
+          <div class="ha-tl-title" style="color:var(--ink-3);">กำลังทำงาน</div>
+          <div class="ha-tl-sub">รอเข้างาน</div>
+        </div>
+        <div class="ha-tl-time idle">--:--</div>
+      </div>
+      <div class="ha-tl-row" id="ha-tl-out">
+        <div class="ha-tl-dot idle">○</div>
+        <div class="ha-tl-text">
+          <div class="ha-tl-title" style="color:var(--ink-3);">ออกงาน</div>
+          <div class="ha-tl-sub">ยังไม่ได้ออก</div>
+        </div>
+        <div class="ha-tl-time idle">--:--</div>
+      </div>
+    </div>
 
-    <div class="card">
+    <!-- 🔥 Streak -->
+    <div class="ha-streak">
+      <div class="ha-streak-flame">🔥</div>
+      <div class="ha-streak-info">
+        <div class="ha-streak-num"><span id="ha-streak-done">0</span><span class="total">/7</span></div>
+        <div class="ha-streak-label">CHECK-IN STREAK · 7 วัน</div>
+      </div>
+      <div class="ha-streak-dots" id="ha-streak-dots"></div>
+    </div>
+
+    <!-- 📈 Week chart -->
+    <div class="ha-section-h"><div class="ha-section-title">📈 สัปดาห์นี้</div></div>
+    <div class="ha-week">
+      <div class="ha-week-head">
+        <div>
+          <div class="ha-week-lbl">รวม</div>
+          <div class="ha-week-val"><span id="ha-week-total">0.0</span><span class="u">ชม.</span></div>
+          <div class="ha-week-delta" id="ha-week-delta">↑ +0%</div>
+        </div>
+        <div class="ha-week-period" id="ha-week-period">—<strong>พ.ค.</strong></div>
+      </div>
+      <div class="ha-bars" id="ha-bars">
+        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">จ</div></div>
+        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">อ</div></div>
+        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">พ</div></div>
+        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">พฤ</div></div>
+        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">ศ</div></div>
+        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">ส</div></div>
+        <div class="ha-bar-col today"><div class="ha-bar-track"><div class="ha-bar-fill today" style="height:0%;"></div></div><div class="ha-bar-lbl">วันนี้</div></div>
+      </div>
+    </div>
+
+    <!-- KEEP all old elements for JS compat (hidden via .home-a CSS) -->
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-icon">🕐</div><div class="stat-val c-blue">--:--</div><div class="stat-lbl">เข้าครั้งแรก</div></div>
+      <div class="stat-box"><div class="stat-icon">⏱</div><div class="stat-val c-green">0.0</div><div class="stat-lbl">ชม.ทำงาน</div></div>
+      <div class="stat-box"><div class="stat-icon">⚡</div><div class="stat-val c-orange">0.0</div><div class="stat-lbl">ชม.โอที</div></div>
+      <div class="stat-box"><div class="stat-icon">🔄</div><div class="stat-val c-purple">0</div><div class="stat-lbl">รอบเข้า-ออก</div></div>
+    </div>
+
+    <!-- Old weekly-card kept for JS that writes into it (hidden but in DOM) -->
+    <div class="card" id="weekly-card" style="display:none"></div>
+
+    <div class="card home-a-card">
       <div class="section-title">📓 บันทึกประจำวัน</div>
       <textarea class="note-area" id="daily-note" rows="2" placeholder="บันทึกสิ่งที่ทำวันนี้..." oninput="saveDailyNote(todayStr(),this.value)"></textarea>
     </div>
@@ -3228,13 +3457,13 @@ body.cinema-off .aaa-popup-overlay { display:block !important; visibility:visibl
       <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--border)"><span style="font-size:12px;color:var(--text2)">ชั่วโมงทำงาน</span><span style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent2)" id="ts-dur">—</span></div>
     </div>
 
-    <div class="card">
+    <div class="card home-a-card">
       <div class="section-title">📝 รายการวันนี้</div>
       <div class="live-status-bar" id="live-status-bar" style="display:none"></div>
       <div id="today-list"></div>
     </div>
 
-    <div class="card">
+    <div class="card home-a-card">
       <div class="section-title">✏️ บันทึกย้อนหลัง</div>
       <div class="modal-grid">
         <div class="form-group"><label class="form-label">วันที่</label><input type="date" id="man-date" class="form-inp"/></div>
@@ -11184,6 +11413,261 @@ if('serviceWorker' in navigator) {
     if(overlay) overlay.style.animation = 'aaaOverlayIn 0.4s ease reverse forwards';
     setTimeout(()=> { container.innerHTML = ''; }, 500);
   };
+})();
+
+// ============================================================
+// RUDY · HOME A · Compact Stack — Render helpers
+// ============================================================
+(function(){
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function todayIDT(){
+    try { return new Intl.DateTimeFormat('en-CA',{ timeZone:'Asia/Jerusalem', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date()); }
+    catch(e){ return new Date().toISOString().slice(0,10); }
+  }
+  function thDay(d){ return ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][d.getDay()]; }
+  function thMonth(m){ return ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][m]; }
+  function thMonthFull(m){ return ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][m]; }
+
+  // Update greeting strip (date + time + name)
+  function updateGreeting(){
+    try {
+      const now = new Date();
+      const day = thDay(now);
+      const hh = pad2(now.getHours());
+      const mm = pad2(now.getMinutes());
+      const txt = `วันที่${day} ที่ ${now.getDate()} ${thMonth(now.getMonth())} · ${hh}:${mm} IDT`;
+      const el = document.getElementById('ha-greet-hi');
+      if(el) el.textContent = txt;
+      // name
+      if(window.curUser && window.curUser.name){
+        const nm = document.getElementById('ha-greet-name');
+        if(nm) nm.textContent = window.curUser.name.split(' ')[0] || window.curUser.name;
+        const av = document.getElementById('ha-greet-avatar');
+        if(av && !av.dataset.set){
+          const initial = (window.curUser.name||'?').charAt(0).toUpperCase();
+          // Use photo if available
+          if(window.curUser.photo){
+            av.innerHTML = `<img src="${window.curUser.photo}" alt="">`;
+          } else {
+            av.textContent = initial;
+          }
+          av.dataset.set = '1';
+        }
+      }
+    } catch(e){}
+  }
+  setInterval(updateGreeting, 60000);
+  setTimeout(updateGreeting, 500);
+  setTimeout(updateGreeting, 2000);
+
+  // Update Timeline based on today's records
+  function updateTimeline(){
+    try {
+      if (!window.curUser || !Array.isArray(window.records)) return;
+      const today = todayIDT();
+      const recs = window.records.filter(r => r && r.empId === window.curUser.id && r.date === today);
+      if (!recs.length){
+        // No record yet
+        return;
+      }
+      // Find earliest checkIn and latest checkOut
+      let firstIn = null, lastOut = null;
+      recs.forEach(r => {
+        if(r.checkIn && (!firstIn || r.checkIn < firstIn)) firstIn = r.checkIn;
+        if(r.checkOut && (!lastOut || r.checkOut > lastOut)) lastOut = r.checkOut;
+      });
+
+      // Update tl-in
+      const tlIn = document.getElementById('ha-tl-in');
+      if(tlIn && firstIn){
+        tlIn.querySelector('.ha-tl-dot').className = 'ha-tl-dot done';
+        tlIn.querySelector('.ha-tl-dot').textContent = '✓';
+        tlIn.querySelector('.ha-tl-title').textContent = 'เข้างานครั้งแรก';
+        tlIn.querySelector('.ha-tl-title').style.color = '';
+        tlIn.querySelector('.ha-tl-sub').textContent = 'บันทึกเรียบร้อย';
+        const t = tlIn.querySelector('.ha-tl-time');
+        t.textContent = firstIn;
+        t.className = 'ha-tl-time';
+      }
+
+      // Update tl-live (working hours)
+      const tlLive = document.getElementById('ha-tl-live');
+      if(tlLive){
+        if(firstIn && !lastOut){
+          // Currently working
+          tlLive.querySelector('.ha-tl-dot').className = 'ha-tl-dot live';
+          tlLive.querySelector('.ha-tl-dot').textContent = '●';
+          tlLive.querySelector('.ha-tl-title').textContent = 'กำลังทำงาน';
+          tlLive.querySelector('.ha-tl-title').style.color = '';
+          // Calc duration
+          const [h, m] = firstIn.split(':').map(Number);
+          const now = new Date();
+          const startMs = new Date(now); startMs.setHours(h, m, 0, 0);
+          const diffMin = Math.max(0, Math.floor((now - startMs) / 60000));
+          const dh = Math.floor(diffMin / 60); const dm = diffMin % 60;
+          tlLive.querySelector('.ha-tl-sub').textContent = `ผ่านมา ${dh} ชม. ${dm} นาที`;
+          const t = tlLive.querySelector('.ha-tl-time');
+          t.textContent = 'LIVE';
+          t.className = 'ha-tl-time live';
+        } else if(lastOut){
+          tlLive.querySelector('.ha-tl-dot').className = 'ha-tl-dot done';
+          tlLive.querySelector('.ha-tl-dot').textContent = '✓';
+          tlLive.querySelector('.ha-tl-title').textContent = 'ทำงานเสร็จแล้ว';
+          tlLive.querySelector('.ha-tl-title').style.color = '';
+          tlLive.querySelector('.ha-tl-sub').textContent = 'ครบรอบวันนี้';
+          const t = tlLive.querySelector('.ha-tl-time');
+          t.textContent = '✓';
+          t.className = 'ha-tl-time';
+        }
+      }
+
+      // Update tl-out
+      const tlOut = document.getElementById('ha-tl-out');
+      if(tlOut && lastOut){
+        tlOut.querySelector('.ha-tl-dot').className = 'ha-tl-dot done';
+        tlOut.querySelector('.ha-tl-dot').textContent = '✓';
+        tlOut.querySelector('.ha-tl-title').textContent = 'ออกงาน';
+        tlOut.querySelector('.ha-tl-title').style.color = '';
+        tlOut.querySelector('.ha-tl-sub').textContent = 'จบรอบ';
+        const t = tlOut.querySelector('.ha-tl-time');
+        t.textContent = lastOut;
+        t.className = 'ha-tl-time';
+      }
+    } catch(e){ console.warn('[HomeA] updateTimeline err', e); }
+  }
+
+  // Update Streak (done out of 7 days)
+  function updateStreak(){
+    try {
+      if (!window.curUser || !Array.isArray(window.records)) return;
+      const today = new Date();
+      let done = 0;
+      const daysArr = [];
+      for(let i = 6; i >= 0; i--){
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const ds = d.toISOString().slice(0,10);
+        const found = window.records.some(r => r && r.empId === window.curUser.id && r.date === ds && r.checkIn);
+        daysArr.push({date:ds, done:found, isToday: i === 0});
+        if(found && i > 0) done++;
+      }
+      const doneEl = document.getElementById('ha-streak-done');
+      if(doneEl) doneEl.textContent = done;
+
+      const dotsEl = document.getElementById('ha-streak-dots');
+      if(dotsEl){
+        dotsEl.innerHTML = daysArr.map(d => {
+          if(d.isToday) return '<div class="ha-sd current"></div>';
+          if(d.done) return '<div class="ha-sd done"></div>';
+          return '<div class="ha-sd future"></div>';
+        }).join('');
+      }
+    } catch(e){ console.warn('[HomeA] updateStreak err', e); }
+  }
+
+  // Update Week chart (Mon-Sun)
+  function updateWeek(){
+    try {
+      if (!window.curUser || !Array.isArray(window.records)) return;
+      const now = new Date();
+      // Find Monday of this week
+      const dow = now.getDay(); // 0=Sun
+      const monOff = dow === 0 ? -6 : 1 - dow;
+      const mon = new Date(now);
+      mon.setDate(now.getDate() + monOff);
+
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+
+      let totalHours = 0;
+      const bars = [];
+      let maxH = 0;
+      for(let i = 0; i < 7; i++){
+        const d = new Date(mon);
+        d.setDate(mon.getDate() + i);
+        const ds = d.toISOString().slice(0,10);
+        const dayRecs = window.records.filter(r => r && r.empId === window.curUser.id && r.date === ds);
+        let dayHours = 0;
+        dayRecs.forEach(r => {
+          if(r.checkInTs && r.checkOutTs){
+            dayHours += (r.checkOutTs - r.checkInTs) / 3600000;
+          } else if(r.checkIn && r.checkOut){
+            const [ih, im] = r.checkIn.split(':').map(Number);
+            const [oh, om] = r.checkOut.split(':').map(Number);
+            dayHours += ((oh*60+om) - (ih*60+im)) / 60;
+          } else if(r.checkIn && !r.checkOut && i === 6){
+            // Today, still working
+            const [ih, im] = r.checkIn.split(':').map(Number);
+            const nowMin = now.getHours()*60 + now.getMinutes();
+            dayHours += Math.max(0, (nowMin - (ih*60+im))) / 60;
+          }
+        });
+        if(dayHours > maxH) maxH = dayHours;
+        bars.push(dayHours);
+        totalHours += dayHours;
+      }
+
+      // Render bars
+      const barEls = document.querySelectorAll('#ha-bars .ha-bar-fill');
+      bars.forEach((h, i) => {
+        if(!barEls[i]) return;
+        const pct = maxH > 0 ? Math.max(4, (h / maxH) * 100) : 0;
+        barEls[i].style.height = pct + '%';
+      });
+
+      // Total
+      const totEl = document.getElementById('ha-week-total');
+      if(totEl) totEl.textContent = totalHours.toFixed(1);
+
+      // Period
+      const perEl = document.getElementById('ha-week-period');
+      if(perEl){
+        perEl.innerHTML = `${mon.getDate()}–${sun.getDate()}<strong>${thMonth(sun.getMonth())}</strong>`;
+      }
+
+      // Delta (just placeholder simple)
+      const delEl = document.getElementById('ha-week-delta');
+      if(delEl){
+        delEl.textContent = totalHours > 0 ? `${totalHours.toFixed(1)} ชม.` : '0 ชม.';
+      }
+    } catch(e){ console.warn('[HomeA] updateWeek err', e); }
+  }
+
+  // Render all on data ready
+  function renderHomeA(){
+    updateGreeting();
+    updateTimeline();
+    updateStreak();
+    updateWeek();
+  }
+  window.renderHomeA = renderHomeA;
+
+  // Hook into existing render flow
+  if(window.renderAll){
+    const _origRA = window.renderAll;
+    window.renderAll = function(){
+      const r = _origRA.apply(this, arguments);
+      try { renderHomeA(); } catch(e){}
+      return r;
+    };
+  }
+
+  // Periodic refresh
+  setInterval(renderHomeA, 30000);
+  // Trigger on load
+  setTimeout(renderHomeA, 1500);
+  setTimeout(renderHomeA, 4000);
+  // Re-render on check-in/out
+  ['doCheckIn', 'doCheckOut'].forEach(fn => {
+    if(typeof window[fn] === 'function'){
+      const orig = window[fn];
+      window[fn] = function(){
+        const r = orig.apply(this, arguments);
+        setTimeout(renderHomeA, 800);
+        return r;
+      };
+    }
+  });
 })();
 </script>
 </body>
