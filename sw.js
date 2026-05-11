@@ -1,228 +1,259 @@
-// ===== RUDY Service Worker =====
-// v84 — bump cache เพื่อ activate index.html ใหม่ (fix บั๊กปุ่ม text เลื่อนหายไปข้างบน — water-ripple DOM leak)
-// v83 — bump cache + new VAPID PUBLIC key (verified valid P-256, copy-paste from log)
-// v82 — bump cache + new VAPID PUBLIC key (matches new keypair)
-// v81 — bump cache to force activation for index.html debug version
-// v80 — bump cache to force activation for v79 (Auto-detect VAPID)
-// v77 — fix: userEmail in fcm_subs (matches index.html v77)
-// v76 — added AI Helper for announcements (Claude API integration)
-const STATIC_CACHE = 'rudy-static-v84';
-const FIREBASE_CACHE = 'rudy-firebase-v84';
-const CURRENT_CACHES = [STATIC_CACHE, FIREBASE_CACHE];
+// =============================================================
+// RUDY · Service Worker v81
+// Cache: rudy-static-v81, firebase-v81
+// Build: 2026-05-11 · AAA Effects update
+// =============================================================
 
-const STATIC_ASSETS = [
-  './index.html',
+const STATIC_CACHE  = 'rudy-static-v81';
+const FIREBASE_CACHE = 'firebase-v81';
+const RUNTIME_CACHE = 'rudy-runtime-v81';
+
+// Files to precache (small static assets only — NEVER cache index.html aggressively)
+const PRECACHE_URLS = [
+  './',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png',
-  './icon-180.png',
-  './icon-167.png',
-  './icon-152.png',
-  './icon-120.png',
+  './icon-512.png'
 ];
 
-const FIREBASE_ASSETS = [
-  'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js',
-  'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js',
-  'https://cdn.jsdelivr.net/npm/chart.js',
-  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+// =============================================================
+// HARD BYPASS LIST — CRITICAL for iOS Safari PWA
+// These domains MUST NEVER be intercepted by SW or fetch fails
+// with "TypeError: Type error" (CORS preflight broken on iOS)
+// =============================================================
+const BYPASS_HOSTS = [
+  'generativelanguage.googleapis.com',  // Gemini API
+  'firebaseinstallations.googleapis.com',
+  'fcm.googleapis.com',
+  'fcmregistrations.googleapis.com',
+  'web.push.apple.com',                  // Apple push
+  'android.googleapis.com',
+  'updates.push.services.mozilla.com',   // Mozilla push
+  'autopush.mozilla.services',
+  'identitytoolkit.googleapis.com',      // Firebase Auth
+  'securetoken.googleapis.com',
+  'www.googleapis.com',
+  'googletagmanager.com',
+  'google-analytics.com'
 ];
 
-const FONT_ASSETS = [
-  'https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap',
-];
+function shouldBypass(url) {
+  try {
+    const u = new URL(url);
+    for (const host of BYPASS_HOSTS) {
+      if (u.hostname === host || u.hostname.endsWith('.' + host) || u.hostname.includes(host)) {
+        return true;
+      }
+    }
+    return false;
+  } catch (e) {
+    return true;
+  }
+}
 
-// ==================== INSTALL ====================
-self.addEventListener('install', event => {
-  console.log('[SW v84] Installing...');
+// =============================================================
+// INSTALL — Precache static assets, skipWaiting immediately
+// =============================================================
+self.addEventListener('install', (event) => {
+  console.log('[SW v81] Installing...');
+  event.waitUntil(
+    caches.open(STATIC_CACHE)
+      .then((cache) => {
+        return cache.addAll(PRECACHE_URLS).catch(err => {
+          console.warn('[SW v81] Precache partial fail (ok):', err);
+        });
+      })
+      .then(() => self.skipWaiting())
+  );
+});
+
+// =============================================================
+// ACTIVATE — Clear old caches, claim clients
+// =============================================================
+self.addEventListener('activate', (event) => {
+  console.log('[SW v81] Activating...');
   event.waitUntil(
     Promise.all([
-      caches.open(STATIC_CACHE).then(cache => {
-        console.log('[SW v84] Caching static assets');
-        return cache.addAll(STATIC_ASSETS).catch(err => {
-          console.log('[SW v84] Static cache error:', err);
-        });
-      }),
-      caches.open(FIREBASE_CACHE).then(cache => {
-        console.log('[SW v84] Caching Firebase SDK + Fonts');
+      caches.keys().then((names) => {
         return Promise.all(
-          [...FIREBASE_ASSETS, ...FONT_ASSETS].map(url =>
-            cache.add(url).catch(err => console.log('[SW v84] Cache error:', url, err))
-          )
+          names
+            .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
+            .map((name) => {
+              console.log('[SW v81] Deleting old cache:', name);
+              return caches.delete(name);
+            })
         );
       }),
-    ]).then(() => {
-      console.log('[SW v84] Installed — skipping waiting');
-      return self.skipWaiting();
-    })
+      self.clients.claim()
+    ])
   );
 });
 
-// ==================== ACTIVATE ====================
-self.addEventListener('activate', event => {
-  console.log('[SW v84] Activating — cleaning ALL old caches');
-  event.waitUntil(
-    (async () => {
-      const allKeys = await caches.keys();
-      console.log('[SW v84] Found caches:', allKeys);
-
-      const deletions = allKeys
-        .filter(key => !CURRENT_CACHES.includes(key))
-        .map(key => {
-          console.log('[SW v84]   x Deleting:', key);
-          return caches.delete(key);
-        });
-
-      await Promise.all(deletions);
-      console.log('[SW v84] Cache cleanup complete. Active:', CURRENT_CACHES);
-
-      await self.clients.claim();
-
-      const clients = await self.clients.matchAll({ type: 'window' });
-      console.log('[SW v84] Notifying ' + clients.length + ' client(s) to reload');
-      for (const client of clients) {
-        client.postMessage({ type: 'SW_UPDATED', version: 'v84' });
-      }
-    })()
-  );
-});
-
-// ==================== FETCH ====================
-self.addEventListener('fetch', event => {
+// =============================================================
+// FETCH — Smart routing with hard bypass
+// =============================================================
+self.addEventListener('fetch', (event) => {
   const url = event.request.url;
 
-  // ⚠️ HARD BYPASS: APIs ที่ห้าม Service Worker แตะเด็ดขาด (ที่บรรทัดแรกสุด ก่อนเช็ค method)
-  // Safari iOS PWA bug: SW intercept CORS preflight ทำให้ fail
-  if (url.indexOf('generativelanguage.googleapis.com') !== -1 ||
-      url.indexOf('firebaseinstallations.googleapis.com') !== -1 ||
-      url.indexOf('fcm.googleapis.com') !== -1 ||
-      url.indexOf('fcmregistrations.googleapis.com') !== -1 ||
-      url.indexOf('web.push.apple.com') !== -1 ||
-      url.indexOf('android.googleapis.com') !== -1 ||
-      url.indexOf('updates.push.services.mozilla.com') !== -1) {
-    return; // ไม่เรียก event.respondWith() = browser handle เอง
-  }
-
-  if (event.request.method !== 'GET') return;
-
-  // Never cache live Firebase realtime/auth traffic
-  if (url.includes('firebasedatabase.app') ||
-      url.includes('googleapis.com/identitytoolkit') ||
-      url.includes('securetoken.googleapis.com')) {
+  // STEP 1: HARD BYPASS (must be FIRST — iOS Safari fix)
+  if (shouldBypass(url)) {
     return;
   }
 
-  // Cache-first for SDK + fonts
-  if (url.includes('gstatic.com/firebasejs') ||
-      url.includes('cdn.jsdelivr.net/npm/') ||
-      url.includes('fonts.googleapis.com') ||
-      url.includes('fonts.gstatic.com')) {
+  // STEP 2: Non-GET → bypass
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // STEP 3: Skip non-http(s)
+  if (!url.startsWith('http')) {
+    return;
+  }
+
+  const reqUrl = new URL(url);
+
+  // STEP 4: HTML / Document → NETWORK FIRST
+  if (event.request.mode === 'navigate' ||
+      event.request.destination === 'document' ||
+      reqUrl.pathname.endsWith('.html') ||
+      reqUrl.pathname === '/' ||
+      reqUrl.pathname.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request).then(cached => {
+            return cached || caches.match('./');
+          });
+        })
+    );
+    return;
+  }
+
+  // STEP 5: Firebase realtime → NETWORK ONLY
+  if (reqUrl.hostname.includes('firebaseio.com') ||
+      reqUrl.hostname.includes('firebasedatabase.app')) {
+    event.respondWith(fetch(event.request).catch(() => new Response('', { status: 503 })));
+    return;
+  }
+
+  // STEP 6: CDN / Fonts → CACHE FIRST
+  if (reqUrl.hostname.includes('gstatic.com') ||
+      reqUrl.hostname.includes('googleapis.com') ||
+      reqUrl.hostname.includes('jsdelivr.net') ||
+      reqUrl.hostname.includes('fonts.googleapis.com') ||
+      reqUrl.hostname.includes('fonts.gstatic.com') ||
+      reqUrl.hostname.includes('cdn.jsdelivr.net') ||
+      reqUrl.hostname.includes('unpkg.com') ||
+      reqUrl.hostname.includes('cdnjs.cloudflare.com')) {
     event.respondWith(
       caches.match(event.request).then(cached => {
         if (cached) return cached;
         return fetch(event.request).then(response => {
-          if (response.ok) {
+          if (response && response.status === 200) {
             const clone = response.clone();
             caches.open(FIREBASE_CACHE).then(cache => cache.put(event.request, clone));
           }
           return response;
-        }).catch(() => cached); // เผื่อ offline และไม่มี cache → return undefined (browser จัดการ)
+        }).catch(() => new Response('', { status: 503 }));
       })
     );
     return;
   }
 
-  // Network-first with cache fallback for app shell
-  if (url.includes('github.io') || url.endsWith('index.html') || url.endsWith('/')) {
+  // STEP 7: Same-origin assets → CACHE FIRST + background update
+  if (reqUrl.origin === self.location.origin) {
     event.respondWith(
-      (async () => {
-        const cache = await caches.open(STATIC_CACHE);
-        try {
-          const response = await fetch(event.request);
-          if (response.ok) {
-            cache.put(event.request, response.clone());
+      caches.match(event.request).then(cached => {
+        const fetchPromise = fetch(event.request).then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(RUNTIME_CACHE).then(cache => cache.put(event.request, clone));
           }
           return response;
-        } catch (err) {
-          // Network failed → fallback to cache
-          const cached = await cache.match(event.request);
-          if (cached) return cached;
-          // No cache either → re-throw so browser shows offline page
-          throw err;
-        }
-      })()
+        }).catch(() => cached);
+        return cached || fetchPromise;
+      })
     );
+    return;
+  }
+
+  // DEFAULT: Network with cache fallback
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
+
+// =============================================================
+// MESSAGE — Force update, clear cache, version
+// =============================================================
+self.addEventListener('message', (event) => {
+  if (!event.data) return;
+
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
+
+  if (event.data.type === 'CLEAR_CACHE') {
+    event.waitUntil(
+      caches.keys()
+        .then(names => Promise.all(names.map(n => caches.delete(n))))
+        .then(() => {
+          if (event.ports[0]) event.ports[0].postMessage({ ok: true });
+        })
+    );
+    return;
+  }
+
+  if (event.data.type === 'GET_VERSION') {
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v81' });
     return;
   }
 });
 
-// ==================== MESSAGE ====================
-self.addEventListener('message', event => {
-  if (event.data === 'skipWaiting' || (event.data && event.data.type === 'SKIP_WAITING')) {
-    console.log('[SW v84] Manual skipWaiting');
-    self.skipWaiting();
-  }
-
-  if (event.data && event.data.type === 'PURGE_ALL') {
-    event.waitUntil((async () => {
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-      console.log('[SW v84] PURGE_ALL: deleted', keys.length, 'caches');
-      if (event.source) {
-        event.source.postMessage({ type: 'PURGE_DONE', deleted: keys });
-      }
-    })());
+// =============================================================
+// PUSH — Compatibility (using email now, but kept for safety)
+// =============================================================
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  try {
+    const data = event.data.json();
+    const title = data.title || 'RUDY';
+    const options = {
+      body: data.body || '',
+      icon: data.icon || './icon-192.png',
+      badge: './icon-192.png',
+      tag: data.tag || 'rudy-notify',
+      data: data.url || './',
+      requireInteraction: false
+    };
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (e) {
+    console.warn('[SW v81] Push parse fail:', e);
   }
 });
 
-// ==================== PUSH EVENT ====================
-// รับ push จาก server (GitHub Actions) แล้วแสดง notification
-self.addEventListener('push', event => {
-  console.log('[SW v84] Push received');
-  let data = { title: 'RUDY', body: 'มีการแจ้งเตือนใหม่', tag: 'rudy-default' };
-
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch (e) {
-      try { data = { title: 'RUDY', body: event.data.text() }; } catch (e2) {}
-    }
-  }
-
-  const title = data.title || 'RUDY';
-  const options = {
-    body: data.body || '',
-    icon: data.icon || './icon-192.png',
-    badge: data.badge || './icon-192.png',
-    tag: data.tag || 'rudy-' + Date.now(),
-    data: { url: data.url || './', tag: data.tag },
-    requireInteraction: false,
-    silent: false,
-    vibrate: [200, 100, 200], // สั่นเป็นจังหวะ (Android เท่านั้น — iOS ignore)
-    timestamp: Date.now()
-  };
-
-  event.waitUntil(self.registration.showNotification(title, options));
-});
-
-// ==================== NOTIFICATION CLICK ====================
-self.addEventListener('notificationclick', event => {
-  console.log('[SW v84] Notification click');
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || './';
-
-  event.waitUntil((async () => {
-    const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    // ถ้ามี window เปิดอยู่ → focus
-    for (const client of allClients) {
-      if (client.url.includes(self.registration.scope)) {
-        if ('focus' in client) return client.focus();
-      }
-    }
-    // ไม่มี → เปิดใหม่
-    if (self.clients.openWindow) {
-      return self.clients.openWindow(targetUrl);
-    }
-  })());
+  const url = event.notification.data || './';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(list => {
+        for (const client of list) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        if (clients.openWindow) return clients.openWindow(url);
+      })
+  );
 });
+
+console.log('[SW v81] Loaded — AAA Effects update with full iOS bypass list');

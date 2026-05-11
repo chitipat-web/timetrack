@@ -2522,11 +2522,13 @@ body.dark .aaa-ap{ background:rgba(255,255,255,0.8); box-shadow:0 0 10px rgba(25
   100%{ transform:translate(var(--ex), -10vh); opacity:0; }
 }
 
-/* Ensure main content stays above bg */
-body > main, body > .topbar, body > .top-bar, body > .bottom-nav, body > .nav,
-body > .pages, body > .page, .topbar, .top-bar, .bottom-nav, .nav, .pages {
+/* Ensure main content stays above bg — but DON'T override .nav (it needs position:fixed bottom) */
+body > main, body > .topbar, body > .top-bar, body > .pages, body > .page,
+.topbar, .top-bar, .pages, .page {
   position:relative; z-index:1;
 }
+/* .nav keeps its own position:fixed bottom:14px from earlier — just bump z-index above bg */
+.nav { z-index:40 !important; }
 
 /* ===== AAA MASCOT ORB (in hero) ===== */
 .aaa-mascot-wrap{
