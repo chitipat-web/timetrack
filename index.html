@@ -4008,6 +4008,32 @@ let calYear, calMonth;
 let chartH=null, chartOT=null;
 let curMonth  = new Date();
 
+// ========== LOADING OVERLAY HELPER ==========
+// Show loading screen for at least MIN_LOAD_MS so animations are visible
+const _loaderStartTime = performance.now();
+const MIN_LOAD_MS = 2800;  // minimum loading screen display time
+
+function hideInitOverlay(){
+  const overlay = document.getElementById('init-overlay');
+  if(!overlay) return;
+  const elapsed = performance.now() - _loaderStartTime;
+  const remaining = Math.max(0, MIN_LOAD_MS - elapsed);
+
+  // Fade out smoothly
+  function doHide(){
+    overlay.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    overlay.style.opacity = '0';
+    overlay.style.transform = 'scale(1.05)';
+    setTimeout(() => { overlay.style.display = 'none'; }, 500);
+  }
+
+  if(remaining > 0){
+    setTimeout(doHide, remaining);
+  } else {
+    doHide();
+  }
+}
+
 // Default employees
 if (!employees) {
   employees = [
@@ -9338,8 +9364,7 @@ async function handleFirebaseUser(fbUser) {
     curUser   = cachedUser;
     employees = cachedEmployees;
     records   = cachedRecords;
-    const overlay = document.getElementById('init-overlay');
-    if(overlay) overlay.style.display = 'none';
+    hideInitOverlay();
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'block';
     initApp();
@@ -9379,8 +9404,7 @@ async function handleFirebaseUser(fbUser) {
     localStorage.setItem('tt_emp', JSON.stringify(employees));
     localStorage.setItem('tt_rec', JSON.stringify(records));
     setupRealtimeListeners();
-    const overlay = document.getElementById('init-overlay');
-    if(overlay) overlay.style.display = 'none';
+    hideInitOverlay();
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'block';
     initApp();
@@ -9388,8 +9412,7 @@ async function handleFirebaseUser(fbUser) {
     if (typeof saveLoginLog === 'function') saveLoginLog(curUser);
   } catch(err) {
     console.error('[Auth] Firebase load error:', err);
-    const overlay = document.getElementById('init-overlay');
-    if(overlay) overlay.style.display = 'none';
+    hideInitOverlay();
     document.getElementById('login-screen').style.display = 'flex';
     showLoginErr('เชื่อมต่อไม่ได้ กรุณาลองใหม่');
   }
@@ -9755,8 +9778,7 @@ _validateAndCleanCache();
 const _authTimeout = setTimeout(() => {
   if(_authHandled) return;
   console.log('[Auth] Timeout — showing login');
-  const overlay = document.getElementById('init-overlay');
-  if(overlay) overlay.style.display = 'none';
+  hideInitOverlay();
   document.getElementById('login-screen').style.display = 'flex';
   // Update loading text
   const loadingTxt = document.querySelector('#init-overlay div:last-child');
@@ -9765,8 +9787,7 @@ const _authTimeout = setTimeout(() => {
 
 auth.onAuthStateChanged(fbUser => {
   clearTimeout(_authTimeout); // Cancel timeout
-  const overlay = document.getElementById('init-overlay');
-  if(overlay) overlay.style.display = 'none';
+  hideInitOverlay();
 
   if (fbUser) {
     if(_authHandled) return;
@@ -11530,6 +11551,24 @@ if('serviceWorker' in navigator) {
   function thMonth(m){ return ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][m]; }
   function thMonthFull(m){ return ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][m]; }
 
+  // Helper: get current user (try multiple scopes)
+  function getUser(){
+    try { if(typeof curUser !== 'undefined' && curUser) return curUser; } catch(e){}
+    if(window.curUser) return window.curUser;
+    return null;
+  }
+
+  // Helper: get records as array (handle both Array and Firebase object)
+  function getRecords(){
+    let r = null;
+    try { if(typeof records !== 'undefined') r = records; } catch(e){}
+    if(!r && window.records) r = window.records;
+    if(!r) return [];
+    if(Array.isArray(r)) return r;
+    if(typeof r === 'object') return Object.values(r);
+    return [];
+  }
+
   // Update greeting strip (date + time + name)
   function updateGreeting(){
     try {
@@ -11541,15 +11580,16 @@ if('serviceWorker' in navigator) {
       const el = document.getElementById('ha-greet-hi');
       if(el) el.textContent = txt;
       // name
-      if(window.curUser && window.curUser.name){
+      const u = getUser();
+      if(u && u.name){
         const nm = document.getElementById('ha-greet-name');
-        if(nm) nm.textContent = window.curUser.name.split(' ')[0] || window.curUser.name;
+        if(nm) nm.textContent = u.name.split(' ')[0] || u.name;
         const av = document.getElementById('ha-greet-avatar');
         if(av && !av.dataset.set){
-          const initial = (window.curUser.name||'?').charAt(0).toUpperCase();
+          const initial = (u.name||'?').charAt(0).toUpperCase();
           // Use photo if available
-          if(window.curUser.photo){
-            av.innerHTML = `<img src="${window.curUser.photo}" alt="">`;
+          if(u.photo){
+            av.innerHTML = `<img src="${u.photo}" alt="">`;
           } else {
             av.textContent = initial;
           }
@@ -11565,9 +11605,11 @@ if('serviceWorker' in navigator) {
   // Update Timeline based on today's records
   function updateTimeline(){
     try {
-      if (!window.curUser || !Array.isArray(window.records)) return;
+      const u = getUser();
+      const allRecs = getRecords();
+      if (!u || !allRecs.length) return;
       const today = todayIDT();
-      const recs = window.records.filter(r => r && r.empId === window.curUser.id && r.date === today);
+      const recs = allRecs.filter(r => r && r.empId === u.id && r.date === today);
       if (!recs.length){
         // No record yet
         return;
@@ -11641,7 +11683,9 @@ if('serviceWorker' in navigator) {
   // Update Streak (done out of 7 days)
   function updateStreak(){
     try {
-      if (!window.curUser || !Array.isArray(window.records)) return;
+      const u = getUser();
+      const allRecs = getRecords();
+      if (!u || !allRecs.length) return;
       const today = new Date();
       let done = 0;
       const daysArr = [];
@@ -11649,7 +11693,7 @@ if('serviceWorker' in navigator) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
         const ds = d.toISOString().slice(0,10);
-        const found = window.records.some(r => r && r.empId === window.curUser.id && r.date === ds && r.checkIn);
+        const found = allRecs.some(r => r && r.empId === u.id && r.date === ds && r.checkIn);
         daysArr.push({date:ds, done:found, isToday: i === 0});
         if(found && i > 0) done++;
       }
@@ -11670,7 +11714,9 @@ if('serviceWorker' in navigator) {
   // Update Week chart (Mon-Sun)
   function updateWeek(){
     try {
-      if (!window.curUser || !Array.isArray(window.records)) return;
+      const u = getUser();
+      const allRecs = getRecords();
+      if (!u || !allRecs.length) return;
       const now = new Date();
       // Find Monday of this week
       const dow = now.getDay(); // 0=Sun
@@ -11688,7 +11734,7 @@ if('serviceWorker' in navigator) {
         const d = new Date(mon);
         d.setDate(mon.getDate() + i);
         const ds = d.toISOString().slice(0,10);
-        const dayRecs = window.records.filter(r => r && r.empId === window.curUser.id && r.date === ds);
+        const dayRecs = allRecs.filter(r => r && r.empId === u.id && r.date === ds);
         let dayHours = 0;
         dayRecs.forEach(r => {
           if(r.checkInTs && r.checkOutTs){
