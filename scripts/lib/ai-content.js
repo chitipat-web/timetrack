@@ -195,8 +195,11 @@ async function callGemini(prompt, apiKey) {
     }],
     generationConfig: {
       temperature: 1.0, // สูง → หลากหลาย ไม่ซ้ำ
-      maxOutputTokens: 500,
-      responseMimeType: 'application/json'
+      maxOutputTokens: 2048, // เพิ่มจาก 500 → 2048 (กัน JSON ตัดกลางคัน)
+      responseMimeType: 'application/json',
+      thinkingConfig: {
+        thinkingBudget: 0 // ปิด thinking mode → เร็วขึ้น + ประหยัด tokens
+      }
     }
   };
 
@@ -214,11 +217,33 @@ async function callGemini(prompt, apiKey) {
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) {
-    throw new Error('Gemini returned empty response');
+    // Log finish reason เผื่อ debug
+    const finishReason = data?.candidates?.[0]?.finishReason || 'unknown';
+    throw new Error(`Gemini returned empty response (finishReason: ${finishReason})`);
   }
 
+  // Clean up: บางครั้ง Gemini ใส่ ```json ... ``` มา
+  let cleaned = text.trim();
+  cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
+
   // parse JSON
-  const parsed = JSON.parse(text);
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (parseErr) {
+    // ลอง extract JSON object ออกมาด้วย regex (กัน text นำ/ตาม)
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        parsed = JSON.parse(match[0]);
+      } catch (e) {
+        throw new Error(`JSON parse failed: ${parseErr.message}. Raw: ${text.slice(0, 150)}`);
+      }
+    } else {
+      throw new Error(`JSON parse failed: ${parseErr.message}. Raw: ${text.slice(0, 150)}`);
+    }
+  }
+
   if (!parsed.subject || !parsed.body) {
     throw new Error('Gemini JSON missing subject or body');
   }
