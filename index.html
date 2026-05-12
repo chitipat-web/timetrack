@@ -6850,10 +6850,17 @@ body.ios26-bg{
   z-index:2147483647 !important;
   width:100vw !important; height:100vh !important; height:100dvh !important;
   overflow:hidden !important;
-  background:#050210 !important;
+  /* Solid dark base so wallpaper layers (orbs etc) inside have something to render against */
+  background:radial-gradient(ellipse 100% 80% at 50% 0%, #2a1a4d 0%, transparent 70%),
+             radial-gradient(ellipse 80% 60% at 50% 100%, #1a0a2e 0%, transparent 70%),
+             linear-gradient(180deg, #0a0418 0%, #1a0a3a 30%, #0a0418 60%, #050210 100%) !important;
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter','Sarabun',sans-serif !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
   -webkit-transform:translateZ(0);
   transform:translateZ(0);
+  opacity:1;
 }
 
 /* Wallpaper base */
@@ -7023,10 +7030,10 @@ body.ios26-bg{
 .ios-load-icon{
   width:100%;height:100%;
   border-radius:38px;
-  background:linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
-  backdrop-filter:blur(40px) saturate(200%);
-  -webkit-backdrop-filter:blur(40px) saturate(200%);
-  border:1px solid rgba(255,255,255,0.25);
+  background:linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.04) 100%);
+  backdrop-filter:blur(50px) saturate(180%);
+  -webkit-backdrop-filter:blur(50px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.18);
   box-shadow:
     0 30px 80px rgba(0,0,0,0.6),
     0 12px 40px rgba(0,0,0,0.4),
@@ -7101,7 +7108,7 @@ body.ios26-bg{
   position:absolute;bottom:50px;left:50%;transform:translateX(-50%);
   display:flex;align-items:center;gap:10px;
   padding:11px 20px;
-  background:rgba(255,255,255,0.09);
+  background:rgba(255,255,255,0.05);
   backdrop-filter:blur(30px) saturate(180%);
   -webkit-backdrop-filter:blur(30px) saturate(180%);
   border:1px solid rgba(255,255,255,0.14);
@@ -7158,8 +7165,8 @@ body.ios26-bg #login-screen{
 body.ios26-bg #login-screen > div,
 body.ios26-bg .login-card,
 body.ios26-bg .login-box{
-  background:rgba(255,255,255,0.08) !important;
-  backdrop-filter:blur(40px) saturate(180%) !important;
+  background:rgba(255,255,255,0.05) !important;
+  backdrop-filter:blur(50px) saturate(180%) !important;
   -webkit-backdrop-filter:blur(40px) saturate(180%) !important;
   border:1px solid rgba(255,255,255,0.15) !important;
   border-radius:24px !important;
@@ -7177,8 +7184,8 @@ body.ios26-bg input[type="date"],
 body.ios26-bg input[type="time"],
 body.ios26-bg textarea,
 body.ios26-bg select{
-  background:rgba(255,255,255,0.08) !important;
-  -webkit-backdrop-filter:blur(20px) !important;
+  background:rgba(255,255,255,0.05) !important;
+  -webkit-backdrop-filter:blur(25px) !important;
   backdrop-filter:blur(20px) !important;
   border:1px solid rgba(255,255,255,0.15) !important;
   border-radius:14px !important;
@@ -7225,8 +7232,8 @@ body.ios26-bg .btn-primary:active{
 
 /* Secondary buttons - glass capsule */
 body.ios26-bg button:not(.btn-primary):not(#login-btn):not([type="submit"]):not(.nav button):not(.bn-item){
-  background:rgba(255,255,255,0.1) !important;
-  -webkit-backdrop-filter:blur(20px) !important;
+  background:rgba(255,255,255,0.06) !important;
+  -webkit-backdrop-filter:blur(25px) !important;
   backdrop-filter:blur(20px) !important;
   border:1px solid rgba(255,255,255,0.15) !important;
   color:#fff !important;
@@ -7250,8 +7257,8 @@ body.ios26-bg .ha-week-card,
 body.ios26-bg .announce-item,
 body.ios26-bg .summary-row,
 body.ios26-bg .team-member{
-  background:rgba(255,255,255,0.08) !important;
-  -webkit-backdrop-filter:blur(30px) saturate(180%) !important;
+  background:rgba(255,255,255,0.04) !important;
+  -webkit-backdrop-filter:blur(40px) saturate(180%) !important;
   backdrop-filter:blur(30px) saturate(180%) !important;
   border:1px solid rgba(255,255,255,0.12) !important;
   border-radius:18px !important;
@@ -7264,7 +7271,7 @@ body.ios26-bg .team-member{
 body.ios26-bg .nav,
 body.ios26-bg .bottom-nav,
 body.ios26-bg nav.nav{
-  background:rgba(20,20,30,0.5) !important;
+  background:rgba(20,20,30,0.35) !important;
   -webkit-backdrop-filter:blur(40px) saturate(200%) !important;
   backdrop-filter:blur(40px) saturate(200%) !important;
   border:1px solid rgba(255,255,255,0.12) !important;
@@ -7303,7 +7310,7 @@ body.ios26-bg #create-announce-modal > div,
 body.ios26-bg #member-history-modal > div,
 body.ios26-bg #edit-name-modal > div,
 body.ios26-bg #add-manual-modal > div{
-  background:rgba(28,28,36,0.85) !important;
+  background:rgba(28,28,36,0.65) !important;
   -webkit-backdrop-filter:blur(50px) saturate(180%) !important;
   backdrop-filter:blur(50px) saturate(180%) !important;
   border:1px solid rgba(255,255,255,0.15) !important;
