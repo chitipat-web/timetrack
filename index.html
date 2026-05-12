@@ -3947,8 +3947,9 @@ let curMonth  = new Date();
 function hideInitOverlay(){
   // Loading screen removed - no-op
   // Cleanup any leftover legacy splash elements just in case
+  // Note: login-loading is REQUIRED by doLogin/doRegister - DO NOT remove!
   try {
-    ['init-overlay','cinema-splash','login-loading'].forEach(id => {
+    ['init-overlay','cinema-splash'].forEach(id => {
       const el = document.getElementById(id);
       if(el && el.parentNode) el.parentNode.removeChild(el);
     });
@@ -4378,8 +4379,9 @@ function togglePw(){const i=document.getElementById('login-pw');i.type=i.type===
 // ========== INIT ==========
 function initApp(){
   // SAFETY NET: ensure all loading overlays are removed from DOM
+  // Note: login-loading is REQUIRED by doLogin/doRegister - DO NOT remove!
   try {
-    ['init-overlay','cinema-splash','login-loading'].forEach(id => {
+    ['init-overlay','cinema-splash'].forEach(id => {
       const el = document.getElementById(id);
       if(el && el.parentNode) el.parentNode.removeChild(el);
     });
@@ -9169,17 +9171,29 @@ setTimeout(() => {
 
 // ===== EMAIL SIGN IN =====
 function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass  = document.getElementById('login-pw').value;
-  if (!email || !pass) { showLoginErr('กรุณากรอกอีเมลและรหัสผ่าน'); return; }
-  document.getElementById('login-loading').style.display = 'block';
-  document.getElementById('login-err').style.display = 'none';
-  auth.signInWithEmailAndPassword(email, pass)
-    .then(result => handleFirebaseUser(result.user))
-    .catch(err => {
-      document.getElementById('login-loading').style.display = 'none';
-      showLoginErr(getThaiError(err.code));
-    });
+  try {
+    const emailEl = document.getElementById('login-email');
+    const pwEl    = document.getElementById('login-pw');
+    const loadingEl = document.getElementById('login-loading');
+    const errEl   = document.getElementById('login-err');
+
+    const email = emailEl ? emailEl.value.trim() : '';
+    const pass  = pwEl    ? pwEl.value           : '';
+
+    if (!email || !pass) { showLoginErr('กรุณากรอกอีเมลและรหัสผ่าน'); return; }
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (errEl)     errEl.style.display = 'none';
+
+    auth.signInWithEmailAndPassword(email, pass)
+      .then(result => handleFirebaseUser(result.user))
+      .catch(err => {
+        if (loadingEl) loadingEl.style.display = 'none';
+        showLoginErr(getThaiError(err.code));
+      });
+  } catch(e){
+    console.error('[doLogin] error:', e);
+    try { showLoginErr('เกิดข้อผิดพลาด: ' + (e.message || e)); } catch(_){}
+  }
 }
 
 // ===== FORGOT PASSWORD =====
