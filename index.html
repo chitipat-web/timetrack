@@ -4041,17 +4041,20 @@ function hideInitOverlay(){
   } catch(e){ console.log('[hideInitOverlay error]', e); }
 }
 
-// ========== LOADING MIN TIME (1.5s minimum so users see iOS 26 animations) ==========
+// ========== LOADING MIN TIME (2s minimum so users see load-D-motion animations) ==========
 const _loadStartTime = performance.now();
-const MIN_LOADING_MS = 1500;
+const MIN_LOADING_MS = 2000;
 
 // Hide overlay after enforcing minimum display time
 function _delayedHideOverlay(callback){
-  // Loading screen removed - just call callback immediately
-  hideInitOverlay();
-  if(typeof callback === 'function'){
-    try { callback(); } catch(e){ console.log('[delayedHide callback error]', e); }
-  }
+  const elapsed = performance.now() - _loadStartTime;
+  const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
+  setTimeout(() => {
+    hideInitOverlay();
+    if(typeof callback === 'function'){
+      try { callback(); } catch(e){ console.log('[delayedHide callback error]', e); }
+    }
+  }, remaining);
 }
 
 // Default employees
@@ -9757,17 +9760,19 @@ async function handleFirebaseUser(fbUser) {
     localStorage.setItem('tt_emp', JSON.stringify(employees));
     localStorage.setItem('tt_rec', JSON.stringify(records));
     setupRealtimeListeners();
-    hideInitOverlay();
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-shell').style.display = 'block';
-    initApp();
-    // Save login log
-    if (typeof saveLoginLog === 'function') saveLoginLog(curUser);
+    _delayedHideOverlay(() => {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-shell').style.display = 'block';
+      initApp();
+      // Save login log
+      if (typeof saveLoginLog === 'function') saveLoginLog(curUser);
+    });
   } catch(err) {
     console.error('[Auth] Firebase load error:', err);
-    hideInitOverlay();
-    document.getElementById('login-screen').style.display = 'flex';
-    showLoginErr('เชื่อมต่อไม่ได้ กรุณาลองใหม่');
+    _delayedHideOverlay(() => {
+      document.getElementById('login-screen').style.display = 'flex';
+      showLoginErr('เชื่อมต่อไม่ได้ กรุณาลองใหม่');
+    });
   }
 }
 
