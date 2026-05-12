@@ -4019,9 +4019,16 @@ function hideInitOverlay(){
   overlay.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
   overlay.style.opacity = '0';
   overlay.style.transform = 'scale(1.05)';
+  overlay.style.pointerEvents = 'none';
 
   setTimeout(() => {
-    overlay.style.display = 'none';
+    // Force-hide with !important override (CSS rule has display:flex !important)
+    overlay.style.setProperty('display', 'none', 'important');
+    overlay.style.setProperty('visibility', 'hidden', 'important');
+    overlay.style.setProperty('opacity', '0', 'important');
+    // Belt-and-suspenders: also remove from layout
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.classList.add('ios26-loading-hidden');
   }, 400);
 }
 
@@ -7144,6 +7151,17 @@ body.ios26-bg{
   0%,80%,100%{transform:scale(0.5);opacity:0.4;}
   40%{transform:scale(1.2);opacity:1;}
 }
+
+/* Force-hide overlay (overrides .ios26-loading display:flex !important) */
+.ios26-loading-hidden,
+#init-overlay.ios26-loading-hidden,
+#init-overlay[aria-hidden="true"]{
+  display:none !important;
+  visibility:hidden !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+}
+
 /* =====================================================
    end iOS 26 LIQUID GLASS — Loading + Global Wallpaper
    ===================================================== */
