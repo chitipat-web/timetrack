@@ -3985,6 +3985,15 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 </div>
 
 <script>
+// ========== Global error catcher (prevent script error from blocking init) ==========
+window.addEventListener('error', function(e){
+  console.log('[GlobalError]', e.message, 'at', e.filename + ':' + e.lineno);
+  // Don't block — let app continue
+}, true);
+window.addEventListener('unhandledrejection', function(e){
+  console.log('[UnhandledRejection]', e.reason);
+});
+
 // ========== STATE ==========
 let employees = JSON.parse(localStorage.getItem('tt_emp')||'null');
 let records   = JSON.parse(localStorage.getItem('tt_rec')||'[]');
@@ -10279,25 +10288,69 @@ const _authTimeout = setTimeout(() => {
 
 // Check for cached user FIRST — if exists, we expect Firebase to restore session
 const _hasCachedSession = Object.keys(localStorage).some(k => k.startsWith('tt_user_'));
+console.log('[Auth] Has cached session:', _hasCachedSession);
+
+// Track when loading started — enforce MIN_DISPLAY_MS so users see the loading animation
+const _loadStartTime = performance.now();
+const MIN_LOADING_MS = 1500;  // ขั้นต่ำ 1.5 วินาที (เห็น animations)
+
+// Helper: hide overlay after enforcing minimum display time
+function _delayedHideOverlay(callback){
+  const elapsed = performance.now() - _loadStartTime;
+  const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
+  setTimeout(() => {
+    hideInitOverlay();
+    if(callback) callback();
+  }, remaining);
+}
+
+// Track first callback to handle "session not yet restored" case
+let _firstAuthCallback = true;
 
 auth.onAuthStateChanged(fbUser => {
-  // If we have cached session BUT Firebase says null on first callback,
-  // wait for Firebase to actually restore (could be 3-8s on iOS Safari)
+  // ALWAYS wait at least 500ms on first callback to give Firebase time to restore
+  // session from IndexedDB before deciding whether to show login
+  if (_firstAuthCallback && !fbUser) {
+    _firstAuthCallback = false;
+    console.log('[Auth] First callback returned null — waiting 800ms for session restore...');
+    setTimeout(() => {
+      // After waiting, if still no user AND we have cached session, wait for next callback
+      // Otherwise proceed to show login (with minimum loading time honored)
+      if(_authHandled) return;
+      if(_hasCachedSession){
+        console.log('[Auth] Has cache, will wait for next callback or timeout');
+        return; // wait for next callback or timeout
+      }
+      _authHandled = true;
+      _delayedHideOverlay(() => {
+        document.getElementById('login-screen').style.display = 'flex';
+      });
+    }, 800);
+    return;
+  }
+  _firstAuthCallback = false;
+
+  // If we have cached session BUT Firebase says null AFTER first callback,
+  // keep waiting for Firebase to actually restore
   if (!fbUser && _hasCachedSession && !_authHandled) {
-    console.log('[Auth] Has cached session, waiting for Firebase to restore...');
-    return;  // Let timeout fallback or next callback decide
+    console.log('[Auth] Still waiting for Firebase to restore cached session...');
+    return;
   }
 
   clearTimeout(_authTimeout); // Cancel timeout
-  hideInitOverlay();
 
   if (fbUser) {
     if(_authHandled) return;
     _authHandled = true;
-    handleFirebaseUser(fbUser);
+    _delayedHideOverlay(() => {
+      handleFirebaseUser(fbUser);
+    });
   } else {
+    if(_authHandled) return;
     _authHandled = true;
-    document.getElementById('login-screen').style.display = 'flex';
+    _delayedHideOverlay(() => {
+      document.getElementById('login-screen').style.display = 'flex';
+    });
   }
 });
 
@@ -11818,34 +11871,52 @@ if('serviceWorker' in navigator) {
     document.addEventListener('click', markAction, { passive: true });
     document.addEventListener('input', markAction, { passive: true });
 
-    // ----- Register SW -----
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => {
-        console.log('[SW] registered:', reg.scope);
+    // ----- Register SW (with environment safety checks) -----
+    // Safari App-Bound Domains may reject SW registration in preview/non-PWA contexts
+    // Wrap in try/catch + Promise chain so any rejection doesn't break app init
+    try {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => {
+            console.log('[SW] registered:', reg.scope);
 
-        // Detect new SW being installed
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (!newWorker) return;
-          console.log('[SW] new worker installing...');
-          newWorker.addEventListener('statechange', () => {
-            console.log('[SW] new worker state:', newWorker.state);
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New SW is ready, current one still controls — trigger takeover
-              _hasNewSW = true;
-              console.log('[SW] new version installed — telling it to skip waiting');
-              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            // Detect new SW being installed
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+              console.log('[SW] new worker installing...');
+              newWorker.addEventListener('statechange', () => {
+                console.log('[SW] new worker state:', newWorker.state);
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New SW is ready, current one still controls — trigger takeover
+                  _hasNewSW = true;
+                  console.log('[SW] new version installed — telling it to skip waiting');
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
+            });
+
+            // Force update check on load
+            reg.update().catch(()=>{});
+
+            // Periodic check every 30 minutes (in case app stays open all day)
+            setInterval(() => reg.update().catch(()=>{}), 30 * 60 * 1000);
+          })
+          .catch(err => {
+            // App-Bound Domains in preview mode → ignore silently
+            const msg = (err && err.message) || String(err);
+            if (msg.includes('app-bound') || msg.includes('Job rejected')) {
+              console.log('[SW] skipped (preview/non-PWA mode)');
+            } else {
+              console.log('[SW] register error:', err);
             }
           });
-        });
-
-        // Force update check on load
-        reg.update().catch(()=>{});
-
-        // Periodic check every 30 minutes (in case app stays open all day)
-        setInterval(() => reg.update().catch(()=>{}), 30 * 60 * 1000);
-      })
-      .catch(err => console.log('[SW] register error:', err));
+      } else {
+        console.log('[SW] not supported in this browser');
+      }
+    } catch(e){
+      console.log('[SW] register threw synchronously:', e && e.message);
+    }
 
     // ----- Listen for SW activation messages -----
     navigator.serviceWorker.addEventListener('message', evt => {
