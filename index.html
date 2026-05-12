@@ -9978,6 +9978,24 @@ auth.onAuthStateChanged(fbUser => {
 // Enter key
 document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 document.getElementById('login-email').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-pw').focus(); });
+// Backup: add direct click listener to login button (in case inline onclick fails)
+(function(){
+  try {
+    const loginBtn = document.querySelector('#login-screen .login-btn');
+    if(loginBtn){
+      loginBtn.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        if(typeof doLogin === 'function'){
+          doLogin();
+        } else {
+          console.error('doLogin function not found');
+        }
+      });
+      console.log('[Login] Direct click listener attached');
+    }
+  } catch(e){ console.log('[Login] Listener attach error:', e); }
+})();
 </script>
 <!-- SONGKRAN CANVAS -->
 <canvas id="songkran-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.7"></canvas>
