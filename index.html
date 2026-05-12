@@ -4005,7 +4005,7 @@ let chartH=null, chartOT=null;
 let curMonth  = new Date();
 
 // ========== LOADING OVERLAY HELPER ==========
-// Loading overlay hide helper — hide immediately when ready
+// Loading overlay hide helper — bulletproof: removes from DOM entirely
 function hideInitOverlay(){
   const overlay = document.getElementById('init-overlay');
   if(!overlay) return;
@@ -4022,14 +4022,34 @@ function hideInitOverlay(){
   overlay.style.pointerEvents = 'none';
 
   setTimeout(() => {
-    // Force-hide with !important override (CSS rule has display:flex !important)
-    overlay.style.setProperty('display', 'none', 'important');
-    overlay.style.setProperty('visibility', 'hidden', 'important');
-    overlay.style.setProperty('opacity', '0', 'important');
-    // Belt-and-suspenders: also remove from layout
-    overlay.setAttribute('aria-hidden', 'true');
-    overlay.classList.add('ios26-loading-hidden');
+    // Bulletproof: remove from DOM entirely so it can't possibly overlap
+    if(overlay && overlay.parentNode){
+      overlay.parentNode.removeChild(overlay);
+    }
+    // Also try to remove the old cinema-splash if it exists (legacy element)
+    try {
+      const cinemaSplash = document.getElementById('cinema-splash');
+      if(cinemaSplash && cinemaSplash.parentNode){
+        cinemaSplash.parentNode.removeChild(cinemaSplash);
+      }
+    } catch(e){}
   }, 400);
+}
+
+// ========== LOADING MIN TIME (1.5s minimum so users see iOS 26 animations) ==========
+const _loadStartTime = performance.now();
+const MIN_LOADING_MS = 1500;
+
+// Hide overlay after enforcing minimum display time
+function _delayedHideOverlay(callback){
+  const elapsed = performance.now() - _loadStartTime;
+  const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
+  setTimeout(() => {
+    hideInitOverlay();
+    if(typeof callback === 'function'){
+      try { callback(); } catch(e){ console.log('[delayedHide callback error]', e); }
+    }
+  }, remaining);
 }
 
 // Default employees
@@ -4441,6 +4461,18 @@ function togglePw(){const i=document.getElementById('login-pw');i.type=i.type===
 
 // ========== INIT ==========
 function initApp(){
+  // SAFETY NET: ensure all loading overlays are removed from DOM
+  try {
+    ['init-overlay','cinema-splash','login-loading'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    // Also remove any element with these classes
+    document.querySelectorAll('.cinema-splash, .ios26-loading').forEach(el => {
+      if(el.parentNode) el.parentNode.removeChild(el);
+    });
+  } catch(e){ console.log('[initApp] overlay cleanup error:', e); }
+
   // Cyberpunk greeting banner
   const existing = document.getElementById('songkran-banner');
   if(existing) existing.remove();
@@ -9795,16 +9827,20 @@ db.ref('.info/connected').on('value', snap => {
 
 // Show progress in overlay
 function updateLoadingStatus(msg) {
-  const el = document.getElementById('overlay-status');
-  if(el) el.textContent = msg;
+  try {
+    const el = document.getElementById('overlay-status');
+    if(el) el.textContent = msg;
+  } catch(e){ /* overlay may have been removed */ }
 }
 
-// Show skip button after 3s
+// Show skip button after 3s — safe version
 setTimeout(() => {
-  const skip = document.getElementById('overlay-skip');
-  const status = document.getElementById('overlay-status');
-  if(skip) skip.style.display = 'block';
-  if(status) status.textContent = 'ใช้เวลานานกว่าปกติ...';
+  try {
+    const skip = document.getElementById('overlay-skip');
+    const status = document.getElementById('overlay-status');
+    if(skip) skip.style.display = 'block';
+    if(status) status.textContent = 'ใช้เวลานานกว่าปกติ...';
+  } catch(e){}
 }, 3000);
 
 // Update status messages
@@ -9885,13 +9921,15 @@ async function handleFirebaseUser(fbUser) {
     curUser   = cachedUser;
     employees = cachedEmployees;
     records   = cachedRecords;
-    hideInitOverlay();
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-shell').style.display = 'block';
-    initApp();
-    // Save login log + Sync Firebase เบื้องหลัง
-    if (typeof saveLoginLog === 'function') saveLoginLog(curUser);
-    _syncFirebaseInBackground(fbUser);
+    // Use delayed hide to honor minimum loading time (1.5s)
+    _delayedHideOverlay(() => {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-shell').style.display = 'block';
+      initApp();
+      // Save login log + Sync Firebase เบื้องหลัง
+      if (typeof saveLoginLog === 'function') saveLoginLog(curUser);
+      _syncFirebaseInBackground(fbUser);
+    });
     return;
   }
 
@@ -10308,20 +10346,6 @@ const _authTimeout = setTimeout(() => {
 const _hasCachedSession = Object.keys(localStorage).some(k => k.startsWith('tt_user_'));
 console.log('[Auth] Has cached session:', _hasCachedSession);
 
-// Track when loading started — enforce MIN_DISPLAY_MS so users see the loading animation
-const _loadStartTime = performance.now();
-const MIN_LOADING_MS = 1500;  // ขั้นต่ำ 1.5 วินาที (เห็น animations)
-
-// Helper: hide overlay after enforcing minimum display time
-function _delayedHideOverlay(callback){
-  const elapsed = performance.now() - _loadStartTime;
-  const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
-  setTimeout(() => {
-    hideInitOverlay();
-    if(callback) callback();
-  }, remaining);
-}
-
 // Track first callback to handle "session not yet restored" case
 let _firstAuthCallback = true;
 
@@ -10725,48 +10749,23 @@ function initParticleTrail(){
 }
 
 // === LOADING SPLASH ===
+// DISABLED — replaced by iOS 26 Liquid Glass init-overlay
 function showCinemaSplash(duration = 1800){
-  if(document.body.classList.contains('cinema-off')) return;
-  const existing = document.getElementById('cinema-splash');
-  if(existing) existing.remove();
-  const splash = document.createElement('div');
-  splash.id = 'cinema-splash';
-  splash.className = 'cinema-splash';
-  splash.innerHTML = `
-    <div class="cinema-splash-rings">
-      <div class="cinema-splash-ring"></div>
-      <div class="cinema-splash-ring"></div>
-      <div class="cinema-splash-ring"></div>
-      <div class="cinema-splash-ring"></div>
-    </div>
-    <div class="cinema-splash-content">
-      <div class="cinema-splash-logo" style="font-family:'Arial Black',sans-serif;font-size:80px;font-weight:900;background:linear-gradient(135deg,#ffccff,#aa44ff,#4400aa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 20px #aa44ff)">R</div>
-      <div class="cinema-splash-text">RUDY</div>
-      <div class="cinema-splash-tagline">Galaxy Edition</div>
-    </div>`;
-  document.body.appendChild(splash);
-  setTimeout(()=>{
-    splash.classList.add('fading');
-    setTimeout(()=>splash.remove(), 500);
-  }, duration);
+  // no-op: legacy splash removed in iOS 26 redesign
+  return;
 }
 
-// Auto-show splash on first load
+// Auto-show splash on first load — DISABLED (we use iOS 26 init-overlay instead)
+// Old cinema-splash conflicts with new iOS 26 Liquid Glass loading
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(applyCinematicState, 0);
-    if(isCinematicOn() && !sessionStorage.getItem('tt_splash_shown')){
-      showCinemaSplash(1800);
-      sessionStorage.setItem('tt_splash_shown', '1');
-    }
+    // showCinemaSplash disabled — using iOS 26 init-overlay
     setTimeout(initParticleTrail, 100);
   });
 } else {
   applyCinematicState();
-  if(isCinematicOn() && !sessionStorage.getItem('tt_splash_shown')){
-    showCinemaSplash(1800);
-    sessionStorage.setItem('tt_splash_shown', '1');
-  }
+  // showCinemaSplash disabled — using iOS 26 init-overlay
   setTimeout(initParticleTrail, 100);
 }
 
