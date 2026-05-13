@@ -12925,11 +12925,12 @@ if('serviceWorker' in navigator) {
     const pct = Math.min(100, Math.round((onTimeCount / target) * 100));
 
     let msg;
+    const lateCount = totalDays - onTimeCount;
     if(onTimeCount >= target) msg = '🎉 ครบแล้ว! สัปดาห์เพอร์เฟค';
     else if(totalDays === 0) msg = 'สัปดาห์ใหม่ เริ่มกันเลย';
-    else if(onTimeCount === totalDays && totalDays > 0) msg = '🔥 ตรงเวลาทุกวัน เก่งมาก';
-    else if(onTimeCount === 0 && totalDays > 0) msg = 'ยังไม่มีวันตรงเวลา 😅';
-    else msg = 'ขาดอีก ' + (target - onTimeCount) + ' วัน';
+    else if(lateCount === 0) msg = '🔥 ' + totalDays + '/' + totalDays + ' ตรงเวลา · ขาดอีก ' + (target - onTimeCount) + ' วัน';
+    else if(onTimeCount === 0) msg = '😅 สาย ' + lateCount + ' วัน · เริ่มใหม่ได้';
+    else msg = 'สาย ' + lateCount + ' · ขาดอีก ' + (target - onTimeCount) + ' วัน';
 
     el.innerHTML =
       '<div class="hw-title"><span class="hw-icon">🎯</span>เป้าหมายสัปดาห์</div>' +
