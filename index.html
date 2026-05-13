@@ -3124,7 +3124,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 </head>
 <body>
 <!-- INIT LOADING OVERLAY (load-D-motion: underwater theme) -->
-<div id="init-overlay" class="dmotion-loading">
+<div id="init-overlay" class="dmotion-loading" style="position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;z-index:2147483647;overflow:hidden;background:linear-gradient(180deg,#001828 0%,#003554 50%,#001020 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Sarabun','Inter',sans-serif">
   <!-- God rays disabled for perf -->
 
   <!-- Flare disabled for perf -->
@@ -4004,10 +4004,12 @@ function hideInitOverlay(){
     if(overlay){
       if(overlay.dataset.hiding === '1') return;
       overlay.dataset.hiding = '1';
-      overlay.style.transition = 'opacity 0.5s ease';
-      overlay.style.opacity = '0';
-      overlay.style.pointerEvents = 'none';
+      // Force transition + fade via inline (overrides both CSS and inline backup)
+      overlay.style.setProperty('transition', 'opacity 0.5s ease', 'important');
+      overlay.style.setProperty('opacity', '0', 'important');
+      overlay.style.setProperty('pointer-events', 'none', 'important');
       setTimeout(() => {
+        // Remove from DOM entirely so no chance of overlap
         if(overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
       }, 500);
     }
