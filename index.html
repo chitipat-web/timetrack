@@ -12578,5 +12578,715 @@ if('serviceWorker' in navigator) {
   }
 })();
 </script>
+
+<!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+<!-- ║ HOME WIDGETS SYSTEM — PHASE B                                   ║ -->
+<!-- ║ Widget 4: Goal Tracker (วันมาตรงเวลา 5/5)                       ║ -->
+<!-- ║ Widget 5: Upcoming Reminders (localStorage)                     ║ -->
+<!-- ║ Widget 6: Smart Break (Ultradian 90 min)                        ║ -->
+<!-- ║                                                                  ║ -->
+<!-- ║ Pattern: IIFE sandbox + hwSafe wrapper + HW_ENABLED flags       ║ -->
+<!-- ║ Hooks renderHomeWidgets แบบ wrap — ไม่แตะ Phase A code         ║ -->
+<!-- ║ Failure ของ widget ใดอันหนึ่ง = อันนั้นหายไป แอพไม่พัง         ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<style id="hw-styles-b">
+  /* Phase B card head with action button */
+  .hwb-card-head{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-bottom:8px;
+  }
+  .hwb-card-head .hw-title{
+    margin-bottom:0;
+    flex:1;
+    min-width:0;
+  }
+  .hwb-btn-mini{
+    flex-shrink:0;
+    min-width:28px;
+    height:24px;
+    padding:0 10px;
+    border:1px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.08);
+    color:var(--ink-2);
+    border-radius:12px;
+    font-size:11px;
+    font-weight:700;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    letter-spacing:0.05em;
+    transition:transform 0.1s;
+    font-family:inherit;
+  }
+  body:not(.dark) .hwb-btn-mini{
+    background:rgba(0,0,0,0.05);
+    border-color:rgba(0,0,0,0.1);
+  }
+  .hwb-btn-mini:active{ transform:scale(0.92); }
+  .hwb-btn-mini.off{ opacity:0.5; }
+
+  /* Goal */
+  .hwb-goal-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:8px;
+  }
+  .hwb-goal-label{ font-size:13px; color:var(--ink-3); }
+  .hwb-goal-value{
+    font-size:22px;
+    font-weight:800;
+    color:var(--ink);
+    letter-spacing:-0.01em;
+    font-family:var(--font-display, inherit);
+  }
+  .hwb-goal-value .hwb-goal-target{ opacity:0.5; font-size:16px; }
+  .hwb-goal-meta{
+    font-size:11px;
+    color:var(--ink-3);
+    margin-top:6px;
+  }
+
+  /* Reminders */
+  .hwb-rem-list{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    max-height:200px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .hwb-rem-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 10px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:10px;
+    font-size:13px;
+  }
+  body:not(.dark) .hwb-rem-item{
+    background:rgba(0,0,0,0.03);
+    border-color:rgba(0,0,0,0.06);
+  }
+  .hwb-rem-item.soon{
+    border-color:rgba(255,159,10,0.5);
+    background:rgba(255,159,10,0.1);
+  }
+  .hwb-rem-item.overdue{
+    border-color:rgba(255,69,58,0.5);
+    background:rgba(255,69,58,0.1);
+  }
+  .hwb-rem-title{
+    flex:1;
+    color:var(--ink);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    min-width:0;
+  }
+  .hwb-rem-when{
+    font-size:11px;
+    color:var(--ink-3);
+    flex-shrink:0;
+    font-weight:600;
+  }
+  .hwb-rem-del{
+    background:transparent;
+    border:0;
+    color:var(--ink-4);
+    font-size:18px;
+    line-height:1;
+    padding:0 4px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    flex-shrink:0;
+    font-family:inherit;
+  }
+  .hwb-rem-del:active{ color:#FF453A; }
+  .hwb-rem-empty{
+    font-size:12px;
+    color:var(--ink-4);
+    text-align:center;
+    padding:10px 0;
+    font-style:italic;
+  }
+
+  /* Reminder modal */
+  .hwb-modal-bg{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.5);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    z-index:99999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .hwb-modal{
+    background:rgba(20,32,56,0.96);
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:16px;
+    padding:18px;
+    width:100%;
+    max-width:340px;
+    color:#F0F4FB;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  body:not(.dark) .hwb-modal{
+    background:rgba(255,255,255,0.98);
+    border-color:rgba(0,0,0,0.1);
+    color:#0B1426;
+  }
+  .hwb-modal h3{
+    margin:0 0 14px;
+    font-size:16px;
+    font-weight:700;
+  }
+  .hwb-modal input{
+    width:100%;
+    padding:10px 12px;
+    margin-bottom:10px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:8px;
+    color:inherit;
+    font-size:14px;
+    font-family:inherit;
+    box-sizing:border-box;
+  }
+  body:not(.dark) .hwb-modal input{
+    background:rgba(0,0,0,0.04);
+    border-color:rgba(0,0,0,0.1);
+  }
+  .hwb-modal input:focus{
+    outline:none;
+    border-color:#5AC8FA;
+  }
+  .hwb-modal-btns{
+    display:flex;
+    gap:8px;
+    margin-top:6px;
+  }
+  .hwb-modal-btns button{
+    flex:1;
+    padding:10px;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:700;
+    border:1px solid rgba(255,255,255,0.15);
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    font-family:inherit;
+  }
+  body:not(.dark) .hwb-modal-btns button{
+    border-color:rgba(0,0,0,0.1);
+  }
+  .hwb-modal-btns .cancel{
+    background:rgba(255,255,255,0.06);
+    color:inherit;
+  }
+  body:not(.dark) .hwb-modal-btns .cancel{
+    background:rgba(0,0,0,0.05);
+  }
+  .hwb-modal-btns .save{
+    background:linear-gradient(135deg,#5AC8FA,#0A84FF);
+    color:#fff;
+    border-color:transparent;
+  }
+
+  /* Break */
+  .hwb-break-status{
+    font-size:15px;
+    font-weight:700;
+    margin-bottom:8px;
+    color:var(--ink);
+  }
+  .hwb-break-status.resting{ color:#30D158; }
+  .hwb-break-status.due{ color:#FF9F0A; }
+  .hwb-progress-fill.brk{
+    background:linear-gradient(90deg,#5AC8FA,#BF5AF2);
+  }
+  .hwb-progress-fill.brk.rest{
+    background:linear-gradient(90deg,#30D158,#34C759);
+  }
+  .hwb-break-meta{
+    font-size:11px;
+    color:var(--ink-3);
+    margin-top:6px;
+  }
+</style>
+
+<script>
+(function(){
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════
+  // FEATURE FLAGS — ปิดทีละตัวได้ทาง console:
+  //   window.HW_B_ENABLED.goal = false;       window.renderHomeWidgets();
+  //   window.HW_B_ENABLED.reminders = false;  window.renderHomeWidgets();
+  //   window.HW_B_ENABLED.brk = false;        window.renderHomeWidgets();
+  // ═══════════════════════════════════════════════════════════════
+  const HW_B_ENABLED = { goal: true, reminders: true, brk: true };
+  window.HW_B_ENABLED = HW_B_ENABLED; // expose สำหรับ emergency kill
+
+  // ─── SAFE WRAPPER ──────────────────────────────────────────────
+  function hwbSafe(name, fn){
+    try { return fn(); }
+    catch(e){
+      console.error('[HW-B:'+name+'] error (sandboxed):', e);
+      try {
+        const el = document.getElementById('hwb-'+name);
+        if(el) el.style.display = 'none';
+      } catch(_){}
+      return null;
+    }
+  }
+
+  // ─── DOM CREATE / GET ──────────────────────────────────────────
+  function hwbGetOrCreate(id){
+    let el = document.getElementById(id);
+    if(!el){
+      const c = document.getElementById('hw-container');
+      if(!c) return null;
+      el = document.createElement('div');
+      el.id = id;
+      el.className = 'hw-card';
+      c.appendChild(el);
+    }
+    return el;
+  }
+
+  // ─── localStorage helpers (defensive) ─────────────────────────
+  function hwbLSGet(key, fallback){
+    try {
+      const raw = localStorage.getItem(key);
+      if(raw === null || raw === undefined) return fallback;
+      return JSON.parse(raw);
+    } catch(e){
+      console.warn('[HW-B] LS get fail:', key, e);
+      return fallback;
+    }
+  }
+  function hwbLSSet(key, val){
+    try { localStorage.setItem(key, JSON.stringify(val)); return true; }
+    catch(e){ console.warn('[HW-B] LS set fail:', key, e); return false; }
+  }
+
+  // ─── IDT week-start (Monday) ──────────────────────────────────
+  function hwbWeekStartIDT(){
+    try {
+      const idtNow = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem', hour12: false });
+      const d = new Date(idtNow);
+      d.setHours(0,0,0,0);
+      const day = d.getDay(); // 0=Sun, 1=Mon
+      const diff = (day === 0 ? -6 : 1 - day);
+      d.setDate(d.getDate() + diff);
+      return d;
+    } catch(_){
+      const d = new Date(); d.setHours(0,0,0,0); return d;
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // WIDGET 4: GOAL TRACKER — วันมาตรงเวลา (จันทร์-ศุกร์)
+  // ════════════════════════════════════════════════════════════════
+  function renderGoal(){
+    if(!HW_B_ENABLED.goal) return;
+    const el = hwbGetOrCreate('hwb-goal');
+    if(!el) return;
+
+    let onTimeCount = 0, totalDays = 0;
+    try {
+      if(typeof curUser !== 'undefined' && curUser && typeof records !== 'undefined' && Array.isArray(records)){
+        const weekStart = hwbWeekStartIDT();
+        const uid = curUser.id;
+        for(let i = 0; i < records.length; i++){
+          const r = records[i];
+          if(!r || r.empId !== uid || !r.date) continue;
+          const rd = new Date(r.date + 'T00:00:00');
+          if(isNaN(rd.getTime())) continue;
+          const dow = rd.getDay();
+          if(dow === 0 || dow === 6) continue; // ข้าม เสาร์-อาทิตย์
+          const diffDays = Math.floor((rd - weekStart) / 86400000);
+          if(diffDays < 0 || diffDays >= 5) continue;
+          if(!r.checkIn) continue; // ต้องเช็คอินแล้วเท่านั้น
+          totalDays++;
+          if(r.isLate === false || r.isLate === 0 || r.isLate === undefined || r.isLate === null) onTimeCount++;
+        }
+      }
+    } catch(e){ console.warn('[HW-B:goal] count error:', e); }
+
+    const target = 5;
+    const pct = Math.min(100, Math.round((onTimeCount / target) * 100));
+
+    let msg;
+    if(onTimeCount >= target) msg = '🎉 ครบแล้ว! สัปดาห์เพอร์เฟค';
+    else if(totalDays === 0) msg = 'สัปดาห์ใหม่ เริ่มกันเลย';
+    else if(onTimeCount === totalDays && totalDays > 0) msg = '🔥 ตรงเวลาทุกวัน เก่งมาก';
+    else if(onTimeCount === 0 && totalDays > 0) msg = 'ยังไม่มีวันตรงเวลา 😅';
+    else msg = 'ขาดอีก ' + (target - onTimeCount) + ' วัน';
+
+    el.innerHTML =
+      '<div class="hw-title"><span class="hw-icon">🎯</span>เป้าหมายสัปดาห์</div>' +
+      '<div class="hwb-goal-row">' +
+        '<div class="hwb-goal-label">วันมาตรงเวลา</div>' +
+        '<div class="hwb-goal-value">' + onTimeCount + '<span class="hwb-goal-target">/' + target + '</span></div>' +
+      '</div>' +
+      '<div class="hw-progress-bar"><div class="hw-progress-fill done" style="width:' + pct + '%"></div></div>' +
+      '<div class="hwb-goal-meta">' + msg + '</div>';
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // WIDGET 5: UPCOMING REMINDERS (localStorage)
+  // Schema: [{id, title, dueTs, createdTs}]
+  // ════════════════════════════════════════════════════════════════
+  const HWB_REM_KEY = 'rudy_reminders_v1';
+  const HWB_MAX_REMINDERS = 20;
+
+  function hwbLoadReminders(){
+    const list = hwbLSGet(HWB_REM_KEY, []);
+    if(!Array.isArray(list)) return [];
+    // กรอง entry เสีย + เลย 7 วันออก
+    const cutoff = Date.now() - 7 * 86400000;
+    return list.filter(r => r && typeof r.dueTs === 'number' && typeof r.title === 'string' && r.dueTs > cutoff);
+  }
+  function hwbSaveReminders(list){
+    if(!Array.isArray(list)) return;
+    // limit max
+    if(list.length > HWB_MAX_REMINDERS) list = list.slice(-HWB_MAX_REMINDERS);
+    hwbLSSet(HWB_REM_KEY, list);
+  }
+  function hwbFormatWhen(ts){
+    try {
+      const now = Date.now();
+      const diff = ts - now;
+      const absMin = Math.abs(Math.floor(diff / 60000));
+      if(diff < 0){
+        if(absMin < 60) return 'เลย ' + absMin + ' นาที';
+        if(absMin < 1440) return 'เลย ' + Math.floor(absMin/60) + ' ชม';
+        return 'เลย ' + Math.floor(absMin/1440) + ' วัน';
+      }
+      if(absMin < 60) return 'อีก ' + absMin + ' นาที';
+      if(absMin < 1440) return 'อีก ' + Math.floor(absMin/60) + ' ชม';
+      const days = Math.floor(absMin / 1440);
+      if(days < 7) return 'อีก ' + days + ' วัน';
+      const d = new Date(ts);
+      if(isNaN(d.getTime())) return '';
+      return d.getDate() + '/' + (d.getMonth()+1);
+    } catch(_){ return ''; }
+  }
+
+  function escapeHtml(s){
+    if(typeof s !== 'string') return '';
+    return s.replace(/[&<>"']/g, ch => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    })[ch]);
+  }
+
+  function renderReminders(){
+    if(!HW_B_ENABLED.reminders) return;
+    const el = hwbGetOrCreate('hwb-reminders');
+    if(!el) return;
+
+    let list = hwbLoadReminders();
+    list.sort((a,b) => a.dueTs - b.dueTs);
+    hwbSaveReminders(list); // เซฟกลับหลัง cleanup
+
+    const now = Date.now();
+    const show = list.slice(0, 3);
+
+    let listHtml = '';
+    if(show.length === 0){
+      listHtml = '<div class="hwb-rem-empty">ยังไม่มีรายการ — กดปุ่ม ＋</div>';
+    } else {
+      for(let i = 0; i < show.length; i++){
+        const r = show[i];
+        const diff = r.dueTs - now;
+        let cls = 'hwb-rem-item';
+        if(diff < 0) cls += ' overdue';
+        else if(diff < 3600000) cls += ' soon';
+        listHtml +=
+          '<div class="' + cls + '" data-rid="' + escapeHtml(r.id) + '">' +
+            '<span class="hwb-rem-title">' + escapeHtml(r.title) + '</span>' +
+            '<span class="hwb-rem-when">' + escapeHtml(hwbFormatWhen(r.dueTs)) + '</span>' +
+            '<button type="button" class="hwb-rem-del" data-del="' + escapeHtml(r.id) + '" aria-label="ลบ">×</button>' +
+          '</div>';
+      }
+    }
+
+    const remaining = list.length > 3 ? ' (+' + (list.length - 3) + ' รายการ)' : '';
+
+    el.innerHTML =
+      '<div class="hwb-card-head">' +
+        '<div class="hw-title" style="margin:0;flex:1"><span class="hw-icon">📅</span>เตือนความจำ' + remaining + '</div>' +
+        '<button type="button" class="hwb-btn-mini" id="hwb-rem-add" aria-label="เพิ่ม">＋</button>' +
+      '</div>' +
+      '<div class="hwb-rem-list">' + listHtml + '</div>';
+
+    // bind events (re-bind ทุกครั้ง render เพราะ innerHTML ลบ listener)
+    const addBtn = document.getElementById('hwb-rem-add');
+    if(addBtn) addBtn.addEventListener('click', openReminderModal);
+    el.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        const id = this.getAttribute('data-del');
+        hwbSafe('delete', () => {
+          let lst = hwbLoadReminders();
+          lst = lst.filter(r => r.id !== id);
+          hwbSaveReminders(lst);
+          renderReminders();
+        });
+      });
+    });
+  }
+
+  function openReminderModal(){
+    hwbSafe('modal', function(){
+      // ลบ modal เก่าถ้ามี
+      const old = document.getElementById('hwb-rem-modal');
+      if(old && old.parentNode) old.parentNode.removeChild(old);
+
+      // default = พรุ่งนี้ 09:00
+      const d = new Date(Date.now() + 86400000);
+      const pad = n => n < 10 ? '0' + n : '' + n;
+      const defaultDT = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T09:00';
+
+      const bg = document.createElement('div');
+      bg.className = 'hwb-modal-bg';
+      bg.id = 'hwb-rem-modal';
+      bg.innerHTML =
+        '<div class="hwb-modal" role="dialog" aria-modal="true">' +
+          '<h3>เพิ่มเตือนความจำ</h3>' +
+          '<input type="text" id="hwb-rem-title-in" placeholder="เช่น ส่งรายงาน" maxlength="60" autocomplete="off" />' +
+          '<input type="datetime-local" id="hwb-rem-time-in" value="' + defaultDT + '" />' +
+          '<div class="hwb-modal-btns">' +
+            '<button type="button" class="cancel" id="hwb-rem-cancel">ยกเลิก</button>' +
+            '<button type="button" class="save" id="hwb-rem-save">บันทึก</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(bg);
+
+      const close = () => { if(bg.parentNode) bg.parentNode.removeChild(bg); };
+
+      const cancelBtn = document.getElementById('hwb-rem-cancel');
+      if(cancelBtn) cancelBtn.addEventListener('click', close);
+
+      bg.addEventListener('click', e => { if(e.target === bg) close(); });
+
+      const saveBtn = document.getElementById('hwb-rem-save');
+      if(saveBtn){
+        saveBtn.addEventListener('click', function(){
+          hwbSafe('save', function(){
+            const titleIn = document.getElementById('hwb-rem-title-in');
+            const timeIn = document.getElementById('hwb-rem-time-in');
+            if(!titleIn || !timeIn){ close(); return; }
+            const title = (titleIn.value || '').trim();
+            const timeStr = timeIn.value;
+            if(!title){ titleIn.focus(); return; }
+            if(!timeStr){ timeIn.focus(); return; }
+            const ts = new Date(timeStr).getTime();
+            if(isNaN(ts)){ timeIn.focus(); return; }
+
+            let list = hwbLoadReminders();
+            if(list.length >= HWB_MAX_REMINDERS) list = list.slice(-(HWB_MAX_REMINDERS - 1));
+            list.push({
+              id: 'r_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+              title: title.slice(0, 60),
+              dueTs: ts,
+              createdTs: Date.now()
+            });
+            hwbSaveReminders(list);
+            close();
+            renderReminders();
+          });
+        });
+      }
+
+      // auto focus + ป้องกัน iOS keyboard zoom
+      setTimeout(() => {
+        const t = document.getElementById('hwb-rem-title-in');
+        if(t) t.focus();
+      }, 150);
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // WIDGET 6: SMART BREAK — Ultradian 90min
+  // ทำ 90 → พัก 15 → ทำ 90 → พัก 15 ...
+  // เริ่มนับจาก checkInTs ของวันนี้, หยุดเมื่อ checkOut
+  // ════════════════════════════════════════════════════════════════
+  const HWB_BRK_ON_KEY = 'rudy_break_on_v1';
+  const HWB_WORK_MS = 90 * 60 * 1000;
+  const HWB_REST_MS = 15 * 60 * 1000;
+
+  function hwbBreakIsOn(){
+    const v = hwbLSGet(HWB_BRK_ON_KEY, true);
+    return v !== false;
+  }
+
+  function hwbGetActiveCheckInTs(){
+    try {
+      if(typeof curUser === 'undefined' || !curUser) return null;
+      if(typeof records === 'undefined' || !Array.isArray(records)) return null;
+      const today = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10);
+      const uid = curUser.id;
+      // หา record ที่เช็คอินแล้วแต่ยังไม่เช็คเอ้าท์
+      for(let i = 0; i < records.length; i++){
+        const r = records[i];
+        if(!r || r.empId !== uid || r.date !== today) continue;
+        if(r.checkInTs && !r.checkOutTs) return r.checkInTs;
+      }
+      return null;
+    } catch(_){ return null; }
+  }
+
+  function renderBreak(){
+    if(!HW_B_ENABLED.brk) return;
+    const el = hwbGetOrCreate('hwb-brk');
+    if(!el) return;
+
+    const on = hwbBreakIsOn();
+
+    let statusHtml, metaHtml, pct = 0, barClass = 'brk';
+
+    if(!on){
+      statusHtml = 'ปิดการเตือนพัก';
+      metaHtml = 'กดปุ่ม ON เพื่อเปิดใช้งาน';
+    } else {
+      const checkInTs = hwbGetActiveCheckInTs();
+      if(!checkInTs){
+        statusHtml = 'รอเช็คอิน';
+        metaHtml = 'ทำงาน 90 นาที → พัก 15 นาที';
+      } else {
+        const now = Date.now();
+        let elapsed = now - checkInTs;
+        if(elapsed < 0) elapsed = 0;
+        const cycle = HWB_WORK_MS + HWB_REST_MS;
+        const inCycle = elapsed % cycle;
+        const cycleNum = Math.floor(elapsed / cycle) + 1;
+
+        if(inCycle < HWB_WORK_MS){
+          const remain = HWB_WORK_MS - inCycle;
+          const remainMin = Math.ceil(remain / 60000);
+          pct = Math.min(100, Math.round((inCycle / HWB_WORK_MS) * 100));
+          const dueClass = remainMin <= 5 ? ' due' : '';
+          statusHtml = '<span class="hwb-break-status' + dueClass + '">รอบที่ ' + cycleNum + ' · อีก ' + remainMin + ' นาที</span>';
+          metaHtml = 'ทำงาน 90 นาที → พัก 15 นาที';
+        } else {
+          const restElapsed = inCycle - HWB_WORK_MS;
+          const restRemain = HWB_REST_MS - restElapsed;
+          const restRemainMin = Math.max(1, Math.ceil(restRemain / 60000));
+          pct = Math.min(100, Math.round((restElapsed / HWB_REST_MS) * 100));
+          barClass = 'brk rest';
+          statusHtml = '<span class="hwb-break-status resting">☕ พักได้! อีก ' + restRemainMin + ' นาที</span>';
+          metaHtml = 'ลุกยืด ดื่มน้ำ พักสายตา';
+        }
+      }
+    }
+
+    // ถ้าไม่ใช่ HTML element แล้ว wrap เอง
+    const statusFinal = statusHtml.indexOf('<span') === 0 ? statusHtml : '<div class="hwb-break-status">' + statusHtml + '</div>';
+
+    el.innerHTML =
+      '<div class="hwb-card-head">' +
+        '<div class="hw-title" style="margin:0;flex:1"><span class="hw-icon">☕</span>พักสมอง</div>' +
+        '<button type="button" class="hwb-btn-mini' + (on ? '' : ' off') + '" id="hwb-brk-toggle">' + (on ? 'ON' : 'OFF') + '</button>' +
+      '</div>' +
+      statusFinal +
+      '<div class="hw-progress-bar"><div class="hw-progress-fill ' + barClass + '" style="width:' + pct + '%"></div></div>' +
+      '<div class="hwb-break-meta">' + metaHtml + '</div>';
+
+    const toggle = document.getElementById('hwb-brk-toggle');
+    if(toggle){
+      toggle.addEventListener('click', function(){
+        hwbSafe('toggle', function(){
+          hwbLSSet(HWB_BRK_ON_KEY, !hwbBreakIsOn());
+          renderBreak();
+        });
+      });
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // MAIN RENDER + HOOK INTO PHASE A
+  // ════════════════════════════════════════════════════════════════
+  function renderAllB(){
+    // เช็คว่าอยู่หน้า home ก่อน
+    try {
+      const homePage = document.getElementById('page-home');
+      if(!homePage || !homePage.classList.contains('active')) return;
+    } catch(_){ return; }
+    hwbSafe('goal', renderGoal);
+    hwbSafe('reminders', renderReminders);
+    hwbSafe('brk', renderBreak);
+  }
+
+  // expose สำหรับ debug
+  window.renderHomeWidgetsB = renderAllB;
+
+  // Hook: wrap window.renderHomeWidgets เดิม (จาก Phase A)
+  // เพื่อให้ทุกครั้งที่ Phase A trigger Phase B ก็ trigger ตาม
+  function installHook(){
+    const orig = window.renderHomeWidgets;
+    if(typeof orig !== 'function'){
+      // Phase A ยังไม่โหลด → รอแล้วลองใหม่
+      setTimeout(installHook, 500);
+      return;
+    }
+    if(orig._hasBHook) return; // กัน wrap ซ้ำ
+    const wrapped = function(){
+      try { orig.apply(this, arguments); }
+      catch(e){ console.error('[HW-B] Phase A render error (sandboxed):', e); }
+      try { renderAllB(); }
+      catch(e){ console.error('[HW-B] Phase B render error (sandboxed):', e); }
+    };
+    wrapped._hasBHook = true;
+    window.renderHomeWidgets = wrapped;
+    console.log('[HW-B] Hook installed on renderHomeWidgets');
+  }
+
+  // Tick: update reminders/break ทุก 30 วินาที
+  // (Phase A มี tick ของ countdown 60s — เราเสริม 30s สำหรับ B)
+  let _hwbTick = null;
+  function startTick(){
+    if(_hwbTick) clearInterval(_hwbTick);
+    _hwbTick = setInterval(function(){
+      hwbSafe('tick', function(){
+        // เรียกเฉพาะเมื่ออยู่หน้า home
+        try {
+          const homePage = document.getElementById('page-home');
+          if(!homePage || !homePage.classList.contains('active')) return;
+        } catch(_){ return; }
+        hwbSafe('reminders', renderReminders);
+        hwbSafe('brk', renderBreak);
+      });
+    }, 30000);
+  }
+
+  function initB(){
+    try {
+      // รอ curUser พร้อม (เหมือน Phase A)
+      if(typeof curUser === 'undefined' || !curUser){
+        setTimeout(initB, 1000);
+        return;
+      }
+      installHook();
+      renderAllB();
+      startTick();
+    } catch(e){ console.error('[HW-B] init error (sandboxed):', e); }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', () => setTimeout(initB, 2500));
+  } else {
+    setTimeout(initB, 2500);
+  }
+})();
+</script>
 </body>
 </html>
