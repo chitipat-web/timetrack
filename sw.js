@@ -1,7 +1,7 @@
 // =============================================================
 // RUDY · Service Worker v116
 // Cache: rudy-static-v116, firebase-v116
-// Build: 2026-05-13 · Readability fix (text contrast in dark mode)
+// Build: 2026-05-11 · AAA Effects update
 // =============================================================
 
 const STATIC_CACHE  = 'rudy-static-v116';
@@ -256,4 +256,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v116] Loaded — Readability fix (text contrast in dark mode)');
+console.log('[SW v116] Loaded — AAA Effects update with full iOS bypass list');
