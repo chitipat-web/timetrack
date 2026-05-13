@@ -3124,53 +3124,70 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 </head>
 <body>
 <!-- INIT LOADING OVERLAY (load-D-motion: underwater theme) -->
-<div id="init-overlay" class="dmotion-loading" style="position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;z-index:2147483647;overflow:hidden;background:linear-gradient(180deg,#001828 0%,#003554 50%,#001020 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Sarabun','Inter',sans-serif">
-  <!-- God rays disabled for perf -->
-
-  <!-- Flare disabled for perf -->
+<div id="init-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;z-index:2147483647;overflow:hidden;background:linear-gradient(180deg,#001828 0%,#003554 50%,#001020 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Sarabun','Inter',sans-serif;color:#fff">
 
   <!-- Bubbles container -->
-  <div id="dm-bubbles"></div>
+  <div id="dm-bubbles" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
 
   <!-- Sparkles container -->
-  <div id="dm-sparkles"></div>
+  <div id="dm-sparkles" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
 
-  <!-- Main scene with camera sway -->
-  <div class="dm-scene">
-    <div class="dm-drop-stage">
-      <!-- Intro splash removed for perf -->
-
-      <!-- Splash bursts removed for perf -->
-
-      <div class="dm-ripple dm-rip1"></div>
-      <div class="dm-ripple dm-rip2"></div>
-
-      <div class="dm-droplet">
-        <div class="dm-drop-logo">R</div>
-      </div>
-    </div>
-
-    <div class="dm-title-stack">
-      <div class="dm-title">RUDY</div>
-      <div class="dm-subtitle">DIVING IN</div>
-    </div>
-
-    <div class="dm-wave-loader">
-      <div class="dm-wave-bar"></div>
-      <div class="dm-wave-bar"></div>
-      <div class="dm-wave-bar"></div>
-      <div class="dm-wave-bar"></div>
-    </div>
-
-    <div id="overlay-status" class="dm-drop-status">กำลังเตรียมข้อมูล</div>
+  <!-- Droplet R -->
+  <div style="position:relative;width:140px;height:140px;background:linear-gradient(135deg,#5AC8FA 0%,#0A84FF 50%,#5E5CE6 100%);border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 -8px 20px rgba(0,0,0,0.3),inset 0 8px 20px rgba(255,255,255,0.4),0 12px 32px rgba(10,132,255,0.5),0 0 60px rgba(94,200,250,0.4);margin-bottom:36px;animation:dmDropBob 3s ease-in-out infinite alternate">
+    <!-- Ripples behind -->
+    <div style="position:absolute;inset:0;border:2px solid rgba(94,200,250,0.5);border-radius:50%;animation:dmRippleOut 3s ease-out infinite"></div>
+    <div style="position:absolute;inset:0;border:2px solid rgba(186,230,253,0.5);border-radius:50%;animation:dmRippleOut 3s ease-out 1.5s infinite"></div>
+    <!-- R Letter -->
+    <span style="font-family:'Inter',-apple-system,sans-serif;font-size:54px;font-weight:900;color:#fff;text-shadow:0 2px 8px rgba(0,30,60,0.6),0 0 20px rgba(255,255,255,0.4);letter-spacing:-0.04em;position:relative;z-index:2">R</span>
   </div>
 
-  <!-- Edge blur overlay -->
-  <div class="dm-edge-blur"></div>
+  <!-- Title stack -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:24px">
+    <div style="font-family:'Inter',-apple-system,sans-serif;font-size:38px;font-weight:800;letter-spacing:-0.025em;background:linear-gradient(135deg,#fff 0%,#92DCFE 50%,#5AC8FA 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;color:transparent">RUDY</div>
+    <div style="font-size:12px;color:rgba(186,230,253,0.6);font-weight:500;letter-spacing:0.2em;text-transform:uppercase">— DIVING IN —</div>
+  </div>
 
-  <!-- Hidden skip button (used by JS for timeout fallback) -->
+  <!-- Wave loader -->
+  <div style="display:flex;align-items:flex-end;gap:4px;height:24px;margin-bottom:14px">
+    <div style="width:4px;border-radius:99px;background:linear-gradient(180deg,#5AC8FA,#0A84FF);box-shadow:0 0 8px rgba(94,200,250,0.6);animation:dmWaveBar 1.4s ease-in-out infinite;animation-delay:0s"></div>
+    <div style="width:4px;border-radius:99px;background:linear-gradient(180deg,#5AC8FA,#0A84FF);box-shadow:0 0 8px rgba(94,200,250,0.6);animation:dmWaveBar 1.4s ease-in-out infinite;animation-delay:0.15s"></div>
+    <div style="width:4px;border-radius:99px;background:linear-gradient(180deg,#5AC8FA,#0A84FF);box-shadow:0 0 8px rgba(94,200,250,0.6);animation:dmWaveBar 1.4s ease-in-out infinite;animation-delay:0.3s"></div>
+    <div style="width:4px;border-radius:99px;background:linear-gradient(180deg,#5AC8FA,#0A84FF);box-shadow:0 0 8px rgba(94,200,250,0.6);animation:dmWaveBar 1.4s ease-in-out infinite;animation-delay:0.45s"></div>
+  </div>
+
+  <!-- Status text -->
+  <div id="overlay-status" style="font-size:11px;color:rgba(186,230,253,0.5);letter-spacing:0.15em;text-transform:uppercase;transition:opacity 0.3s ease">กำลังเตรียมข้อมูล</div>
+
+  <!-- Hidden skip button -->
   <div id="overlay-skip" style="display:none"></div>
 </div>
+
+<!-- Keyframes for overlay animations (defined inline-style-friendly) -->
+<style id="dm-inline-anims">
+@keyframes dmDropBob {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-10px); }
+}
+@keyframes dmRippleOut {
+  0% { width: 100%; height: 100%; opacity: 0.8; border-width: 3px; transform: scale(0.5); }
+  100% { width: 100%; height: 100%; opacity: 0; border-width: 0; transform: scale(2); }
+}
+@keyframes dmWaveBar {
+  0%, 100% { height: 6px; }
+  50% { height: 20px; }
+}
+@keyframes dmBubbleUp {
+  0% { transform: translateX(0) translateY(0); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.5; }
+  100% { transform: translateX(var(--sway,0px)) translateY(-110vh); opacity: 0; }
+}
+@keyframes dmSparkleBlink {
+  0%, 90%, 100% { opacity: 0; }
+  5%, 15% { opacity: 1; }
+}
+</style>
+
 
 
 <!-- iOS 26 Global Liquid Glass Wallpaper (persistent across all pages) -->
@@ -12180,32 +12197,28 @@ if('serviceWorker' in navigator) {
 (function(){
   function initDMotion(){
     try {
-      // Bubbles
+      // Bubbles (inline styles - bulletproof)
       var bubbles = document.getElementById('dm-bubbles');
       if(bubbles){
         for(var i = 0; i < 10; i++){
           var b = document.createElement('div');
-          b.className = 'dm-bubble';
           var size = 6 + Math.random() * 22;
-          b.style.width = size + 'px';
-          b.style.height = size + 'px';
-          b.style.left = Math.random() * 100 + 'vw';
-          b.style.setProperty('--dur', (5 + Math.random() * 6) + 's');
-          b.style.setProperty('--delay', (Math.random() * 5) + 's');
-          b.style.setProperty('--sway', ((Math.random() - 0.5) * 80) + 'px');
+          var dur = (5 + Math.random() * 6) + 's';
+          var delay = (Math.random() * 5) + 's';
+          var sway = ((Math.random() - 0.5) * 80) + 'px';
+          b.style.cssText = 'position:absolute;bottom:-20px;left:'+(Math.random()*100)+'vw;width:'+size+'px;height:'+size+'px;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.7),rgba(186,230,253,0.3) 60%,transparent);border:1px solid rgba(255,255,255,0.3);pointer-events:none;animation:dmBubbleUp '+dur+' ease-in '+delay+' infinite;opacity:0';
+          b.style.setProperty('--sway', sway);
           bubbles.appendChild(b);
         }
       }
-      // Sparkles
+      // Sparkles (inline styles)
       var sparkles = document.getElementById('dm-sparkles');
       if(sparkles){
         for(var j = 0; j < 8; j++){
           var s = document.createElement('div');
-          s.className = 'dm-sparkle';
-          s.style.left = Math.random() * 100 + 'vw';
-          s.style.top = Math.random() * 100 + 'vh';
-          s.style.setProperty('--d', (3 + Math.random() * 4) + 's');
-          s.style.setProperty('--dl', (Math.random() * 5) + 's');
+          var d = (3 + Math.random() * 4) + 's';
+          var dl = (Math.random() * 5) + 's';
+          s.style.cssText = 'position:absolute;left:'+(Math.random()*100)+'vw;top:'+(Math.random()*100)+'vh;width:3px;height:3px;background:#fff;border-radius:50%;box-shadow:0 0 6px #fff,0 0 12px rgba(186,230,253,0.6);animation:dmSparkleBlink '+d+' ease-in-out '+dl+' infinite;opacity:0';
           sparkles.appendChild(s);
         }
       }
