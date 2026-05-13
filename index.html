@@ -13289,5 +13289,486 @@ if('serviceWorker' in navigator) {
   }
 })();
 </script>
+
+<!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+<!-- ║ HOME WIDGETS SYSTEM — PHASE C                                   ║ -->
+<!-- ║ Widget 7: Team Leaderboard (3 metrics: ตรงเวลา/ชั่วโมง/สตรีค)    ║ -->
+<!-- ║                                                                  ║ -->
+<!-- ║ Pattern: IIFE sandbox + hwcSafe + HW_C_ENABLED flags             ║ -->
+<!-- ║ Hooks renderHomeWidgets แบบ wrap ต่อจาก Phase B                 ║ -->
+<!-- ║ Failure ของ widget ใดอันหนึ่ง = อันนั้นหายไป แอพไม่พัง          ║ -->
+<!-- ║ Positive-spin: เน้น "ผู้นำสัปดาห์" + ทีมรวม ไม่ public-shame    ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<style id="hw-styles-c">
+  /* Phase C Leaderboard */
+  .hwc-lb-tabs{
+    display:flex;
+    gap:4px;
+    margin-bottom:10px;
+    background:rgba(255,255,255,0.04);
+    border-radius:10px;
+    padding:3px;
+  }
+  body:not(.dark) .hwc-lb-tabs{
+    background:rgba(0,0,0,0.04);
+  }
+  .hwc-lb-tab{
+    flex:1;
+    padding:6px 8px;
+    border:0;
+    background:transparent;
+    color:var(--ink-3);
+    font-size:11px;
+    font-weight:600;
+    border-radius:8px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    font-family:inherit;
+    transition:background 0.15s, color 0.15s;
+    white-space:nowrap;
+  }
+  .hwc-lb-tab.active{
+    background:linear-gradient(135deg,#5AC8FA,#0A84FF);
+    color:#fff;
+  }
+  .hwc-lb-tab:active{ transform:scale(0.96); }
+
+  .hwc-lb-leader{
+    text-align:center;
+    padding:14px 12px;
+    background:linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,159,10,0.08));
+    border:1px solid rgba(255,215,0,0.25);
+    border-radius:12px;
+    margin-bottom:10px;
+  }
+  .hwc-lb-leader-icon{ font-size:32px; line-height:1; margin-bottom:4px; }
+  .hwc-lb-leader-name{
+    font-size:16px;
+    font-weight:800;
+    color:var(--ink);
+    margin-bottom:2px;
+  }
+  .hwc-lb-leader-stat{
+    font-size:13px;
+    color:#FFD60A;
+    font-weight:700;
+  }
+  body:not(.dark) .hwc-lb-leader-stat{ color:#B8860B; }
+  .hwc-lb-leader-sub{
+    font-size:11px;
+    color:var(--ink-3);
+    margin-top:3px;
+  }
+
+  .hwc-lb-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 10px;
+    background:rgba(255,255,255,0.03);
+    border-radius:8px;
+    margin-bottom:5px;
+    font-size:13px;
+  }
+  body:not(.dark) .hwc-lb-row{
+    background:rgba(0,0,0,0.03);
+  }
+  .hwc-lb-rank{
+    width:24px;
+    text-align:center;
+    font-weight:700;
+    color:var(--ink-3);
+    flex-shrink:0;
+  }
+  .hwc-lb-name{
+    flex:1;
+    color:var(--ink);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    min-width:0;
+  }
+  .hwc-lb-name.me{ color:#5AC8FA; font-weight:700; }
+  .hwc-lb-val{
+    color:var(--ink-2);
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    flex-shrink:0;
+  }
+
+  .hwc-lb-team{
+    margin-top:8px;
+    padding:8px 10px;
+    background:rgba(90,200,250,0.08);
+    border:1px solid rgba(90,200,250,0.2);
+    border-radius:8px;
+    font-size:12px;
+    color:var(--ink-2);
+    text-align:center;
+  }
+  .hwc-lb-team strong{ color:#5AC8FA; font-weight:700; }
+
+  .hwc-lb-empty{
+    text-align:center;
+    color:var(--ink-4);
+    font-size:12px;
+    padding:14px 0;
+    font-style:italic;
+  }
+</style>
+
+<script>
+(function(){
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════
+  // FEATURE FLAGS — ปิดได้ทาง console:
+  //   window.HW_C_ENABLED.lb = false;  window.renderHomeWidgets();
+  // ═══════════════════════════════════════════════════════════════
+  const HW_C_ENABLED = { lb: true };
+  window.HW_C_ENABLED = HW_C_ENABLED;
+
+  // metric ที่ user เลือกอยู่ (persist ใน localStorage)
+  const HWC_LB_METRIC_KEY = 'rudy_lb_metric_v1';
+  function getMetric(){
+    try {
+      const v = localStorage.getItem(HWC_LB_METRIC_KEY);
+      if(v === 'hours' || v === 'streak') return v;
+      return 'ontime';
+    } catch(_){ return 'ontime'; }
+  }
+  function setMetric(m){
+    try { localStorage.setItem(HWC_LB_METRIC_KEY, m); } catch(_){}
+  }
+
+  // ─── SAFE WRAPPER ──────────────────────────────────────────────
+  function hwcSafe(name, fn){
+    try { return fn(); }
+    catch(e){
+      console.error('[HW-C:'+name+'] error (sandboxed):', e);
+      try {
+        const el = document.getElementById('hwc-'+name);
+        if(el) el.style.display = 'none';
+      } catch(_){}
+      return null;
+    }
+  }
+
+  // ─── DOM CREATE / GET ──────────────────────────────────────────
+  function hwcGetOrCreate(id){
+    let el = document.getElementById(id);
+    if(!el){
+      const c = document.getElementById('hw-container');
+      if(!c) return null;
+      el = document.createElement('div');
+      el.id = id;
+      el.className = 'hw-card';
+      c.appendChild(el);
+    }
+    return el;
+  }
+
+  // ─── IDT week-start (Monday) ──────────────────────────────────
+  function hwcWeekStartIDT(){
+    try {
+      const idtNow = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem', hour12: false });
+      const d = new Date(idtNow);
+      d.setHours(0,0,0,0);
+      const day = d.getDay();
+      const diff = (day === 0 ? -6 : 1 - day);
+      d.setDate(d.getDate() + diff);
+      return d;
+    } catch(_){
+      const d = new Date(); d.setHours(0,0,0,0); return d;
+    }
+  }
+
+  // ─── ESCAPE HTML (use global if available) ─────────────────────
+  function esc(s){
+    if(typeof escHtml === 'function') return escHtml(s);
+    if(s == null) return '';
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    })[c]);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // LEADERBOARD CALCULATIONS
+  // Returns: [{uid, name, value, displayValue, isMe}, ...] sorted desc
+  // ════════════════════════════════════════════════════════════════
+  function computeOnTime(emps, recs, weekStart){
+    const result = [];
+    for(const emp of emps){
+      let onTime = 0, total = 0;
+      for(const r of recs){
+        if(!r || r.empId !== emp.id || !r.date) continue;
+        const rd = new Date(r.date + 'T00:00:00');
+        if(isNaN(rd.getTime())) continue;
+        const dow = rd.getDay();
+        if(dow === 0 || dow === 6) continue;
+        const diffDays = Math.floor((rd - weekStart) / 86400000);
+        if(diffDays < 0 || diffDays >= 5) continue;
+        if(!r.checkIn) continue;
+        total++;
+        if(r.isLate === false || r.isLate === 0 || r.isLate == null) onTime++;
+      }
+      result.push({
+        uid: emp.id,
+        name: emp.name || '-',
+        value: onTime,
+        total: total,
+        displayValue: onTime + '/' + (total || 0)
+      });
+    }
+    return result;
+  }
+
+  function computeHours(emps, recs, weekStart){
+    const result = [];
+    for(const emp of emps){
+      let totalMs = 0;
+      for(const r of recs){
+        if(!r || r.empId !== emp.id || !r.date) continue;
+        const rd = new Date(r.date + 'T00:00:00');
+        if(isNaN(rd.getTime())) continue;
+        const dow = rd.getDay();
+        if(dow === 0 || dow === 6) continue;
+        const diffDays = Math.floor((rd - weekStart) / 86400000);
+        if(diffDays < 0 || diffDays >= 5) continue;
+        if(!r.checkInTs || !r.checkOutTs) continue;
+        const ms = r.checkOutTs - r.checkInTs;
+        if(ms < 0 || ms > 24*3600000) continue; // sanity
+        totalMs += ms;
+      }
+      const hours = Math.round((totalMs / 3600000) * 10) / 10;
+      result.push({
+        uid: emp.id,
+        name: emp.name || '-',
+        value: hours,
+        displayValue: hours.toFixed(1) + ' ชม'
+      });
+    }
+    return result;
+  }
+
+  function computeStreak(emps, recs){
+    // streak = วันที่เช็คอินติดต่อกัน (ไม่นับเสาร์-อาทิตย์)
+    const result = [];
+    const todayMs = (function(){
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      return d.getTime();
+    })();
+
+    for(const emp of emps){
+      // เก็บ set ของวันที่เช็คอินแล้ว
+      const checkedDays = new Set();
+      for(const r of recs){
+        if(!r || r.empId !== emp.id || !r.date) continue;
+        if(!r.checkIn) continue;
+        checkedDays.add(r.date);
+      }
+      // นับย้อนกลับจากวันนี้ ข้ามเสาร์-อาทิตย์
+      let streak = 0;
+      const d = new Date(todayMs);
+      // cap 60 iterations กัน loop รัน infinite
+      for(let i = 0; i < 60; i++){
+        const dow = d.getDay();
+        if(dow !== 0 && dow !== 6){
+          const dateStr = d.getFullYear() + '-' +
+            String(d.getMonth()+1).padStart(2,'0') + '-' +
+            String(d.getDate()).padStart(2,'0');
+          if(checkedDays.has(dateStr)) streak++;
+          else if(i > 0) break; // วันนี้ยังไม่ check-in ไม่ break (ยังพอมีเวลา)
+          else if(streak === 0 && i === 0) {/* skip วันนี้ ถ้ายังไม่เช็คอิน */}
+          else break;
+        }
+        d.setDate(d.getDate() - 1);
+      }
+      result.push({
+        uid: emp.id,
+        name: emp.name || '-',
+        value: streak,
+        displayValue: streak + ' วัน'
+      });
+    }
+    return result;
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // RENDER LEADERBOARD
+  // ════════════════════════════════════════════════════════════════
+  function renderLeaderboard(){
+    if(!HW_C_ENABLED.lb) return;
+    const el = hwcGetOrCreate('hwc-lb');
+    if(!el) return;
+
+    // เช็ค data พร้อม
+    if(typeof employees === 'undefined' || !Array.isArray(employees) ||
+       typeof records === 'undefined' || !Array.isArray(records) ||
+       typeof curUser === 'undefined' || !curUser){
+      el.style.display = 'none';
+      return;
+    }
+
+    // กรอง: เอาเฉพาะ employees ที่มี role employee หรือ admin (ไม่เอา test/disabled)
+    const emps = employees.filter(e => e && e.id && e.name).slice(0, 30); // cap 30 กัน loop runaway
+    if(emps.length === 0){
+      el.style.display = 'none';
+      return;
+    }
+
+    const metric = getMetric();
+    const weekStart = hwcWeekStartIDT();
+
+    let rows;
+    let title, leaderSuffix, teamSummary;
+    try {
+      if(metric === 'hours'){
+        rows = computeHours(emps, records, weekStart);
+        title = '⏱️ ชั่วโมงทำงาน';
+        leaderSuffix = '';
+        const sum = rows.reduce((s, r) => s + r.value, 0);
+        teamSummary = 'ทีมรวม <strong>' + sum.toFixed(1) + ' ชม</strong> สัปดาห์นี้';
+      } else if(metric === 'streak'){
+        rows = computeStreak(emps, records);
+        title = '🔥 Check-in Streak';
+        leaderSuffix = ' ติดต่อกัน';
+        const maxStreak = Math.max(0, ...rows.map(r => r.value));
+        teamSummary = 'streak ยาวสุดของทีม <strong>' + maxStreak + ' วัน</strong>';
+      } else {
+        rows = computeOnTime(emps, records, weekStart);
+        title = '🎯 ตรงเวลาสัปดาห์';
+        leaderSuffix = ' วัน';
+        const sum = rows.reduce((s, r) => s + r.value, 0);
+        const totalMax = rows.length * 5;
+        teamSummary = 'ทีมรวม <strong>' + sum + '/' + totalMax + '</strong> วันตรงเวลา';
+      }
+    } catch(e){
+      console.error('[HW-C:lb] compute failed:', e);
+      el.style.display = 'none';
+      return;
+    }
+
+    // sort desc by value
+    rows.sort((a, b) => b.value - a.value);
+
+    // build tabs
+    const tabs =
+      '<div class="hwc-lb-tabs">' +
+        '<button type="button" class="hwc-lb-tab' + (metric === 'ontime' ? ' active' : '') + '" data-m="ontime">🎯 ตรงเวลา</button>' +
+        '<button type="button" class="hwc-lb-tab' + (metric === 'hours' ? ' active' : '') + '" data-m="hours">⏱️ ชั่วโมง</button>' +
+        '<button type="button" class="hwc-lb-tab' + (metric === 'streak' ? ' active' : '') + '" data-m="streak">🔥 สตรีค</button>' +
+      '</div>';
+
+    // หา leader (อันดับ 1) — ถ้าทุกคน value=0 ให้แสดง empty
+    const leader = rows[0];
+    let leaderHtml = '';
+    if(leader && leader.value > 0){
+      const meSuffix = leader.uid === curUser.id ? ' (คุณเอง! 🎉)' : '';
+      leaderHtml =
+        '<div class="hwc-lb-leader">' +
+          '<div class="hwc-lb-leader-icon">🌟</div>' +
+          '<div class="hwc-lb-leader-name">' + esc(leader.name) + meSuffix + '</div>' +
+          '<div class="hwc-lb-leader-stat">' + esc(leader.displayValue) + esc(leaderSuffix) + '</div>' +
+          '<div class="hwc-lb-leader-sub">ผู้นำสัปดาห์นี้</div>' +
+        '</div>';
+    } else {
+      leaderHtml = '<div class="hwc-lb-empty">ยังไม่มีข้อมูลสัปดาห์นี้</div>';
+    }
+
+    // rows อื่นๆ (เฉพาะคนที่ไม่ใช่ leader, จำกัด 5 คน)
+    const others = rows.slice(1, 6);
+    let othersHtml = '';
+    if(others.length > 0 && leader && leader.value > 0){
+      for(let i = 0; i < others.length; i++){
+        const r = others[i];
+        const isMe = r.uid === curUser.id;
+        const rank = i + 2; // เริ่มจาก 2 เพราะ leader อันดับ 1
+        const medal = rank === 2 ? '🥈' : (rank === 3 ? '🥉' : '·');
+        othersHtml +=
+          '<div class="hwc-lb-row">' +
+            '<div class="hwc-lb-rank">' + medal + '</div>' +
+            '<div class="hwc-lb-name' + (isMe ? ' me' : '') + '">' + esc(r.name) + (isMe ? ' (คุณ)' : '') + '</div>' +
+            '<div class="hwc-lb-val">' + esc(r.displayValue) + '</div>' +
+          '</div>';
+      }
+    }
+
+    const titleEsc = esc(title);
+
+    el.innerHTML =
+      '<div class="hw-title"><span class="hw-icon">🏆</span>' + titleEsc + '</div>' +
+      tabs +
+      leaderHtml +
+      othersHtml +
+      '<div class="hwc-lb-team">' + teamSummary + '</div>';
+
+    el.style.display = '';
+
+    // bind tab clicks
+    el.querySelectorAll('.hwc-lb-tab').forEach(btn => {
+      btn.addEventListener('click', function(){
+        hwcSafe('tab', function(){
+          const m = btn.getAttribute('data-m');
+          if(m && m !== getMetric()){
+            setMetric(m);
+            renderLeaderboard();
+          }
+        });
+      });
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // MAIN RENDER + HOOK
+  // ════════════════════════════════════════════════════════════════
+  function renderAllC(){
+    try {
+      const homePage = document.getElementById('page-home');
+      if(!homePage || !homePage.classList.contains('active')) return;
+    } catch(_){ return; }
+    hwcSafe('lb', renderLeaderboard);
+  }
+
+  window.renderHomeWidgetsC = renderAllC;
+
+  function installHookC(){
+    const orig = window.renderHomeWidgets;
+    if(typeof orig !== 'function'){
+      setTimeout(installHookC, 500);
+      return;
+    }
+    if(orig._hasCHook) return; // กัน wrap ซ้ำ
+    const wrapped = function(){
+      try { orig.apply(this, arguments); }
+      catch(e){ console.error('[HW-C] prior render error (sandboxed):', e); }
+      try { renderAllC(); }
+      catch(e){ console.error('[HW-C] Phase C render error (sandboxed):', e); }
+    };
+    wrapped._hasCHook = true;
+    wrapped._hasBHook = orig._hasBHook; // preserve B flag ด้วย
+    window.renderHomeWidgets = wrapped;
+    console.log('[HW-C] Hook installed on renderHomeWidgets');
+  }
+
+  function initC(){
+    try {
+      if(typeof curUser === 'undefined' || !curUser){
+        setTimeout(initC, 1000);
+        return;
+      }
+      installHookC();
+      renderAllC();
+    } catch(e){ console.error('[HW-C] init error (sandboxed):', e); }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', () => setTimeout(initC, 3000));
+  } else {
+    setTimeout(initC, 3000);
+  }
+})();
+</script>
 </body>
 </html>
