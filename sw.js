@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v116
-// Cache: rudy-static-v116, firebase-v116
-// Build: 2026-05-11 · AAA Effects update
+// RUDY · Service Worker v117
+// Cache: rudy-static-v117, firebase-v117
+// Build: 2026-05-13 · Phase B widgets (Goal / Reminders / Break)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v116';
-const FIREBASE_CACHE = 'firebase-v116';
-const RUNTIME_CACHE = 'rudy-runtime-v116';
+const STATIC_CACHE  = 'rudy-static-v117';
+const FIREBASE_CACHE = 'firebase-v117';
+const RUNTIME_CACHE = 'rudy-runtime-v117';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v116] Installing...');
+  console.log('[SW v117] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v116] Precache partial fail (ok):', err);
+          console.warn('[SW v117] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v116] Activating...');
+  console.log('[SW v117] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v116] Deleting old cache:', name);
+              console.log('[SW v117] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -213,7 +213,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v116' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v117' });
     return;
   }
 });
@@ -236,7 +236,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v116] Push parse fail:', e);
+    console.warn('[SW v117] Push parse fail:', e);
   }
 });
 
@@ -256,4 +256,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v116] Loaded — AAA Effects update with full iOS bypass list');
+console.log('[SW v117] Loaded — Phase B widgets (Goal / Reminders / Break) with full iOS bypass list');
