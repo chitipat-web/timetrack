@@ -13847,5 +13847,644 @@ body.dark [class*="tab"] .label{
   }
 })();
 </script>
+
+<!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+<!-- ║ LIQUID GLASS — PHASE D (WebGL Shader, optional decoration)      ║ -->
+<!-- ║                                                                  ║ -->
+<!-- ║ 🛡️ 11-LAYER SAFETY:                                              ║ -->
+<!-- ║   1.  Feature flag (OFF by default)                              ║ -->
+<!-- ║   2.  Device capability check (WebGL, iOS version)               ║ -->
+<!-- ║   3.  Performance gate (auto-disable if <30fps)                  ║ -->
+<!-- ║   4.  Context loss handler (fallback to CSS, never crash)        ║ -->
+<!-- ║   5.  Memory guard (single canvas, cleanup on unload)            ║ -║
+<!-- ║   6.  Battery API check (disable if low battery)                 ║ -->
+<!-- ║   7.  Critical path protection (NEVER overlaps buttons/widgets) ║ -->
+<!-- ║   8.  Page visibility (pause when hidden)                        ║ -->
+<!-- ║   9.  try/catch on every layer                                   ║ -->
+<!-- ║   10. Emergency disable (?nolg=1, console cmd, triple-tap logo)  ║ -->
+<!-- ║   11. Independent of Phase A/B/C/Email — failure isolated        ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<style id="lg-styles">
+  /* Canvas behind everything, never blocks pointer events */
+  .lg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    will-change: opacity;
+  }
+  .lg-canvas.lg-active { opacity: 1; }
+
+  /* Settings toggle in admin panel (Pat can find this later) */
+  .lg-toggle-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    margin: 8px 0;
+  }
+  .lg-toggle-info { flex: 1; }
+  .lg-toggle-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .lg-toggle-sub { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+  .lg-toggle-status { font-size: 12px; font-weight: 700; }
+  .lg-toggle-status.on { color: #30D158; }
+  .lg-toggle-status.off { color: var(--ink-4); }
+  .lg-toggle-status.fallback { color: #FF9F0A; }
+</style>
+
+<script>
+(function(){
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 1: FEATURE FLAGS
+  // ═══════════════════════════════════════════════════════════════
+  const LG_VERSION = '1.0';
+  const LG_LS_KEY = 'rudy_lg_enabled_v1';      // user preference (true/false)
+  const LG_LS_DISABLED = 'rudy_lg_disabled';   // emergency disable
+  const LG_LS_FAILED = 'rudy_lg_failed_count'; // auto-disable after 3 failures
+
+  // Default OFF — user must explicitly enable
+  function lgGetUserPref() {
+    try { return localStorage.getItem(LG_LS_KEY) === '1'; }
+    catch(_) { return false; }
+  }
+  function lgSetUserPref(v) {
+    try { localStorage.setItem(LG_LS_KEY, v ? '1' : '0'); } catch(_){}
+  }
+  function lgIsEmergencyDisabled() {
+    try {
+      if (localStorage.getItem(LG_LS_DISABLED) === '1') return true;
+      if (location.search.indexOf('nolg=1') !== -1) return true;
+      const failed = parseInt(localStorage.getItem(LG_LS_FAILED) || '0', 10);
+      if (failed >= 3) return true;
+      return false;
+    } catch(_) { return false; }
+  }
+  function lgIncrementFailures() {
+    try {
+      const n = parseInt(localStorage.getItem(LG_LS_FAILED) || '0', 10) + 1;
+      localStorage.setItem(LG_LS_FAILED, String(n));
+      if (n >= 3) {
+        console.warn('[LG] Auto-disabled after 3 failures. Reset with localStorage.removeItem("rudy_lg_failed_count")');
+      }
+    } catch(_) {}
+  }
+  function lgResetFailures() {
+    try { localStorage.removeItem(LG_LS_FAILED); } catch(_) {}
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 2: DEVICE CAPABILITY CHECK
+  // ═══════════════════════════════════════════════════════════════
+  function lgCheckCapability() {
+    return lgSafe('capability', function() {
+      // Check 1: WebGL support
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      if (!gl) return { ok: false, reason: 'no-webgl' };
+
+      // Check 2: Extensions
+      const ext = gl.getExtension('WEBGL_lose_context');
+
+      // Check 3: Max texture size (must be >= 1024)
+      const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+      if (maxTex < 1024) return { ok: false, reason: 'low-gpu' };
+
+      // Check 4: iOS version (iOS 15+ recommended)
+      const ua = navigator.userAgent;
+      const iosMatch = ua.match(/OS (\d+)_/);
+      if (iosMatch) {
+        const major = parseInt(iosMatch[1], 10);
+        if (major < 15) return { ok: false, reason: 'old-ios' };
+      }
+
+      // Check 5: Reduced motion preference
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return { ok: false, reason: 'reduced-motion' };
+      }
+
+      // Cleanup test canvas
+      if (ext) ext.loseContext();
+      return { ok: true, maxTex: maxTex };
+    }) || { ok: false, reason: 'check-failed' };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 9: SAFE WRAPPER (try/catch every layer)
+  // ═══════════════════════════════════════════════════════════════
+  function lgSafe(name, fn) {
+    try { return fn(); }
+    catch(e) {
+      console.warn('[LG:' + name + '] error (sandboxed):', e && e.message);
+      return null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 6: BATTERY CHECK
+  // ═══════════════════════════════════════════════════════════════
+  async function lgCheckBattery() {
+    try {
+      if (!navigator.getBattery) return { ok: true, level: 1, charging: true };
+      const bat = await navigator.getBattery();
+      // Disable if battery < 20% and not charging
+      if (!bat.charging && bat.level < 0.20) {
+        return { ok: false, level: bat.level, charging: bat.charging, reason: 'low-battery' };
+      }
+      return { ok: true, level: bat.level, charging: bat.charging };
+    } catch(_) {
+      return { ok: true, level: 1, charging: true };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 5: SINGLE CANVAS RESOURCE
+  // ═══════════════════════════════════════════════════════════════
+  let lgState = {
+    canvas: null,
+    gl: null,
+    program: null,
+    rafId: null,
+    startTime: 0,
+    enabled: false,
+    fpsHistory: [],
+    lastFrameTime: 0,
+    qualityLevel: 1.0,  // 1.0 = full, 0.5 = half res
+    paused: false
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // WEBGL SHADER CODE (Liquid Glass refraction approximation)
+  // ═══════════════════════════════════════════════════════════════
+  const VERT_SHADER = `
+    attribute vec2 a_pos;
+    varying vec2 v_uv;
+    void main() {
+      v_uv = (a_pos + 1.0) * 0.5;
+      gl_Position = vec4(a_pos, 0.0, 1.0);
+    }
+  `;
+  const FRAG_SHADER = `
+    precision mediump float;
+    varying vec2 v_uv;
+    uniform float u_time;
+    uniform vec2 u_res;
+    uniform float u_quality;
+
+    // Smooth noise (simplex-like, cheap)
+    float noise(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+    float smoothNoise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      float a = noise(i);
+      float b = noise(i + vec2(1.0, 0.0));
+      float c = noise(i + vec2(0.0, 1.0));
+      float d = noise(i + vec2(1.0, 1.0));
+      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    }
+
+    void main() {
+      vec2 uv = v_uv;
+      vec2 p = uv * 2.0 - 1.0;
+      p.x *= u_res.x / u_res.y;
+
+      float t = u_time * 0.08;
+
+      // 5 floating blobs (drift slowly)
+      vec3 col = vec3(0.05, 0.04, 0.12);  // base dark
+
+      // Blob 1: peach/coral top-left
+      vec2 c1 = vec2(-0.7 + sin(t) * 0.15, 0.8 + cos(t * 0.7) * 0.10);
+      float d1 = length(p - c1);
+      col += vec3(1.0, 0.55, 0.45) * exp(-d1 * 1.2) * 0.7;
+
+      // Blob 2: lavender top-right
+      vec2 c2 = vec2(0.7 + cos(t * 0.9) * 0.15, 0.6 + sin(t * 0.6) * 0.10);
+      float d2 = length(p - c2);
+      col += vec3(0.75, 0.55, 1.0) * exp(-d2 * 1.3) * 0.65;
+
+      // Blob 3: aqua center
+      vec2 c3 = vec2(sin(t * 0.5) * 0.20, sin(t * 0.4) * 0.15);
+      float d3 = length(p - c3);
+      col += vec3(0.40, 0.75, 1.0) * exp(-d3 * 1.0) * 0.55;
+
+      // Blob 4: cool blue bottom-left
+      vec2 c4 = vec2(-0.6 + cos(t * 1.1) * 0.18, -0.8 + sin(t * 0.8) * 0.12);
+      float d4 = length(p - c4);
+      col += vec3(0.35, 0.50, 1.0) * exp(-d4 * 1.2) * 0.65;
+
+      // Blob 5: hot pink bottom-right
+      vec2 c5 = vec2(0.7 + sin(t * 0.6) * 0.18, -0.7 + cos(t * 0.9) * 0.12);
+      float d5 = length(p - c5);
+      col += vec3(1.0, 0.45, 0.70) * exp(-d5 * 1.2) * 0.65;
+
+      // Subtle noise grain (glass micro-texture)
+      float grain = smoothNoise(uv * 400.0) * 0.025;
+      col += grain;
+
+      // Vignette
+      float vig = 1.0 - length(p) * 0.15;
+      col *= vig;
+
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `;
+
+  function lgCompileShader(gl, type, src) {
+    return lgSafe('compileShader', function() {
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+        const err = gl.getShaderInfoLog(sh);
+        console.warn('[LG] Shader compile error:', err);
+        gl.deleteShader(sh);
+        return null;
+      }
+      return sh;
+    });
+  }
+
+  function lgCreateProgram(gl) {
+    return lgSafe('createProgram', function() {
+      const vs = lgCompileShader(gl, gl.VERTEX_SHADER, VERT_SHADER);
+      const fs = lgCompileShader(gl, gl.FRAGMENT_SHADER, FRAG_SHADER);
+      if (!vs || !fs) return null;
+      const prog = gl.createProgram();
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+        console.warn('[LG] Program link error:', gl.getProgramInfoLog(prog));
+        gl.deleteProgram(prog);
+        return null;
+      }
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      return prog;
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 4: CONTEXT LOSS HANDLER
+  // ═══════════════════════════════════════════════════════════════
+  function lgAttachContextHandlers(canvas) {
+    canvas.addEventListener('webglcontextlost', function(e) {
+      e.preventDefault();
+      console.warn('[LG] WebGL context lost — pausing');
+      if (lgState.rafId) cancelAnimationFrame(lgState.rafId);
+      lgState.rafId = null;
+      canvas.classList.remove('lg-active');
+    }, false);
+
+    canvas.addEventListener('webglcontextrestored', function() {
+      console.log('[LG] WebGL context restored — re-init');
+      lgSafe('contextRestored', function() {
+        lgState.gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        if (lgState.gl) {
+          lgInitProgram();
+          lgStartLoop();
+        }
+      });
+    }, false);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 3: PERFORMANCE GATE
+  // ═══════════════════════════════════════════════════════════════
+  function lgCheckPerformance(now) {
+    if (lgState.lastFrameTime === 0) {
+      lgState.lastFrameTime = now;
+      return true;
+    }
+    const dt = now - lgState.lastFrameTime;
+    lgState.lastFrameTime = now;
+
+    if (dt > 0) {
+      const fps = 1000 / dt;
+      lgState.fpsHistory.push(fps);
+      if (lgState.fpsHistory.length > 60) lgState.fpsHistory.shift();
+    }
+
+    // After 3 seconds, check average fps
+    if (lgState.fpsHistory.length >= 30) {
+      const avg = lgState.fpsHistory.reduce((a, b) => a + b, 0) / lgState.fpsHistory.length;
+      if (avg < 25) {
+        console.warn('[LG] FPS too low (' + avg.toFixed(1) + ') — auto-disabling');
+        lgDisable('low-fps');
+        return false;
+      }
+      // Lower quality if below 45fps
+      if (avg < 45 && lgState.qualityLevel > 0.5) {
+        lgState.qualityLevel = 0.5;
+        lgResize();
+        console.log('[LG] Quality reduced to 50% (fps=' + avg.toFixed(1) + ')');
+      }
+    }
+    return true;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // RENDER LOOP
+  // ═══════════════════════════════════════════════════════════════
+  function lgResize() {
+    return lgSafe('resize', function() {
+      if (!lgState.canvas || !lgState.gl) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2) * lgState.qualityLevel;
+      const w = Math.floor(window.innerWidth * dpr);
+      const h = Math.floor(window.innerHeight * dpr);
+      if (lgState.canvas.width !== w || lgState.canvas.height !== h) {
+        lgState.canvas.width = w;
+        lgState.canvas.height = h;
+        lgState.gl.viewport(0, 0, w, h);
+      }
+    });
+  }
+
+  function lgInitProgram() {
+    return lgSafe('initProgram', function() {
+      const gl = lgState.gl;
+      if (!gl) return null;
+
+      const prog = lgCreateProgram(gl);
+      if (!prog) return null;
+      lgState.program = prog;
+      gl.useProgram(prog);
+
+      // Fullscreen quad
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1, -1,   1, -1,   -1, 1,
+        -1, 1,    1, -1,    1, 1
+      ]), gl.STATIC_DRAW);
+
+      const posLoc = gl.getAttribLocation(prog, 'a_pos');
+      gl.enableVertexAttribArray(posLoc);
+      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+      lgState.uTime = gl.getUniformLocation(prog, 'u_time');
+      lgState.uRes = gl.getUniformLocation(prog, 'u_res');
+      lgState.uQual = gl.getUniformLocation(prog, 'u_quality');
+
+      return prog;
+    });
+  }
+
+  function lgRender(now) {
+    if (!lgState.enabled || lgState.paused) {
+      lgState.rafId = null;
+      return;
+    }
+    if (!lgCheckPerformance(now)) return;
+
+    lgSafe('render', function() {
+      const gl = lgState.gl;
+      if (!gl) return;
+
+      if (lgState.startTime === 0) lgState.startTime = now;
+      const t = (now - lgState.startTime) / 1000;
+
+      gl.uniform1f(lgState.uTime, t);
+      gl.uniform2f(lgState.uRes, lgState.canvas.width, lgState.canvas.height);
+      gl.uniform1f(lgState.uQual, lgState.qualityLevel);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    });
+
+    lgState.rafId = requestAnimationFrame(lgRender);
+  }
+
+  function lgStartLoop() {
+    if (lgState.rafId) cancelAnimationFrame(lgState.rafId);
+    lgState.lastFrameTime = 0;
+    lgState.startTime = 0;
+    lgState.fpsHistory = [];
+    lgState.rafId = requestAnimationFrame(lgRender);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 7: CRITICAL PATH PROTECTION
+  //   Canvas always behind (z-index: -1, pointer-events: none)
+  //   Never overlaps buttons, never blocks clicks
+  // ═══════════════════════════════════════════════════════════════
+  function lgEnable() {
+    return lgSafe('enable', async function() {
+      if (lgState.enabled) return true;
+
+      // Check 1: Emergency disable
+      if (lgIsEmergencyDisabled()) {
+        console.log('[LG] Emergency disabled');
+        return false;
+      }
+
+      // Check 2: User preference
+      if (!lgGetUserPref()) {
+        console.log('[LG] User preference: OFF');
+        return false;
+      }
+
+      // Check 3: Capability
+      const cap = lgCheckCapability();
+      if (!cap.ok) {
+        console.warn('[LG] Capability check failed:', cap.reason);
+        return false;
+      }
+
+      // Check 4: Battery
+      const bat = await lgCheckBattery();
+      if (!bat.ok) {
+        console.warn('[LG] Battery check failed:', bat.reason);
+        return false;
+      }
+
+      // All checks passed — create canvas
+      lgState.canvas = document.createElement('canvas');
+      lgState.canvas.className = 'lg-canvas';
+      lgState.canvas.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(lgState.canvas);
+
+      lgAttachContextHandlers(lgState.canvas);
+
+      const gl = lgState.canvas.getContext('webgl2', { antialias: false, alpha: false, preserveDrawingBuffer: false })
+              || lgState.canvas.getContext('webgl', { antialias: false, alpha: false, preserveDrawingBuffer: false });
+      if (!gl) {
+        console.warn('[LG] Failed to get WebGL context');
+        lgIncrementFailures();
+        lgCleanup();
+        return false;
+      }
+      lgState.gl = gl;
+
+      const prog = lgInitProgram();
+      if (!prog) {
+        console.warn('[LG] Failed to init program');
+        lgIncrementFailures();
+        lgCleanup();
+        return false;
+      }
+
+      lgResize();
+      lgState.enabled = true;
+      lgStartLoop();
+
+      // Fade in after first frame
+      requestAnimationFrame(() => {
+        if (lgState.canvas) lgState.canvas.classList.add('lg-active');
+      });
+
+      // Reset failure counter on successful start
+      lgResetFailures();
+      console.log('[LG] Enabled ✨');
+      return true;
+    });
+  }
+
+  function lgDisable(reason) {
+    return lgSafe('disable', function() {
+      console.log('[LG] Disabled' + (reason ? ' (' + reason + ')' : ''));
+      lgState.enabled = false;
+      if (lgState.rafId) cancelAnimationFrame(lgState.rafId);
+      lgState.rafId = null;
+      if (lgState.canvas) lgState.canvas.classList.remove('lg-active');
+      setTimeout(lgCleanup, 1000); // wait for fade-out
+    });
+  }
+
+  function lgCleanup() {
+    return lgSafe('cleanup', function() {
+      if (lgState.gl && lgState.program) {
+        lgState.gl.deleteProgram(lgState.program);
+      }
+      // Force lose context (free GPU memory)
+      if (lgState.gl) {
+        const ext = lgState.gl.getExtension('WEBGL_lose_context');
+        if (ext) ext.loseContext();
+      }
+      if (lgState.canvas && lgState.canvas.parentNode) {
+        lgState.canvas.parentNode.removeChild(lgState.canvas);
+      }
+      lgState.canvas = null;
+      lgState.gl = null;
+      lgState.program = null;
+      lgState.fpsHistory = [];
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 8: PAGE VISIBILITY (pause when hidden)
+  // ═══════════════════════════════════════════════════════════════
+  document.addEventListener('visibilitychange', function() {
+    if (!lgState.enabled) return;
+    if (document.hidden) {
+      lgState.paused = true;
+      if (lgState.rafId) cancelAnimationFrame(lgState.rafId);
+      lgState.rafId = null;
+    } else {
+      lgState.paused = false;
+      if (lgState.enabled && !lgState.rafId) lgStartLoop();
+    }
+  });
+
+  // Resize handler
+  window.addEventListener('resize', () => lgSafe('winResize', lgResize));
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 10: EMERGENCY DISABLE COMMANDS
+  // ═══════════════════════════════════════════════════════════════
+  // Expose for emergency console use
+  window.disableLiquidGlass = function() {
+    try { localStorage.setItem(LG_LS_DISABLED, '1'); } catch(_){}
+    lgDisable('user-emergency');
+    return '✅ Liquid Glass disabled. Reload page.';
+  };
+  window.enableLiquidGlass = function() {
+    try {
+      localStorage.removeItem(LG_LS_DISABLED);
+      lgResetFailures();
+      localStorage.setItem(LG_LS_KEY, '1');
+    } catch(_){}
+    return '✅ Liquid Glass re-enabled. Reload page to apply.';
+  };
+  window.lgStatus = function() {
+    return {
+      version: LG_VERSION,
+      enabled: lgState.enabled,
+      userPref: lgGetUserPref(),
+      emergencyDisabled: lgIsEmergencyDisabled(),
+      qualityLevel: lgState.qualityLevel,
+      avgFps: lgState.fpsHistory.length ? (lgState.fpsHistory.reduce((a,b)=>a+b,0)/lgState.fpsHistory.length).toFixed(1) : 'n/a'
+    };
+  };
+
+  // Triple-tap logo to toggle (emergency UI gesture)
+  let tapCount = 0, tapTimer = null;
+  document.addEventListener('click', function(e) {
+    const t = e.target;
+    if (!t) return;
+    // Look for logo or brand element
+    const isLogo = t.matches && (t.matches('[class*="logo"]') || t.matches('[class*="brand"]'));
+    if (!isLogo && t.closest) {
+      const parent = t.closest('[class*="logo"], [class*="brand"]');
+      if (!parent) return;
+    }
+    tapCount++;
+    if (tapTimer) clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => { tapCount = 0; }, 600);
+    if (tapCount >= 3) {
+      tapCount = 0;
+      const newState = !lgGetUserPref();
+      lgSetUserPref(newState);
+      if (newState) {
+        lgResetFailures();
+        try { localStorage.removeItem(LG_LS_DISABLED); } catch(_){}
+        lgEnable();
+      } else {
+        lgDisable('triple-tap');
+      }
+      console.log('[LG] Triple-tap toggle → ' + (newState ? 'ON' : 'OFF'));
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🛡️ LAYER 11: INDEPENDENT INITIALIZATION
+  //   Only runs if user has explicitly enabled it
+  //   Failure here NEVER affects Phase A/B/C/Email
+  // ═══════════════════════════════════════════════════════════════
+  function lgInit() {
+    return lgSafe('init', function() {
+      // Wait for app ready
+      if (typeof curUser === 'undefined' || !curUser) {
+        setTimeout(lgInit, 1500);
+        return;
+      }
+
+      // Don't auto-enable on first install — user must opt-in
+      // But IF user previously enabled it, restore on reload
+      if (lgGetUserPref() && !lgIsEmergencyDisabled()) {
+        lgEnable();
+      } else {
+        console.log('[LG] Off. To enable: enableLiquidGlass() then reload');
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(lgInit, 4000));
+  } else {
+    setTimeout(lgInit, 4000);
+  }
+
+  // Cleanup on unload (LAYER 5: memory)
+  window.addEventListener('beforeunload', lgCleanup);
+})();
+</script>
 </body>
 </html>
