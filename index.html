@@ -3724,6 +3724,18 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
       <button class="btn-primary" onclick="onToggleCinematic()" id="cinema-btn" style="background:linear-gradient(135deg,#9c27b0,#673ab7)">⚡ ปิด/เปิด เอฟเฟค</button>
     </div>
 
+    <div class="card" id="lg-card-section">
+      <div class="section-title">🪟 Liquid Glass (ทดลอง)</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">พื้นหลังเอฟเฟคกระจกแบบ iOS 26 (WebGL shader) — กินแบตเพิ่ม ปิดได้ตลอด</div>
+      <div id="lg-status-row" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:12px">
+        <span id="lg-status-dot" style="width:8px;height:8px;border-radius:50%;background:#888;flex-shrink:0"></span>
+        <span id="lg-status-text" style="flex:1;color:var(--text2)">กำลังโหลด...</span>
+        <span id="lg-fps-text" style="font-family:var(--mono);font-size:11px;color:var(--text3)"></span>
+      </div>
+      <button class="btn-primary" id="lg-toggle-btn" onclick="onToggleLiquidGlass()" style="background:linear-gradient(135deg,#5AC8FA,#BF5AF2);width:100%">🪟 เปิด Liquid Glass</button>
+      <div id="lg-warn-text" style="font-size:11px;color:#FF9F0A;margin-top:8px;display:none">⚠️ <span></span></div>
+    </div>
+
     <div class="card">
       <div class="section-title">🔊 เสียง</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px">เสียง check-in, แจ้งเตือน, success/error</div>
@@ -14403,6 +14415,7 @@ body.dark [class*="tab"] .label{
   window.disableLiquidGlass = function() {
     try { localStorage.setItem(LG_LS_DISABLED, '1'); } catch(_){}
     lgDisable('user-emergency');
+    lgUpdateSettingsUI();
     return '✅ Liquid Glass disabled. Reload page.';
   };
   window.enableLiquidGlass = function() {
@@ -14411,6 +14424,7 @@ body.dark [class*="tab"] .label{
       lgResetFailures();
       localStorage.setItem(LG_LS_KEY, '1');
     } catch(_){}
+    lgUpdateSettingsUI();
     return '✅ Liquid Glass re-enabled. Reload page to apply.';
   };
   window.lgStatus = function() {
@@ -14423,6 +14437,119 @@ body.dark [class*="tab"] .label{
       avgFps: lgState.fpsHistory.length ? (lgState.fpsHistory.reduce((a,b)=>a+b,0)/lgState.fpsHistory.length).toFixed(1) : 'n/a'
     };
   };
+
+  // ═══════════════════════════════════════════════════════════════
+  // SETTINGS UI: Toggle button + status display
+  // ═══════════════════════════════════════════════════════════════
+  window.onToggleLiquidGlass = function() {
+    lgSafe('userToggle', async function() {
+      const wasOn = lgGetUserPref() && lgState.enabled;
+      if (wasOn) {
+        // Turn off
+        lgSetUserPref(false);
+        lgDisable('user');
+      } else {
+        // Turn on — reset failure counter, clear emergency disable
+        try {
+          localStorage.removeItem(LG_LS_DISABLED);
+          localStorage.removeItem(LG_LS_FAILED);
+        } catch(_){}
+        lgSetUserPref(true);
+        const success = await lgEnable();
+        if (!success) {
+          // Don't keep user preference if it failed
+          lgSetUserPref(false);
+        }
+      }
+      lgUpdateSettingsUI();
+    });
+  };
+
+  function lgUpdateSettingsUI() {
+    lgSafe('updateUI', function() {
+      const dot = document.getElementById('lg-status-dot');
+      const text = document.getElementById('lg-status-text');
+      const btn = document.getElementById('lg-toggle-btn');
+      const fps = document.getElementById('lg-fps-text');
+      const warn = document.getElementById('lg-warn-text');
+
+      if (!dot || !text || !btn) return;
+
+      const userPref = lgGetUserPref();
+      const enabled = lgState.enabled;
+      const emergency = lgIsEmergencyDisabled();
+      const cap = lgCheckCapability();
+
+      // Status indicator
+      if (enabled) {
+        dot.style.background = '#30D158';
+        text.textContent = 'เปิดอยู่ · กำลังเรนเดอร์';
+        text.style.color = '#30D158';
+        btn.textContent = '🪟 ปิด Liquid Glass';
+        btn.style.background = 'linear-gradient(135deg,#FF453A,#D7372D)';
+      } else if (emergency) {
+        dot.style.background = '#FF9F0A';
+        text.textContent = 'ปิดอัตโนมัติ (ระบบตัด)';
+        text.style.color = '#FF9F0A';
+        btn.textContent = '🔄 รีเซ็ตและลองใหม่';
+        btn.style.background = 'linear-gradient(135deg,#FF9F0A,#FF6B00)';
+      } else if (!cap.ok) {
+        dot.style.background = '#888';
+        const reasons = {
+          'no-webgl': 'อุปกรณ์ไม่รองรับ WebGL',
+          'low-gpu': 'GPU ไม่แรงพอ',
+          'old-ios': 'ต้องใช้ iOS 15+',
+          'reduced-motion': 'ปิดด้วย Reduce Motion ในระบบ',
+          'check-failed': 'ตรวจสอบล้มเหลว'
+        };
+        text.textContent = reasons[cap.reason] || 'ไม่รองรับ';
+        text.style.color = 'var(--text2)';
+        btn.textContent = '❌ ไม่รองรับ';
+        btn.style.background = '#555';
+        btn.disabled = true;
+        if (warn) {
+          warn.style.display = 'block';
+          warn.querySelector('span').textContent = 'อุปกรณ์นี้ไม่รองรับ Liquid Glass';
+        }
+        return;
+      } else {
+        dot.style.background = '#888';
+        text.textContent = 'ปิดอยู่';
+        text.style.color = 'var(--text2)';
+        btn.textContent = '🪟 เปิด Liquid Glass';
+        btn.style.background = 'linear-gradient(135deg,#5AC8FA,#BF5AF2)';
+      }
+
+      // FPS counter (only when enabled)
+      if (fps) {
+        if (enabled && lgState.fpsHistory.length >= 10) {
+          const avg = lgState.fpsHistory.reduce((a, b) => a + b, 0) / lgState.fpsHistory.length;
+          fps.textContent = avg.toFixed(0) + ' fps';
+          fps.style.color = avg >= 50 ? '#30D158' : (avg >= 30 ? '#FF9F0A' : '#FF453A');
+        } else {
+          fps.textContent = '';
+        }
+      }
+
+      // Warning text reset
+      if (warn && cap.ok) {
+        warn.style.display = 'none';
+      }
+    });
+  }
+
+  // Auto-update settings UI every 2 seconds when settings page is active
+  setInterval(function() {
+    lgSafe('autoUpdate', function() {
+      const page = document.getElementById('page-settings');
+      if (page && page.classList.contains('active')) {
+        lgUpdateSettingsUI();
+      }
+    });
+  }, 2000);
+
+  // Update once when page loads
+  setTimeout(lgUpdateSettingsUI, 5000);
 
   // Triple-tap logo to toggle (emergency UI gesture)
   let tapCount = 0, tapTimer = null;
