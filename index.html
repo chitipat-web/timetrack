@@ -5554,6 +5554,8 @@ function doCheckIn(){
   const lqIn = document.getElementById('liquid-in');
   if(lqIn && lqIn._setFill) lqIn._setFill(0.75);
   renderHome();
+  // FIX: re-enable button on success + clear safety timer (was missing → caused "tap twice" bug)
+  clearTimeout(_safetyTimerIn); _reEnableIn();
 }
 function doCheckOut(){
   // GUARD 1: Disable button INSTANTLY — before any logic. Prevents rapid-tap entirely.
@@ -5595,6 +5597,8 @@ function doCheckOut(){
   const lqIn2 = document.getElementById('liquid-in');
   if(lqIn2 && lqIn2._setFill) lqIn2._setFill(0.2);
   renderHome();
+  // FIX: re-enable button on success + clear safety timer (was missing → caused "tap twice" bug)
+  clearTimeout(_safetyTimerOut); _reEnableOut();
 }
 
 // ========== MANUAL ==========
