@@ -14617,5 +14617,262 @@ body.dark [class*="tab"] .label{
   window.addEventListener('beforeunload', lgCleanup);
 })();
 </script>
+
+<!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+<!-- ║ CHECK-IN READINESS GUARD — PHASE E                               ║ -->
+<!-- ║                                                                  ║ -->
+<!-- ║ Fixes "tap twice" bug when Firebase cold-start (3-8s) is slow.   ║ -->
+<!-- ║                                                                  ║ -->
+<!-- ║ PART 1: Dim check-in/out buttons until data is loaded           ║ -->
+<!-- ║ PART 2: If tapped while loading → remember intent → auto-run     ║ -->
+<!-- ║         the action once data finishes loading                   ║ -->
+<!-- ║                                                                  ║ -->
+<!-- ║ 🛡️ SAFETY:                                                       ║ -->
+<!-- ║   - Independent IIFE — failure isolated from Phase A/B/C/D       ║ -->
+<!-- ║   - Does NOT modify doCheckIn/doCheckOut — wraps them            ║ -->
+<!-- ║   - try/catch every layer                                        ║ -->
+<!-- ║   - Intent expires after 15s (no stale auto-checkin)             ║ -->
+<!-- ║   - If anything fails, original buttons still work normally      ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<style id="ckg-styles">
+  /* Dimmed state while data loads */
+  .ckg-not-ready #btn-in,
+  .ckg-not-ready #btn-out {
+    opacity: 0.55 !important;
+    filter: saturate(0.6) !important;
+    transition: opacity 0.3s ease, filter 0.3s ease;
+  }
+  /* CRITICAL: while data loads, buttons MUST stay tappable so the
+     capture handler can store the user's intent — even though
+     renderHome() may have set the disabled attribute or :disabled
+     CSS applied pointer-events:none. This overrides that. */
+  .ckg-not-ready #btn-in,
+  .ckg-not-ready #btn-out,
+  .ckg-not-ready #btn-in:disabled,
+  .ckg-not-ready #btn-out:disabled {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+  /* Loading hint pill below the buttons */
+  #ckg-hint {
+    display: none;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-3, rgba(255,255,255,0.85));
+    background: rgba(255,159,10,0.14);
+    border: 1px solid rgba(255,159,10,0.30);
+    border-radius: 10px;
+    padding: 7px 12px;
+    margin: 8px 14px 0;
+  }
+  .ckg-not-ready #ckg-hint { display: block; }
+  /* Pending intent state — buttons pulse softly */
+  #ckg-hint.ckg-pending {
+    background: rgba(48,209,88,0.14);
+    border-color: rgba(48,209,88,0.35);
+    color: #30D158;
+  }
+</style>
+<script>
+(function(){
+  'use strict';
+
+  // ── safe wrapper ────────────────────────────────────────────────
+  function ckgSafe(name, fn) {
+    try { return fn(); }
+    catch(e) { console.warn('[CKG:' + name + '] (sandboxed):', e && e.message); return null; }
+  }
+
+  // ── Is the app's record data ready? ─────────────────────────────
+  function ckgIsReady() {
+    return ckgSafe('isReady', function() {
+      // _recordsLoadedFromFB is the canonical "records loaded" flag
+      if (typeof _recordsLoadedFromFB === 'undefined') return true; // flag missing → don't block
+      if (!_recordsLoadedFromFB) return false;
+      if (typeof curUser === 'undefined' || !curUser || !curUser.id) return false;
+      return true;
+    }) !== false;
+  }
+
+  // ── PART 2: pending intent store ────────────────────────────────
+  let ckgPendingIntent = null;   // 'in' | 'out' | null
+  let ckgPendingTs = 0;
+  const CKG_INTENT_TTL = 15000;  // intent expires after 15s
+
+  // ── Inject loading hint element below check buttons ─────────────
+  function ckgInjectHint() {
+    return ckgSafe('injectHint', function() {
+      if (document.getElementById('ckg-hint')) return;
+      const btnIn = document.getElementById('btn-in');
+      if (!btnIn) return;
+      // Find the buttons' container (parent of btn-in)
+      const row = btnIn.parentElement;
+      if (!row) return;
+      const hint = document.createElement('div');
+      hint.id = 'ckg-hint';
+      hint.textContent = '⏳ กำลังเตรียมข้อมูล... รอสักครู่';
+      // Insert after the button row
+      if (row.parentElement) {
+        row.parentElement.insertBefore(hint, row.nextSibling);
+      }
+    });
+  }
+
+  // ── PART 1: reflect ready state on the UI ───────────────────────
+  function ckgUpdateUI() {
+    ckgSafe('updateUI', function() {
+      const ready = ckgIsReady();
+      const body = document.body;
+      const btnIn = document.getElementById('btn-in');
+      const btnOut = document.getElementById('btn-out');
+
+      if (ready) {
+        body.classList.remove('ckg-not-ready');
+        // Restore: let renderHome() control disabled state normally again.
+        // We only un-stash; we never force-enable (renderHome decides).
+        if (btnIn && btnIn._ckgForcedEnable) {
+          btnIn._ckgForcedEnable = false;
+        }
+        if (btnOut && btnOut._ckgForcedEnable) {
+          btnOut._ckgForcedEnable = false;
+        }
+      } else {
+        body.classList.add('ckg-not-ready');
+        // CRITICAL: while loading, the disabled ATTRIBUTE blocks click
+        // events entirely (capture handler can't even fire). So we
+        // temporarily remove it — the capture handler becomes the sole
+        // gatekeeper and will store intent instead of running the action.
+        if (btnIn && btnIn.disabled) {
+          btnIn.disabled = false;
+          btnIn._ckgForcedEnable = true;
+        }
+        if (btnOut && btnOut.disabled) {
+          btnOut.disabled = false;
+          btnOut._ckgForcedEnable = true;
+        }
+      }
+      // If we have a pending intent, show pending hint
+      const hint = document.getElementById('ckg-hint');
+      if (hint && ckgPendingIntent) {
+        hint.classList.add('ckg-pending');
+        hint.textContent = ckgPendingIntent === 'in'
+          ? '✅ จะเข้างานให้อัตโนมัติเมื่อข้อมูลโหลดเสร็จ...'
+          : '✅ จะออกงานให้อัตโนมัติเมื่อข้อมูลโหลดเสร็จ...';
+        // force-show even if ready class removed
+        hint.style.display = 'block';
+      } else if (hint && !ckgPendingIntent) {
+        hint.classList.remove('ckg-pending');
+        hint.textContent = '⏳ กำลังเตรียมข้อมูล... รอสักครู่';
+        hint.style.display = '';
+      }
+    });
+  }
+
+  // ── Try to fulfill a pending intent ─────────────────────────────
+  function ckgTryFulfill() {
+    ckgSafe('tryFulfill', function() {
+      if (!ckgPendingIntent) return;
+      // Expired?
+      if (Date.now() - ckgPendingTs > CKG_INTENT_TTL) {
+        console.log('[CKG] Pending intent expired');
+        ckgPendingIntent = null;
+        ckgUpdateUI();
+        return;
+      }
+      // Not ready yet — wait
+      if (!ckgIsReady()) return;
+      // Ready! Fulfill it
+      const intent = ckgPendingIntent;
+      ckgPendingIntent = null;
+      ckgUpdateUI();
+      console.log('[CKG] Data ready — auto-executing:', intent);
+      // Small delay to let UI settle, then call original function
+      setTimeout(function() {
+        ckgSafe('autoExec', function() {
+          if (intent === 'in' && typeof doCheckIn === 'function') {
+            doCheckIn();
+          } else if (intent === 'out' && typeof doCheckOut === 'function') {
+            doCheckOut();
+          }
+        });
+      }, 150);
+    });
+  }
+
+  // ── Capture taps on check-in/out buttons (capture phase) ────────
+  // If data not ready, store intent + prevent the original handler
+  // from showing the "กำลังโหลด" toast. If ready, let it through.
+  function ckgAttachCapture() {
+    ckgSafe('attachCapture', function() {
+      const btnIn = document.getElementById('btn-in');
+      const btnOut = document.getElementById('btn-out');
+
+      if (btnIn && !btnIn._ckgBound) {
+        btnIn._ckgBound = true;
+        btnIn.addEventListener('click', function(e) {
+          if (!ckgIsReady()) {
+            // Intercept — store intent, block original handler
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            ckgPendingIntent = 'in';
+            ckgPendingTs = Date.now();
+            ckgUpdateUI();
+            if (typeof haptic === 'function') ckgSafe('haptic', () => haptic('light'));
+            console.log('[CKG] Check-in tapped while loading — intent stored');
+          }
+          // else: ready → let doCheckIn() run normally
+        }, true); // capture phase — runs before onclick
+      }
+
+      if (btnOut && !btnOut._ckgBound) {
+        btnOut._ckgBound = true;
+        btnOut.addEventListener('click', function(e) {
+          if (!ckgIsReady()) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            ckgPendingIntent = 'out';
+            ckgPendingTs = Date.now();
+            ckgUpdateUI();
+            if (typeof haptic === 'function') ckgSafe('haptic', () => haptic('light'));
+            console.log('[CKG] Check-out tapped while loading — intent stored');
+          }
+        }, true);
+      }
+    });
+  }
+
+  // ── Polling loop — check readiness, update UI, fulfill intent ───
+  let ckgPollCount = 0;
+  function ckgPoll() {
+    ckgSafe('poll', function() {
+      ckgInjectHint();      // ensure hint exists (buttons may render late)
+      ckgAttachCapture();   // ensure capture handlers bound
+      ckgUpdateUI();
+      ckgTryFulfill();
+    });
+    ckgPollCount++;
+    // Poll fast for first 30s (cold start window), then slow down
+    const interval = ckgPollCount < 100 ? 300 : 2000;
+    setTimeout(ckgPoll, interval);
+  }
+
+  // ── Init ────────────────────────────────────────────────────────
+  function ckgInit() {
+    ckgSafe('init', function() {
+      ckgInjectHint();
+      ckgAttachCapture();
+      ckgUpdateUI();
+      ckgPoll();
+      console.log('[CKG] Check-in Readiness Guard active');
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(ckgInit, 800));
+  } else {
+    setTimeout(ckgInit, 800);
+  }
+})();
+</script>
 </body>
 </html>
