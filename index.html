@@ -11781,8 +11781,7 @@ if('serviceWorker' in navigator) {
     window.doCheckIn = function(){
       try { sessionStorage.setItem('_last_action_ts', String(Date.now())); } catch(e) {}
       const result = _origIn.apply(this, arguments);
-      // Trigger AAA reward popup on successful check-in
-      try { setTimeout(()=>{ if(typeof window.aaaTriggerReward === 'function') window.aaaTriggerReward(); }, 200); } catch(e){}
+      // AAA reward popup removed by user request — check-in now shows only a toast
       return result;
     };
   }
