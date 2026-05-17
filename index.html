@@ -699,22 +699,19 @@ body.dark .clock-hero{
   pointer-events:none;
   z-index:0;
 }
-/* Glass shimmer line at top */
-.btn-in::after, .btn-out::after{
-  content:""; position:absolute;
-  top:1px; left:10%; right:10%; height:1px;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent);
-  pointer-events:none;
-  z-index:0;
-}
+/* NOTE: an old ::after "shimmer line" used to be defined here, but it was
+   always overridden by the glow ::after in the AAA-EPIC block below
+   (an element can only have one ::after). Removed to avoid confusion. */
 .btn-in > *, .btn-out > * { position:relative; z-index:1; }
 .btn-in:active, .btn-out:active { opacity:0.85; }
 
-/* DISABLED state — clearly shows button is locked after check-in/out */
+/* DISABLED state — clearly shows button is locked after check-in/out.
+   NOTE: filter:grayscale removed — it created a new compositing layer
+   in WebKit, causing the icon/label to visually shift on every
+   disabled<->enabled toggle (i.e. on every tap). opacity alone is enough. */
 .btn-in:disabled, .btn-out:disabled {
   opacity:0.4 !important;
   cursor:not-allowed !important;
-  filter:grayscale(0.6);
   pointer-events:none;
 }
 .btn-in:disabled:active, .btn-out:disabled:active {
@@ -2644,8 +2641,13 @@ body > main, body > .topbar, body > .top-bar, body > .pages, body > .page,
   inset:-3px;
   border-radius:inherit;
   z-index:-1;
-  filter:blur(8px);
+  /* filter:blur is set ONCE and never animated — animating blur()
+     forces WebKit to rebuild the compositing layer every frame,
+     which made the button + its label visibly jitter on tap.
+     We animate opacity instead (cheap, GPU-friendly, no reflow). */
+  filter:blur(10px);
   pointer-events:none;
+  will-change:opacity;
 }
 .btn-in::after{
   background:linear-gradient(135deg, #5BFFB5, #30D158);
@@ -2656,12 +2658,12 @@ body > main, body > .topbar, body > .top-bar, body > .pages, body > .page,
   animation:aaaBtnGlowR 2s ease-in-out infinite alternate;
 }
 @keyframes aaaBtnGlowG{
-  0%{ opacity:0.25; filter:blur(8px); }
-  100%{ opacity:0.6; filter:blur(14px); }
+  0%{ opacity:0.25; }
+  100%{ opacity:0.6; }
 }
 @keyframes aaaBtnGlowR{
-  0%{ opacity:0.25; filter:blur(8px); }
-  100%{ opacity:0.6; filter:blur(14px); }
+  0%{ opacity:0.25; }
+  100%{ opacity:0.6; }
 }
 .btn-in:disabled::after, .btn-out:disabled::after{ animation:none !important; opacity:0 !important; }
 
@@ -14608,12 +14610,13 @@ body.dark [class*="tab"] .label{
 <!-- ║   - If anything fails, original buttons still work normally      ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════╝ -->
 <style id="ckg-styles">
-  /* Dimmed state while data loads */
+  /* Dimmed state while data loads.
+     NOTE: filter removed — filter creates a WebKit compositing layer
+     that shifts the button's icon/label when toggled. opacity is enough. */
   .ckg-not-ready #btn-in,
   .ckg-not-ready #btn-out {
     opacity: 0.55 !important;
-    filter: saturate(0.6) !important;
-    transition: opacity 0.3s ease, filter 0.3s ease;
+    transition: opacity 0.3s ease;
   }
   /* CRITICAL: while data loads, buttons MUST stay tappable so the
      capture handler can store the user's intent — even though

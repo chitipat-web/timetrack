@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v127
-// Cache: rudy-static-v127, firebase-v127
-// Build: 2026-05-17 · Fix button label shift
+// RUDY · Service Worker v129
+// Cache: rudy-static-v129, firebase-v129
+// Build: 2026-05-17 · Fix button jitter (full audit)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v127';
-const FIREBASE_CACHE = 'firebase-v127';
-const RUNTIME_CACHE = 'rudy-runtime-v127';
+const STATIC_CACHE  = 'rudy-static-v129';
+const FIREBASE_CACHE = 'firebase-v129';
+const RUNTIME_CACHE = 'rudy-runtime-v129';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v127] Installing...');
+  console.log('[SW v129] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v127] Precache partial fail (ok):', err);
+          console.warn('[SW v129] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v127] Activating...');
+  console.log('[SW v129] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v127] Deleting old cache:', name);
+              console.log('[SW v129] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -213,7 +213,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v127' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v129' });
     return;
   }
 });
@@ -236,7 +236,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v127] Push parse fail:', e);
+    console.warn('[SW v129] Push parse fail:', e);
   }
 });
 
@@ -256,4 +256,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v127] Loaded — Fix button label shift with full iOS bypass list');
+console.log('[SW v129] Loaded — Fix button jitter full audit with full iOS bypass list');
