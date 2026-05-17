@@ -3740,6 +3740,15 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
       <div id="lg-warn-text" style="font-size:11px;color:#FF9F0A;margin-top:8px;display:none">⚠️ <span></span></div>
     </div>
 
+    <div class="card" id="hcheck-card-section">
+      <div class="section-title">🩺 สถานะระบบ</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">ตรวจว่าส่วนสำคัญของแอพทำงานปกติ + ดู error ที่เกิดขึ้นล่าสุด</div>
+      <div id="hcheck-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+      <button class="btn-primary" id="hcheck-run-btn" onclick="onRunHealthCheck()" style="background:linear-gradient(135deg,#30D158,#1F9D40);width:100%;margin-bottom:8px">🔄 ตรวจสอบระบบ</button>
+      <button class="btn-primary" id="hcheck-log-btn" onclick="onShowErrorLog()" style="background:linear-gradient(135deg,#FF9F0A,#FF6B00);width:100%">📋 ดู Error Log</button>
+      <div id="hcheck-log-box" style="display:none;margin-top:10px;max-height:280px;overflow-y:auto;background:rgba(0,0,0,0.25);border-radius:8px;padding:8px;font-family:var(--mono);font-size:10px;line-height:1.5"></div>
+    </div>
+
     <div class="card">
       <div class="section-title">🔊 เสียง</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px">เสียง check-in, แจ้งเตือน, success/error</div>
@@ -14847,6 +14856,299 @@ body.dark [class*="tab"] .label{
     document.addEventListener('DOMContentLoaded', () => setTimeout(ckgInit, 800));
   } else {
     setTimeout(ckgInit, 800);
+  }
+})();
+</script>
+
+<!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+<!-- ║ HEALTH & LOGGING — PHASE F                                       ║ -->
+<!-- ║                                                                  ║ -->
+<!-- ║ PART 1: Error Logging — captures runtime errors to Firebase      ║ -->
+<!-- ║         (errorlogs/{ts}) so bugs can be diagnosed after the fact ║ -->
+<!-- ║ PART 2: Health-check — verifies core systems + shows status UI   ║ -->
+<!-- ║                                                                  ║ -->
+<!-- ║ 🛡️ SAFETY:                                                       ║ -->
+<!-- ║   - Independent IIFE — failure isolated from Phase A/B/C/D/E     ║ -->
+<!-- ║   - try/catch every layer (hlSafe wrapper)                       ║ -->
+<!-- ║   - Logging failures are silent — never block the app            ║ -->
+<!-- ║   - Throttled: max 1 log per 3s, max 20 logs per session         ║ -->
+<!-- ║   - Auto-cleanup: logs older than 7 days are pruned              ║ -->
+<!-- ║   - Read-only health checks — never mutate app state             ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<script>
+(function(){
+  'use strict';
+
+  function hlSafe(name, fn) {
+    try { return fn(); }
+    catch(e) { console.warn('[HL:' + name + '] (sandboxed):', e && e.message); return null; }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // PART 1: ERROR LOGGING
+  // ═══════════════════════════════════════════════════════════════
+  const HL_MAX_PER_SESSION = 20;
+  const HL_THROTTLE_MS = 3000;
+  const HL_RETAIN_DAYS = 7;
+  let hlLogCount = 0;
+  let hlLastLogTs = 0;
+
+  // Detect a short device/iOS descriptor (no precise fingerprinting)
+  function hlDeviceInfo() {
+    return hlSafe('deviceInfo', function() {
+      const ua = navigator.userAgent || '';
+      const iosMatch = ua.match(/OS (\d+)[._](\d+)/);
+      const ios = iosMatch ? ('iOS ' + iosMatch[1] + '.' + iosMatch[2]) : 'unknown-os';
+      const model = /iPhone/.test(ua) ? 'iPhone' : (/iPad/.test(ua) ? 'iPad' : 'other');
+      return model + ' / ' + ios;
+    }) || 'unknown';
+  }
+
+  // Current app version (from SW cache name or fallback)
+  function hlAppVersion() {
+    return hlSafe('appVersion', function() {
+      // try to read a global if present
+      if (typeof APP_VERSION !== 'undefined') return APP_VERSION;
+      return 'v129';
+    }) || 'unknown';
+  }
+
+  // Write one error record to Firebase
+  function hlLogError(kind, message, where) {
+    hlSafe('logError', function() {
+      // Throttle: skip if too soon or over session cap
+      const now = Date.now();
+      if (hlLogCount >= HL_MAX_PER_SESSION) return;
+      if (now - hlLastLogTs < HL_THROTTLE_MS) return;
+      hlLastLogTs = now;
+      hlLogCount++;
+
+      // Need Firebase + a known user
+      if (typeof db === 'undefined' || !db) return;
+
+      const entry = {
+        ts: now,
+        kind: String(kind || 'error').slice(0, 30),
+        message: String(message || '').slice(0, 300),
+        where: String(where || '').slice(0, 200),
+        page: hlSafe('page', function() {
+          const p = document.querySelector('.page.active');
+          return p ? p.id : 'unknown';
+        }) || 'unknown',
+        user: hlSafe('user', function() {
+          return (typeof curUser !== 'undefined' && curUser) ? (curUser.name || curUser.id || 'anon') : 'no-user';
+        }) || 'no-user',
+        device: hlDeviceInfo(),
+        version: hlAppVersion()
+      };
+
+      // Fire-and-forget — logging must never block or throw
+      db.ref('errorlogs/' + now).set(entry).catch(function(){});
+    });
+  }
+
+  // Hook into global error events (augment, don't replace)
+  window.addEventListener('error', function(e){
+    hlLogError('js-error', e.message, (e.filename || '') + ':' + (e.lineno || ''));
+  }, true);
+  window.addEventListener('unhandledrejection', function(e){
+    let reason = '';
+    try { reason = (e.reason && e.reason.message) ? e.reason.message : String(e.reason); } catch(_){}
+    hlLogError('promise-rejection', reason, 'unhandledrejection');
+  });
+
+  // Expose a manual logger for app code to use if desired
+  window.hlReportError = function(message, where) {
+    hlLogError('manual', message, where || 'manual-report');
+  };
+
+  // Prune old logs (older than HL_RETAIN_DAYS) — runs once per session
+  function hlPruneOldLogs() {
+    hlSafe('prune', function() {
+      if (typeof db === 'undefined' || !db) return;
+      const cutoff = Date.now() - HL_RETAIN_DAYS * 86400000;
+      db.ref('errorlogs').orderByKey().endAt(String(cutoff)).once('value', function(snap){
+        hlSafe('pruneApply', function(){
+          const updates = {};
+          snap.forEach(function(child){ updates[child.key] = null; });
+          if (Object.keys(updates).length > 0) {
+            db.ref('errorlogs').update(updates).catch(function(){});
+          }
+        });
+      }, function(){});
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // PART 2: HEALTH CHECK
+  // ═══════════════════════════════════════════════════════════════
+  // Each check returns { ok: bool, label: str, detail: str }
+  function hlRunChecks() {
+    return hlSafe('runChecks', function() {
+      const checks = [];
+
+      // Check 1: Firebase connected
+      checks.push(hlSafe('chkFb', function(){
+        const ok = (typeof fbConn !== 'undefined') ? !!fbConn : false;
+        return { ok: ok, label: 'Firebase', detail: ok ? 'เชื่อมต่อแล้ว' : 'ยังไม่เชื่อมต่อ' };
+      }) || { ok:false, label:'Firebase', detail:'ตรวจไม่ได้' });
+
+      // Check 2: User session
+      checks.push(hlSafe('chkUser', function(){
+        const ok = (typeof curUser !== 'undefined') && !!curUser && !!curUser.id;
+        return { ok: ok, label: 'ผู้ใช้', detail: ok ? (curUser.name || curUser.id) : 'ยังไม่ล็อกอิน' };
+      }) || { ok:false, label:'ผู้ใช้', detail:'ตรวจไม่ได้' });
+
+      // Check 3: Records loaded
+      checks.push(hlSafe('chkRec', function(){
+        const loaded = (typeof _recordsLoadedFromFB !== 'undefined') ? !!_recordsLoadedFromFB : false;
+        const n = (typeof records !== 'undefined' && records) ? records.length : 0;
+        return { ok: loaded, label: 'ข้อมูลบันทึก', detail: loaded ? (n + ' รายการ') : 'กำลังโหลด' };
+      }) || { ok:false, label:'ข้อมูลบันทึก', detail:'ตรวจไม่ได้' });
+
+      // Check 4: Check-in/out buttons exist + functions defined
+      checks.push(hlSafe('chkBtn', function(){
+        const bIn = document.getElementById('btn-in');
+        const bOut = document.getElementById('btn-out');
+        const fnOk = (typeof doCheckIn === 'function') && (typeof doCheckOut === 'function');
+        const ok = !!bIn && !!bOut && fnOk;
+        return { ok: ok, label: 'ปุ่มเข้า/ออกงาน', detail: ok ? 'ใช้งานได้' : 'มีปัญหา' };
+      }) || { ok:false, label:'ปุ่มเข้า/ออกงาน', detail:'ตรวจไม่ได้' });
+
+      // Check 5: Home widgets (Phase A/B/C)
+      checks.push(hlSafe('chkWidgets', function(){
+        const a = typeof window.HW_ENABLED !== 'undefined';
+        const b = typeof window.HW_B_ENABLED !== 'undefined';
+        const c = typeof window.HW_C_ENABLED !== 'undefined';
+        const cnt = (a?1:0)+(b?1:0)+(c?1:0);
+        return { ok: cnt === 3, label: 'วิดเจ็ตหน้าหลัก', detail: cnt + '/3 เฟสโหลดแล้ว' };
+      }) || { ok:false, label:'วิดเจ็ตหน้าหลัก', detail:'ตรวจไม่ได้' });
+
+      // Check 6: Service Worker active
+      checks.push(hlSafe('chkSw', function(){
+        const ok = ('serviceWorker' in navigator) && !!navigator.serviceWorker.controller;
+        return { ok: ok, label: 'Service Worker', detail: ok ? 'ทำงานอยู่' : 'ยังไม่ทำงาน' };
+      }) || { ok:false, label:'Service Worker', detail:'ตรวจไม่ได้' });
+
+      return checks;
+    }) || [];
+  }
+
+  // Render health-check results into the settings card
+  window.onRunHealthCheck = function() {
+    hlSafe('renderHealth', function() {
+      const list = document.getElementById('hcheck-list');
+      if (!list) return;
+      const checks = hlRunChecks();
+      list.innerHTML = '';
+      checks.forEach(function(c){
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:12px';
+        const dot = document.createElement('span');
+        dot.style.cssText = 'width:8px;height:8px;border-radius:50%;flex-shrink:0;background:' + (c.ok ? '#30D158' : '#FF453A');
+        const name = document.createElement('span');
+        name.style.cssText = 'flex:1;color:var(--ink)';
+        name.textContent = c.label;
+        const detail = document.createElement('span');
+        detail.style.cssText = 'color:var(--text2);font-size:11px';
+        detail.textContent = c.detail;
+        row.appendChild(dot); row.appendChild(name); row.appendChild(detail);
+        list.appendChild(row);
+      });
+      // Summary line
+      const okCount = checks.filter(function(c){ return c.ok; }).length;
+      const summary = document.createElement('div');
+      summary.style.cssText = 'text-align:center;font-size:11px;font-weight:700;margin-top:4px;color:' +
+        (okCount === checks.length ? '#30D158' : '#FF9F0A');
+      summary.textContent = okCount === checks.length
+        ? '✅ ระบบปกติทั้งหมด (' + okCount + '/' + checks.length + ')'
+        : '⚠️ ' + okCount + '/' + checks.length + ' ระบบปกติ';
+      list.appendChild(summary);
+    });
+  };
+
+  // Show recent error logs from Firebase
+  window.onShowErrorLog = function() {
+    hlSafe('showLog', function() {
+      const box = document.getElementById('hcheck-log-box');
+      if (!box) return;
+      // Toggle
+      if (box.style.display === 'block') { box.style.display = 'none'; return; }
+      box.style.display = 'block';
+      box.innerHTML = '<div style="color:var(--text2)">กำลังโหลด...</div>';
+
+      if (typeof db === 'undefined' || !db) {
+        box.innerHTML = '<div style="color:#FF453A">Firebase ไม่พร้อม</div>';
+        return;
+      }
+
+      // Last 30 logs, newest first
+      db.ref('errorlogs').orderByKey().limitToLast(30).once('value', function(snap){
+        hlSafe('renderLog', function(){
+          const items = [];
+          snap.forEach(function(child){ items.push(child.val()); });
+          items.reverse();
+          if (items.length === 0) {
+            box.innerHTML = '<div style="color:#30D158">ไม่มี error — เยี่ยมเลย! 🎉</div>';
+            return;
+          }
+          box.innerHTML = '';
+          items.forEach(function(it){
+            if (!it) return;
+            const d = new Date(it.ts || 0);
+            const time = d.toLocaleString('th-TH', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+            const row = document.createElement('div');
+            row.style.cssText = 'padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)';
+            const head = document.createElement('div');
+            head.style.cssText = 'color:#FF9F0A;font-weight:700';
+            head.textContent = time + ' · ' + (it.kind || 'error');
+            const msg = document.createElement('div');
+            msg.style.cssText = 'color:var(--ink);word-break:break-word';
+            msg.textContent = it.message || '(ไม่มีข้อความ)';
+            const meta = document.createElement('div');
+            meta.style.cssText = 'color:var(--text3);font-size:9px';
+            meta.textContent = [it.user, it.page, it.where, it.device].filter(Boolean).join(' · ');
+            row.appendChild(head); row.appendChild(msg); row.appendChild(meta);
+            box.appendChild(row);
+          });
+        });
+      }, function(){
+        box.innerHTML = '<div style="color:#FF453A">โหลด log ไม่ได้</div>';
+      });
+    });
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════════════════════════
+  function hlInit() {
+    hlSafe('init', function() {
+      // Wait for Firebase + user
+      if (typeof db === 'undefined' || !db || typeof curUser === 'undefined' || !curUser) {
+        setTimeout(hlInit, 2000);
+        return;
+      }
+      // Prune old logs once, 10s after init (don't compete with app startup)
+      setTimeout(hlPruneOldLogs, 10000);
+      // Auto-run health check when settings page opens
+      setInterval(function(){
+        hlSafe('autoHealth', function(){
+          const page = document.getElementById('page-settings');
+          const list = document.getElementById('hcheck-list');
+          // Only auto-fill if settings active and list still empty
+          if (page && page.classList.contains('active') && list && list.children.length === 0) {
+            window.onRunHealthCheck();
+          }
+        });
+      }, 2000);
+      console.log('[HL] Health & Logging active');
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(hlInit, 4000));
+  } else {
+    setTimeout(hlInit, 4000);
   }
 })();
 </script>
