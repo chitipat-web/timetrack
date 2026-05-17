@@ -9346,6 +9346,9 @@ db.ref('.info/connected').on('value', snap => {
   } else {
     // Only show error if we've been connected before (not first load)
     if(fbConn) showConnectionError('Firebase ขาดการเชื่อมต่อ — ใช้ข้อมูล offline');
+    // Mark as disconnected so Phase G auto-recovery can detect it.
+    // (was missing — fbConn stayed true forever, hiding real outages)
+    fbConn = false;
   }
 });
 
@@ -14750,6 +14753,369 @@ body.dark [class*="tab"] .label{
     document.addEventListener('DOMContentLoaded', () => setTimeout(hlInit, 4000));
   } else {
     setTimeout(hlInit, 4000);
+  }
+})();
+</script>
+
+<!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+<!-- ║ AUTO-RECOVERY & ALERTS — PHASE G                                 ║ -->
+<!-- ║                                                                  ║ -->
+<!-- ║ HYBRID approach:                                                 ║ -->
+<!-- ║   • SAFE issues  → auto-fixed silently (Firebase reconnect only) ║ -->
+<!-- ║   • RISKY issues → in-app popup asks the user (SW stale, errors) ║ -->
+<!-- ║                                                                  ║ -->
+<!-- ║ 🛡️ 9-LAYER SAFETY:                                               ║ -->
+<!-- ║   1. ON by default but every fix is gated (see below)            ║ -->
+<!-- ║   2. Only Firebase .goOnline() is auto-fixed — never SW reload   ║ -->
+<!-- ║   3. Risky issues only ASK via popup, never act                  ║ -->
+<!-- ║   4. Max 2 auto-fixes per issue-type per session                 ║ -->
+<!-- ║   5. 60s cooldown between any two fixes                          ║ -->
+<!-- ║   6. Never act within 10s of a check-in/out (_last_action_ts)    ║ -->
+<!-- ║   7. Kill switch in settings + console command                  ║ -->
+<!-- ║   8. Every action logged to errorlogs/                           ║ -->
+<!-- ║   9. Independent IIFE + try/catch — failure isolated             ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<style id="rec-styles">
+  .rec-popup-overlay {
+    position:fixed; inset:0; z-index:99990;
+    background:rgba(0,0,0,0.55);
+    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+    animation:recFadeIn 0.25s ease;
+  }
+  @keyframes recFadeIn { from{opacity:0} to{opacity:1} }
+  .rec-popup-card {
+    background:var(--card-bg, #1C2238);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:20px;
+    padding:20px;
+    max-width:340px; width:100%;
+    box-shadow:0 20px 50px rgba(0,0,0,0.45);
+  }
+  .rec-popup-icon { font-size:32px; text-align:center; margin-bottom:8px; }
+  .rec-popup-title {
+    font-size:16px; font-weight:800; text-align:center;
+    color:var(--ink, #fff); margin-bottom:6px;
+  }
+  .rec-popup-msg {
+    font-size:13px; text-align:center; line-height:1.5;
+    color:var(--text2, rgba(255,255,255,0.75)); margin-bottom:16px;
+  }
+  .rec-popup-btns { display:flex; flex-direction:column; gap:8px; }
+  .rec-btn {
+    padding:12px; border-radius:12px; border:0;
+    font-size:14px; font-weight:700; cursor:pointer;
+    font-family:inherit;
+  }
+  .rec-btn-primary { background:linear-gradient(135deg,#30D158,#1F9D40); color:#fff; }
+  .rec-btn-secondary { background:rgba(255,255,255,0.10); color:var(--ink,#fff); }
+  .rec-btn-ghost { background:transparent; color:var(--text3,rgba(255,255,255,0.5)); font-weight:600; }
+</style>
+<script>
+(function(){
+  'use strict';
+
+  function recSafe(name, fn) {
+    try { return fn(); }
+    catch(e) { console.warn('[REC:' + name + '] (sandboxed):', e && e.message); return null; }
+  }
+
+  // ── LAYER 7: kill switch ─────────────────────────────────────────
+  const REC_LS_KEY = 'rudy_autorecover_enabled';
+  function recIsEnabled() {
+    try {
+      const v = localStorage.getItem(REC_LS_KEY);
+      // Default ON (null = not set yet = on)
+      return v === null || v === '1';
+    } catch(_) { return true; }
+  }
+  window.setAutoRecover = function(on) {
+    try { localStorage.setItem(REC_LS_KEY, on ? '1' : '0'); } catch(_){}
+    return 'Auto-recover ' + (on ? 'ON' : 'OFF');
+  };
+
+  // ── State: per-session counters + cooldown ──────────────────────
+  const REC_MAX_PER_TYPE = 2;
+  const REC_COOLDOWN_MS = 60000;
+  const REC_ACTION_GUARD_MS = 10000; // don't act within 10s of check-in/out
+  let recFixCounts = {};   // { 'firebase': 1, ... }
+  let recLastFixTs = 0;
+  let recPopupOpen = false;
+  let recAskedThisSession = {}; // risky issues only asked once per session
+
+  // ── LAYER 6: is the user mid check-in/out? ──────────────────────
+  function recUserBusy() {
+    return recSafe('userBusy', function() {
+      const last = parseInt(sessionStorage.getItem('_last_action_ts') || '0', 10);
+      return (Date.now() - last) < REC_ACTION_GUARD_MS;
+    }) === true;
+  }
+
+  // ── LAYER 5: cooldown gate ──────────────────────────────────────
+  function recCooldownOk() {
+    return (Date.now() - recLastFixTs) >= REC_COOLDOWN_MS;
+  }
+
+  // ── LAYER 8: log every recovery action ──────────────────────────
+  function recLog(action, detail, success) {
+    recSafe('log', function() {
+      if (typeof window.hlReportError === 'function') {
+        window.hlReportError(
+          'auto-recover: ' + action + ' — ' + (success ? 'OK' : 'FAIL') + (detail ? ' (' + detail + ')' : ''),
+          'phase-g'
+        );
+      }
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // SAFE AUTO-FIX: Firebase reconnect
+  // ════════════════════════════════════════════════════════════════
+  // Track Firebase connection history (so we only reconnect on a REAL
+  // outage, not during the normal startup handshake or brief blips).
+  let recFbEverConnected = false;
+  let recFbDownSince = 0;
+  const REC_FB_GRACE_MS = 45000; // let Firebase self-heal for 45s first
+  setInterval(function(){
+    recSafe('fbWatch', function(){
+      const c = (typeof fbConn !== 'undefined') ? !!fbConn : true;
+      if (c) {
+        recFbEverConnected = true;
+        recFbDownSince = 0;
+      } else if (recFbEverConnected && recFbDownSince === 0) {
+        recFbDownSince = Date.now();
+      }
+    });
+  }, 5000);
+
+  function recTryFirebaseReconnect() {
+    return recSafe('fbReconnect', function() {
+      // Gate 1: feature enabled
+      if (!recIsEnabled()) return;
+      // Gate 2: not busy
+      if (recUserBusy()) return;
+      // Gate 3: cooldown
+      if (!recCooldownOk()) return;
+      // Gate 4: per-type limit
+      recFixCounts.firebase = recFixCounts.firebase || 0;
+      if (recFixCounts.firebase >= REC_MAX_PER_TYPE) return;
+
+      // Gate 5: must have connected at least once (not still starting up)
+      if (!recFbEverConnected) return;
+
+      // Check if Firebase is actually disconnected
+      const connected = (typeof fbConn !== 'undefined') ? !!fbConn : true;
+      if (connected) return; // nothing to fix
+
+      // Gate 6: only act after a real, sustained outage — give the
+      // Firebase SDK time to reconnect on its own first (it usually does)
+      if (recFbDownSince === 0 || (Date.now() - recFbDownSince) < REC_FB_GRACE_MS) return;
+
+      // Do the safe fix
+      if (typeof firebase === 'undefined' || !firebase.database) return;
+      recFixCounts.firebase++;
+      recLastFixTs = Date.now();
+      try {
+        firebase.database().goOffline();
+        setTimeout(function(){
+          recSafe('goOnline', function(){ firebase.database().goOnline(); });
+        }, 800);
+        recLog('firebase-reconnect', 'attempt ' + recFixCounts.firebase, true);
+        console.log('[REC] Firebase reconnect attempted (' + recFixCounts.firebase + '/' + REC_MAX_PER_TYPE + ')');
+      } catch(e) {
+        recLog('firebase-reconnect', e && e.message, false);
+      }
+
+      // If exhausted attempts and still broken — escalate to popup
+      if (recFixCounts.firebase >= REC_MAX_PER_TYPE) {
+        setTimeout(function(){
+          recSafe('escalate', function(){
+            const stillDown = (typeof fbConn !== 'undefined') ? !fbConn : false;
+            if (stillDown) {
+              recShowPopup({
+                icon: '📡',
+                title: 'เชื่อมต่อ Firebase ไม่ได้',
+                msg: 'ลองเชื่อมใหม่อัตโนมัติแล้วแต่ยังไม่สำเร็จ — อาจเป็นที่สัญญาณเน็ต',
+                buttons: [
+                  { label: 'รีโหลดแอพ', kind: 'primary', act: function(){ location.reload(); } },
+                  { label: 'ทำงานต่อ', kind: 'ghost', act: function(){} }
+                ]
+              });
+            }
+          });
+        }, 4000);
+      }
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // RISKY ISSUE: SW stale → ASK via popup (never auto-reload)
+  // ════════════════════════════════════════════════════════════════
+  function recCheckSwStale() {
+    recSafe('swStale', function() {
+      if (!recIsEnabled()) return;
+      if (recAskedThisSession.sw) return; // ask once per session
+      if (recUserBusy()) return;
+      if (!('serviceWorker' in navigator)) return;
+
+      navigator.serviceWorker.getRegistration().then(function(reg){
+        recSafe('swCheck', function(){
+          if (!reg) return;
+          // A waiting worker means a new version is ready but not active
+          if (reg.waiting) {
+            recAskedThisSession.sw = true;
+            recShowPopup({
+              icon: '🔄',
+              title: 'มีอัปเดตใหม่',
+              msg: 'แอพเวอร์ชันใหม่พร้อมแล้ว — รีโหลดเพื่อใช้เวอร์ชันล่าสุด',
+              buttons: [
+                { label: 'รีโหลดเลย', kind: 'primary', act: function(){
+                    recSafe('swActivate', function(){
+                      if (reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
+                    });
+                    setTimeout(function(){ location.reload(); }, 300);
+                  } },
+                { label: 'ไว้ทีหลัง', kind: 'ghost', act: function(){} }
+              ]
+            });
+            recLog('sw-stale-prompt', 'shown', true);
+          }
+        });
+      }).catch(function(){});
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // RISKY ISSUE: too many errors → ASK via popup
+  // ════════════════════════════════════════════════════════════════
+  function recCheckErrorFlood() {
+    recSafe('errFlood', function() {
+      if (!recIsEnabled()) return;
+      if (recAskedThisSession.errflood) return;
+      if (recUserBusy()) return;
+      if (typeof db === 'undefined' || !db) return;
+
+      // Count errors in the last 5 minutes
+      const cutoff = Date.now() - 5 * 60000;
+      db.ref('errorlogs').orderByKey().startAt(String(cutoff)).once('value', function(snap){
+        recSafe('errCount', function(){
+          let n = 0;
+          snap.forEach(function(){ n++; });
+          if (n >= 8) {
+            recAskedThisSession.errflood = true;
+            recShowPopup({
+              icon: '⚠️',
+              title: 'ตรวจพบ error บ่อยผิดปกติ',
+              msg: 'มี error ' + n + ' ครั้งใน 5 นาที — แนะนำให้รีโหลดแอพ',
+              buttons: [
+                { label: 'รีโหลดแอพ', kind: 'primary', act: function(){ location.reload(); } },
+                { label: 'ดู Error Log', kind: 'secondary', act: function(){
+                    recSafe('gotoLog', function(){
+                      if (typeof window.onShowErrorLog === 'function') {
+                        // navigate to settings if possible, then show log
+                        window.onShowErrorLog();
+                      }
+                    });
+                  } },
+                { label: 'ปิดไว้ก่อน', kind: 'ghost', act: function(){} }
+              ]
+            });
+            recLog('error-flood-prompt', n + ' errors/5min', true);
+          }
+        });
+      }, function(){});
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // POPUP RENDERER (one popup at a time)
+  // ════════════════════════════════════════════════════════════════
+  function recShowPopup(cfg) {
+    recSafe('showPopup', function() {
+      if (recPopupOpen) return; // never stack popups
+      recPopupOpen = true;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'rec-popup-overlay';
+
+      const card = document.createElement('div');
+      card.className = 'rec-popup-card';
+
+      const icon = document.createElement('div');
+      icon.className = 'rec-popup-icon';
+      icon.textContent = cfg.icon || '🛠️';
+
+      const title = document.createElement('div');
+      title.className = 'rec-popup-title';
+      title.textContent = cfg.title || 'แจ้งเตือน';
+
+      const msg = document.createElement('div');
+      msg.className = 'rec-popup-msg';
+      msg.textContent = cfg.msg || '';
+
+      const btnWrap = document.createElement('div');
+      btnWrap.className = 'rec-popup-btns';
+
+      function closePopup() {
+        recSafe('closePopup', function(){
+          if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+          recPopupOpen = false;
+        });
+      }
+
+      (cfg.buttons || []).forEach(function(b){
+        const btn = document.createElement('button');
+        btn.className = 'rec-btn rec-btn-' + (b.kind || 'secondary');
+        btn.textContent = b.label;
+        btn.addEventListener('click', function(){
+          recSafe('btnAct', function(){ if (typeof b.act === 'function') b.act(); });
+          closePopup();
+        });
+        btnWrap.appendChild(btn);
+      });
+
+      card.appendChild(icon);
+      card.appendChild(title);
+      card.appendChild(msg);
+      card.appendChild(btnWrap);
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
+
+      // Safety auto-close after 30s if untouched (don't trap the user)
+      setTimeout(function(){ if (recPopupOpen) closePopup(); }, 30000);
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // MAIN LOOP — check every 30s
+  // ════════════════════════════════════════════════════════════════
+  function recTick() {
+    recSafe('tick', function() {
+      if (!recIsEnabled()) return;
+      recTryFirebaseReconnect();   // safe auto-fix
+      recCheckSwStale();           // risky → popup
+      recCheckErrorFlood();        // risky → popup
+    });
+  }
+
+  function recInit() {
+    recSafe('init', function() {
+      if (typeof db === 'undefined' || !db || typeof curUser === 'undefined' || !curUser) {
+        setTimeout(recInit, 2500);
+        return;
+      }
+      // First check after 15s (let app settle), then every 30s
+      setTimeout(recTick, 15000);
+      setInterval(recTick, 30000);
+      console.log('[REC] Auto-recovery active. Disable: setAutoRecover(false)');
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(recInit, 5000));
+  } else {
+    setTimeout(recInit, 5000);
   }
 })();
 </script>
