@@ -2667,6 +2667,10 @@ body > main, body > .topbar, body > .top-bar, body > .pages, body > .page,
 
 /* Stream of light overlay */
 .aaa-btn-stream{
+  /* Stream shine disabled by user request */
+  display:none !important;
+}
+.aaa-btn-stream--orig{
   position:absolute;
   top:50%; left:-50%;
   width:60%; height:200%;
@@ -5537,22 +5541,12 @@ function doCheckIn(){
   saveRec();
   document.getElementById('btn-out').disabled=false;
   showToast(`เข้างาน ${t}${late?' ⚠ สาย':''}`,late?'warning':'success');
-  const b1=document.getElementById('btn-in');const r1=b1.getBoundingClientRect();
-  burst(r1.left+r1.width/2, r1.top+r1.height/2, late?['⚠️','😅','🕐','📍']:['✅','🟢','⭐','✨','💪']);
+  // Button effects removed by user request — keep only haptic + toast + sound
   if(!late) {
-    launchConfetti(['#00bfff','#00e5ff','#10b981','#ffd700','#ffffff','#7ecfee']);
-    showCheckmarkSuccess('#34c759');
-    // NOTE: liquidMorphPulse / screenShake / smokeFromButton intentionally removed —
-    // they caused the button to visually stretch on rapid taps (transform stacking).
     if(typeof soundCheckIn === 'function') soundCheckIn();
   } else {
-    launchConfetti(['#ffd700','#ff9500','#ff6b6b']);
-    showCheckmarkSuccess('#ff9500');
     if(typeof soundCheckOut === 'function') soundCheckOut();
   }
-  // Liquid button — fill up on check-in
-  const lqIn = document.getElementById('liquid-in');
-  if(lqIn && lqIn._setFill) lqIn._setFill(0.75);
   renderHome();
   // FIX: re-enable button on success + clear safety timer (was missing → caused "tap twice" bug)
   clearTimeout(_safetyTimerIn); _reEnableIn();
@@ -5589,13 +5583,7 @@ function doCheckOut(){
   document.getElementById('btn-in').disabled=false;
   const hrs=((ts-records[idx].checkInTs)/3600000).toFixed(1);
   showToast(`ออกงาน ${t} — ${hrs} ชม.${records[idx].otMin>0?' ⚡ OT!':''}`, 'success');
-  const b2=document.getElementById('btn-out');const r2=b2.getBoundingClientRect();
-  burst(r2.left+r2.width/2, r2.top+r2.height/2, records[idx].otMin>0?['⚡','🔥','💫','🎯','🏆']:['👋','🏁','😊','✨','🌟']);
-  launchConfetti(records[idx].otMin>0 ? ['#ffd700','#ff9500','#ff6b6b','#ffffff'] : ['#10b981','#00bfff','#ffffff','#7ecfee']);
-  showCheckmarkSuccess(records[idx].otMin>0 ? '#ffd700' : '#00bfff');
-  // Liquid button — drain on check-out
-  const lqIn2 = document.getElementById('liquid-in');
-  if(lqIn2 && lqIn2._setFill) lqIn2._setFill(0.2);
+  // Button effects removed by user request — keep only haptic + toast
   renderHome();
   // FIX: re-enable button on success + clear safety timer (was missing → caused "tap twice" bug)
   clearTimeout(_safetyTimerOut); _reEnableOut();
@@ -11637,21 +11625,9 @@ function launchConfetti(colors) {
   loop();
 })();
 
-// ===== CYBERPUNK CHECK-IN BURST =====
-const _origBurst = burst;
-window.burst = function(x, y, emojis) {
-  for(let i=0;i<10;i++){
-    const el=document.createElement('div');
-    el.style.cssText=`position:fixed;left:${x}px;top:${y}px;pointer-events:none;z-index:9999;font-size:${12+Math.random()*14}px;line-height:1;animation:starFloat ${0.5+Math.random()*0.7}s ease forwards;animation-delay:${i*0.06}s`;
-    const angle=(i/10)*360;
-    const r=25+Math.random()*55;
-    el.style.transform=`translate(${Math.cos(angle*Math.PI/180)*r}px,${Math.sin(angle*Math.PI/180)*r}px)`;
-    el.textContent=['⚡','💠','🔷','✨','⚙️','🌐'][Math.floor(Math.random()*6)];
-    document.body.appendChild(el);
-    setTimeout(()=>el.remove(),1300);
-  }
-  _origBurst(x,y,emojis);
-};
+// ===== CYBERPUNK CHECK-IN BURST — disabled by user request =====
+// (icon stream ⚡💠🔷✨⚙️🌐 removed; burst() stays as original no-op-safe)
+
 </script>
 <script>
 // ===== SERVICE WORKER AUTO-UPDATE =====
