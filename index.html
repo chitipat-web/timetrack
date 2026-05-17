@@ -2667,18 +2667,16 @@ body > main, body > .topbar, body > .top-bar, body > .pages, body > .page,
 
 /* Stream of light overlay */
 .aaa-btn-stream{
-  /* Stream shine disabled by user request */
-  display:none !important;
-}
-.aaa-btn-stream--orig{
+  /* Stream shine disabled by user request.
+     Keep position:absolute so the span stays OUT of the button's
+     flex flow — using display:none caused the centered label to
+     shift left on re-render. opacity:0 hides it without reflow. */
   position:absolute;
-  top:50%; left:-50%;
-  width:60%; height:200%;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  transform:translateY(-50%) rotate(20deg);
-  animation:aaaStreamRun 4s linear infinite;
+  top:0; left:0;
+  width:0; height:0;
+  opacity:0 !important;
+  animation:none !important;
   pointer-events:none;
-  z-index:0;
 }
 @keyframes aaaStreamRun{
   0%{ left:-60%; }
