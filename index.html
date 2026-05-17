@@ -15017,7 +15017,9 @@ body.dark [class*="tab"] .label{
 
       // Check 5: Home widgets (Phase A/B/C)
       checks.push(hlSafe('chkWidgets', function(){
-        const a = typeof window.HW_ENABLED !== 'undefined';
+        // Phase A exposes renderHomeWidgets (HW_ENABLED is a local const,
+        // not on window — so we check the function it publishes instead).
+        const a = typeof window.renderHomeWidgets === 'function';
         const b = typeof window.HW_B_ENABLED !== 'undefined';
         const c = typeof window.HW_C_ENABLED !== 'undefined';
         const cnt = (a?1:0)+(b?1:0)+(c?1:0);
