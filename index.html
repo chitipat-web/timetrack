@@ -2740,8 +2740,8 @@ body.cinema-off .aaa-bg-stage { display:block !important; visibility:visible !im
 .home-a .float-dot{ display:none !important; }
 .home-a .btn-row{ gap:8px !important; }
 .home-a .btn-in, .home-a .btn-out{ padding:14px !important; min-height:auto !important; border-radius:99px !important; font-size:15px !important; flex-direction:row !important; gap:8px !important; align-items:center !important; }
-.home-a .btn-in span:nth-child(3){ font-size:13px !important; width:auto !important; height:auto !important; }
-.home-a .btn-out span:nth-child(3){ font-size:13px !important; width:auto !important; height:auto !important; }
+.home-a .btn-in span:nth-child(3){ font-size:13px !important; width:18px !important; height:18px !important; flex:none !important; }
+.home-a .btn-out span:nth-child(3){ font-size:13px !important; width:18px !important; height:18px !important; flex:none !important; }
 .home-a .btn-in span:nth-child(4), .home-a .btn-out span:nth-child(4){ font-weight:800 !important; }
 .home-a .btn-sub{ display:none !important; }
 
@@ -3925,7 +3925,27 @@ function _queueCloudWrite(key, value){
 // Wrap localStorage.setItem
 const _origSetItem = localStorage.setItem.bind(localStorage);
 localStorage.setItem = function(key, value){
-  _origSetItem(key, value);
+  // iOS Safari caps localStorage at ~5MB. A QuotaExceededError here
+  // would crash every caller (saveRec/saveEmp run right after check-in!).
+  // Swallow it: the cloud write below + Firebase remain the source of
+  // truth, so a full local cache is degraded-but-working, not broken.
+  try {
+    _origSetItem(key, value);
+  } catch(e) {
+    console.warn('[LS] setItem failed (quota?):', key, e && e.name);
+    // Best-effort recovery: drop large non-critical caches, retry once
+    try {
+      const _rawRemove = Storage.prototype.removeItem.bind(localStorage);
+      const dropable = ['tt_rec_cache', 'tt_emp_cache', 'tt_photo_'];
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && dropable.some(function(p){ return k.indexOf(p) === 0; })) {
+          _rawRemove(k);
+        }
+      }
+      _origSetItem(key, value);
+    } catch(e2) { /* still failing — give up silently, cloud has it */ }
+  }
   if(!_shouldSkipKey(key)) _queueCloudWrite(key, value);
 };
 
@@ -5517,6 +5537,9 @@ async function renderLoginLogs(){
   const emp = _mhCurrentEmp;
   const summaryEl = document.getElementById('mh-login-summary');
   const contentEl = document.getElementById('mh-login-content');
+  // Null guard: if the panel isn't in the DOM, bail quietly instead of
+  // throwing on .innerHTML (the modal may not be open / may have changed).
+  if (!summaryEl || !contentEl) return;
   contentEl.innerHTML = '<div class="empty-state"><div style="font-size:13px;color:var(--ink-3)">กำลังโหลด...</div></div>';
 
   const logs = await getLoginLogs(emp.id, 100);
@@ -9497,8 +9520,8 @@ async function handleFirebaseUser(fbUser) {
       db.ref('employees').once('value'),
       db.ref('records').once('value')
     ]);
-    employees = empSnap2.val() ? Object.values(empSnap2.val()) : [];
-    records   = recSnap.val()  ? Object.values(recSnap.val())  : [];
+    employees = sanitizeEmployees(empSnap2.val());
+    records   = sanitizeRecords(recSnap.val());
     localStorage.setItem('tt_emp', JSON.stringify(employees));
     localStorage.setItem('tt_rec', JSON.stringify(records));
     setupRealtimeListeners();
@@ -9542,8 +9565,8 @@ async function _syncFirebaseInBackground(fbUser) {
       db.ref('employees').once('value'),
       db.ref('records').once('value')
     ]);
-    const freshEmp = empSnap.val() ? Object.values(empSnap.val()) : employees;
-    const freshRec = recSnap.val()  ? Object.values(recSnap.val())  : records;
+    const freshEmp = empSnap.val() ? sanitizeEmployees(empSnap.val()) : employees;
+    const freshRec = recSnap.val()  ? sanitizeRecords(recSnap.val())  : records;
     const changed = JSON.stringify(freshEmp) !== JSON.stringify(employees) ||
                     JSON.stringify(freshRec)  !== JSON.stringify(records);
     if (changed) {
@@ -9563,13 +9586,57 @@ async function _syncFirebaseInBackground(fbUser) {
 let _recordsLoadedFromFB = false;
 let _employeesLoadedFromFB = false;
 
+// ── Defensive sanitizers ────────────────────────────────────────────
+// Firebase data can contain malformed entries if a node was hand-edited
+// in the console (null, string, missing key fields). Object.values()
+// would include them, and downstream .filter(r => r.empId...) crashes
+// on a non-object. These helpers keep only well-formed records.
+function sanitizeRecords(obj) {
+  try {
+    if (!obj) return [];
+    return Object.values(obj).filter(function(r){
+      return r && typeof r === 'object' && typeof r.empId === 'string';
+    });
+  } catch(e) { return []; }
+}
+function sanitizeEmployees(obj) {
+  try {
+    if (!obj) return [];
+    return Object.values(obj).filter(function(e){
+      return e && typeof e === 'object' && typeof e.id === 'string';
+    });
+  } catch(e) { return []; }
+}
+
+// Tracks the realtime refs so we can detach them on logout / re-login.
+// Without this, every setupRealtimeListeners() call stacked another
+// .on() listener — after a logout+login the callbacks ran twice and
+// could fire with a stale curUser.
+let _realtimeRefs = [];
+function detachRealtimeListeners() {
+  try {
+    _realtimeRefs.forEach(function(r){ try { r.off(); } catch(e){} });
+  } catch(e) {}
+  _realtimeRefs = [];
+}
+
 function setupRealtimeListeners() {
+  // Always detach any previous listeners first — prevents duplicate
+  // callbacks when this runs again (re-login, reconnect, etc.).
+  detachRealtimeListeners();
+
   // ----- Records realtime -----
-  db.ref('records').on('value', snap => {
+  const _recRef = db.ref('records');
+  _realtimeRefs.push(_recRef);
+  _recRef.on('value', snap => {
     const fbData = snap.val();
     // GUARD: if Firebase has data, merge it. If empty AND we have local data, DON'T overwrite local.
     if (fbData) {
-      records = Object.values(fbData);
+      // Defensive: Object.values can include malformed entries if a record
+      // was hand-edited in the Firebase console (null, string, missing
+      // empId). Downstream code does records.filter(r => r.empId...) which
+      // crashes on a non-object. Keep only well-formed record objects.
+      records = sanitizeRecords(fbData);
       localStorage.setItem('tt_rec', JSON.stringify(records));
     } else if (!_recordsLoadedFromFB) {
       // First load and FB is empty — keep whatever we already have (might be local cache)
@@ -9595,10 +9662,15 @@ function setupRealtimeListeners() {
   }, err => console.warn('records listen err:', err));
 
   // ----- Employees realtime -----
-  db.ref('employees').on('value', snap => {
+  // ----- Employees realtime -----
+  const _empRef = db.ref('employees');
+  _realtimeRefs.push(_empRef);
+  _empRef.on('value', snap => {
     const fbData = snap.val();
     if (fbData) {
-      employees = Object.values(fbData);
+      // Defensive: drop malformed entries (null / non-object / no id).
+      // Downstream does employees.find(e => e.name...) which crashes on null.
+      employees = sanitizeEmployees(fbData);
       localStorage.setItem('tt_emp', JSON.stringify(employees));
     }
     _employeesLoadedFromFB = true;
@@ -9830,6 +9902,13 @@ function doLogout() {
   setTimeout(() => {
     auth.signOut().then(() => {
       curUser = null;
+      // Detach all Firebase listeners so they don't keep firing after
+      // logout (or stack up when the next user logs in).
+      try { if (typeof detachRealtimeListeners === 'function') detachRealtimeListeners(); } catch(e){}
+      try {
+        _cloudListeners.forEach(({ref}) => { try{ ref.off(); }catch(e){} });
+        _cloudListeners.length = 0;
+      } catch(e){}
       localStorage.removeItem('tt_session');
       document.getElementById('login-screen').style.display='flex';
       document.getElementById('app-shell').style.display = 'none';
@@ -9840,7 +9919,8 @@ function doLogout() {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.getElementById('page-home').classList.add('active');
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      document.querySelector('.nav-btn[data-page="home"]').classList.add('active');
+      const homeNav = document.querySelector('.nav-btn[data-page="home"]');
+      if (homeNav) homeNav.classList.add('active');
     });
   }, 600);
 }
@@ -11479,6 +11559,101 @@ if('serviceWorker' in navigator) {
       // (prevents reload on first-ever SW install)
       if (_hasNewSW) safeReload('controllerchange');
     });
+
+    // ═══════════════════════════════════════════════════════════════
+    // STAGE-1 AUTO-UPDATE — version.json poll (backup detector)
+    //
+    // WHY: iOS Safari sometimes fails to pick up a new sw.js (known
+    // WebKit caching bugs). This is a SECOND, independent way to notice
+    // a new deploy — it fetches a tiny version.json with cache busting.
+    // It reuses the SAME safeReload()/isSafeToReload() above, so there
+    // is exactly ONE reload path — no duplicate logic.
+    //
+    // SAFETY:
+    //   - Records the baseline version on first successful fetch; only
+    //     reloads when it later CHANGES (never on first load).
+    //   - Polls only when the tab is visible.
+    //   - All failures are silent (offline, 404, bad JSON → ignored).
+    //   - Goes through safeReload → respects check-in guard, modals,
+    //     typing, reload-in-progress lock.
+    // ═══════════════════════════════════════════════════════════════
+    (function(){
+      let _vjBaseline = null;          // version seen at startup
+      const VJ_URL = './version.json';
+      const VJ_INTERVAL = 5 * 60 * 1000; // every 5 min
+      const VJ_MAX_RELOADS = 2;        // safety cap on update-reloads per short window
+      const VJ_WINDOW_MS = 10 * 60 * 1000; // 10 min window
+
+      // ── Cross-reload loop guard ──────────────────────────────────
+      // If GitHub Pages is still serving a stale index.html after a
+      // deploy, version.json (network-only) may report a newer version
+      // than the loaded app — causing reload every 5 min until the CDN
+      // catches up. We cap reloads: max VJ_MAX_RELOADS within VJ_WINDOW.
+      function vjReloadAllowed() {
+        try {
+          const raw = sessionStorage.getItem('_vj_reloads');
+          const now = Date.now();
+          let arr = raw ? JSON.parse(raw) : [];
+          // keep only timestamps inside the window
+          arr = arr.filter(function(t){ return (now - t) < VJ_WINDOW_MS; });
+          if (arr.length >= VJ_MAX_RELOADS) {
+            console.warn('[VJ] reload cap reached — stopping auto-reload (stale CDN?)');
+            return false;
+          }
+          return true;
+        } catch(e) { return true; }
+      }
+      function vjRecordReload() {
+        try {
+          const raw = sessionStorage.getItem('_vj_reloads');
+          const arr = raw ? JSON.parse(raw) : [];
+          arr.push(Date.now());
+          sessionStorage.setItem('_vj_reloads', JSON.stringify(arr));
+        } catch(e) {}
+      }
+
+      function vjCheck() {
+        try {
+          if (document.visibilityState !== 'visible') return;
+          fetch(VJ_URL + '?_=' + Date.now(), { cache: 'no-store' })
+            .then(function(r){ return r.ok ? r.json() : null; })
+            .then(function(data){
+              if (!data || !data.version) return;
+              if (_vjBaseline === null) {
+                // First successful read — remember it, do NOT reload
+                _vjBaseline = data.version;
+                console.log('[VJ] baseline version:', _vjBaseline);
+                return;
+              }
+              if (data.version !== _vjBaseline) {
+                console.log('[VJ] new version detected:', data.version, '(was', _vjBaseline + ')');
+                // Loop guard: bail if we've already reloaded too many times
+                if (!vjReloadAllowed()) {
+                  // Update baseline so we stop retrying this same version
+                  _vjBaseline = data.version;
+                  return;
+                }
+                _hasNewSW = true; // share the same flag the SW path uses
+                vjRecordReload();
+                // Nudge the SW to fetch the new files, then safeReload
+                navigator.serviceWorker.getRegistration()
+                  .then(function(reg){ if (reg) reg.update().catch(function(){}); })
+                  .catch(function(){});
+                safeReload('version.json changed');
+              }
+            })
+            .catch(function(){ /* offline / 404 → silent */ });
+        } catch(e) { /* never throw */ }
+      }
+
+      // First check 60s after load (let app settle), then every 5 min
+      setTimeout(vjCheck, 60000);
+      setInterval(vjCheck, VJ_INTERVAL);
+      // Also check when app comes back to foreground
+      document.addEventListener('visibilitychange', function(){
+        if (document.visibilityState === 'visible') setTimeout(vjCheck, 1500);
+      });
+    })();
   });
 }
 
@@ -14506,20 +14681,48 @@ body.dark [class*="tab"] .label{
     }) || 'unknown';
   }
 
-  // Current app version (from SW cache name or fallback)
+  // Current app version. Auto-synced from version.json so it never
+  // goes stale (previously a hard-coded fallback that had to be bumped
+  // by hand every deploy — and was easy to forget).
+  let _hlVersionCache = null;
   function hlAppVersion() {
     return hlSafe('appVersion', function() {
-      // try to read a global if present
+      if (_hlVersionCache) return _hlVersionCache;
       if (typeof APP_VERSION !== 'undefined') return APP_VERSION;
-      return 'v129';
+      return 'unknown';
     }) || 'unknown';
   }
+  // Fetch the real version once at startup (silent on failure)
+  hlSafe('versionFetch', function() {
+    fetch('./version.json?_=' + Date.now(), { cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){ if (d && d.version) _hlVersionCache = d.version; })
+      .catch(function(){});
+  });
 
   // Write one error record to Firebase
   function hlLogError(kind, message, where) {
     hlSafe('logError', function() {
-      // Throttle: skip if too soon or over session cap
       const now = Date.now();
+
+      // ── Real-error counter (BEFORE throttle) ──────────────────────
+      // Counts EVERY error, even throttled ones, into a rolling 5-min
+      // window in sessionStorage. Phase G's flood detector reads this
+      // instead of querying Firebase — because the Firebase write below
+      // is throttled/capped and would under-count a real error storm.
+      hlSafe('floodCounter', function(){
+        const W = 5 * 60000;
+        let arr = [];
+        try {
+          const raw = sessionStorage.getItem('_hl_err_times');
+          arr = raw ? JSON.parse(raw) : [];
+        } catch(_){}
+        arr.push(now);
+        arr = arr.filter(function(t){ return (now - t) < W; });
+        try { sessionStorage.setItem('_hl_err_times', JSON.stringify(arr)); } catch(_){}
+      });
+
+      // Throttle: skip the Firebase WRITE if too soon or over session cap
       if (hlLogCount >= HL_MAX_PER_SESSION) return;
       if (now - hlLastLogTs < HL_THROTTLE_MS) return;
       hlLastLogTs = now;
@@ -14544,8 +14747,11 @@ body.dark [class*="tab"] .label{
         version: hlAppVersion()
       };
 
-      // Fire-and-forget — logging must never block or throw
-      db.ref('errorlogs/' + now).set(entry).catch(function(){});
+      // Fire-and-forget — logging must never block or throw.
+      // Key = timestamp + random suffix so two errors in the same
+      // millisecond can't overwrite each other (Date.now() alone collides).
+      const logKey = now + '-' + Math.random().toString(36).slice(2, 8);
+      db.ref('errorlogs/' + logKey).set(entry).catch(function(){});
     });
   }
 
@@ -14569,7 +14775,11 @@ body.dark [class*="tab"] .label{
     hlSafe('prune', function() {
       if (typeof db === 'undefined' || !db) return;
       const cutoff = Date.now() - HL_RETAIN_DAYS * 86400000;
-      db.ref('errorlogs').orderByKey().endAt(String(cutoff)).once('value', function(snap){
+      // Keys are "<timestamp>-<random>". endAt with the bare timestamp
+      // would miss a key whose ts equals cutoff exactly (the suffix makes
+      // it sort AFTER the bare number). Append '~' (high ASCII char) so
+      // the bound covers every suffix for that millisecond.
+      db.ref('errorlogs').orderByKey().endAt(String(cutoff) + '~').once('value', function(snap){
         hlSafe('pruneApply', function(){
           const updates = {};
           snap.forEach(function(child){ updates[child.key] = null; });
@@ -14725,13 +14935,17 @@ body.dark [class*="tab"] .label{
   // ═══════════════════════════════════════════════════════════════
   // INIT
   // ═══════════════════════════════════════════════════════════════
+  let _hlInitDone = false;
   function hlInit() {
     hlSafe('init', function() {
+      // Guard: never run the init body twice (would stack setInterval)
+      if (_hlInitDone) return;
       // Wait for Firebase + user
       if (typeof db === 'undefined' || !db || typeof curUser === 'undefined' || !curUser) {
         setTimeout(hlInit, 2000);
         return;
       }
+      _hlInitDone = true;
       // Prune old logs once, 10s after init (don't compete with app startup)
       setTimeout(hlPruneOldLogs, 10000);
       // Auto-run health check when settings page opens
@@ -14953,6 +15167,13 @@ body.dark [class*="tab"] .label{
   // RISKY ISSUE: SW stale → ASK via popup (never auto-reload)
   // ════════════════════════════════════════════════════════════════
   function recCheckSwStale() {
+    // DISABLED (Stage-1 auto-update): the SW registration block already
+    // handles new-version detection and silently reloads at a safe moment
+    // (see updatefound + controllerchange + safeReload above). Keeping a
+    // second popup here would double-handle the same event and could fire
+    // right as the silent reload happens. Left as a no-op on purpose.
+    return;
+    /* eslint-disable no-unreachable */
     recSafe('swStale', function() {
       if (!recIsEnabled()) return;
       if (recAskedThisSession.sw) return; // ask once per session
@@ -14984,6 +15205,7 @@ body.dark [class*="tab"] .label{
         });
       }).catch(function(){});
     });
+    /* eslint-enable no-unreachable */
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -14994,37 +15216,40 @@ body.dark [class*="tab"] .label{
       if (!recIsEnabled()) return;
       if (recAskedThisSession.errflood) return;
       if (recUserBusy()) return;
-      if (typeof db === 'undefined' || !db) return;
 
-      // Count errors in the last 5 minutes
-      const cutoff = Date.now() - 5 * 60000;
-      db.ref('errorlogs').orderByKey().startAt(String(cutoff)).once('value', function(snap){
-        recSafe('errCount', function(){
-          let n = 0;
-          snap.forEach(function(){ n++; });
-          if (n >= 8) {
-            recAskedThisSession.errflood = true;
-            recShowPopup({
-              icon: '⚠️',
-              title: 'ตรวจพบ error บ่อยผิดปกติ',
-              msg: 'มี error ' + n + ' ครั้งใน 5 นาที — แนะนำให้รีโหลดแอพ',
-              buttons: [
-                { label: 'รีโหลดแอพ', kind: 'primary', act: function(){ location.reload(); } },
-                { label: 'ดู Error Log', kind: 'secondary', act: function(){
-                    recSafe('gotoLog', function(){
-                      if (typeof window.onShowErrorLog === 'function') {
-                        // navigate to settings if possible, then show log
-                        window.onShowErrorLog();
-                      }
-                    });
-                  } },
-                { label: 'ปิดไว้ก่อน', kind: 'ghost', act: function(){} }
-              ]
-            });
-            recLog('error-flood-prompt', n + ' errors/5min', true);
-          }
+      // Count REAL errors in the last 5 minutes from the sessionStorage
+      // counter that Phase F maintains. We do NOT query Firebase here:
+      // the Firebase error log is throttled (1 write / 3s, cap 20), so
+      // it under-counts a true error storm. The counter sees every error.
+      let n = 0;
+      recSafe('readFloodCounter', function(){
+        const now = Date.now();
+        const raw = sessionStorage.getItem('_hl_err_times');
+        let arr = raw ? JSON.parse(raw) : [];
+        arr = arr.filter(function(t){ return (now - t) < 5 * 60000; });
+        n = arr.length;
+      });
+
+      if (n >= 8) {
+        recAskedThisSession.errflood = true;
+        recShowPopup({
+          icon: '⚠️',
+          title: 'ตรวจพบ error บ่อยผิดปกติ',
+          msg: 'มี error ' + n + ' ครั้งใน 5 นาที — แนะนำให้รีโหลดแอพ',
+          buttons: [
+            { label: 'รีโหลดแอพ', kind: 'primary', act: function(){ location.reload(); } },
+            { label: 'ดู Error Log', kind: 'secondary', act: function(){
+                recSafe('gotoLog', function(){
+                  if (typeof window.onShowErrorLog === 'function') {
+                    window.onShowErrorLog();
+                  }
+                });
+              } },
+            { label: 'ปิดไว้ก่อน', kind: 'ghost', act: function(){} }
+          ]
         });
-      }, function(){});
+        recLog('error-flood-prompt', n + ' errors/5min', true);
+      }
     });
   }
 
@@ -15099,12 +15324,16 @@ body.dark [class*="tab"] .label{
     });
   }
 
+  let _recInitDone = false;
   function recInit() {
     recSafe('init', function() {
+      // Guard: never run the init body twice (would stack setInterval)
+      if (_recInitDone) return;
       if (typeof db === 'undefined' || !db || typeof curUser === 'undefined' || !curUser) {
         setTimeout(recInit, 2500);
         return;
       }
+      _recInitDone = true;
       // First check after 15s (let app settle), then every 30s
       setTimeout(recTick, 15000);
       setInterval(recTick, 30000);

@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v134
-// Cache: rudy-static-v134, firebase-v134
-// Build: 2026-05-17 · Phase G v2 (fbConn fix + gates)
+// RUDY · Service Worker v143
+// Cache: rudy-static-v143, firebase-v143
+// Build: 2026-05-17 · Fix button label shift (icon width:auto)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v134';
-const FIREBASE_CACHE = 'firebase-v134';
-const RUNTIME_CACHE = 'rudy-runtime-v134';
+const STATIC_CACHE  = 'rudy-static-v143';
+const FIREBASE_CACHE = 'firebase-v143';
+const RUNTIME_CACHE = 'rudy-runtime-v143';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v134] Installing...');
+  console.log('[SW v143] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v134] Precache partial fail (ok):', err);
+          console.warn('[SW v143] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v134] Activating...');
+  console.log('[SW v143] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v134] Deleting old cache:', name);
+              console.log('[SW v143] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -111,6 +111,20 @@ self.addEventListener('fetch', (event) => {
   }
 
   const reqUrl = new URL(url);
+
+  // STEP 3.5: version.json → NETWORK ONLY, never cached.
+  // The auto-update poller relies on this being fresh; if the SW
+  // served a cached copy the app could never detect a new deploy.
+  if (reqUrl.pathname.endsWith('version.json')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .catch(() => new Response('{}', {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        }))
+    );
+    return;
+  }
 
   // STEP 4: HTML / Document → NETWORK FIRST
   if (event.request.mode === 'navigate' ||
@@ -213,7 +227,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v134' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v143' });
     return;
   }
 });
@@ -236,7 +250,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v134] Push parse fail:', e);
+    console.warn('[SW v143] Push parse fail:', e);
   }
 });
 
@@ -256,4 +270,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v134] Loaded — Phase G v2 fbConn fix with full iOS bypass list');
+console.log('[SW v143] Loaded — Fix button label shift with full iOS bypass list');
