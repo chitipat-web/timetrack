@@ -628,6 +628,16 @@ body.dark .clock-hero{
     inset 0 1px 0 rgba(255,255,255,0.14),
     inset 0 -1px 0 rgba(0,0,0,0.3);
 }
+/* LIGHT MODE: the default clock-hero fill is translucent white, which
+   washes out on the light canvas and the blue blobs make the clock
+   digits sink. Use a near-solid white card so the digits read clearly. */
+body:not(.dark) .clock-hero{
+  background:#FFFFFF;
+  border-color:rgba(11,20,38,0.08);
+  box-shadow:0 12px 32px rgba(15,40,80,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+body:not(.dark) .clock-hero::before,
+body:not(.dark) .clock-hero::after{ opacity:0.35; }
 /* Glass refraction blob - blue */
 .clock-hero::before{
   content:""; position:absolute;
