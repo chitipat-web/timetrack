@@ -84,12 +84,16 @@ body.dark{
   --bg-base:#06101F;
   --bg-mesh-1:#0F2347; --bg-mesh-2:#1A3873;
   --bg-mesh-3:#0A1A33; --bg-mesh-4:#1B2F5C;
-  --glass-1:rgba(20,32,56,0.36);
-  --glass-2:rgba(28,42,72,0.28);
-  --glass-3:rgba(20,32,56,0.18);
-  --glass-stroke:rgba(255,255,255,0.18);
+  /* STAGE-1 READABILITY FIX: card backgrounds were 18-36% opaque, so the
+     background showed through and text lost contrast. Raised to ~92-96%
+     opacity — cards are now near-solid surfaces. Kept the variable names
+     so every existing rule that uses --glass-* updates consistently. */
+  --glass-1:rgba(28,40,64,0.96);
+  --glass-2:rgba(24,35,58,0.94);
+  --glass-3:rgba(20,30,50,0.92);
+  --glass-stroke:rgba(255,255,255,0.16);
   --glass-stroke-dim:rgba(255,255,255,0.10);
-  --glass-inner:inset 0 1px 0 rgba(255,255,255,0.14);
+  --glass-inner:inset 0 1px 0 rgba(255,255,255,0.06);
   --ink:#FFFFFF; --ink-2:#E8EEF7;
   --ink-3:rgba(240,244,251,0.96);
   --ink-4:rgba(240,244,251,0.82);
@@ -117,17 +121,17 @@ body{
 
 body::before{
   content:""; position:fixed; inset:-20%; z-index:-2;
+  /* STAGE-1 READABILITY FIX: the old background was a multi-colour mesh
+     gradient with a 30s meshDrift animation. Moving colours behind text
+     make contrast unstable and text hard to read. Replaced with a calm,
+     near-static dark canvas + 2 very faint fixed glows (no animation). */
   background:
-    radial-gradient(ellipse 50% 40% at 15% 5%, rgba(94,200,250,0.5) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(10,132,255,0.45) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 60% at 50% 100%, rgba(94,92,230,0.4) 0%, transparent 60%),
-    radial-gradient(ellipse 45% 55% at 95% 75%, rgba(191,90,242,0.3) 0%, transparent 55%),
-    radial-gradient(ellipse 40% 40% at 5% 60%, rgba(48,209,88,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 45% at 20% 0%, rgba(20,40,80,0.40) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 100%, rgba(30,30,70,0.35) 0%, transparent 60%),
     var(--bg-base);
-  filter:blur(60px);
-  animation:meshDrift 30s ease-in-out infinite alternate;
+  filter:blur(40px);
 }
-body.dark::before{ filter:blur(50px) brightness(0.85); }
+body.dark::before{ filter:blur(40px); }
 body::after{
   content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
   opacity:0.025;
@@ -2444,6 +2448,10 @@ body.dark .punct-card{
 
 /* ===== AAA BG STAGE — Mesh blobs + Aurora + Ambient ===== */
 .aaa-bg-stage{
+  /* STAGE-1 READABILITY FIX: this decorative particle/blob layer added
+     visual noise behind text. Hidden for a calm, readable canvas.
+     Kept in the DOM (display:none only) so no JS referencing it breaks. */
+  display:none !important;
   position:fixed; inset:0; z-index:0;
   pointer-events:none;
   overflow:hidden;
@@ -2705,8 +2713,9 @@ body.dark .wc-name-gradient, body.dark #wc-name{
   100%{ background-position:200% 50%; }
 }
 
-/* Respect cinema-off — keep the ambient background stage visible */
-body.cinema-off .aaa-bg-stage { display:block !important; visibility:visible !important; opacity:1 !important; }
+/* STAGE-1: the particle/blob stage is now hidden in ALL modes for
+   readability. Previously cinema-off forced it back visible — that rule
+   is removed so the canvas stays calm whether cinematic mode is on/off. */
 
 /* ========================================================== */
 /* RUDY · HOME A (Compact Stack) — applied 2026-05-11          */
