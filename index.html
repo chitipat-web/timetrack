@@ -239,20 +239,27 @@ body.dark .login-inp:focus, body.dark .modal-inp:focus, body.dark .form-inp:focu
 
 .login-btn, .btn-primary {
   width:100%;
-  background:linear-gradient(135deg, #5AC8FA 0%, #0A84FF 50%, #0066D6 100%);
+  background:linear-gradient(180deg, #5AC8FA 0%, #0A84FF 55%, #0066D6 100%);
   color:#fff; border:none; border-radius:var(--r-sm);
   padding:14px; font-size:15px; font-weight:600;
   cursor:pointer; font-family:inherit;
   margin-bottom:8px;
-  transition:transform 0.15s var(--ease-spring), filter 0.2s;
-  box-shadow:
-    0 6px 18px rgba(10,132,255,0.45),
-    0 2px 4px rgba(10,132,255,0.25),
-    inset 0 1px 0 rgba(255,255,255,0.45),
-    inset 0 -1px 0 rgba(0,0,0,0.12);
   letter-spacing:-0.01em;
   position:relative; overflow:hidden;
   isolation:isolate;
+  text-shadow:0 1px 2px rgba(0,0,0,0.22);
+  /* v163 3D DEPTH: strong lifted drop shadow + multi-layer inset for the
+     "lit-from-above dome" feel. Drop shadow is neutral dark instead of
+     blue so the many inline-style overrides (purple/green/orange) that
+     change only the background don't end up with a mismatched coloured
+     halo. */
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.22),
+    0 3px 6px rgba(0,0,0,0.14),
+    inset 0 1.5px 0 rgba(255,255,255,0.55),
+    inset 0 -2px 4px rgba(0,0,0,0.18),
+    inset 0 0 0 0.5px rgba(255,255,255,0.28);
+  transition:transform 0.12s var(--ease-spring), box-shadow 0.12s ease-out, filter 0.2s;
 }
 .login-btn::before, .btn-primary::before{
   content:""; position:absolute;
@@ -262,8 +269,17 @@ body.dark .login-inp:focus, body.dark .modal-inp:focus, body.dark .form-inp:focu
   pointer-events:none; z-index:0;
 }
 .login-btn > *, .btn-primary > * { position:relative; z-index:1; }
-.login-btn:active, .btn-primary:active { transform:scale(0.97); }
-.login-btn:hover, .btn-primary:hover { filter:brightness(1.08); }
+.login-btn:active, .btn-primary:active {
+  /* v163 PRESS ("ตี"): drop shadow collapses, inner shadow appears,
+     button reads as pressed into the surface. */
+  transform:scale(0.97);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.18),
+    inset 0 4px 10px rgba(0,0,0,0.26),
+    inset 0 1px 0 rgba(0,0,0,0.06),
+    inset 0 0 0 0.5px rgba(255,255,255,0.20);
+}
+.login-btn:hover, .btn-primary:hover { filter:brightness(1.06); }
 
 .btn-forgot, .btn-register, .btn-secondary {
   width:100%; background:rgba(255,255,255,0.20);
@@ -1580,13 +1596,18 @@ body.dark .confirm-box{
 .confirm-cancel{ background:rgba(255,255,255,0.5); color:var(--ink); border:1px solid var(--glass-stroke); }
 body.dark .confirm-cancel { background:rgba(255,255,255,0.08); }
 .confirm-ok{
-  background:linear-gradient(135deg, #5AC8FA 0%, #0A84FF 50%, #0066D6 100%);
+  background:linear-gradient(180deg, #5AC8FA 0%, #0A84FF 55%, #0066D6 100%);
   color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,0.22);
+  /* v163 3D DEPTH: coloured blue halo (always blue here — no inline override). */
   box-shadow:
-    0 6px 16px rgba(10,132,255,0.4),
-    inset 0 1px 0 rgba(255,255,255,0.45),
-    inset 0 -1px 0 rgba(0,0,0,0.12);
+    0 10px 22px rgba(10,132,255,0.45),
+    0 3px 6px rgba(10,132,255,0.22),
+    inset 0 1.5px 0 rgba(255,255,255,0.55),
+    inset 0 -2px 4px rgba(0,0,0,0.18),
+    inset 0 0 0 0.5px rgba(255,255,255,0.28);
   position:relative; overflow:hidden; isolation:isolate;
+  transition:transform 0.12s var(--ease-spring), box-shadow 0.12s ease-out;
 }
 .confirm-ok::before{
   content:""; position:absolute; top:0; left:0; right:0; height:50%;
@@ -1594,12 +1615,29 @@ body.dark .confirm-cancel { background:rgba(255,255,255,0.08); }
   border-radius:var(--r-sm); pointer-events:none; z-index:0;
 }
 .confirm-ok > * { position:relative; z-index:1; }
-.confirm-ok.danger {
-  background:linear-gradient(135deg, #FF8278 0%, #FF453A 50%, #D7372D 100%);
+.confirm-ok:active{
+  transform:scale(0.97);
   box-shadow:
-    0 6px 16px rgba(255,69,58,0.4),
-    inset 0 1px 0 rgba(255,255,255,0.45),
-    inset 0 -1px 0 rgba(0,0,0,0.12);
+    0 2px 6px rgba(10,132,255,0.30),
+    inset 0 4px 10px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(0,0,0,0.06),
+    inset 0 0 0 0.5px rgba(255,255,255,0.20);
+}
+.confirm-ok.danger {
+  background:linear-gradient(180deg, #FF8278 0%, #FF453A 55%, #D7372D 100%);
+  box-shadow:
+    0 10px 22px rgba(255,69,58,0.45),
+    0 3px 6px rgba(255,69,58,0.22),
+    inset 0 1.5px 0 rgba(255,255,255,0.55),
+    inset 0 -2px 4px rgba(0,0,0,0.18),
+    inset 0 0 0 0.5px rgba(255,255,255,0.28);
+}
+.confirm-ok.danger:active{
+  box-shadow:
+    0 2px 6px rgba(255,69,58,0.30),
+    inset 0 4px 10px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(0,0,0,0.06),
+    inset 0 0 0 0.5px rgba(255,255,255,0.20);
 }
 
 .sum-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:14px; }
@@ -1670,10 +1708,23 @@ body.dark .confirm-cancel { background:rgba(255,255,255,0.08); }
   color:var(--ink);
   font-size:13px; font-weight:600;
   cursor:pointer; font-family:inherit;
-  transition:all 0.2s var(--ease-out);
   -webkit-backdrop-filter:var(--blur-light); backdrop-filter:var(--blur-light);
+  /* v163 3D DEPTH (secondary, lighter): subtle lift + inset highlight for
+     glass cards. Less pronounced than the filled primaries since these are
+     export utilities, not headline actions. */
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.30),
+    inset 0 -1px 0 rgba(0,0,0,0.06);
+  transition:transform 0.12s var(--ease-spring), box-shadow 0.12s ease-out, background 0.2s, border-color 0.2s, color 0.2s;
 }
 .btn-export:hover, .btn-csv:hover, .btn-pdf:hover { background:rgba(10,132,255,0.08); border-color:var(--sys-blue); color:var(--sys-blue); }
+.btn-export:active, .btn-csv:active, .btn-pdf:active{
+  transform:scale(0.97);
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.10),
+    inset 0 2px 6px rgba(0,0,0,0.14);
+}
 
 .btn-edit{
   background:transparent; border:none;
@@ -2447,21 +2498,43 @@ body.dark .punct-card{
 }
 .btn-ai-gen{
   width:100%;
-  background: linear-gradient(135deg, #A78BFA 0%, #818CF8 50%, #60A5FA 100%);
+  background:linear-gradient(180deg, #C4A8FF 0%, #818CF8 55%, #6366F1 100%);
   color:#fff; border:none; border-radius:var(--r-sm);
   padding: 12px; font-size:14px; font-weight:600;
   cursor:pointer; font-family:inherit;
-  transition: all 0.15s var(--ease-spring);
-  box-shadow:
-    0 4px 14px rgba(139,92,246,0.40),
-    inset 0 1px 0 rgba(255,255,255,0.30);
   letter-spacing:-0.01em;
+  position:relative; overflow:hidden; isolation:isolate;
+  text-shadow:0 1px 2px rgba(0,0,0,0.22);
+  /* v163 3D DEPTH (purple). */
+  box-shadow:
+    0 10px 22px rgba(139,92,246,0.45),
+    0 3px 6px rgba(139,92,246,0.22),
+    inset 0 1.5px 0 rgba(255,255,255,0.55),
+    inset 0 -2px 4px rgba(0,0,0,0.18),
+    inset 0 0 0 0.5px rgba(255,255,255,0.28);
+  transition:transform 0.12s var(--ease-spring), box-shadow 0.12s ease-out, filter 0.2s;
 }
-.btn-ai-gen:active{ transform:scale(0.97); }
-.btn-ai-gen:hover{ filter:brightness(1.08); }
+.btn-ai-gen::before{
+  content:""; position:absolute;
+  top:0; left:0; right:0; height:50%;
+  background:linear-gradient(180deg, rgba(255,255,255,0.30) 0%, transparent 100%);
+  border-radius:var(--r-sm); pointer-events:none; z-index:0;
+}
+.btn-ai-gen > * { position:relative; z-index:1; }
+.btn-ai-gen:active{
+  transform:scale(0.97);
+  box-shadow:
+    0 2px 6px rgba(139,92,246,0.30),
+    inset 0 4px 10px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(0,0,0,0.06),
+    inset 0 0 0 0.5px rgba(255,255,255,0.20);
+}
+.btn-ai-gen:hover{ filter:brightness(1.06); }
 .btn-ai-gen:disabled{
   opacity: 0.6; cursor:wait;
   background: linear-gradient(135deg, #9CA3AF, #6B7280);
+  box-shadow:0 4px 10px rgba(0,0,0,0.15);
+  transform:none;
 }
 .ai-spinner{
   display:inline-block; width:14px; height:14px;
@@ -2511,21 +2584,43 @@ body.dark .punct-card{
   line-height: 1.5;
 }
 .btn-ai-insight{
-  background: linear-gradient(135deg, #A78BFA 0%, #818CF8 50%, #60A5FA 100%);
+  background:linear-gradient(180deg, #C4A8FF 0%, #818CF8 55%, #6366F1 100%);
   color:#fff; border:none; border-radius:var(--r-sm);
   padding: 10px 20px; font-size:13px; font-weight:600;
   cursor:pointer; font-family:inherit;
-  transition: all 0.15s var(--ease-spring);
-  box-shadow:
-    0 4px 14px rgba(139,92,246,0.40),
-    inset 0 1px 0 rgba(255,255,255,0.30);
   letter-spacing:-0.01em;
+  position:relative; overflow:hidden; isolation:isolate;
+  text-shadow:0 1px 2px rgba(0,0,0,0.22);
+  /* v163 3D DEPTH (purple). */
+  box-shadow:
+    0 10px 22px rgba(139,92,246,0.45),
+    0 3px 6px rgba(139,92,246,0.22),
+    inset 0 1.5px 0 rgba(255,255,255,0.55),
+    inset 0 -2px 4px rgba(0,0,0,0.18),
+    inset 0 0 0 0.5px rgba(255,255,255,0.28);
+  transition:transform 0.12s var(--ease-spring), box-shadow 0.12s ease-out, filter 0.2s;
 }
-.btn-ai-insight:active{ transform:scale(0.97); }
-.btn-ai-insight:hover{ filter:brightness(1.08); }
+.btn-ai-insight::before{
+  content:""; position:absolute;
+  top:0; left:0; right:0; height:50%;
+  background:linear-gradient(180deg, rgba(255,255,255,0.30) 0%, transparent 100%);
+  border-radius:var(--r-sm); pointer-events:none; z-index:0;
+}
+.btn-ai-insight > * { position:relative; z-index:1; }
+.btn-ai-insight:active{
+  transform:scale(0.97);
+  box-shadow:
+    0 2px 6px rgba(139,92,246,0.30),
+    inset 0 4px 10px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(0,0,0,0.06),
+    inset 0 0 0 0.5px rgba(255,255,255,0.20);
+}
+.btn-ai-insight:hover{ filter:brightness(1.06); }
 .btn-ai-insight:disabled{
   opacity: 0.6; cursor:wait;
   background: linear-gradient(135deg, #9CA3AF, #6B7280);
+  box-shadow:0 4px 10px rgba(0,0,0,0.15);
+  transform:none;
 }
 .ai-insight-content{
   position:relative; z-index:1;
@@ -15172,7 +15267,27 @@ body.dark [class*="tab"] .label{
     font-size:14px; font-weight:700; cursor:pointer;
     font-family:inherit;
   }
-  .rec-btn-primary { background:linear-gradient(135deg,#30D158,#1F9D40); color:#fff; }
+  .rec-btn-primary {
+    background:linear-gradient(180deg, #5BFFB5 0%, #30D158 55%, #1F9D40 100%);
+    color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,0.22);
+    /* v163 3D DEPTH (green). */
+    box-shadow:
+      0 10px 22px rgba(48,209,88,0.45),
+      0 3px 6px rgba(48,209,88,0.22),
+      inset 0 1.5px 0 rgba(255,255,255,0.55),
+      inset 0 -2px 4px rgba(0,0,0,0.18),
+      inset 0 0 0 0.5px rgba(255,255,255,0.28);
+    transition:transform 0.12s var(--ease-spring), box-shadow 0.12s ease-out;
+  }
+  .rec-btn-primary:active {
+    transform:scale(0.97);
+    box-shadow:
+      0 2px 6px rgba(48,209,88,0.30),
+      inset 0 4px 10px rgba(0,0,0,0.25),
+      inset 0 1px 0 rgba(0,0,0,0.06),
+      inset 0 0 0 0.5px rgba(255,255,255,0.20);
+  }
   .rec-btn-secondary { background:rgba(255,255,255,0.10); color:var(--ink,#fff); }
   .rec-btn-ghost { background:transparent; color:var(--text3,rgba(255,255,255,0.5)); font-weight:600; }
 </style>
