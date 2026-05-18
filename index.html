@@ -5448,8 +5448,12 @@ function doCheckIn(){
     if(typeof soundCheckOut === 'function') soundCheckOut();
   }
   renderHome();
-  // FIX: re-enable button on success + clear safety timer (was missing → caused "tap twice" bug)
-  clearTimeout(_safetyTimerIn); _reEnableIn();
+  // Cancel the 5s safety re-enable — renderHome has already set btn-in
+  // to disabled (since open=true now), which is the correct state for
+  // "user is checked in". The helper _reEnableIn is only for early-return
+  // paths where renderHome doesn't run; calling it here would override
+  // renderHome's correct state and make both buttons visible.
+  clearTimeout(_safetyTimerIn);
 }
 function doCheckOut(){
   // GUARD 1: Disable button INSTANTLY — before any logic. Prevents rapid-tap entirely.
@@ -5485,8 +5489,10 @@ function doCheckOut(){
   showToast(`ออกงาน ${t} — ${hrs} ชม.${records[idx].otMin>0?' ⚡ OT!':''}`, 'success');
   // Button effects removed by user request — keep only haptic + toast
   renderHome();
-  // FIX: re-enable button on success + clear safety timer (was missing → caused "tap twice" bug)
-  clearTimeout(_safetyTimerOut); _reEnableOut();
+  // Cancel the 5s safety re-enable — renderHome has already set btn-out
+  // to disabled (since open is now undefined), which is the correct state
+  // for "user has checked out". See the matching note in doCheckIn.
+  clearTimeout(_safetyTimerOut);
 }
 
 // ========== MANUAL ==========
