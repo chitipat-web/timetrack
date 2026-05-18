@@ -6,7 +6,12 @@
 <title>RUDY — Galaxy Edition</title>
 <!-- CRITICAL INLINE CSS: prevents white flash before main stylesheet loads -->
 <style id="critical-bg">
-  html, body { margin:0; padding:0; background:#001020 !important; color:#fff; min-height:100vh; }
+  /* LIGHT/DARK FIX: the anti-white-flash background was hardcoded dark
+     with !important, so light mode could never override it. Now it has
+     no !important, and a light default keyed off body (the .dark class
+     is toggled on <body> only, not <html>). */
+  html, body { margin:0; padding:0; background:#001020; color:#fff; min-height:100vh; }
+  body:not(.dark) { background:#E8F1FB; color:#0B1426; }
   body { font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
