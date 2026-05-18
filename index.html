@@ -271,12 +271,19 @@ body.dark .btn-forgot, body.dark .btn-register, body.dark .btn-secondary {
   font-size:13px; margin-bottom:14px;
 }
 
-#app-shell { display:none; min-height:100vh; padding-bottom:120px; }
+#app-shell { display:none; min-height:100vh; padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 120px); }
 
 .topbar{
   position:sticky; top:0; z-index:50;
   display:flex; align-items:center; justify-content:space-between;
-  padding:10px 12px;
+  /* SAFE-AREA FIX: on iPhones with a notch / Dynamic Island the bar
+     used to slide under the system clock. env(safe-area-inset-*) pushes
+     the content below the system UI. Falls back to 10px where there is
+     no inset (older devices / non-PWA). */
+  padding-top:calc(env(safe-area-inset-top, 0px) + 10px);
+  padding-bottom:10px;
+  padding-left:calc(env(safe-area-inset-left, 0px) + 12px);
+  padding-right:calc(env(safe-area-inset-right, 0px) + 12px);
   background:linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.10) 100%);
   -webkit-backdrop-filter:blur(50px) saturate(180%);
   backdrop-filter:blur(50px) saturate(180%);
@@ -373,7 +380,11 @@ body.dark .user-chip {
 .user-chip-name { font-size:13px; font-weight:600; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 .nav{
-  position:fixed; bottom:14px; left:50%;
+  position:fixed; left:50%;
+  /* SAFE-AREA FIX: was a fixed bottom:14px which sat on top of the
+     iPhone home indicator. Add the bottom inset so the bar floats
+     clear of the system gesture area. */
+  bottom:calc(env(safe-area-inset-bottom, 0px) + 14px);
   transform:translateX(-50%);
   z-index:40;
   display:flex; gap:2px; padding:6px;
@@ -679,27 +690,28 @@ body.dark .clock-hero{
   flex:none; line-height:1;
 }
 .btn-in{
-  background:linear-gradient(135deg, #5BFFB5 0%, #30D158 50%, #1F9D40 100%);
+  /* STAGE-2 REDESIGN: flat modern fill instead of a 3-stop gradient +
+     heavy glow. Clean = premium. One subtle gradient for depth, one
+     tight shadow, no specular gloss. */
+  background:linear-gradient(180deg, #2FD566 0%, #22C55E 100%);
   box-shadow:
-    0 8px 22px rgba(48,209,88,0.5),
-    0 2px 6px rgba(48,209,88,0.3),
-    inset 0 1px 0 rgba(255,255,255,0.55),
-    inset 0 -2px 4px rgba(0,0,0,0.18);
+    0 6px 16px rgba(34,197,94,0.32),
+    inset 0 1px 0 rgba(255,255,255,0.18);
 }
 .btn-out{
-  background:linear-gradient(135deg, #FF8278 0%, #FF453A 50%, #D7372D 100%);
+  background:linear-gradient(180deg, #F45B4E 0%, #EF4444 100%);
   box-shadow:
-    0 8px 22px rgba(255,69,58,0.5),
-    0 2px 6px rgba(255,69,58,0.3),
-    inset 0 1px 0 rgba(255,255,255,0.55),
-    inset 0 -2px 4px rgba(0,0,0,0.18);
+    0 6px 16px rgba(239,68,68,0.32),
+    inset 0 1px 0 rgba(255,255,255,0.18);
 }
 /* Specular gloss — top half */
 .btn-in::before, .btn-out::before{
   content:""; position:absolute;
-  top:0; left:0; right:0; height:55%;
-  background:linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 100%);
-  border-radius:var(--r-lg) var(--r-lg) 50% 50% / var(--r-lg) var(--r-lg) 100% 100%;
+  top:0; left:0; right:0; height:50%;
+  /* STAGE-2: toned the gloss way down (was 0.35 white — looked dated).
+     A faint highlight keeps a hint of depth without the plastic look. */
+  background:linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%);
+  border-radius:16px 16px 50% 50% / 16px 16px 100% 100%;
   pointer-events:none;
   z-index:0;
 }
@@ -2751,19 +2763,33 @@ body.dark .wc-name-gradient, body.dark #wc-name{
 .home-a .clock-date{ font-size:11px !important; letter-spacing:0.06em !important; text-transform:uppercase !important; margin-bottom:14px !important; }
 .home-a .welcome-row{ display:none !important; }
 .home-a .float-dot{ display:none !important; }
-.home-a .btn-row{ gap:8px !important; }
+/* STAGE-2 REDESIGN: single state-aware action button.
+   Both #btn-in and #btn-out stay in the DOM (5 JS sites reference them
+   by id — removing one would crash check-in). Instead the row becomes a
+   single column and the DISABLED button is hidden, so the user always
+   sees exactly one full-width button that swaps colour with state. */
+.home-a .btn-row{
+  display:flex !important; flex-direction:column !important;
+  gap:0 !important;
+}
 .home-a .btn-in, .home-a .btn-out{
-  padding:14px !important; min-height:auto !important;
-  border-radius:99px !important;
-  /* Center the single label. No icon child = nothing can shift it.
-     justify/align center + a single flex child = rock-solid layout. */
+  width:100% !important;
+  padding:0 !important;
+  height:60px !important; min-height:60px !important; max-height:60px !important;
+  border-radius:16px !important;
   flex-direction:row !important;
   align-items:center !important; justify-content:center !important;
   gap:0 !important;
+  font-size:17px !important;
+}
+/* Hide whichever button is currently disabled — the user sees one button */
+.home-a .btn-in:disabled, .home-a .btn-out:disabled{
+  display:none !important;
 }
 .home-a .btn-main-label{
-  font-size:16px !important; font-weight:800 !important;
+  font-size:17px !important; font-weight:800 !important;
   line-height:1.2 !important;
+  color:#fff !important; -webkit-text-fill-color:#fff !important;
 }
 .home-a .btn-sub{ display:none !important; }
 
@@ -3114,7 +3140,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
       <div class="clock-btns">
         <div class="btn-row">
           <button class="btn-in btn-liquid" id="btn-in" onclick="doCheckIn()"><span class="btn-main-label">เข้างาน</span><span class="btn-sub">บันทึกเวลาเข้า</span></button>
-          <button class="btn-out btn-liquid" id="btn-out" onclick="doCheckOut()"><span class="btn-main-label">ออกงาน</span><span class="btn-sub">บันทึกเวลาออก</span></button>
+          <button class="btn-out btn-liquid" id="btn-out" onclick="doCheckOut()" disabled><span class="btn-main-label">ออกงาน</span><span class="btn-sub">บันทึกเวลาออก</span></button>
         </div>
       </div>
     </div>
@@ -14418,13 +14444,17 @@ body.dark [class*="tab"] .label{
   /* CRITICAL: while data loads, buttons MUST stay tappable so the
      capture handler can store the user's intent — even though
      renderHome() may have set the disabled attribute or :disabled
-     CSS applied pointer-events:none. This overrides that. */
+     CSS applied pointer-events:none. This overrides that.
+     Also force display:flex — Stage-2 hides the disabled button
+     (single-button design), but during loading BOTH must be visible
+     and tappable so the user can express intent either way. */
   .ckg-not-ready #btn-in,
   .ckg-not-ready #btn-out,
   .ckg-not-ready #btn-in:disabled,
   .ckg-not-ready #btn-out:disabled {
     pointer-events: auto !important;
     cursor: pointer !important;
+    display: flex !important;
   }
   /* Loading hint pill below the buttons */
   #ckg-hint {
