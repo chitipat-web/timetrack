@@ -132,6 +132,15 @@ body::before{
   filter:blur(40px);
 }
 body.dark::before{ filter:blur(40px); }
+/* LIGHT THEME: the fixed glows above are tuned for the dark canvas. On
+   light mode use pale tints so they read as a soft wash, not dark blobs. */
+body:not(.dark)::before{
+  background:
+    radial-gradient(ellipse 60% 45% at 20% 0%, rgba(120,170,235,0.30) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 100%, rgba(150,160,225,0.26) 0%, transparent 60%),
+    var(--bg-base);
+  filter:blur(40px);
+}
 body::after{
   content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
   opacity:0.025;
@@ -422,6 +431,20 @@ body.dark .nav{
 }
 .nav-btn svg { width:20px; height:20px; }
 .nav-btn:hover { color:var(--ink); }
+/* STAGE-3 micro-interaction: tactile press feedback on the nav buttons.
+   Safe here — nav-btn has no FORTRESS transform lock (unlike the check-in
+   buttons). Gated behind prefers-reduced-motion below. */
+.nav-btn:active { transform:scale(0.92); }
+/* Accessibility: users who ask iOS to "Reduce Motion" get no scale/zoom
+   animations. Honours WCAG 2.3.3. */
+@media (prefers-reduced-motion: reduce) {
+  .nav-btn:active,
+  .card:active, .stat-box:active, .emp-card:active,
+  .team-card:active, .announce-card:active,
+  .poll-card:active, .report-card:active {
+    transform:none !important;
+  }
+}
 .nav-btn.active{
   background:linear-gradient(135deg, #5AC8FA 0%, #0A84FF 60%, #0066D6 100%);
   color:#fff;
@@ -799,6 +822,11 @@ body.dark .c-green { color:#5BFFB5; }
 .status-pill.in { background:var(--tint-green); color:var(--sys-green-2); border-color:rgba(48,209,88,0.3); }
 .status-pill.out { background:var(--tint-red); color:var(--sys-red-2); border-color:rgba(255,69,58,0.3); }
 .status-pill::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+/* STAGE-2: status-pill text used the dark "-2" shades — ~4.3:1 (in) and
+   ~3.6:1 (out) on the dark theme, below AA. Bright shades on dark fix it
+   (11.8:1 / 8.6:1). Light theme keeps the original dark text. */
+body.dark .status-pill.in { color:#5BFFB5; }
+body.dark .status-pill.out { color:#FF9E97; }
 
 .emp-card{
   display:flex; align-items:center; gap:12px;
@@ -1695,6 +1723,9 @@ body.dark .confirm-cancel { background:rgba(255,255,255,0.08); }
 .badge-green{ background:var(--tint-green); color:var(--sys-green-2); }
 .badge-orange{ background:var(--tint-orange); color:var(--sys-orange); }
 .badge-red{ background:var(--tint-red); color:var(--sys-red-2); }
+/* STAGE-2: same dark-theme contrast fix as status-pill */
+body.dark .badge-green{ color:#5BFFB5; }
+body.dark .badge-red{ color:#FF9E97; }
 .badges-grid{ display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
 .badge-item{
   display:inline-flex; align-items:center; gap:4px;

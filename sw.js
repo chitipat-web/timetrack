@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v154
-// Cache: rudy-static-v154, firebase-v154
-// Build: 2026-05-17 · Stage-2f (stat cards into glass system)
+// RUDY · Service Worker v157
+// Cache: rudy-static-v157, firebase-v157
+// Build: 2026-05-17 · Stage-3b-1 (light mode: home page)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v154';
-const FIREBASE_CACHE = 'firebase-v154';
-const RUNTIME_CACHE = 'rudy-runtime-v154';
+const STATIC_CACHE  = 'rudy-static-v157';
+const FIREBASE_CACHE = 'firebase-v157';
+const RUNTIME_CACHE = 'rudy-runtime-v157';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v154] Installing...');
+  console.log('[SW v157] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v154] Precache partial fail (ok):', err);
+          console.warn('[SW v157] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v154] Activating...');
+  console.log('[SW v157] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v154] Deleting old cache:', name);
+              console.log('[SW v157] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -227,7 +227,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v154' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v157' });
     return;
   }
 });
@@ -250,7 +250,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v154] Push parse fail:', e);
+    console.warn('[SW v157] Push parse fail:', e);
   }
 });
 
@@ -270,4 +270,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v154] Loaded — Stage-2f stat cards glass with full iOS bypass list');
+console.log('[SW v157] Loaded — Stage-3b-1 light mode home with full iOS bypass list');
