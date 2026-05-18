@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v163
-// Cache: rudy-static-v163, firebase-v163
-// Build: 2026-05-18 · 3D depth redesign for primary/confirm/AI/export/rec buttons
+// RUDY · Service Worker v164
+// Cache: rudy-static-v164, firebase-v164
+// Build: 2026-05-18 · In-app update banner — replaces manual Safari cache clear
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v163';
-const FIREBASE_CACHE = 'firebase-v163';
-const RUNTIME_CACHE = 'rudy-runtime-v163';
+const STATIC_CACHE  = 'rudy-static-v164';
+const FIREBASE_CACHE = 'firebase-v164';
+const RUNTIME_CACHE = 'rudy-runtime-v164';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v163] Installing...');
+  console.log('[SW v164] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v163] Precache partial fail (ok):', err);
+          console.warn('[SW v164] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v163] Activating...');
+  console.log('[SW v164] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v163] Deleting old cache:', name);
+              console.log('[SW v164] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -227,7 +227,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v163' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v164' });
     return;
   }
 });
@@ -250,7 +250,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v163] Push parse fail:', e);
+    console.warn('[SW v164] Push parse fail:', e);
   }
 });
 
@@ -270,4 +270,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v163] Loaded — 3D depth primary buttons');
+console.log('[SW v164] Loaded — In-app update banner');
