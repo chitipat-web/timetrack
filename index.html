@@ -2739,10 +2739,19 @@ body.cinema-off .aaa-bg-stage { display:block !important; visibility:visible !im
 .home-a .welcome-row{ display:none !important; }
 .home-a .float-dot{ display:none !important; }
 .home-a .btn-row{ gap:8px !important; }
-.home-a .btn-in, .home-a .btn-out{ padding:14px !important; min-height:auto !important; border-radius:99px !important; font-size:15px !important; flex-direction:row !important; gap:8px !important; align-items:center !important; }
-.home-a .btn-in span:nth-child(3){ font-size:13px !important; width:18px !important; height:18px !important; flex:none !important; }
-.home-a .btn-out span:nth-child(3){ font-size:13px !important; width:18px !important; height:18px !important; flex:none !important; }
-.home-a .btn-in span:nth-child(4), .home-a .btn-out span:nth-child(4){ font-weight:800 !important; }
+.home-a .btn-in, .home-a .btn-out{
+  padding:14px !important; min-height:auto !important;
+  border-radius:99px !important;
+  /* Center the single label. No icon child = nothing can shift it.
+     justify/align center + a single flex child = rock-solid layout. */
+  flex-direction:row !important;
+  align-items:center !important; justify-content:center !important;
+  gap:0 !important;
+}
+.home-a .btn-main-label{
+  font-size:16px !important; font-weight:800 !important;
+  line-height:1.2 !important;
+}
 .home-a .btn-sub{ display:none !important; }
 
 /* Section headers */
@@ -3091,8 +3100,8 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
       <div class="clock-date" id="clock-date">—</div>
       <div class="clock-btns">
         <div class="btn-row">
-          <button class="btn-in btn-liquid" id="btn-in" onclick="doCheckIn()"><span class="aaa-btn-stream"></span><canvas class="liquid-cv" id="liquid-in"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">▶</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">เข้างาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาเข้า</span></button>
-          <button class="btn-out btn-liquid" id="btn-out" onclick="doCheckOut()"><span class="aaa-btn-stream"></span><canvas class="liquid-cv" id="liquid-out"></canvas><span style="font-size:26px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;position:relative;z-index:1">⏹</span><span style="position:relative;z-index:1;flex:none;line-height:1.2">ออกงาน</span><span class="btn-sub" style="position:relative;z-index:1;flex:none;line-height:1.2">บันทึกเวลาออก</span></button>
+          <button class="btn-in btn-liquid" id="btn-in" onclick="doCheckIn()"><span class="btn-main-label">เข้างาน</span><span class="btn-sub">บันทึกเวลาเข้า</span></button>
+          <button class="btn-out btn-liquid" id="btn-out" onclick="doCheckOut()"><span class="btn-main-label">ออกงาน</span><span class="btn-sub">บันทึกเวลาออก</span></button>
         </div>
       </div>
     </div>
