@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v160
-// Cache: rudy-static-v160, firebase-v160
-// Build: 2026-05-18 · Dark mode: re-alias --text/--text2/--text3 in body.dark
+// RUDY · Service Worker v161
+// Cache: rudy-static-v161, firebase-v161
+// Build: 2026-05-18 · Liquid Glass check-in/out buttons + shine sweep animation
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v160';
-const FIREBASE_CACHE = 'firebase-v160';
-const RUNTIME_CACHE = 'rudy-runtime-v160';
+const STATIC_CACHE  = 'rudy-static-v161';
+const FIREBASE_CACHE = 'firebase-v161';
+const RUNTIME_CACHE = 'rudy-runtime-v161';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v160] Installing...');
+  console.log('[SW v161] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v160] Precache partial fail (ok):', err);
+          console.warn('[SW v161] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v160] Activating...');
+  console.log('[SW v161] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v160] Deleting old cache:', name);
+              console.log('[SW v161] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -227,7 +227,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v160' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v161' });
     return;
   }
 });
@@ -250,7 +250,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v160] Push parse fail:', e);
+    console.warn('[SW v161] Push parse fail:', e);
   }
 });
 
@@ -270,4 +270,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v160] Loaded — Dark mode text variable re-aliasing fix');
+console.log('[SW v161] Loaded — Liquid Glass check-in/out buttons');

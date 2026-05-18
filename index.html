@@ -717,7 +717,13 @@ body:not(.dark) .clock-hero::after{ opacity:0.35; }
   border:none; border-radius:var(--r-lg);
   font-family:inherit; font-size:15px; font-weight:700;
   cursor:pointer; color:#fff; overflow:hidden;
-  transition:opacity 0.15s ease-out;
+  /* v161: liquid-glass redesign — translucent fill + iOS-style backdrop blur.
+     text-shadow keeps the white label legible on the lighter tint variants
+     in light mode where the mesh shows through. */
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  backdrop-filter:blur(24px) saturate(180%);
+  text-shadow:0 1px 3px rgba(0,0,0,0.35);
+  transition:background 0.15s ease-out, box-shadow 0.15s ease-out, opacity 0.15s ease-out;
   letter-spacing:-0.01em;
   isolation:isolate;
   height:88px; min-height:88px; max-height:88px;
@@ -734,36 +740,71 @@ body:not(.dark) .clock-hero::after{ opacity:0.35; }
   flex:none; line-height:1;
 }
 .btn-in{
-  /* STAGE-2 REDESIGN: flat modern fill instead of a 3-stop gradient +
-     heavy glow. Clean = premium. One subtle gradient for depth, one
-     tight shadow, no specular gloss. */
-  background:linear-gradient(180deg, #2FD566 0%, #22C55E 100%);
+  /* v161 LIQUID GLASS: translucent green tint instead of a solid fill.
+     The backdrop-filter on the shared base blurs whatever sits behind
+     (mesh + card), so the button reads as a frosted glass panel rather
+     than a flat sticker. Layered shadows give the iOS 26 "edge that
+     catches light" look: top hairline highlight, bottom hairline dark,
+     0.5px outline, and a coloured outer glow. */
+  background:linear-gradient(180deg, rgba(91,255,181,0.55) 0%, rgba(48,209,88,0.72) 100%);
   box-shadow:
-    0 6px 16px rgba(34,197,94,0.32),
-    inset 0 1px 0 rgba(255,255,255,0.18);
+    inset 0 1px 0 rgba(255,255,255,0.50),
+    inset 0 -1px 0 rgba(0,0,0,0.15),
+    inset 0 0 0 0.5px rgba(255,255,255,0.25),
+    0 10px 28px rgba(48,209,88,0.38);
 }
 .btn-out{
-  background:linear-gradient(180deg, #F45B4E 0%, #EF4444 100%);
+  background:linear-gradient(180deg, rgba(255,123,114,0.55) 0%, rgba(239,68,68,0.72) 100%);
   box-shadow:
-    0 6px 16px rgba(239,68,68,0.32),
-    inset 0 1px 0 rgba(255,255,255,0.18);
+    inset 0 1px 0 rgba(255,255,255,0.50),
+    inset 0 -1px 0 rgba(0,0,0,0.15),
+    inset 0 0 0 0.5px rgba(255,255,255,0.25),
+    0 10px 28px rgba(239,68,68,0.38);
 }
-/* Specular gloss — top half */
+/* v161: replace the static specular gloss with a slow shine bar that
+   sweeps across the glass every 4.5s. Pseudo-element animation only —
+   the button itself stays FORTRESS-locked (transform:none, animation:none)
+   so the existing iOS stability fixes (no compositing-layer rebuild on
+   tap, no label jitter) still hold. */
 .btn-in::before, .btn-out::before{
   content:""; position:absolute;
-  top:0; left:0; right:0; height:50%;
-  /* STAGE-2: toned the gloss way down (was 0.35 white — looked dated).
-     A faint highlight keeps a hint of depth without the plastic look. */
-  background:linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%);
-  border-radius:16px 16px 50% 50% / 16px 16px 100% 100%;
+  top:0; bottom:0; left:-40%; width:40%;
+  background:linear-gradient(105deg,
+    transparent 20%,
+    rgba(255,255,255,0.38) 50%,
+    transparent 80%);
+  transform:skewX(-15deg);
+  animation:btnShine 4.5s ease-in-out infinite;
   pointer-events:none;
   z-index:0;
+}
+@keyframes btnShine{
+  0%, 55%   { left:-40%; opacity:0; }
+  65%       { opacity:1; }
+  100%      { left:130%; opacity:0; }
 }
 /* NOTE: an old ::after "shimmer line" used to be defined here, but it was
    always overridden by the glow ::after in the AAA-EPIC block below
    (an element can only have one ::after). Removed to avoid confusion. */
 .btn-in > *, .btn-out > * { position:relative; z-index:1; }
-.btn-in:active, .btn-out:active { opacity:0.85; }
+/* v161: stronger press feedback. The glass goes opaque-ish and gains a
+   deep inner shadow, so the button reads as physically pressed into the
+   surface. No transform (FORTRESS lock), no filter (avoids the WebKit
+   compositing-layer rebuild that caused label jitter — see notes above). */
+.btn-in:active{
+  background:linear-gradient(180deg, rgba(48,209,88,0.88) 0%, rgba(31,157,64,0.96) 100%);
+  box-shadow:
+    inset 0 3px 8px rgba(0,0,0,0.30),
+    inset 0 0 0 0.5px rgba(255,255,255,0.20),
+    0 4px 12px rgba(0,0,0,0.18);
+}
+.btn-out:active{
+  background:linear-gradient(180deg, rgba(239,68,68,0.88) 0%, rgba(215,55,45,0.96) 100%);
+  box-shadow:
+    inset 0 3px 8px rgba(0,0,0,0.30),
+    inset 0 0 0 0.5px rgba(255,255,255,0.20),
+    0 4px 12px rgba(0,0,0,0.18);
+}
 
 /* DISABLED state — clearly shows button is locked after check-in/out.
    NOTE: filter:grayscale removed — it created a new compositing layer
@@ -2738,12 +2779,12 @@ body > main, body > .topbar, body > .top-bar, body > .pages, body > .page,
   animation:aaaBtnGlowR 2s ease-in-out infinite alternate;
 }
 @keyframes aaaBtnGlowG{
-  0%{ opacity:0.25; }
-  100%{ opacity:0.6; }
+  0%{ opacity:0.40; }
+  100%{ opacity:0.80; }
 }
 @keyframes aaaBtnGlowR{
-  0%{ opacity:0.25; }
-  100%{ opacity:0.6; }
+  0%{ opacity:0.40; }
+  100%{ opacity:0.80; }
 }
 .btn-in:disabled::after, .btn-out:disabled::after{ animation:none !important; opacity:0 !important; }
 
@@ -2850,6 +2891,7 @@ body.dark .wc-name-gradient, body.dark #wc-name{
   font-size:17px !important; font-weight:800 !important;
   line-height:1.2 !important;
   color:#fff !important; -webkit-text-fill-color:#fff !important;
+  text-shadow:0 1px 3px rgba(0,0,0,0.40) !important;
 }
 .home-a .btn-sub{ display:none !important; }
 
