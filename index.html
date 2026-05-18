@@ -2734,9 +2734,13 @@ body.dark .wc-name-gradient, body.dark #wc-name{
 .ha-greeting{ padding:18px 4px 14px; }
 .ha-greet-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .ha-greet-text{ flex:1; min-width:0; }
-.ha-greet-hi{ font-size:12px; color:var(--ink-3); font-weight:500; margin-bottom:3px; letter-spacing:0.02em; }
-.ha-greet-name{ font-family:var(--font-display); font-size:22px; font-weight:800; letter-spacing:-0.03em; line-height:1.15; }
-.ha-greet-name .accent{ background:linear-gradient(135deg,#5AC8FA,#BF5AF2,#FF375F); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; background-size:200% 100%; animation:aaaTextShimmer 5s linear infinite; }
+.ha-greet-hi{ font-size:13px; color:var(--ink-4); font-weight:500; margin-bottom:4px; letter-spacing:0.01em; }
+.ha-greet-name{ font-family:var(--font-display); font-size:23px; font-weight:800; letter-spacing:-0.02em; line-height:1.2; color:var(--ink); }
+/* STAGE-2 READABILITY FIX: the name used a blue→purple→pink gradient with
+   transparent text-fill. On the dark canvas those mid-tone colours blended
+   into the background and the name was barely visible. Now a solid bright
+   accent colour — high contrast, always readable, still a clear highlight. */
+.ha-greet-name .accent{ color:var(--sys-teal); -webkit-text-fill-color:var(--sys-teal); font-weight:800; }
 .ha-greet-avatar{ width:42px; height:42px; border-radius:13px; background:linear-gradient(135deg,#0A84FF,#BF5AF2); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:16px;
   box-shadow:0 6px 16px rgba(10,132,255,0.4), inset 0 1px 0 rgba(255,255,255,0.4); flex-shrink:0; font-family:var(--font-display); position:relative; overflow:hidden; }
 .ha-greet-avatar img{ width:100%; height:100%; object-fit:cover; border-radius:13px; }
