@@ -898,12 +898,21 @@ body.dark .cal-nav-btn:hover, body.dark .modal-close:hover { background:rgba(255
 }
 .cal-day:hover { background:rgba(10,132,255,0.10); }
 .cal-day.today { background:var(--sys-blue); color:#fff; font-weight:700; box-shadow:0 4px 10px rgba(10,132,255,0.4); }
-.cal-day.work { background:var(--tint-green); color:var(--sys-green-2); font-weight:600; }
-.cal-day.late { background:var(--tint-orange); color:var(--sys-orange); font-weight:600; }
-.cal-day.absent { background:var(--tint-red); color:var(--sys-red-2); font-weight:600; }
-.cal-day.holiday { background:var(--tint-purple); color:var(--sys-purple); }
+/* STAGE-2: cal-day status colours used the dark "-2" text shades, which
+   were built for a LIGHT theme. On the dark canvas the tint background
+   turns murky and dark text drops to ~3.4:1 contrast (fails AA). Switched
+   to bright text shades — contrast jumps to ~11:1, readable at a glance. */
+.cal-day.work { background:var(--tint-green); color:#5BFFB5; font-weight:600; }
+.cal-day.late { background:var(--tint-orange); color:#FFD37A; font-weight:600; }
+.cal-day.absent { background:var(--tint-red); color:#FF9E97; font-weight:600; }
+.cal-day.holiday { background:var(--tint-purple); color:#E0B0FF; }
 .cal-day.empty { background:transparent; cursor:default; pointer-events:none; }
 .cal-day.weekend { color:var(--ink-4); }
+/* Light theme keeps the original dark text shades */
+body:not(.dark) .cal-day.work { color:var(--sys-green-2); }
+body:not(.dark) .cal-day.late { color:var(--sys-orange); }
+body:not(.dark) .cal-day.absent { color:var(--sys-red-2); }
+body:not(.dark) .cal-day.holiday { color:var(--sys-purple); }
 .cal-legend{
   display:flex; flex-wrap:wrap; gap:10px;
   padding:12px 14px;
@@ -2800,7 +2809,7 @@ body.dark .wc-name-gradient, body.dark #wc-name{
 /* Horizontal chips */
 .ha-chips-row{ display:flex; gap:8px; overflow-x:auto; padding:2px 4px 8px; scrollbar-width:none; margin:0 -4px 12px; }
 .ha-chips-row::-webkit-scrollbar{ display:none; }
-.ha-chip{ flex:0 0 auto; background:rgba(255,255,255,0.06); backdrop-filter:saturate(180%) blur(30px); -webkit-backdrop-filter:saturate(180%) blur(30px);
+.ha-chip{ flex:0 0 auto; background:var(--glass-2);
   border:0.5px solid rgba(255,255,255,0.12); border-radius:14px; padding:11px 14px; min-width:120px; display:flex; flex-direction:column; gap:2px; position:relative; overflow:hidden; }
 body:not(.dark) .ha-chip{ background:rgba(255,255,255,0.55); border-color:rgba(255,255,255,0.35); }
 .ha-chip::before{ content:''; position:absolute; top:0; left:0; right:0; height:40%; background:linear-gradient(180deg,rgba(255,255,255,0.18),transparent); pointer-events:none; }
@@ -2818,7 +2827,7 @@ body:not(.dark) .ha-chip.orange .ha-chip-value{ color:#D67400; }
 body:not(.dark) .ha-chip.purple .ha-chip-value{ color:#8E37BD; }
 
 /* Timeline */
-.ha-timeline{ background:rgba(255,255,255,0.06); backdrop-filter:saturate(180%) blur(30px); -webkit-backdrop-filter:saturate(180%) blur(30px);
+.ha-timeline{ background:var(--glass-2);
   border:0.5px solid rgba(255,255,255,0.12); border-radius:18px; padding:8px 16px; margin-bottom:12px; position:relative; }
 body:not(.dark) .ha-timeline{ background:rgba(255,255,255,0.55); border-color:rgba(255,255,255,0.35); }
 .ha-timeline::before{ content:''; position:absolute; top:0; left:5%; right:5%; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent); pointer-events:none; }
@@ -2854,7 +2863,7 @@ body:not(.dark) .ha-tl-dot.idle{ background:rgba(0,0,0,0.06); border-color:rgba(
 body:not(.dark) .ha-sd.future{ background:rgba(0,0,0,0.1); }
 
 /* Week chart card */
-.ha-week{ background:rgba(255,255,255,0.06); backdrop-filter:saturate(180%) blur(30px); -webkit-backdrop-filter:saturate(180%) blur(30px);
+.ha-week{ background:var(--glass-2);
   border:0.5px solid rgba(255,255,255,0.12); border-radius:18px; padding:16px; margin-bottom:12px; position:relative; }
 body:not(.dark) .ha-week{ background:rgba(255,255,255,0.55); border-color:rgba(255,255,255,0.35); }
 .ha-week::before{ content:''; position:absolute; top:0; left:5%; right:5%; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent); pointer-events:none; }
@@ -12087,10 +12096,11 @@ if('serviceWorker' in navigator) {
 <!-- ╚══════════════════════════════════════════════════════════════════╝ -->
 <style id="hw-styles">
   .hw-card{
-    background:rgba(255,255,255,0.06);
-    backdrop-filter:saturate(180%) blur(20px);
-    -webkit-backdrop-filter:saturate(180%) blur(20px);
-    border:1px solid rgba(255,255,255,0.1);
+    /* STAGE-2: widget cards used rgba(255,255,255,0.06) directly (not the
+       --glass-* tokens) so the Stage-1 readability fix missed them. Now
+       aligned to the same near-opaque surface as every other card. */
+    background:var(--glass-2);
+    border:1px solid var(--glass-stroke);
     border-radius:16px;
     padding:14px 16px;
     position:relative;
@@ -12098,8 +12108,8 @@ if('serviceWorker' in navigator) {
     transition:transform 0.2s ease;
   }
   body:not(.dark) .hw-card{
-    background:rgba(255,255,255,0.55);
-    border-color:rgba(255,255,255,0.35);
+    background:rgba(255,255,255,0.92);
+    border-color:rgba(0,0,0,0.08);
   }
   .hw-card:active{ transform:scale(0.98); }
   .hw-title{

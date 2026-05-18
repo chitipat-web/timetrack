@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v150
-// Cache: rudy-static-v150, firebase-v150
-// Build: 2026-05-17 · Safe-area fix (topbar + nav + home indicator)
+// RUDY · Service Worker v152
+// Cache: rudy-static-v152, firebase-v152
+// Build: 2026-05-17 · Stage-2e (calendar day contrast)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v150';
-const FIREBASE_CACHE = 'firebase-v150';
-const RUNTIME_CACHE = 'rudy-runtime-v150';
+const STATIC_CACHE  = 'rudy-static-v152';
+const FIREBASE_CACHE = 'firebase-v152';
+const RUNTIME_CACHE = 'rudy-runtime-v152';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v150] Installing...');
+  console.log('[SW v152] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v150] Precache partial fail (ok):', err);
+          console.warn('[SW v152] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v150] Activating...');
+  console.log('[SW v152] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v150] Deleting old cache:', name);
+              console.log('[SW v152] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -227,7 +227,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v150' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v152' });
     return;
   }
 });
@@ -250,7 +250,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v150] Push parse fail:', e);
+    console.warn('[SW v152] Push parse fail:', e);
   }
 });
 
@@ -270,4 +270,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v150] Loaded — Safe-area fix with full iOS bypass list');
+console.log('[SW v152] Loaded — Stage-2e calendar contrast with full iOS bypass list');
