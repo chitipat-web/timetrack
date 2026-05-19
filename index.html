@@ -12043,6 +12043,99 @@ if('serviceWorker' in navigator) {
   }
 })();
 
+// ════════════════════════════════════════════════════════════════════
+// v168 · OFFLINE STATUS BANNER
+// ────────────────────────────────────────────────────────────────────
+// Shows when the device is offline OR Firebase is disconnected, and
+// hides on reconnect with a "synced" toast + success haptic. Sits
+// below the iOS safe-area inset at the top — the v164 update banner
+// uses the same slot but they can't both be visible (offline takes
+// priority while it applies, update banner only fires when version
+// changed which requires network anyway).
+//
+// LIMITATION (will be addressed in v169 — Phase C2): Firebase RTDB's
+// web SDK queues writes IN MEMORY only. If the user closes the PWA
+// while offline, unsynced check-ins are lost. A persistent
+// localStorage queue + safe records-merge will follow in v169.
+// ════════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+  var BANNER_ID = 'rudy-offline-banner';
+  var lastOffline = null; // null = not yet checked; avoids false toast on first paint
+  var firstCheckDone = false;
+
+  function isOffline(){
+    try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+      if (typeof fbConn !== 'undefined' && fbConn === false) return true;
+    } catch(_){}
+    return false;
+  }
+
+  function createBanner(){
+    if (document.getElementById(BANNER_ID)) return;
+    var b = document.createElement('div');
+    b.id = BANNER_ID;
+    b.style.cssText = [
+      'position:fixed',
+      'top:env(safe-area-inset-top, 0)',
+      'left:0','right:0',
+      'z-index:99998',
+      'background:linear-gradient(180deg, #FF9F0A 0%, #FF6B00 100%)',
+      'color:#fff',
+      'padding:12px 16px',
+      'display:flex','align-items:center','gap:10px',
+      'font-family:inherit','font-size:13px','font-weight:600',
+      'box-shadow:0 4px 14px rgba(255,159,10,0.35), inset 0 -1px 0 rgba(0,0,0,0.10)',
+      'text-shadow:0 1px 2px rgba(0,0,0,0.22)',
+      'transform:translateY(-100%)',
+      'transition:transform 0.30s cubic-bezier(0.34,1.56,0.64,1)'
+    ].join(';');
+    b.innerHTML =
+      '<span style="font-size:16px">📡</span>' +
+      '<span style="flex:1">ออฟไลน์ — บันทึกในเครื่องอยู่ จะ sync อัตโนมัติเมื่อกลับมา</span>';
+    document.body.appendChild(b);
+    requestAnimationFrame(function(){ b.style.transform = 'translateY(0)'; });
+  }
+
+  function removeBanner(){
+    var b = document.getElementById(BANNER_ID);
+    if (!b) return;
+    b.style.transform = 'translateY(-100%)';
+    setTimeout(function(){ try { if (b.parentNode) b.remove(); } catch(_){} }, 320);
+  }
+
+  function tick(){
+    var off = isOffline();
+    if (off && lastOffline !== true){
+      createBanner();
+    } else if (!off && lastOffline === true){
+      removeBanner();
+      try {
+        if (typeof showToast === 'function') showToast('✅ ออนไลน์ — sync แล้ว', 'success');
+        if (typeof haptic === 'function') haptic('success');
+      } catch(_){}
+    }
+    // First tick: just record state without firing toast (avoids the case
+    // where the very first poll happens while fbConn is still false during
+    // boot and immediately flipping to true triggers a phantom "synced" toast).
+    if (!firstCheckDone){ firstCheckDone = true; lastOffline = off; return; }
+    lastOffline = off;
+  }
+
+  window.addEventListener('online', tick);
+  window.addEventListener('offline', tick);
+  // fbConn isn't a DOM event — poll for it. 3s is enough to feel responsive
+  // without burning battery. Tick on visibility return too so a user coming
+  // back to the app sees state immediately.
+  setInterval(tick, 3000);
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible') tick();
+  });
+  // Initial check after fbConn has had time to settle.
+  setTimeout(tick, 4000);
+})();
+
 // ============================================================
 // RUDY · AAA Effects Init (Ambient Particles + Reward Popup)
 // ============================================================
