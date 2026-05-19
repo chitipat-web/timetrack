@@ -3133,31 +3133,24 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
 <!-- Keyframes for overlay animations + v173 Dime-style wordmark -->
 <style id="dm-inline-anims">
-/* v180: corrected from the actual Dime video (pulled the YouTube
-   thumbnail frame after direct download was IP-blocked). The real
-   animation is far simpler than the orbital interpretation in v178:
-   every glyph sits AT ITS NATURAL POSITION the entire time, the
-   coloured anchor (the green D for Dime, the teal R for RUDY) scales
-   up from 0, the white letters fade in with a small stagger, and
-   the trailing dot drops from above. No orbit, no scatter, no
-   multi-revolution spins. */
-@keyframes rudyAnchorIn {
-  /* The coloured R — anchor element. Grows in place with a tiny
-     over-shoot, mimicking Dime's D-circle "pop". */
-  0%   { opacity:0; transform:scale(0); }
-  60%  { opacity:1; transform:scale(1.10); }
-  100% { opacity:1; transform:scale(1); }
-}
-@keyframes rudyLetterIn {
-  /* U/D/Y — plain fade + faint scale-up at natural position. */
-  0%   { opacity:0; transform:scale(0.85); }
-  100% { opacity:1; transform:scale(1); }
+/* v181: restored from a higher-res YouTube storyboard frame I missed
+   earlier. The frame at ~25% through the video clearly shows the
+   letters mid-scatter, each at a different rotation angle (the "D"
+   appearing as "p", the "m" as a rotated glyph, etc) — confirming
+   the user's original description of "หมุน" was correct and my v180
+   over-simplified.
+   Each letter starts off-position + rotated + small scale, then
+   translates + rotates + scales to natural state by t=1. Different
+   start vectors per letter so the scatter looks organic, not radial. */
+@keyframes rudyScatterIn {
+  0%   { opacity:0; transform:translate(var(--sx, 0), var(--sy, 0)) rotate(var(--sr, 0deg)) scale(0.3); }
+  35%  { opacity:1; }
+  100% { opacity:1; transform:translate(0, 0) rotate(0deg) scale(1); }
 }
 @keyframes rudyDotIn {
-  /* Trailing dot — drops in from above with a small bounce. */
-  0%   { opacity:0; transform:translateY(-40px) scale(0); }
-  60%  { opacity:1; transform:translateY(4px)   scale(1.2); }
-  100% { opacity:1; transform:translateY(0)     scale(1); }
+  0%   { opacity:0; transform:translate(0, -50px) rotate(540deg) scale(0); }
+  55%  { opacity:1; transform:translate(0, 5px)   rotate(0deg)   scale(1.2); }
+  100% { opacity:1; transform:translate(0, 0)     rotate(0deg)   scale(1); }
 }
 @keyframes rudyStatusIn {
   from { opacity:0; }
@@ -3177,28 +3170,31 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   align-items:baseline;
   gap:0;
   text-shadow:0 8px 32px rgba(94,200,250,0.18);
-  /* Breath kicks in after the dot lands (delay 0.50 + 0.50s = 1.0s). */
-  animation:rudyBreath 2.4s ease-in-out 1.2s infinite;
+  /* Breath after the last piece (dot at 0.55s delay + 0.6s = 1.15s). */
+  animation:rudyBreath 2.4s ease-in-out 1.4s infinite;
 }
 .rudy-l{
   display:inline-block;
   opacity:0;
   transform-origin:center center;
   will-change:transform, opacity;
+  animation:rudyScatterIn 0.9s cubic-bezier(0.34,1.56,0.64,1) forwards;
 }
-/* R (anchor) gets the "pop" animation — same role as Dime's green D.
-   U/D/Y just fade in with tiny scale, staggered ~120ms each. Dot
-   drops in last. */
-.rudy-l1{ color:#5AC8FA; animation:rudyAnchorIn 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.00s forwards; }
-.rudy-l2{ color:#fff;    animation:rudyLetterIn 0.45s ease-out 0.18s forwards; }
-.rudy-l3{ color:#fff;    animation:rudyLetterIn 0.45s ease-out 0.30s forwards; }
-.rudy-l4{ color:#fff;    animation:rudyLetterIn 0.45s ease-out 0.42s forwards; }
+/* Each letter scatters from a different direction with one full
+   revolution. Stagger 80ms so the pieces don't crowd each other —
+   not zero (chaos) and not too wide (slow procession). The rotation
+   is a single 360 in alternating directions to keep the motion
+   readable rather than blurring across paths. */
+.rudy-l1{ color:#5AC8FA; --sx:-90px;  --sy:-50px; --sr:-360deg; animation-delay:0.00s; }
+.rudy-l2{ color:#fff;    --sx: 60px;  --sy:-70px; --sr: 360deg; animation-delay:0.08s; }
+.rudy-l3{ color:#fff;    --sx: 70px;  --sy: 60px; --sr:-360deg; animation-delay:0.16s; }
+.rudy-l4{ color:#fff;    --sx:-70px;  --sy: 50px; --sr: 360deg; animation-delay:0.24s; }
 .rudy-l5{
   color:#5AC8FA;
   margin-left:6px;
   font-size:0.85em;
   transform-origin:center center;
-  animation:rudyDotIn 0.50s cubic-bezier(0.34,1.85,0.64,1) 0.55s forwards;
+  animation:rudyDotIn 0.6s cubic-bezier(0.34,1.85,0.64,1) 0.55s forwards;
 }
 /* Legacy dm-* keyframes kept since other styles in this file reference
    them via the .dm-droplet class (still present elsewhere — only the
