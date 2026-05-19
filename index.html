@@ -3851,7 +3851,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:14px;color:var(--text2)">เวอร์ชัน 2.0</span>
+        <span style="font-size:14px;color:var(--text2)">เวอร์ชัน <span id="settings-app-version">…</span></span>
         <button class="btn-secondary" style="width:auto;padding:8px 16px;font-size:13px" onclick="doLogout()">ออกจากระบบ</button>
       </div>
     </div>
@@ -9187,7 +9187,7 @@ function showPage(id,btn){
     }
   }
   if(id==='salary')   { renderSalary() }
-  if(id==='settings') { renderEmpListSettings(); updateThemeBtn(); initPushSettings() }
+  if(id==='settings') { renderEmpListSettings(); updateThemeBtn(); initPushSettings(); renderAppVersionLabel() }
   if(id==='calendar') { renderCalendar() }
   if(id==='history')  { showSkeletonHistory(); renderHistory(true) }
   if(id==='announce') { renderAnnounces(); updateAnnounceBadge() }
@@ -15986,9 +15986,25 @@ body.dark [class*="tab"] .label{
   hlSafe('versionFetch', function() {
     fetch('./version.json?_=' + Date.now(), { cache: 'no-store' })
       .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(d){ if (d && d.version) _hlVersionCache = d.version; })
+      .then(function(d){
+        if (d && d.version) {
+          _hlVersionCache = d.version;
+          if (typeof renderAppVersionLabel === 'function') renderAppVersionLabel();
+        }
+      })
       .catch(function(){});
   });
+
+  // Paint the version label on the settings page. Called from showPage('settings')
+  // and again when version.json lands (the fetch is async, may resolve after first paint).
+  window.renderAppVersionLabel = function() {
+    try {
+      const el = document.getElementById('settings-app-version');
+      if (!el) return;
+      const v = (typeof hlAppVersion === 'function') ? hlAppVersion() : (_hlVersionCache || '…');
+      el.textContent = v || '…';
+    } catch(_) {}
+  };
 
   // Write one error record to Firebase
   function hlLogError(kind, message, where) {
