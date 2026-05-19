@@ -14718,20 +14718,21 @@ body.dark [class*="tab"] .label{
     opacity: 0.55 !important;
     transition: opacity 0.3s ease;
   }
-  /* CRITICAL: while data loads, buttons MUST stay tappable so the
-     capture handler can store the user's intent — even though
-     renderHome() may have set the disabled attribute or :disabled
-     CSS applied pointer-events:none. This overrides that.
-     Also force display:flex — Stage-2 hides the disabled button
-     (single-button design), but during loading BOTH must be visible
-     and tappable so the user can express intent either way. */
+  /* v165: HIDE both buttons while data loads — confusing to see two
+     options at once, especially on a fresh open where the user just
+     wants to tap "เข้างาน" but is forced to pick between two visible
+     buttons. The #ckg-hint card below makes the loading state explicit
+     ("⏳ กำลังเตรียมข้อมูล... รอสักครู่"), and once _recordsLoadedFromFB
+     flips, body loses .ckg-not-ready and the correct single button
+     appears via the normal .home-a .btn-X:disabled rule.
+     COST: intent-queueing (tap during loading → auto-run when ready)
+     no longer works because hidden buttons can't be tapped. Acceptable
+     trade for the cleaner first-paint UX. */
   .ckg-not-ready #btn-in,
   .ckg-not-ready #btn-out,
   .ckg-not-ready #btn-in:disabled,
   .ckg-not-ready #btn-out:disabled {
-    pointer-events: auto !important;
-    cursor: pointer !important;
-    display: flex !important;
+    display:none !important;
   }
   /* Loading hint pill below the buttons */
   #ckg-hint {
