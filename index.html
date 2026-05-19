@@ -3120,6 +3120,10 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   <div id="dm-sparkles" style="display:none"></div>
 
   <!-- RUDY wordmark — letters stagger fade-up + slight scale -->
+  <!-- App logo spirals in from centre alongside the letters, lands to the
+       left of R (mirror of dot at +145 → logo lands at −180). Same 2-rev
+       glyph rotation pattern as R/U (A=900° + B=−180° → net 720° ending upright). -->
+  <img class="rudy-splash-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
   <div class="rudy-splash-wm" aria-label="RUDY">
     <span class="rudy-l rudy-l1">R</span><span class="rudy-l rudy-l2">U</span><span class="rudy-l rudy-l3">D</span><span class="rudy-l rudy-l4">Y</span><span class="rudy-l rudy-l5" aria-hidden="true">.</span>
   </div>
@@ -3219,6 +3223,23 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   font-size:0.85em;
   --cx:-145px; --A:720deg; --B:0deg; --R:145px;
   animation:rudyDotSpiral 1.3s cubic-bezier(0.42, 0, 0.58, 1) 0.30s forwards;
+}
+/* App logo — absolutely centred in viewport (overlay is flex-centred),
+   spirals out to land 180px to the left of centre, ahead of R (which lands
+   at −100). Same A=900°/B=−180° pattern → 2 visible full spins ending
+   upright. Sits a hair before R (delay 0s vs R's 0s) so the eye reads
+   logo → R → U → D → Y → dot as one continuous spiral. */
+.rudy-splash-logo{
+  position:absolute;
+  width:64px; height:64px;
+  left:50%; top:50%;
+  margin-left:-32px; margin-top:-32px;
+  border-radius:22%;
+  opacity:0;
+  will-change:transform, opacity;
+  box-shadow:0 10px 30px rgba(94,200,250,0.30);
+  --cx:0; --A:900deg; --R:180px; --B:-180deg;
+  animation:rudySpiral 1.5s cubic-bezier(0.42, 0, 0.58, 1) 0s forwards;
 }
 /* Legacy dm-* keyframes kept since other styles in this file reference
    them via the .dm-droplet class (still present elsewhere — only the
