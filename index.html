@@ -12425,6 +12425,46 @@ if('serviceWorker' in navigator) {
   'use strict';
   const HW_ENABLED = { countdown: true, quote: true, compare: true };
 
+  // v166 Number animation helper — roll-up from current displayed value
+  // to target using requestAnimationFrame + ease-out cubic. Used by both
+  // Phase A (compare hours) and Phase B (goal count). Exposed on window
+  // so phases stay independent IIFEs but share one implementation.
+  // - Reads the current value from element.textContent (parsed) so calls
+  //   are idempotent: re-rendering with the same target is a no-op visually.
+  // - Cancels any in-flight animation on the same element before starting.
+  // - opts.decimals=N renders to N decimal places (default 0, integer).
+  window.rudyAnimateNum = function(el, target, opts){
+    if(!el) return;
+    opts = opts || {};
+    var duration = opts.duration || 700;
+    var decimals = opts.decimals || 0;
+    if(el._rudyRaf){ try { cancelAnimationFrame(el._rudyRaf); } catch(_){} el._rudyRaf = null; }
+    var currentText = String(el.textContent || '0').replace(/[^0-9.\-]/g, '');
+    var current = parseFloat(currentText);
+    if(!isFinite(current)) current = 0;
+    var targetVal = Number(target);
+    if(!isFinite(targetVal)){ el.textContent = String(target); return; }
+    var threshold = decimals ? 0.05 : 0.5;
+    if(Math.abs(current - targetVal) < threshold){
+      el.textContent = decimals ? targetVal.toFixed(decimals) : String(Math.round(targetVal));
+      return;
+    }
+    var startTs = performance.now();
+    function frame(now){
+      var t = Math.min(1, (now - startTs) / duration);
+      var eased = 1 - Math.pow(1 - t, 3);
+      var v = current + (targetVal - current) * eased;
+      el.textContent = decimals ? v.toFixed(decimals) : String(Math.round(v));
+      if(t < 1){
+        el._rudyRaf = requestAnimationFrame(frame);
+      } else {
+        el._rudyRaf = null;
+        el.textContent = decimals ? targetVal.toFixed(decimals) : String(Math.round(targetVal));
+      }
+    }
+    el._rudyRaf = requestAnimationFrame(frame);
+  };
+
   function hwSafe(name, fn){
     try { return fn(); }
     catch(e){
@@ -12622,6 +12662,11 @@ if('serviceWorker' in navigator) {
     } else if(todayCheckin){
       rows += '<div class="hw-compare-row"><div class="hw-compare-label">⏰ เข้างาน</div><div class="hw-compare-val">'+todayCheckin+'</div></div>';
     }
+    // v166 animated rollup: start the visible number from the previously
+    // rendered value (stored on el.dataset) so re-renders animate from
+    // last→new instead of snapping or always restarting at 0.
+    var lastHours = parseFloat(el.dataset.lastHours || '0');
+    if(!isFinite(lastHours)) lastHours = 0;
     if(todayHours > 0){
       let tag = '', tagClass = '';
       if(avgHours > 0){
@@ -12630,12 +12675,18 @@ if('serviceWorker' in navigator) {
         else if(ratio > 1.1){ tag = '+' + Math.round((ratio-1)*100) + '%'; tagClass = 'good'; }
         else { tag = Math.round((ratio-1)*100) + '%'; tagClass = 'warn'; }
       }
-      rows += '<div class="hw-compare-row"><div class="hw-compare-label">⚡ ทำงาน</div><div class="hw-compare-val">'+todayHours.toFixed(1)+' ชม</div>'+(tag ? '<div class="hw-compare-tag '+tagClass+'">'+tag+'</div>' : '')+'</div>';
+      rows += '<div class="hw-compare-row"><div class="hw-compare-label">⚡ ทำงาน</div><div class="hw-compare-val"><span class="hw-compare-num">'+lastHours.toFixed(1)+'</span> ชม</div>'+(tag ? '<div class="hw-compare-tag '+tagClass+'">'+tag+'</div>' : '')+'</div>';
     }
+    el.dataset.lastHours = String(todayHours);
 
     el.innerHTML =
       '<div class="hw-title"><span class="hw-icon">📊</span>วันนี้ vs ปกติ ('+(avgHours > 0 ? '14 วัน' : 'ยังไม่มีค่าเฉลี่ย')+')</div>' +
       rows;
+
+    if(todayHours > 0 && window.rudyAnimateNum){
+      var numEl = el.querySelector('.hw-compare-num');
+      if(numEl) window.rudyAnimateNum(numEl, todayHours, { decimals: 1 });
+    }
   }
 
   // ─── MAIN RENDER ─────────────────────────────────────────────────
@@ -13100,14 +13151,26 @@ body.dark [class*="tab"] .label{
     else if(onTimeCount === 0) msg = '😅 สาย ' + lateCount + ' วัน · เริ่มใหม่ได้';
     else msg = 'สาย ' + lateCount + ' · ขาดอีก ' + (target - onTimeCount) + ' วัน';
 
+    // v166 animated rollup: render with the previously displayed number
+    // (from el.dataset) so re-renders animate from last→new. First paint
+    // animates 0→onTimeCount.
+    var lastGoal = parseInt(el.dataset.lastGoalNum || '0', 10);
+    if(!isFinite(lastGoal)) lastGoal = 0;
+    el.dataset.lastGoalNum = String(onTimeCount);
+
     el.innerHTML =
       '<div class="hw-title"><span class="hw-icon">🎯</span>เป้าหมายสัปดาห์</div>' +
       '<div class="hwb-goal-row">' +
         '<div class="hwb-goal-label">วันมาตรงเวลา</div>' +
-        '<div class="hwb-goal-value">' + onTimeCount + '<span class="hwb-goal-target">/' + target + '</span></div>' +
+        '<div class="hwb-goal-value"><span class="hwb-goal-num">' + lastGoal + '</span><span class="hwb-goal-target">/' + target + '</span></div>' +
       '</div>' +
       '<div class="hw-progress-bar"><div class="hw-progress-fill done" style="width:' + pct + '%"></div></div>' +
       '<div class="hwb-goal-meta">' + msg + '</div>';
+
+    if(window.rudyAnimateNum){
+      var numEl = el.querySelector('.hwb-goal-num');
+      if(numEl) window.rudyAnimateNum(numEl, onTimeCount);
+    }
   }
 
   // ════════════════════════════════════════════════════════════════
