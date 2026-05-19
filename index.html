@@ -3119,17 +3119,17 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   <div id="dm-bubbles" style="display:none"></div>
   <div id="dm-sparkles" style="display:none"></div>
 
-  <!-- RUDY wordmark — letters stagger fade-up + slight scale -->
-  <!-- App logo spirals in from centre alongside the letters, lands to the
-       left of R (mirror of dot at +145 → logo lands at −180). Same 2-rev
-       glyph rotation pattern as R/U (A=900° + B=−180° → net 720° ending upright). -->
-  <img class="rudy-splash-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
-  <div class="rudy-splash-wm" aria-label="RUDY">
-    <span class="rudy-l rudy-l1">R</span><span class="rudy-l rudy-l2">U</span><span class="rudy-l rudy-l3">D</span><span class="rudy-l rudy-l4">Y</span><span class="rudy-l rudy-l5" aria-hidden="true">.</span>
+  <!-- v189 minimalist splash: hero logo with overshoot scale-in, single
+       ripple ring as accent, wordmark slides up after. Replaces the
+       spiral motion from v186-v188 (felt too busy / not modern enough). -->
+  <div class="splash-logo-wrap">
+    <div class="splash-ripple" aria-hidden="true"></div>
+    <img class="splash-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
   </div>
+  <div class="splash-wm" aria-label="RUDY">RUDY<span class="splash-dot" aria-hidden="true">.</span></div>
 
   <!-- Status text — small + dim, doesn't compete with wordmark -->
-  <div id="overlay-status" style="font-size:10px;color:rgba(255,255,255,0.30);letter-spacing:0.20em;text-transform:uppercase;transition:opacity 0.3s ease;margin-top:32px;opacity:0;animation:rudyStatusIn 0.4s ease 0.9s forwards">กำลังเตรียมข้อมูล</div>
+  <div id="overlay-status" style="font-size:10px;color:rgba(255,255,255,0.30);letter-spacing:0.20em;text-transform:uppercase;transition:opacity 0.3s ease;margin-top:36px;opacity:0;animation:rudyStatusIn 0.4s ease 1.4s forwards">กำลังเตรียมข้อมูล</div>
 
   <!-- Hidden skip button -->
   <div id="overlay-skip" style="display:none"></div>
@@ -3224,22 +3224,67 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   --cx:-145px; --A:720deg; --B:0deg; --R:145px;
   animation:rudyDotSpiral 1.3s cubic-bezier(0.42, 0, 0.58, 1) 0.30s forwards;
 }
-/* App logo — absolutely centred in viewport (overlay is flex-centred),
-   spirals out to land 180px to the left of centre, ahead of R (which lands
-   at −100). Same A=900°/B=−180° pattern → 2 visible full spins ending
-   upright. Sits a hair before R (delay 0s vs R's 0s) so the eye reads
-   logo → R → U → D → Y → dot as one continuous spiral. */
-.rudy-splash-logo{
-  position:absolute;
-  width:64px; height:64px;
-  left:50%; top:50%;
-  margin-left:-32px; margin-top:-32px;
+/* ============================================================
+   v189 minimalist splash — replaces the spiral motion.
+   Timeline (all overlap to feel continuous, total ~1.8s):
+     0.10s → logo: scale 0.5 → 1.0 with overshoot, fade 0 → 1   (0.7s)
+     0.55s → ripple ring: expand 1.0 → 2.3, fade 0.55 → 0       (1.2s)
+     0.60s → wordmark: slide up 14px → 0, fade 0 → 1            (0.7s)
+     1.40s → status text fades in (already inline)
+   2s minimum hold from existing splash gate ensures full reveal. */
+.splash-logo-wrap{
+  position:relative;
+  width:96px; height:96px;
+  margin-bottom:32px;
+}
+.splash-logo{
+  position:relative;
+  z-index:2;
+  width:96px; height:96px;
   border-radius:22%;
   opacity:0;
+  transform:scale(0.5);
   will-change:transform, opacity;
-  box-shadow:0 10px 30px rgba(94,200,250,0.30);
-  --cx:0; --A:900deg; --R:180px; --B:-180deg;
-  animation:rudySpiral 1.5s cubic-bezier(0.42, 0, 0.58, 1) 0s forwards;
+  box-shadow:0 18px 48px rgba(94,200,250,0.32),
+             0 4px 12px rgba(0,0,0,0.40);
+  animation:splashLogoIn 0.7s cubic-bezier(0.34, 1.40, 0.55, 1) 0.10s forwards;
+}
+@keyframes splashLogoIn{
+  to{ opacity:1; transform:scale(1); }
+}
+.splash-ripple{
+  position:absolute;
+  inset:0;
+  border-radius:22%;
+  border:1.5px solid rgba(94,200,250,0.55);
+  opacity:0;
+  z-index:1;
+  pointer-events:none;
+  animation:splashRipple 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.55s forwards;
+}
+@keyframes splashRipple{
+  0%   { opacity:0.55; transform:scale(1);   }
+  100% { opacity:0;    transform:scale(2.3); }
+}
+.splash-wm{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:44px;
+  font-weight:800;
+  letter-spacing:-0.04em;
+  line-height:1;
+  color:#fff;
+  opacity:0;
+  transform:translateY(14px);
+  will-change:transform, opacity;
+  animation:splashWmIn 0.7s cubic-bezier(0.16, 1, 0.30, 1) 0.60s forwards;
+  text-shadow:0 6px 24px rgba(94,200,250,0.15);
+}
+.splash-dot{
+  color:#5AC8FA;
+  margin-left:2px;
+}
+@keyframes splashWmIn{
+  to{ opacity:1; transform:translateY(0); }
 }
 /* Legacy dm-* keyframes kept since other styles in this file reference
    them via the .dm-droplet class (still present elsewhere — only the
