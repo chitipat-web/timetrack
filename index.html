@@ -3133,21 +3133,23 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
 <!-- Keyframes for overlay animations + v173 Dime-style wordmark -->
 <style id="dm-inline-anims">
-/* v177: cleaner bloom — user reported v176 felt like a "solar system"
-   with letters colliding into each other. Two fixes: (1) cut rotation
-   to a single 360deg revolution (was 540-900deg multi-spins which made
-   the letters smear across each other's paths during the expand), and
-   (2) restore a small 60ms stagger so each piece settles slightly
-   before the next starts moving — no more all-at-once explosion. */
-@keyframes rudyLetterIn {
-  0%   { opacity:0; transform:translate(var(--sx, 0), 0) rotate(var(--sr, 0deg)) scale(0.1); }
-  35%  { opacity:1; }
-  100% { opacity:1; transform:translate(0, 0) rotate(0deg) scale(1); }
+/* v178: orbital motion — true planetary orbit feel. Each letter spins
+   one full revolution AROUND THE WORDMARK CENTRE (not its own axis),
+   achieved by setting transform-origin at calc(50% +/- offset) center
+   where the offset puts the pivot point exactly at the centre of the
+   wordmark. R and Y sit far from centre so they sweep a wide orbit;
+   U and D are close to centre so they sweep a tight one — inner vs
+   outer planets. Scale grows 0.05 -> 1 over the orbit so the start
+   reads as "small at centre". */
+@keyframes rudyOrbit {
+  0%   { opacity:0; transform:rotate(-360deg) scale(0.05); }
+  25%  { opacity:1; }
+  100% { opacity:1; transform:rotate(0deg) scale(1); }
 }
-@keyframes rudyDotIn {
-  0%   { opacity:0; transform:translate(var(--sx, 0), 0) rotate(var(--sr, 0deg)) scale(0); }
-  40%  { opacity:1; }
-  100% { opacity:1; transform:translate(0, 0) rotate(0deg) scale(1); }
+@keyframes rudyOrbitDot {
+  0%   { opacity:0; transform:rotate(-360deg) scale(0); }
+  30%  { opacity:1; }
+  100% { opacity:1; transform:rotate(0deg) scale(1); }
 }
 @keyframes rudyStatusIn {
   from { opacity:0; }
@@ -3167,33 +3169,30 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   align-items:baseline;
   gap:0;
   text-shadow:0 8px 32px rgba(94,200,250,0.18);
-  /* Breath kicks in after the last piece has had time to settle:
-     last letter delay 0.30s + duration 0.90s = ~1.2s. */
-  animation:rudyBreath 2.4s ease-in-out 1.4s infinite;
+  /* Breath kicks in after last orbit settles: dot delay 0.34 + 1.4s = ~1.75s. */
+  animation:rudyBreath 2.4s ease-in-out 1.85s infinite;
 }
 .rudy-l{
   display:inline-block;
   opacity:0;
-  transform-origin:center center;
   will-change:transform, opacity;
-  animation:rudyLetterIn 0.90s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  animation:rudyOrbit 1.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
 }
-/* Same --sx scheme as v176 (negative of natural layout offset so all
-   letters start at centre). Rotation reduced to a single 360deg spin
-   per letter — direction still alternates to keep the motion lively
-   without the chaotic multi-revolution feel. 60ms stagger so letters
-   arrive in a quick sequence instead of crashing into each other. */
-.rudy-l1{ color:#5AC8FA; --sx: 110px; --sr:-360deg; animation-delay:0.00s; }
-.rudy-l2{ color:#fff;    --sx:  38px; --sr: 360deg; animation-delay:0.06s; }
-.rudy-l3{ color:#fff;    --sx: -38px; --sr:-360deg; animation-delay:0.12s; }
-.rudy-l4{ color:#fff;    --sx:-100px; --sr: 360deg; animation-delay:0.18s; }
+/* transform-origin offsets are the negative of each letter's natural
+   layout position from centre, so the pivot lands at wordmark centre
+   for every letter. Stagger of 80ms means each "planet" starts its
+   orbit slightly after the previous one — gives the cascading planet-
+   launch feel instead of all five spinning in lock-step. */
+.rudy-l1{ color:#5AC8FA; transform-origin:calc(50% + 110px) center; animation-delay:0.00s; }
+.rudy-l2{ color:#fff;    transform-origin:calc(50% + 38px)  center; animation-delay:0.08s; }
+.rudy-l3{ color:#fff;    transform-origin:calc(50% - 38px)  center; animation-delay:0.16s; }
+.rudy-l4{ color:#fff;    transform-origin:calc(50% - 100px) center; animation-delay:0.24s; }
 .rudy-l5{
   color:#5AC8FA;
   margin-left:6px;
   font-size:0.85em;
-  transform-origin:center center;
-  --sx:-150px; --sr: 360deg;
-  animation:rudyDotIn 0.80s cubic-bezier(0.34,1.56,0.64,1) 0.28s forwards;
+  transform-origin:calc(50% - 150px) center;
+  animation:rudyOrbitDot 1.4s cubic-bezier(0.34,1.56,0.64,1) 0.34s forwards;
 }
 /* Legacy dm-* keyframes kept since other styles in this file reference
    them via the .dm-droplet class (still present elsewhere — only the
