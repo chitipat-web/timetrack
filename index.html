@@ -3133,18 +3133,16 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
 <!-- Keyframes for overlay animations + v173 Dime-style wordmark -->
 <style id="dm-inline-anims">
-/* v185: TRUE spiral motion — user described precisely: "เริ่มจุดตรงกลาง
-   ค่อยๆ ขยายวงโคจร สัก 2 รอบ แล้วเรียงคำตามตำแหน่ง". Implements via the
-   CSS transform chain `translate(cx) rotate(θ) translateX(r) rotate(-θ)`:
-   when CSS interpolates θ linearly from 0 -> 720° + final_angle AND r
-   linearly from 0 -> final_radius, the composition traces a perfect
-   Archimedean spiral outward from (cx, 0). At t=0 the radius is 0 so
-   the letter sits at the offset cx (which we set to the negative of
-   the letter's natural position from wordmark centre, putting it
-   visually at the centre). At t=1 the radius and angle land the
-   letter exactly on its natural slot. The final inner rotate(-θ)
-   counters the outer rotate so the glyph stays upright throughout
-   the spiral. */
+/* v186: corrected from the actual Dime video (downloaded from
+   user-supplied catbox.moe link, extracted at 30fps). The video shows
+   the GLYPHS visibly rotating during the spiral — they appear at ~135°,
+   ~80°, ~45°, then upright. v185 added an inner counter-rotation that
+   killed the glyph rotation entirely (it kept letters upright through
+   the whole orbit). v186 sets the inner rotation B so that NET glyph
+   rotation = A + B = 720° (exactly 2 full visible spins ending upright)
+   for every letter, regardless of its final position angle.
+   Math (verified): final position = (cx + R*cos(A), R*sin(A)) = (0,0)
+   for natural slot. Net glyph rotation = A + B. */
 @keyframes rudySpiral {
   0% {
     opacity:0;
@@ -3154,9 +3152,9 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   100% {
     opacity:1;
     transform:translate(var(--cx, 0), 0)
-              rotate(var(--end-ang, 720deg))
-              translateX(var(--end-rad, 0))
-              rotate(calc(0deg - var(--end-ang, 720deg)))
+              rotate(var(--A, 720deg))
+              translateX(var(--R, 0))
+              rotate(var(--B, 0deg))
               scale(1);
   }
 }
@@ -3169,9 +3167,9 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   100% {
     opacity:1;
     transform:translate(var(--cx, 0), 0)
-              rotate(var(--end-ang, 720deg))
-              translateX(var(--end-rad, 0))
-              rotate(calc(0deg - var(--end-ang, 720deg)))
+              rotate(var(--A, 720deg))
+              translateX(var(--R, 0))
+              rotate(var(--B, 0deg))
               scale(1);
   }
 }
@@ -3202,25 +3200,24 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   will-change:transform, opacity;
   animation:rudySpiral 1.5s cubic-bezier(0.42, 0, 0.58, 1) forwards;
 }
-/* For each letter:
-   --cx = NEGATIVE of natural offset from wordmark centre (so the letter
-          starts visually at the centre when radius=0).
-   --end-ang = 720deg + natural_angle (exactly 2 revolutions then settle
-               at the angle matching the letter's slot).
-   --end-rad = distance from wordmark centre to natural slot.
-   Letters on the LEFT half of the wordmark have natural angle = 180°
-   so their end-ang is 900°; letters on the RIGHT half use 720°.
-   The math is exact: (cx + end_rad*cos(end_ang), end_rad*sin(end_ang))
-   = (0, 0) for every letter, which is the natural flex slot. */
-.rudy-l1{ color:#5AC8FA; --cx: 100px;  --end-ang:900deg; --end-rad:100px; animation-delay:0.00s; }
-.rudy-l2{ color:#fff;    --cx:  38px;  --end-ang:900deg; --end-rad: 38px; animation-delay:0.05s; }
-.rudy-l3{ color:#fff;    --cx: -38px;  --end-ang:720deg; --end-rad: 38px; animation-delay:0.10s; }
-.rudy-l4{ color:#fff;    --cx:-100px;  --end-ang:720deg; --end-rad:100px; animation-delay:0.15s; }
+/* Per-letter parameters:
+   --cx = NEGATIVE natural offset (puts letter at wordmark centre at t=0).
+   --A  = outer rotation END = 720° + natural_angle (2 spiral revs landing
+          at letter's slot angle from centre).
+   --R  = natural radius from centre.
+   --B  = inner rotation END, chosen so A + B = 720° → glyph does exactly
+          2 visible spins, ending upright.
+   For R/U on the left half: natural_angle=180° → A=900°, B=−180° → A+B=720°.
+   For D/Y on the right half: natural_angle=0° → A=720°, B=0° → A+B=720°. */
+.rudy-l1{ color:#5AC8FA; --cx: 100px;  --A:900deg; --B:-180deg; --R:100px; animation-delay:0.00s; }
+.rudy-l2{ color:#fff;    --cx:  38px;  --A:900deg; --B:-180deg; --R: 38px; animation-delay:0.05s; }
+.rudy-l3{ color:#fff;    --cx: -38px;  --A:720deg; --B:   0deg; --R: 38px; animation-delay:0.10s; }
+.rudy-l4{ color:#fff;    --cx:-100px;  --A:720deg; --B:   0deg; --R:100px; animation-delay:0.15s; }
 .rudy-l5{
   color:#5AC8FA;
   margin-left:6px;
   font-size:0.85em;
-  --cx:-145px; --end-ang:720deg; --end-rad:145px;
+  --cx:-145px; --A:720deg; --B:0deg; --R:145px;
   animation:rudyDotSpiral 1.3s cubic-bezier(0.42, 0, 0.58, 1) 0.30s forwards;
 }
 /* Legacy dm-* keyframes kept since other styles in this file reference
