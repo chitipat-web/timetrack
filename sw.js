@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v191
-// Cache: rudy-static-v191, firebase-v191
-// Build: 2026-05-19 · Maximalist splash — 13 layers (grid/scan/HUD/halo/bolts/glitch + cinematic)
+// RUDY · Service Worker v192
+// Cache: rudy-static-v192, firebase-v192
+// Build: 2026-05-19 · AAA splash — 3-act 2.7s (atmosphere/impact/resolution) with orbit, beams, shockwaves, warp wordmark
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v191';
-const FIREBASE_CACHE = 'firebase-v191';
-const RUNTIME_CACHE = 'rudy-runtime-v191';
+const STATIC_CACHE  = 'rudy-static-v192';
+const FIREBASE_CACHE = 'firebase-v192';
+const RUNTIME_CACHE = 'rudy-runtime-v192';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v191] Installing...');
+  console.log('[SW v192] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v191] Precache partial fail (ok):', err);
+          console.warn('[SW v192] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v191] Activating...');
+  console.log('[SW v192] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v191] Deleting old cache:', name);
+              console.log('[SW v192] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -227,7 +227,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v191' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v192' });
     return;
   }
 });
@@ -250,7 +250,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v191] Push parse fail:', e);
+    console.warn('[SW v192] Push parse fail:', e);
   }
 });
 
@@ -270,4 +270,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v191] Loaded — Maximalist splash');
+console.log('[SW v192] Loaded — AAA 3-act splash');
