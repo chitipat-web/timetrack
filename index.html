@@ -3133,19 +3133,21 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
 <!-- Keyframes for overlay animations + v173 Dime-style wordmark -->
 <style id="dm-inline-anims">
-/* v174: letter rotates in — each letter spins from -360° (offscreen
-   rotation) to 0° while scaling up + fading. Each .rudy-l N has its
-   own delay so R-U-D-Y-. land left-to-right. The dot at the end uses
-   a softer rotateY-style accent (smaller, settles last). */
+/* v175: scattered-converge — each letter starts off its final position
+   with high rotation + small scale, then flies in and rotates to 0
+   while scaling up. The CSS custom properties --sx/--sy/--sr give each
+   letter its own starting vector so the pieces "scatter" in different
+   directions during the converge, matching the Dime app where the
+   letters fly in from various angles and rotate to settle into place. */
 @keyframes rudyLetterIn {
-  0%   { opacity:0; transform:rotate(-360deg) scale(0.2); }
-  70%  { opacity:1; transform:rotate(12deg)   scale(1.08); }
-  100% { opacity:1; transform:rotate(0deg)    scale(1); }
+  0%   { opacity:0; transform:translate(var(--sx, 0), var(--sy, 0)) rotate(var(--sr, 0deg)) scale(0.25); }
+  60%  { opacity:1; }
+  100% { opacity:1; transform:translate(0, 0) rotate(0deg) scale(1); }
 }
 @keyframes rudyDotIn {
-  0%   { opacity:0; transform:rotate(-540deg) scale(0); }
-  60%  { opacity:1; transform:rotate(20deg)   scale(1.4); }
-  100% { opacity:1; transform:rotate(0deg)    scale(1); }
+  0%   { opacity:0; transform:translate(var(--sx, 0), var(--sy, 0)) rotate(var(--sr, 0deg)) scale(0); }
+  60%  { opacity:1; }
+  100% { opacity:1; transform:translate(0, 0) rotate(0deg) scale(1); }
 }
 @keyframes rudyStatusIn {
   from { opacity:0; }
@@ -3165,31 +3167,31 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   align-items:baseline;
   gap:0;
   text-shadow:0 8px 32px rgba(94,200,250,0.18);
-  /* Subtle breath loop after letters land (delay until ~last letter is in)
-     keeps the screen alive during the Firebase IndexedDB cold start that
-     CLAUDE.md notes can take 3-8s on iOS PWA. */
-  animation:rudyBreath 2.4s ease-in-out 1.6s infinite;
+  /* Breath kicks in after the last piece has had time to settle:
+     last letter delay 0.30s + duration 0.90s = ~1.2s. */
+  animation:rudyBreath 2.4s ease-in-out 1.4s infinite;
 }
 .rudy-l{
   display:inline-block;
   opacity:0;
-  /* transform-origin:center keeps the rotation centred on each glyph
-     instead of pivoting around the baseline corner (which makes the
-     letters smear sideways during the spin). */
   transform-origin:center center;
   will-change:transform, opacity;
-  animation:rudyLetterIn 0.75s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  animation:rudyLetterIn 0.90s cubic-bezier(0.34,1.56,0.64,1) forwards;
 }
-.rudy-l1{ color:#5AC8FA; animation-delay:0.05s; } /* R = brand sys-teal, like Dime's green D */
-.rudy-l2{ color:#fff;    animation-delay:0.22s; }
-.rudy-l3{ color:#fff;    animation-delay:0.39s; }
-.rudy-l4{ color:#fff;    animation-delay:0.56s; }
+/* Each letter's start vector is different so they scatter visibly during
+   the converge. Rotation values are large multiples of 360 so the user
+   sees several full spins before the letter snaps to upright. */
+.rudy-l1{ color:#5AC8FA; --sx:-110px; --sy:-70px;  --sr:-720deg; animation-delay:0.00s; }
+.rudy-l2{ color:#fff;    --sx: 70px;  --sy:-90px;  --sr: 540deg; animation-delay:0.06s; }
+.rudy-l3{ color:#fff;    --sx: 90px;  --sy: 80px;  --sr:-540deg; animation-delay:0.12s; }
+.rudy-l4{ color:#fff;    --sx:-80px;  --sy: 70px;  --sr: 720deg; animation-delay:0.18s; }
 .rudy-l5{
   color:#5AC8FA;
   margin-left:6px;
   font-size:0.85em;
   transform-origin:center center;
-  animation:rudyDotIn 0.6s cubic-bezier(0.34,1.85,0.64,1) 0.78s forwards;
+  --sx: 0px; --sy:-110px; --sr: 900deg;
+  animation:rudyDotIn 0.80s cubic-bezier(0.34,1.85,0.64,1) 0.30s forwards;
 }
 /* Legacy dm-* keyframes kept since other styles in this file reference
    them via the .dm-droplet class (still present elsewhere — only the
