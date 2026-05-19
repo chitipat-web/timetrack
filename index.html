@@ -3133,22 +3133,20 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
 <!-- Keyframes for overlay animations + v173 Dime-style wordmark -->
 <style id="dm-inline-anims">
-/* v182: refined from a higher-quality storyboard read. Extracted the
-   100-frame YouTube storyboard (sb_L0, 10x10), built a frame-by-frame
-   montage at 16x upscale, and traced the splash period (frames 15-44,
-   ~0.6s-1.76s of the video). The pieces grow from very small near the
-   centre and stay roughly horizontally aligned with their final slots —
-   they do NOT scatter to the screen corners as my v181 implied.
-   Reduced scatter offsets accordingly. Rotation kept (storyboard sb0
-   frame 2 clearly shows tilted glyphs mid-animation). */
+/* v183: user said "หมุนด้วยเคลื่อนที่ด้วย" — v182's translate offsets
+   were too tight (±15-35px) so the rotation dominated and movement
+   barely registered. Restored larger offsets so both rotation AND
+   translation are clearly visible at the same time. Pieces still
+   start NEAR centre (not screen corners) but the path each piece
+   travels is now long enough to read as actual motion. */
 @keyframes rudyScatterIn {
-  0%   { opacity:0; transform:translate(var(--sx, 0), var(--sy, 0)) rotate(var(--sr, 0deg)) scale(0.15); }
-  40%  { opacity:1; }
+  0%   { opacity:0; transform:translate(var(--sx, 0), var(--sy, 0)) rotate(var(--sr, 0deg)) scale(0.2); }
+  35%  { opacity:1; }
   100% { opacity:1; transform:translate(0, 0) rotate(0deg) scale(1); }
 }
 @keyframes rudyDotIn {
-  0%   { opacity:0; transform:translate(0, -28px) rotate(360deg) scale(0); }
-  60%  { opacity:1; transform:translate(0, 3px)   rotate(0deg)   scale(1.15); }
+  0%   { opacity:0; transform:translate(0, -55px) rotate(540deg) scale(0); }
+  55%  { opacity:1; transform:translate(0, 6px)   rotate(0deg)   scale(1.2); }
   100% { opacity:1; transform:translate(0, 0)     rotate(0deg)   scale(1); }
 }
 @keyframes rudyStatusIn {
@@ -3169,31 +3167,30 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   align-items:baseline;
   gap:0;
   text-shadow:0 8px 32px rgba(94,200,250,0.18);
-  /* Breath after the dot lands (delay 0.45 + 0.55 = 1.0s). */
-  animation:rudyBreath 2.4s ease-in-out 1.25s infinite;
+  /* Breath after the dot lands (delay 0.55 + 0.6 = 1.15s). */
+  animation:rudyBreath 2.4s ease-in-out 1.4s infinite;
 }
 .rudy-l{
   display:inline-block;
   opacity:0;
   transform-origin:center center;
   will-change:transform, opacity;
-  animation:rudyScatterIn 0.85s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  animation:rudyScatterIn 1.0s cubic-bezier(0.34,1.56,0.64,1) forwards;
 }
-/* Reduced scatter — start small NEAR centre then expand to natural
-   position. Each letter rotates one full revolution while expanding.
-   70ms stagger keeps pieces tightly grouped (matching the storyboard
-   where they appear together near centre rather than flying in from
-   far corners). */
-.rudy-l1{ color:#5AC8FA; --sx: 35px;  --sy:-12px; --sr:-360deg; animation-delay:0.00s; }
-.rudy-l2{ color:#fff;    --sx:-15px;  --sy: 18px; --sr: 360deg; animation-delay:0.07s; }
-.rudy-l3{ color:#fff;    --sx: 18px;  --sy:-15px; --sr:-360deg; animation-delay:0.14s; }
-.rudy-l4{ color:#fff;    --sx:-30px;  --sy: 12px; --sr: 360deg; animation-delay:0.21s; }
+/* Larger offsets so each piece visibly TRAVELS while it spins. Each
+   letter comes from a distinct direction (corners + top/bottom) so
+   the eye reads the motion of each glyph individually. 80ms stagger
+   spaces the entries without crowding. */
+.rudy-l1{ color:#5AC8FA; --sx:-75px;  --sy:-55px; --sr:-540deg; animation-delay:0.00s; }
+.rudy-l2{ color:#fff;    --sx: 55px;  --sy:-65px; --sr: 540deg; animation-delay:0.08s; }
+.rudy-l3{ color:#fff;    --sx:-50px;  --sy: 60px; --sr:-540deg; animation-delay:0.16s; }
+.rudy-l4{ color:#fff;    --sx: 70px;  --sy: 50px; --sr: 540deg; animation-delay:0.24s; }
 .rudy-l5{
   color:#5AC8FA;
   margin-left:6px;
   font-size:0.85em;
   transform-origin:center center;
-  animation:rudyDotIn 0.55s cubic-bezier(0.34,1.85,0.64,1) 0.45s forwards;
+  animation:rudyDotIn 0.6s cubic-bezier(0.34,1.85,0.64,1) 0.55s forwards;
 }
 /* Legacy dm-* keyframes kept since other styles in this file reference
    them via the .dm-droplet class (still present elsewhere — only the
