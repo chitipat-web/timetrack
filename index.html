@@ -9928,7 +9928,30 @@ function setupRealtimeListeners() {
       // was hand-edited in the Firebase console (null, string, missing
       // empId). Downstream code does records.filter(r => r.empId...) which
       // crashes on a non-object. Keep only well-formed record objects.
-      records = sanitizeRecords(fbData);
+      const fbRecords = sanitizeRecords(fbData);
+      // v169 OFFLINE QUEUE MERGE: a record in the queue means it was
+      // written locally and isn't (yet) confirmed in fbData. If FB now
+      // echoes the same id back, it's confirmed synced — remove from queue.
+      // If FB still doesn't have it, KEEP the local copy (would otherwise
+      // be wiped by `records = sanitizeRecords(fbData)`).
+      let pendingLocal = [];
+      try {
+        if (typeof window.rudyQueueGetIds === 'function') {
+          const fbIds = new Set(fbRecords.map(r => r.id));
+          const queueIds = window.rudyQueueGetIds();
+          queueIds.forEach(id => {
+            if (fbIds.has(id)) {
+              // confirmed synced
+              try { window.rudyQueueRemove(id); } catch(_){}
+            } else {
+              // still pending — preserve from current local records
+              const localCopy = (records || []).find(r => r && r.id === id);
+              if (localCopy) pendingLocal.push(localCopy);
+            }
+          });
+        }
+      } catch(e){ console.warn('[OQ] listener merge:', e); }
+      records = fbRecords.concat(pendingLocal);
       localStorage.setItem('tt_rec', JSON.stringify(records));
     } else if (!_recordsLoadedFromFB) {
       // First load and FB is empty — keep whatever we already have (might be local cache)
@@ -10035,6 +10058,12 @@ window.saveRec = function() {
     if (!r || !r.id) return;
     updates['records/' + r.id] = r;
     currentIds.add(r.id);
+    // v169 offline queue: enqueue every id we're attempting to push. The
+    // listener-merge dequeues ids that come back in fbData (confirmed
+    // synced). If the network drops mid-write, the queue survives a
+    // PWA restart and the realtime listener will drop or keep each id
+    // based on what FB actually has.
+    try { if (typeof window.rudyQueueAdd === 'function') window.rudyQueueAdd(r.id); } catch(_){}
   });
 
   // Detect deletions: records that were in last sync but not in current array
@@ -12134,6 +12163,105 @@ if('serviceWorker' in navigator) {
   });
   // Initial check after fbConn has had time to settle.
   setTimeout(tick, 4000);
+})();
+
+// ════════════════════════════════════════════════════════════════════
+// v169 · PERSISTENT OFFLINE QUEUE
+// ────────────────────────────────────────────────────────────────────
+// Closes the data-loss gap left open by v168: Firebase RTDB's web SDK
+// queues writes IN MEMORY only — closing the PWA while offline drops
+// every unsynced check-in. This module backs the queue with
+// localStorage so it survives a reload, and patches the realtime
+// listener to preserve queued records during merge.
+//
+// FLOW (full chain):
+//   1. doCheckIn/doCheckOut push to records[] and call saveRec().
+//   2. saveRec() — overridden at ~line 10021 — writes localStorage and
+//      enqueues every record id via window.rudyQueueAdd. It also
+//      attempts db.ref().update(). If offline, that promise hangs/fails
+//      silently but the localStorage queue holds the id.
+//   3. When fbConn flips true (this module polls every 2s), we call
+//      window.rudyQueueDrain which builds an update({records/ID: rec})
+//      payload from current records[] for every queued id and pushes.
+//   4. Firebase echoes the write back via the .on('value') listener.
+//      That listener (patched at ~line 9923) walks the queue and
+//      removes ids that are now present in fbData — at which point
+//      they're confirmed synced.
+//   5. Listener also preserves records whose ids are queued but NOT
+//      in fbData (still-pending offline writes), so the
+//      "records = sanitizeRecords(fbData)" line no longer wipes them.
+//
+// SCOPE LIMITS (documented honestly):
+//   - Handles ADDITIONS reliably (the common offline case: check-in
+//     while in a cell-dead zone).
+//   - Offline EDITS of an already-synced record may be overwritten by
+//     the next listener-merge because we can't tell whether FB's copy
+//     or local's copy is newer without a lastEditedTs field on each
+//     record. Full edit-protection requires schema work and lands in
+//     the conflict-resolution commit (v172).
+//   - DELETES while offline go through the existing saveRec path
+//     (writes records/ID = null to FB). Not covered here.
+// ════════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+  var QKEY = 'tt_offline_queue_v1';
+
+  function safe(fn, dft){ try { return fn(); } catch(_){ return dft; } }
+  function loadQ(){
+    var raw = safe(function(){ return JSON.parse(localStorage.getItem(QKEY) || '[]'); }, []);
+    return Array.isArray(raw) ? raw : [];
+  }
+  function saveQ(q){ safe(function(){ localStorage.setItem(QKEY, JSON.stringify(q)); }); }
+
+  window.rudyQueueAdd = function(id){
+    if (!id) return;
+    var q = loadQ();
+    if (q.indexOf(id) < 0) { q.push(id); saveQ(q); }
+  };
+  window.rudyQueueRemove = function(id){
+    if (!id) return;
+    var q = loadQ();
+    var i = q.indexOf(id);
+    if (i >= 0) { q.splice(i, 1); saveQ(q); }
+  };
+  window.rudyQueueGetIds = function(){ return loadQ().slice(); };
+  window.rudyQueueClear = function(){ saveQ([]); };
+
+  window.rudyQueueDrain = function(){
+    if (typeof db === 'undefined') return;
+    if (typeof records === 'undefined' || !Array.isArray(records)) return;
+    var ids = loadQ();
+    if (ids.length === 0) return;
+    var updates = {};
+    var pushed = 0;
+    ids.forEach(function(id){
+      var r = records.find(function(x){ return x && x.id === id; });
+      if (r){ updates['records/' + id] = r; pushed++; }
+    });
+    if (pushed === 0) return;
+    try {
+      db.ref().update(updates).then(function(){
+        // Listener will fire next and dequeue confirmed ids.
+        try {
+          if (typeof showToast === 'function') showToast('✅ Sync แล้ว ' + pushed + ' รายการ', 'success');
+          if (typeof haptic === 'function') haptic('success');
+        } catch(_){}
+      }).catch(function(e){ console.warn('[OQ] drain failed:', e); });
+    } catch(e){ console.warn('[OQ] drain threw:', e); }
+  };
+
+  // Watch fbConn for offline→online transition. Don't drain on the
+  // initial true (boot case) — only after we've observed a false→true edge.
+  var sawOffline = false;
+  setInterval(function(){
+    var cur = (typeof fbConn !== 'undefined') ? fbConn : false;
+    if (!cur) { sawOffline = true; return; }
+    if (cur && sawOffline){
+      sawOffline = false;
+      // small delay so any in-flight FB writes from this session finish first
+      setTimeout(function(){ try { window.rudyQueueDrain(); } catch(_){} }, 1500);
+    }
+  }, 2000);
 })();
 
 // ============================================================

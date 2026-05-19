@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v168
-// Cache: rudy-static-v168, firebase-v168
-// Build: 2026-05-19 · Offline status banner + reconnect toast (Phase C1)
+// RUDY · Service Worker v169
+// Cache: rudy-static-v169, firebase-v169
+// Build: 2026-05-19 · Persistent offline queue (Phase C2)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v168';
-const FIREBASE_CACHE = 'firebase-v168';
-const RUNTIME_CACHE = 'rudy-runtime-v168';
+const STATIC_CACHE  = 'rudy-static-v169';
+const FIREBASE_CACHE = 'firebase-v169';
+const RUNTIME_CACHE = 'rudy-runtime-v169';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v168] Installing...');
+  console.log('[SW v169] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v168] Precache partial fail (ok):', err);
+          console.warn('[SW v169] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v168] Activating...');
+  console.log('[SW v169] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v168] Deleting old cache:', name);
+              console.log('[SW v169] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -227,7 +227,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v168' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v169' });
     return;
   }
 });
@@ -250,7 +250,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v168] Push parse fail:', e);
+    console.warn('[SW v169] Push parse fail:', e);
   }
 });
 
@@ -270,4 +270,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v168] Loaded — Offline status banner');
+console.log('[SW v169] Loaded — Persistent offline queue');
