@@ -5541,7 +5541,7 @@ function doCheckIn(){
   if(open){showToast('มีการเข้างานที่ยังไม่ออก','warning'); clearTimeout(_safetyTimerIn); _reEnableIn(); return;}
   const t=nowStr();
   const late=isLate(t);
-  records.push({id:Date.now()+'',empId:curUser.id,date:today,checkIn:t,checkInTs:Date.now(),checkOut:null,checkOutTs:null,isLate:late,otMin:0,note:''});
+  records.push({id:Date.now()+'',empId:curUser.id,date:today,checkIn:t,checkInTs:Date.now(),checkOut:null,checkOutTs:null,isLate:late,otMin:0,note:'',lastEditedTs:Date.now()});
   haptic(late ? 'error' : 'success');
   saveRec();
   document.getElementById('btn-out').disabled=false;
@@ -5586,7 +5586,7 @@ function doCheckOut(){
   const idx=records.findIndex(r=>r.empId===curUser.id&&r.date===today&&!r.checkOut);
   if(idx===-1){showToast('ไม่พบการเข้างาน','error'); clearTimeout(_safetyTimerOut); _reEnableOut(); return;}
   const t=nowStr(),ts=Date.now();
-  records[idx].checkOut=t;records[idx].checkOutTs=ts;records[idx].otMin=calcOTMin(t, records[idx].checkIn);
+  records[idx].checkOut=t;records[idx].checkOutTs=ts;records[idx].otMin=calcOTMin(t, records[idx].checkIn);records[idx].lastEditedTs=ts;
   haptic(records[idx].otMin>0 ? 'heavy' : 'success');
   saveRec();
   document.getElementById('btn-in').disabled=false;
@@ -5654,7 +5654,7 @@ function saveEdit(){
     after:{date,checkIn:inT,checkOut:outT||null,note},
     ts:Date.now()
   });
-  records[idx]={...records[idx],date,checkIn:inT,checkOut:outT||null,isLate:isLate(inT),otMin:outT?calcOTMin(outT,inT):0,note};
+  records[idx]={...records[idx],date,checkIn:inT,checkOut:outT||null,isLate:isLate(inT),otMin:outT?calcOTMin(outT,inT):0,note,lastEditedTs:Date.now()};
   saveRec();closeModal('edit-modal');
   showToast('แก้ไขเรียบร้อย','success');
   renderHome();renderCalendar();renderStats();renderHistory();
@@ -9929,22 +9929,34 @@ function setupRealtimeListeners() {
       // empId). Downstream code does records.filter(r => r.empId...) which
       // crashes on a non-object. Keep only well-formed record objects.
       const fbRecords = sanitizeRecords(fbData);
-      // v169 OFFLINE QUEUE MERGE: a record in the queue means it was
-      // written locally and isn't (yet) confirmed in fbData. If FB now
-      // echoes the same id back, it's confirmed synced — remove from queue.
-      // If FB still doesn't have it, KEEP the local copy (would otherwise
-      // be wiped by `records = sanitizeRecords(fbData)`).
+      // v169 OFFLINE QUEUE MERGE + v172 CONFLICT DETECTION:
+      // - If FB echoes the id we queued AND the lastEditedTs matches what
+      //   we sent (within tolerance) -> confirmed synced, dequeue.
+      // - If FB echoes the id AND FB's ts is NEWER than what we sent ->
+      //   someone else wrote after us. Record the conflict for the user
+      //   to resolve, then dequeue (their write currently wins; user can
+      //   re-push their version through the conflict modal).
+      // - If FB doesn't have the id -> still pending offline, keep local.
       let pendingLocal = [];
+      const newConflicts = [];
       try {
         if (typeof window.rudyQueueGetIds === 'function') {
-          const fbIds = new Set(fbRecords.map(r => r.id));
+          const fbById = {};
+          fbRecords.forEach(r => { if (r && r.id) fbById[r.id] = r; });
           const queueIds = window.rudyQueueGetIds();
           queueIds.forEach(id => {
-            if (fbIds.has(id)) {
-              // confirmed synced
+            const fbRec = fbById[id];
+            if (fbRec) {
+              const entry = (typeof window.rudyQueueGetEntry === 'function') ? window.rudyQueueGetEntry(id) : null;
+              const sentTs = entry && entry.sentTs ? entry.sentTs : 0;
+              const fbTs = fbRec.lastEditedTs || 0;
+              // 1s tolerance for clock skew / write echo timing
+              if (sentTs && fbTs > sentTs + 1000) {
+                const mine = (records || []).find(r => r && r.id === id);
+                if (mine) newConflicts.push({ id: id, mine: { ...mine }, theirs: { ...fbRec } });
+              }
               try { window.rudyQueueRemove(id); } catch(_){}
             } else {
-              // still pending — preserve from current local records
               const localCopy = (records || []).find(r => r && r.id === id);
               if (localCopy) pendingLocal.push(localCopy);
             }
@@ -9953,6 +9965,10 @@ function setupRealtimeListeners() {
       } catch(e){ console.warn('[OQ] listener merge:', e); }
       records = fbRecords.concat(pendingLocal);
       localStorage.setItem('tt_rec', JSON.stringify(records));
+      // Hand any detected conflicts to the v172 UI (separate IIFE).
+      if (newConflicts.length > 0 && typeof window.rudyShowConflicts === 'function') {
+        try { window.rudyShowConflicts(newConflicts); } catch(e){ console.warn('[conflict] UI:', e); }
+      }
     } else if (!_recordsLoadedFromFB) {
       // First load and FB is empty — keep whatever we already have (might be local cache)
       // Don't push it back though — let user actions trigger that
@@ -10058,12 +10074,11 @@ window.saveRec = function() {
     if (!r || !r.id) return;
     updates['records/' + r.id] = r;
     currentIds.add(r.id);
-    // v169 offline queue: enqueue every id we're attempting to push. The
-    // listener-merge dequeues ids that come back in fbData (confirmed
-    // synced). If the network drops mid-write, the queue survives a
-    // PWA restart and the realtime listener will drop or keep each id
-    // based on what FB actually has.
-    try { if (typeof window.rudyQueueAdd === 'function') window.rudyQueueAdd(r.id); } catch(_){}
+    // v169 offline queue + v172 conflict detection: enqueue id with the
+    // lastEditedTs we're pushing. The listener compares against
+    // fbRec.lastEditedTs — same -> confirmed synced; FB newer -> remote
+    // wrote after us, surface as a conflict for the user to resolve.
+    try { if (typeof window.rudyQueueAdd === 'function') window.rudyQueueAdd(r.id, r.lastEditedTs || 0); } catch(_){}
   });
 
   // Detect deletions: records that were in last sync but not in current array
@@ -12209,22 +12224,45 @@ if('serviceWorker' in navigator) {
   function safe(fn, dft){ try { return fn(); } catch(_){ return dft; } }
   function loadQ(){
     var raw = safe(function(){ return JSON.parse(localStorage.getItem(QKEY) || '[]'); }, []);
-    return Array.isArray(raw) ? raw : [];
+    if (!Array.isArray(raw)) return [];
+    // v172 migration: queue used to store [id, id, ...]; now stores
+    // [{id, sentTs}, ...] so conflict detection can compare sentTs
+    // against FB's lastEditedTs. Legacy string entries become {id} with
+    // no sentTs (no conflict info for those).
+    return raw.map(function(e){
+      if (typeof e === 'string') return { id: e };
+      return e;
+    }).filter(function(e){ return e && e.id; });
   }
   function saveQ(q){ safe(function(){ localStorage.setItem(QKEY, JSON.stringify(q)); }); }
 
-  window.rudyQueueAdd = function(id){
+  // v172: rudyQueueAdd accepts an optional sentTs (the lastEditedTs we're
+  // pushing for this record). The listener compares fbRec.lastEditedTs
+  // against sentTs to decide: equal -> confirmed synced; newer -> CONFLICT.
+  window.rudyQueueAdd = function(id, sentTs){
     if (!id) return;
     var q = loadQ();
-    if (q.indexOf(id) < 0) { q.push(id); saveQ(q); }
+    var idx = q.findIndex(function(e){ return e && e.id === id; });
+    var entry = { id: id };
+    if (sentTs) entry.sentTs = sentTs;
+    if (idx >= 0) {
+      // Update sentTs if newer
+      if (sentTs && (!q[idx].sentTs || sentTs > q[idx].sentTs)) q[idx].sentTs = sentTs;
+    } else {
+      q.push(entry);
+    }
+    saveQ(q);
   };
   window.rudyQueueRemove = function(id){
     if (!id) return;
     var q = loadQ();
-    var i = q.indexOf(id);
+    var i = q.findIndex(function(e){ return e && e.id === id; });
     if (i >= 0) { q.splice(i, 1); saveQ(q); }
   };
-  window.rudyQueueGetIds = function(){ return loadQ().slice(); };
+  window.rudyQueueGetIds = function(){ return loadQ().map(function(e){ return e.id; }); };
+  window.rudyQueueGetEntry = function(id){
+    return loadQ().find(function(e){ return e && e.id === id; }) || null;
+  };
   window.rudyQueueClear = function(){ saveQ([]); };
 
   window.rudyQueueDrain = function(){
@@ -12436,6 +12474,205 @@ if('serviceWorker' in navigator) {
   // Expose for any future caller (debug / programmatic)
   window.showRecordPreview = showRecordPreview;
   window.closeRecordPreview = closeRecordPreview;
+})();
+
+// ════════════════════════════════════════════════════════════════════
+// v172 · CONFLICT RESOLUTION UI
+// ────────────────────────────────────────────────────────────────────
+// When the realtime listener detects that Firebase has a newer
+// lastEditedTs than what we sent for a record we just pushed, it
+// hands the {id, mine, theirs} pair here. We queue them in memory,
+// show an amber banner, and on tap surface a modal that lets the user
+// pick "เก็บของฉัน" (re-push local) or "เก็บของเขา" (accept remote).
+//
+// SCOPE: this handles the case where two devices write near-
+// simultaneously and the second write's queue entry is still pending
+// when the first write echoes back. It does NOT solve the case where
+// a device that's been offline for a while comes back and both sides
+// have edits — the offline device's saveRec will still last-write-win
+// against the remote edit. Catching that would require an authoritative
+// "previous lastEditedTs the user started editing from", which means
+// snapshotting the pre-edit state on every edit-modal open. Out of
+// scope for this commit.
+// ════════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+  // Inject CSS once
+  try {
+    if (!document.getElementById('conflict-styles')){
+      var st = document.createElement('style');
+      st.id = 'conflict-styles';
+      st.textContent = [
+        '#conflict-banner{ position:fixed; top:env(safe-area-inset-top, 0); left:0; right:0; z-index:99996; background:linear-gradient(180deg, #FF9F0A 0%, #FF6B00 100%); color:#fff; padding:12px 16px; display:flex; align-items:center; gap:10px; font-family:inherit; font-size:13px; font-weight:600; box-shadow:0 4px 14px rgba(255,159,10,0.35), inset 0 -1px 0 rgba(0,0,0,0.10); text-shadow:0 1px 2px rgba(0,0,0,0.22); cursor:pointer; transform:translateY(-100%); transition:transform 0.30s cubic-bezier(0.34,1.56,0.64,1); -webkit-tap-highlight-color:transparent; }',
+        '#conflict-banner.show{ transform:translateY(0); }',
+        '.conflict-bg{ position:fixed; inset:0; background:rgba(0,0,0,0.55); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); z-index:99999; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s ease; padding:16px; }',
+        '.conflict-bg.open{ opacity:1; }',
+        '.conflict-card{ width:100%; max-width:520px; background:var(--glass-1, #1C2840); border:1px solid var(--glass-stroke, rgba(255,255,255,0.16)); border-radius:18px; padding:18px; transform:translateY(20px) scale(0.98); transition:transform 0.24s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 20px 50px rgba(0,0,0,0.5); color:var(--ink); }',
+        '.conflict-bg.open .conflict-card{ transform:translateY(0) scale(1); }',
+        '.conflict-head{ font-size:18px; font-weight:800; margin-bottom:6px; color:var(--ink); }',
+        '.conflict-sub{ font-size:12px; color:var(--ink-3); margin-bottom:14px; line-height:1.5; }',
+        '.conflict-pair{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }',
+        '.conflict-version{ border:1px solid var(--glass-stroke-dim, rgba(255,255,255,0.14)); border-radius:12px; padding:12px; background:rgba(255,255,255,0.04); }',
+        'body:not(.dark) .conflict-version{ background:rgba(0,0,0,0.03); }',
+        '.conflict-version-title{ font-size:12px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }',
+        '.conflict-version.mine .conflict-version-title{ color:var(--sys-blue, #0A84FF); }',
+        '.conflict-version.theirs .conflict-version-title{ color:var(--sys-orange, #FF9F0A); }',
+        '.conflict-row{ display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:13px; }',
+        '.conflict-row .l{ color:var(--ink-3); }',
+        '.conflict-row .v{ font-family:var(--mono, monospace); font-weight:600; color:var(--ink); }',
+        '.conflict-row .v.diff{ color:var(--sys-orange, #FF9F0A); }',
+        '.conflict-actions{ display:flex; gap:8px; }',
+        '.conflict-actions button{ flex:1; padding:12px; border-radius:12px; border:none; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.22); }',
+        '.conflict-actions .keep-mine{ background:linear-gradient(180deg, #5AC8FA 0%, #0A84FF 55%, #0066D6 100%); }',
+        '.conflict-actions .keep-theirs{ background:linear-gradient(180deg, #FFB048 0%, #FF9F0A 55%, #DA7E00 100%); }',
+        '.conflict-progress{ font-size:11px; color:var(--ink-4); text-align:center; margin-top:10px; }'
+      ].join('\n');
+      document.head.appendChild(st);
+    }
+  } catch(_){}
+
+  var _pending = []; // [{id, mine, theirs}]
+  var _bannerEl = null;
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  function renderBanner(){
+    if (_pending.length === 0){
+      if (_bannerEl){
+        _bannerEl.classList.remove('show');
+        var b = _bannerEl;
+        setTimeout(function(){ try { if (b.parentNode) b.remove(); } catch(_){} }, 320);
+        _bannerEl = null;
+      }
+      return;
+    }
+    if (!_bannerEl){
+      _bannerEl = document.createElement('div');
+      _bannerEl.id = 'conflict-banner';
+      _bannerEl.addEventListener('click', function(){ showNextModal(); });
+      document.body.appendChild(_bannerEl);
+      requestAnimationFrame(function(){ _bannerEl.classList.add('show'); });
+    }
+    _bannerEl.innerHTML =
+      '<span style="font-size:16px">⚠️</span>' +
+      '<span style="flex:1">ข้อขัดแย้ง ' + _pending.length + ' รายการ — แตะเพื่อตัดสิน</span>' +
+      '<span style="font-size:16px">›</span>';
+  }
+
+  function closeModal(){
+    var bg = document.getElementById('conflict-modal-bg');
+    if (!bg) return;
+    bg.classList.remove('open');
+    setTimeout(function(){ try { if (bg.parentNode) bg.remove(); } catch(_){} }, 260);
+  }
+
+  function rowFor(label, valMine, valTheirs){
+    var diff = String(valMine) !== String(valTheirs);
+    return [
+      '<div class="conflict-row"><span class="l">' + escapeHtml(label) + '</span><span class="v' + (diff ? ' diff' : '') + '">' + escapeHtml(valMine || '—') + '</span></div>',
+      '<div class="conflict-row"><span class="l">' + escapeHtml(label) + '</span><span class="v' + (diff ? ' diff' : '') + '">' + escapeHtml(valTheirs || '—') + '</span></div>'
+    ];
+  }
+
+  function fmtTs(ts){
+    if (!ts) return '—';
+    try {
+      var d = new Date(ts);
+      var pad = function(n){ return n < 10 ? '0' + n : '' + n; };
+      return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    } catch(_){ return String(ts); }
+  }
+
+  function showNextModal(){
+    closeModal();
+    if (_pending.length === 0){ renderBanner(); return; }
+    var c = _pending[0];
+    var mine = c.mine || {};
+    var theirs = c.theirs || {};
+
+    var mineRows = [
+      '<div class="conflict-row"><span class="l">วันที่</span><span class="v' + (mine.date !== theirs.date ? ' diff' : '') + '">' + escapeHtml(mine.date || '—') + '</span></div>',
+      '<div class="conflict-row"><span class="l">เข้างาน</span><span class="v' + (mine.checkIn !== theirs.checkIn ? ' diff' : '') + '">' + escapeHtml(mine.checkIn || '—') + '</span></div>',
+      '<div class="conflict-row"><span class="l">ออกงาน</span><span class="v' + (mine.checkOut !== theirs.checkOut ? ' diff' : '') + '">' + escapeHtml(mine.checkOut || '—') + '</span></div>',
+      '<div class="conflict-row"><span class="l">โน้ต</span><span class="v' + (mine.note !== theirs.note ? ' diff' : '') + '">' + escapeHtml(mine.note || '—') + '</span></div>',
+      '<div class="conflict-row"><span class="l">แก้ล่าสุด</span><span class="v">' + escapeHtml(fmtTs(mine.lastEditedTs)) + '</span></div>'
+    ].join('');
+    var theirsRows = [
+      '<div class="conflict-row"><span class="l">วันที่</span><span class="v' + (mine.date !== theirs.date ? ' diff' : '') + '">' + escapeHtml(theirs.date || '—') + '</span></div>',
+      '<div class="conflict-row"><span class="l">เข้างาน</span><span class="v' + (mine.checkIn !== theirs.checkIn ? ' diff' : '') + '">' + escapeHtml(theirs.checkIn || '—') + '</span></div>',
+      '<div class="conflict-row"><span class="l">ออกงาน</span><span class="v' + (mine.checkOut !== theirs.checkOut ? ' diff' : '') + '">' + escapeHtml(theirs.checkOut || '—') + '</span></div>',
+      '<div class="conflict-row"><span class="l">โน้ต</span><span class="v' + (mine.note !== theirs.note ? ' diff' : '') + '">' + escapeHtml(theirs.note || '—') + '</span></div>',
+      '<div class="conflict-row"><span class="l">แก้ล่าสุด</span><span class="v">' + escapeHtml(fmtTs(theirs.lastEditedTs)) + '</span></div>'
+    ].join('');
+
+    var progress = _pending.length > 1 ? '<div class="conflict-progress">' + _pending.length + ' รายการเหลือ</div>' : '';
+
+    var bg = document.createElement('div');
+    bg.id = 'conflict-modal-bg';
+    bg.className = 'conflict-bg';
+    bg.innerHTML =
+      '<div class="conflict-card" role="dialog" aria-modal="true">' +
+        '<div class="conflict-head">⚠️ ข้อขัดแย้ง</div>' +
+        '<div class="conflict-sub">รายการนี้ถูกแก้จากอุปกรณ์อื่นหลังจากคุณกดบันทึก เลือกว่าจะเก็บเวอร์ชันไหน</div>' +
+        '<div class="conflict-pair">' +
+          '<div class="conflict-version mine"><div class="conflict-version-title">ของฉัน</div>' + mineRows + '</div>' +
+          '<div class="conflict-version theirs"><div class="conflict-version-title">ของเขา</div>' + theirsRows + '</div>' +
+        '</div>' +
+        '<div class="conflict-actions">' +
+          '<button type="button" class="keep-mine">เก็บของฉัน</button>' +
+          '<button type="button" class="keep-theirs">เก็บของเขา</button>' +
+        '</div>' +
+        progress +
+      '</div>';
+
+    bg.querySelector('.keep-mine').addEventListener('click', function(){ resolve('mine'); });
+    bg.querySelector('.keep-theirs').addEventListener('click', function(){ resolve('theirs'); });
+
+    document.body.appendChild(bg);
+    requestAnimationFrame(function(){ bg.classList.add('open'); });
+  }
+
+  function resolve(choice){
+    if (_pending.length === 0){ closeModal(); return; }
+    var c = _pending.shift();
+    try {
+      if (choice === 'mine'){
+        // Replace local record with my version and push to FB
+        if (typeof records !== 'undefined' && Array.isArray(records)){
+          var idx = records.findIndex(function(r){ return r && r.id === c.id; });
+          var mine = { ...c.mine, lastEditedTs: Date.now() };  // bump ts so FB accepts it as newest
+          if (idx >= 0) records[idx] = mine; else records.push(mine);
+          if (typeof saveRec === 'function') saveRec();
+        }
+      } else {
+        // Accept theirs — already in records[] from the listener merge
+      }
+      if (typeof showToast === 'function') {
+        showToast(choice === 'mine' ? 'เก็บของฉันแล้ว' : 'ใช้ของเขาแล้ว', 'success');
+      }
+      if (typeof haptic === 'function') haptic('light');
+    } catch(e){ console.warn('[conflict resolve]', e); }
+    closeModal();
+    if (_pending.length > 0){
+      setTimeout(showNextModal, 280);
+    } else {
+      renderBanner();
+    }
+  }
+
+  window.rudyShowConflicts = function(arr){
+    if (!Array.isArray(arr) || arr.length === 0) return;
+    arr.forEach(function(c){
+      if (c && c.id && !_pending.find(function(x){ return x.id === c.id; })){
+        _pending.push(c);
+      }
+    });
+    renderBanner();
+  };
 })();
 
 // ============================================================
