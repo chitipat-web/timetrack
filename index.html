@@ -4619,11 +4619,12 @@ function hideInitOverlay(){
 
 // ========== LOADING MIN TIME (min so users see splash animation) ==========
 const _loadStartTime = performance.now();
-// v192: bumped to 2700ms — the v192 AAA splash has a 3-act structure
-// (atmosphere → impact → resolution) that resolves at ~2.5s with sparkles
-// and HUD corners still settling in. 2.7s gives a beat after the wordmark
-// stops glitching and the logo starts its idle breathe before fading.
-const MIN_LOADING_MS = 2700;
+// v193: bumped to 3500ms — the v192 AAA splash's last primary animation
+// (the dot letter warp) ends at 3.13s. 3.5s gives ~370ms of stable
+// "settled wordmark" beat before the 500ms fade begins, so the user
+// always sees the full reveal play out before the app appears.
+// Total splash visible time: 3.5s hold + 0.5s fade = 4.0s.
+const MIN_LOADING_MS = 3500;
 
 // Hide overlay after enforcing minimum display time
 function _delayedHideOverlay(callback){
