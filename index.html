@@ -6262,7 +6262,7 @@ function renderHistory(resetPage){
         </div>
       </div>
       <div class="hi-records">
-        ${rs.map((r,i)=>`<div class="hi-rec">
+        ${rs.map((r,i)=>`<div class="hi-rec" data-rid="${r.id}">
           <div>
             <span class="hi-times">${r.checkIn} → ${r.checkOut||'...'}</span>
             ${r.note?`<span style="font-size:11px;color:var(--text3);margin-left:6px">${r.note}</span>`:''}
@@ -12262,6 +12262,180 @@ if('serviceWorker' in navigator) {
       setTimeout(function(){ try { window.rudyQueueDrain(); } catch(_){} }, 1500);
     }
   }, 2000);
+})();
+
+// ════════════════════════════════════════════════════════════════════
+// v171 · LONG-PRESS PREVIEW (history records)
+// ────────────────────────────────────────────────────────────────────
+// Hold a record in the History tab for ~550ms to open a detail
+// preview card — full date with day-of-week, raw timestamps, hours,
+// OT minutes, late flag, and the full note. The inline edit/delete
+// buttons still work as before; a long-press anywhere else on the
+// record opens the preview.
+//
+// IMPLEMENTATION DETAILS:
+// - Document-level delegation via .hi-rec[data-rid]. Handlers are
+//   attached ONCE so they survive every renderHistory() re-render.
+// - A 12px vertical-movement guard cancels the press (user trying to
+//   scroll, not press).
+// - -webkit-touch-callout:none on .hi-rec stops Safari's native
+//   text-selection/share callout from racing the long-press.
+// - Tap the dim backdrop to dismiss. The preview itself does not
+//   close on click (so buttons inside work).
+// - CSS is injected via document.head.appendChild(<style>) because this
+//   whole block lives inside an existing <script>, so a literal <style>
+//   tag would be parsed as JS — broken syntax. JS-injected styles are
+//   equivalent and don't disturb the script-block boundaries.
+// ════════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+  // Inject CSS once.
+  try {
+    if (!document.getElementById('rec-preview-styles')){
+      var st = document.createElement('style');
+      st.id = 'rec-preview-styles';
+      st.textContent = [
+        '.hi-rec{ -webkit-touch-callout:none; user-select:none; -webkit-user-select:none; }',
+        '.rec-preview-bg{ position:fixed; inset:0; background:rgba(0,0,0,0.45); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); z-index:99997; display:flex; align-items:flex-end; justify-content:center; opacity:0; transition:opacity 0.18s ease; padding:0 12px calc(12px + env(safe-area-inset-bottom, 0px)); }',
+        '.rec-preview-bg.open{ opacity:1; }',
+        '.rec-preview-card{ width:100%; max-width:480px; background:var(--glass-1, #1C2840); border:1px solid var(--glass-stroke, rgba(255,255,255,0.16)); border-radius:18px; padding:18px; transform:translateY(20px) scale(0.98); transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 20px 50px rgba(0,0,0,0.45); color:var(--ink); font-family:inherit; }',
+        '.rec-preview-bg.open .rec-preview-card{ transform:translateY(0) scale(1); }',
+        '.rec-preview-title{ font-size:13px; font-weight:600; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }',
+        '.rec-preview-date{ font-family:var(--font-display, inherit); font-size:20px; font-weight:800; letter-spacing:-0.02em; margin-bottom:14px; color:var(--ink); }',
+        '.rec-preview-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid var(--glass-stroke-dim, rgba(255,255,255,0.10)); font-size:13px; }',
+        '.rec-preview-row .l{ color:var(--ink-3); }',
+        '.rec-preview-row .v{ font-family:var(--mono, monospace); font-weight:600; color:var(--ink); }',
+        '.rec-preview-row .v.late{ color:var(--sys-red, #FF453A); }',
+        '.rec-preview-row .v.green{ color:var(--sys-green, #30D158); }',
+        '.rec-preview-row .v.yellow{ color:var(--sys-orange, #FF9F0A); }',
+        '.rec-preview-note{ margin-top:12px; padding:10px 12px; background:rgba(255,255,255,0.06); border:1px solid var(--glass-stroke-dim, rgba(255,255,255,0.10)); border-radius:10px; font-size:13px; color:var(--ink-2); line-height:1.5; }',
+        'body:not(.dark) .rec-preview-note{ background:rgba(0,0,0,0.04); }',
+        '.rec-preview-actions{ display:flex; gap:8px; margin-top:16px; }',
+        '.rec-preview-actions button{ flex:1; padding:11px; border-radius:12px; border:none; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; }',
+        '.rec-preview-actions .close-btn{ background:rgba(255,255,255,0.10); color:var(--ink); }',
+        'body:not(.dark) .rec-preview-actions .close-btn{ background:rgba(0,0,0,0.06); }',
+        '.rec-preview-actions .edit-btn{ background:linear-gradient(180deg, #5AC8FA 0%, #0A84FF 55%, #0066D6 100%); color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.22); }'
+      ].join('\n');
+      document.head.appendChild(st);
+    }
+  } catch(_){}
+
+  const LONG_PRESS_MS = 550;
+  const MOVE_THRESHOLD = 12;
+
+  let pressTimer = null;
+  let pressStartY = 0;
+  let pressTarget = null;
+
+  function clearPress(){
+    if (pressTimer){ clearTimeout(pressTimer); pressTimer = null; }
+    pressTarget = null;
+  }
+
+  document.addEventListener('touchstart', function(e){
+    try {
+      const t = e.target;
+      // Don't trigger on inline edit/delete or swipe action buttons.
+      if (t.closest && t.closest('.btn-edit, .btn-del, .swipe-edit-btn, .swipe-del-btn, button')) return;
+      const target = t.closest && t.closest('.hi-rec[data-rid]');
+      if (!target) return;
+      const rid = target.getAttribute('data-rid');
+      if (!rid) return;
+      pressTarget = target;
+      pressStartY = e.touches[0].clientY;
+      pressTimer = setTimeout(function(){
+        pressTimer = null;
+        if (!pressTarget) return;
+        try { showRecordPreview(rid); } catch(err){ console.warn('[preview]', err); }
+        if (typeof haptic === 'function') haptic('medium');
+      }, LONG_PRESS_MS);
+    } catch(_){}
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e){
+    if (!pressTimer) return;
+    try {
+      const dy = Math.abs(e.touches[0].clientY - pressStartY);
+      if (dy > MOVE_THRESHOLD) clearPress();
+    } catch(_){}
+  }, { passive: true });
+
+  document.addEventListener('touchend', clearPress, { passive: true });
+  document.addEventListener('touchcancel', clearPress, { passive: true });
+
+  function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+
+  function showRecordPreview(rid){
+    closeRecordPreview();
+    if (typeof records === 'undefined' || !Array.isArray(records)) return;
+    const r = records.find(function(x){ return x && x.id === rid; });
+    if (!r) return;
+
+    const d = new Date(r.date + 'T00:00:00');
+    const dayNames = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const dateStr = isNaN(d.getTime()) ? r.date :
+      ('วัน' + dayNames[d.getDay()] + ' ที่ ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + (d.getFullYear() + 543));
+
+    const hrs = (r.checkIn && r.checkOut && typeof calcHours === 'function')
+      ? calcHours(r.checkIn, r.checkOut).toFixed(2) + ' ชม.' : '—';
+    const otMin = (r.otMin || 0);
+    const ot = otMin > 0 ? (otMin + ' นาที (' + (otMin/60).toFixed(1) + ' ชม.)') : '—';
+    const lateBadge = r.isLate ? '<span class="v late">⚠ สาย</span>' : '<span class="v green">ตรงเวลา</span>';
+    const note = (r.note || '').toString().trim();
+
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, function(c){
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+      });
+    }
+
+    const bg = document.createElement('div');
+    bg.className = 'rec-preview-bg';
+    bg.id = 'rec-preview-bg';
+    bg.innerHTML =
+      '<div class="rec-preview-card" role="dialog" aria-modal="true">' +
+        '<div class="rec-preview-title">📋 รายละเอียดการลงเวลา</div>' +
+        '<div class="rec-preview-date">' + escapeHtml(dateStr) + '</div>' +
+        '<div class="rec-preview-row"><span class="l">⏰ เข้างาน</span><span class="v">' + escapeHtml(r.checkIn || '—') + '</span></div>' +
+        '<div class="rec-preview-row"><span class="l">🏁 ออกงาน</span><span class="v">' + escapeHtml(r.checkOut || '—') + '</span></div>' +
+        '<div class="rec-preview-row"><span class="l">⏱ ชั่วโมงรวม</span><span class="v green">' + escapeHtml(hrs) + '</span></div>' +
+        '<div class="rec-preview-row"><span class="l">⚡ OT</span><span class="v ' + (otMin > 0 ? 'yellow' : '') + '">' + escapeHtml(ot) + '</span></div>' +
+        '<div class="rec-preview-row"><span class="l">สถานะ</span>' + lateBadge + '</div>' +
+        (note ? '<div class="rec-preview-note">📝 ' + escapeHtml(note) + '</div>' : '') +
+        '<div class="rec-preview-actions">' +
+          '<button type="button" class="close-btn">ปิด</button>' +
+          '<button type="button" class="edit-btn">✏️ แก้ไข</button>' +
+        '</div>' +
+      '</div>';
+
+    bg.addEventListener('click', function(e){
+      if (e.target === bg) closeRecordPreview();
+    });
+    bg.querySelector('.close-btn').addEventListener('click', closeRecordPreview);
+    bg.querySelector('.edit-btn').addEventListener('click', function(){
+      closeRecordPreview();
+      try {
+        if (typeof openEdit === 'function' && typeof curUser !== 'undefined' && curUser) {
+          openEdit(r.id, curUser.email);
+        }
+      } catch(err){ console.warn('[preview edit]', err); }
+    });
+
+    document.body.appendChild(bg);
+    requestAnimationFrame(function(){ bg.classList.add('open'); });
+  }
+
+  function closeRecordPreview(){
+    const bg = document.getElementById('rec-preview-bg');
+    if (!bg) return;
+    bg.classList.remove('open');
+    setTimeout(function(){ try { if (bg.parentNode) bg.remove(); } catch(_){} }, 220);
+  }
+
+  // Expose for any future caller (debug / programmatic)
+  window.showRecordPreview = showRecordPreview;
+  window.closeRecordPreview = closeRecordPreview;
 })();
 
 // ============================================================
