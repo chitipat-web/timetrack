@@ -4101,7 +4101,10 @@ function hideInitOverlay(){
 
 // ========== LOADING MIN TIME (2s minimum so users see load-D-motion animations) ==========
 const _loadStartTime = performance.now();
-const MIN_LOADING_MS = 1200;
+// v179: bumped from 1200ms to 2000ms — the v178 orbital animation takes
+// ~1.75s for all letters to finish their orbits + settle, so 2s gives
+// the user a beat of stable wordmark before the overlay fades.
+const MIN_LOADING_MS = 2000;
 
 // Hide overlay after enforcing minimum display time
 function _delayedHideOverlay(callback){
