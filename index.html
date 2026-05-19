@@ -13194,6 +13194,32 @@ body.dark [class*="tab"] .label{
     padding:10px 0;
     font-style:italic;
   }
+  /* v170 drag-to-reorder: ≡ handle on the left of each reminder item.
+     touch-action:none on the handle captures touch for our custom drag
+     code without blocking page scroll on the rest of the item. */
+  .hwb-rem-handle{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:26px; height:26px;
+    margin-right:6px; margin-left:-4px;
+    color:var(--ink-4);
+    cursor:grab;
+    touch-action:none;
+    user-select:none; -webkit-user-select:none;
+    font-size:18px; font-weight:700;
+    flex-shrink:0;
+    border-radius:6px;
+    line-height:1;
+  }
+  .hwb-rem-handle:active{ cursor:grabbing; background:rgba(255,255,255,0.10); color:var(--ink-2); }
+  body:not(.dark) .hwb-rem-handle:active{ background:rgba(0,0,0,0.06); }
+  .hwb-rem-item{ transition:transform 0.18s ease; }
+  .hwb-rem-item.dragging{
+    opacity:0.92;
+    box-shadow:0 12px 28px rgba(0,0,0,0.28);
+    z-index:10;
+    position:relative;
+    transition:none;
+  }
 
   /* Reminder modal */
   .hwb-modal-bg{
@@ -13488,7 +13514,7 @@ body.dark [class*="tab"] .label{
     if(!el) return;
 
     let list = hwbLoadReminders();
-    list.sort((a,b) => a.dueTs - b.dueTs);
+    list.sort(reminderSortFn);
     hwbSaveReminders(list); // เซฟกลับหลัง cleanup
 
     const now = Date.now();
@@ -13506,6 +13532,7 @@ body.dark [class*="tab"] .label{
         else if(diff < 3600000) cls += ' soon';
         listHtml +=
           '<div class="' + cls + '" data-rid="' + escapeHtml(r.id) + '">' +
+            '<span class="hwb-rem-handle" aria-label="ลาก">≡</span>' +
             '<span class="hwb-rem-title">' + escapeHtml(r.title) + '</span>' +
             '<span class="hwb-rem-when">' + escapeHtml(hwbFormatWhen(r.dueTs)) + '</span>' +
             '<button type="button" class="hwb-rem-del" data-del="' + escapeHtml(r.id) + '" aria-label="ลบ">×</button>' +
@@ -13536,6 +13563,139 @@ body.dark [class*="tab"] .label{
           renderReminders();
         });
       });
+    });
+
+    // v170 drag-to-reorder: attach touch handlers to each ≡ handle.
+    // The document-level move/end listeners are bound once via
+    // initReminderDrag() — they read from _remDragState so handlers
+    // don't accumulate across re-renders.
+    initReminderDrag();
+    attachReminderDragHandles(el);
+  }
+
+  // ───── v170 Reminder sort + drag-to-reorder ─────────────────────
+  // Sort: items with a numeric manualOrder come first (sorted ASC),
+  // then items without come second sorted chronologically by dueTs.
+  // This way new reminders default to chronological order, and any
+  // reminder the user has manually positioned floats to its slot.
+  function reminderSortFn(a, b){
+    const aHas = typeof a.manualOrder === 'number' && isFinite(a.manualOrder);
+    const bHas = typeof b.manualOrder === 'number' && isFinite(b.manualOrder);
+    if (aHas && bHas) return a.manualOrder - b.manualOrder;
+    if (aHas) return -1;
+    if (bHas) return 1;
+    return (a.dueTs || 0) - (b.dueTs || 0);
+  }
+
+  let _remDragInit = false;
+  let _remDragState = null;
+
+  function initReminderDrag(){
+    if (_remDragInit) return;
+    _remDragInit = true;
+
+    document.addEventListener('touchmove', function(e){
+      if (!_remDragState) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      const dy = t.clientY - _remDragState.startY;
+      _remDragState.item.style.transform = 'translateY(' + dy + 'px) scale(1.02)';
+
+      // Determine target index by comparing dragged mid-Y to siblings.
+      // We use stable original positions (captured at touchstart) since
+      // the live getBoundingClientRect shifts as we transform siblings.
+      const draggedMid = _remDragState.origMid + dy;
+      const origIdx = _remDragState.origIndex;
+      let target = origIdx;
+      _remDragState.midpoints.forEach(function(mid, i){
+        if (i === origIdx) return;
+        if (i < origIdx && draggedMid < mid) target = Math.min(target, i);
+        if (i > origIdx && draggedMid > mid) target = Math.max(target, i);
+      });
+      _remDragState.targetIdx = target;
+
+      // Shift siblings between origIdx and target to visualise the slot.
+      const h = _remDragState.itemH;
+      _remDragState.items.forEach(function(other, i){
+        if (other === _remDragState.item) return;
+        let shift = 0;
+        if (origIdx < target && i > origIdx && i <= target) shift = -h;
+        else if (origIdx > target && i < origIdx && i >= target) shift = h;
+        other.style.transform = shift ? 'translateY(' + shift + 'px)' : '';
+      });
+    }, { passive: false });
+
+    document.addEventListener('touchend', function(){
+      if (!_remDragState) return;
+      const state = _remDragState;
+      _remDragState = null;
+
+      // reset visual transforms
+      state.items.forEach(function(it){ it.style.transform = ''; });
+      state.item.classList.remove('dragging');
+
+      if (state.targetIdx !== state.origIndex) {
+        commitReminderReorder(state.origIndex, state.targetIdx);
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchcancel', function(){
+      if (!_remDragState) return;
+      const state = _remDragState;
+      _remDragState = null;
+      state.items.forEach(function(it){ it.style.transform = ''; });
+      state.item.classList.remove('dragging');
+    }, { passive: true });
+  }
+
+  function attachReminderDragHandles(cardEl){
+    hwbSafe('drag-attach', function(){
+      const listEl = cardEl.querySelector('.hwb-rem-list');
+      if (!listEl) return;
+      listEl.querySelectorAll('.hwb-rem-handle').forEach(function(handle){
+        handle.addEventListener('touchstart', function(e){
+          e.preventDefault();
+          const item = handle.closest('.hwb-rem-item');
+          if (!item) return;
+          const items = Array.from(listEl.querySelectorAll('.hwb-rem-item'));
+          if (items.length < 2) return; // no point dragging a single item
+          const origIndex = items.indexOf(item);
+          // capture stable midpoints for hit-testing while transforms move things
+          const midpoints = items.map(function(el){
+            const r = el.getBoundingClientRect();
+            return r.top + r.height / 2;
+          });
+          const itemH = item.offsetHeight + 8;
+          _remDragState = {
+            item: item,
+            items: items,
+            origIndex: origIndex,
+            targetIdx: origIndex,
+            startY: e.touches[0].clientY,
+            origMid: midpoints[origIndex],
+            midpoints: midpoints,
+            itemH: itemH
+          };
+          item.classList.add('dragging');
+          if (typeof haptic === 'function') haptic('light');
+        }, { passive: false });
+      });
+    });
+  }
+
+  function commitReminderReorder(fromIdx, toIdx){
+    hwbSafe('reorder-commit', function(){
+      const list = hwbLoadReminders();
+      list.sort(reminderSortFn);
+      // Same indexing as the rendered list (sort matches what user saw).
+      // We only reorder among the first 3 since that's what's visible —
+      // any hidden items keep their existing manualOrder/dueTs sort key.
+      const moved = list.splice(fromIdx, 1)[0];
+      list.splice(toIdx, 0, moved);
+      list.forEach(function(r, i){ r.manualOrder = i; });
+      hwbSaveReminders(list);
+      renderReminders();
+      if (typeof haptic === 'function') haptic('medium');
     });
   }
 
