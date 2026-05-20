@@ -578,22 +578,23 @@ body.dark .nav{
 
 .card{
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.10) 40%, rgba(255,255,255,0.05) 100%);
+    linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.02) 100%);
   -webkit-backdrop-filter:blur(40px) saturate(190%) brightness(1.08);
   backdrop-filter:blur(40px) saturate(190%) brightness(1.08);
-  border:1px solid rgba(255,255,255,0.30);
+  border:1px solid rgba(255,255,255,0.20);
   border-radius:var(--r-lg);
   padding:18px;
   /* iOS 26 Liquid Glass: ambient halo + multi-stop drop + chromatic edge
-     dispersion (blue left, warm right) for prismatic refraction feel. */
+     dispersion (blue left, warm right) for prismatic refraction feel.
+     v195: alphas halved for a more see-through "true glass" look. */
   box-shadow:
-    0 0 24px -6px rgba(255,255,255,0.10),
-    0 22px 60px -8px rgba(15,40,80,0.20),
-    0 6px 16px -4px rgba(15,40,80,0.08),
-    inset 0 1.5px 0 rgba(255,255,255,0.55),
-    inset 0 -1px 0 rgba(0,0,0,0.04),
-    inset 1.5px 0 0 rgba(180,210,255,0.22),
-    inset -1.5px 0 0 rgba(255,220,200,0.14);
+    0 0 24px -6px rgba(255,255,255,0.08),
+    0 22px 60px -8px rgba(15,40,80,0.18),
+    0 6px 16px -4px rgba(15,40,80,0.06),
+    inset 0 1.5px 0 rgba(255,255,255,0.45),
+    inset 0 -1px 0 rgba(0,0,0,0.03),
+    inset 1.5px 0 0 rgba(180,210,255,0.20),
+    inset -1.5px 0 0 rgba(255,220,200,0.12);
   margin-bottom:14px;
   position:relative; overflow:hidden;
   isolation:isolate;
@@ -601,16 +602,16 @@ body.dark .nav{
 .card > * { position:relative; z-index:1; }
 body.dark .card{
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 40%, rgba(20,32,56,0.22) 100%);
-  border-color:rgba(255,255,255,0.12);
+    linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 40%, rgba(20,32,56,0.10) 100%);
+  border-color:rgba(255,255,255,0.08);
   box-shadow:
-    0 0 24px -6px rgba(94,200,250,0.06),
-    0 24px 64px -8px rgba(0,0,0,0.50),
-    0 6px 18px -4px rgba(0,0,0,0.30),
-    inset 0 1.5px 0 rgba(255,255,255,0.22),
-    inset 0 -1px 0 rgba(0,0,0,0.30),
-    inset 1.5px 0 0 rgba(140,180,255,0.12),
-    inset -1.5px 0 0 rgba(255,200,160,0.06);
+    0 0 24px -6px rgba(94,200,250,0.05),
+    0 24px 64px -8px rgba(0,0,0,0.45),
+    0 6px 18px -4px rgba(0,0,0,0.25),
+    inset 0 1.5px 0 rgba(255,255,255,0.18),
+    inset 0 -1px 0 rgba(0,0,0,0.25),
+    inset 1.5px 0 0 rgba(140,180,255,0.10),
+    inset -1.5px 0 0 rgba(255,200,160,0.05);
 }
 /* Specular highlight — wider arc, stronger fade for "wet glass" sheen */
 .card::before{
