@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v193
-// Cache: rudy-static-v193, firebase-v193
-// Build: 2026-05-19 · AAA splash holds 3.5s so full animation completes before app enters
+// RUDY · Service Worker v194
+// Cache: rudy-static-v194, firebase-v194
+// Build: 2026-05-19 · iOS 26 Liquid Glass cards — chromatic edge dispersion + vibrancy
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v193';
-const FIREBASE_CACHE = 'firebase-v193';
-const RUNTIME_CACHE = 'rudy-runtime-v193';
+const STATIC_CACHE  = 'rudy-static-v194';
+const FIREBASE_CACHE = 'firebase-v194';
+const RUNTIME_CACHE = 'rudy-runtime-v194';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v193] Installing...');
+  console.log('[SW v194] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v193] Precache partial fail (ok):', err);
+          console.warn('[SW v194] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v193] Activating...');
+  console.log('[SW v194] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v193] Deleting old cache:', name);
+              console.log('[SW v194] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -227,7 +227,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v193' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v194' });
     return;
   }
 });
@@ -250,7 +250,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v193] Push parse fail:', e);
+    console.warn('[SW v194] Push parse fail:', e);
   }
 });
 
@@ -270,4 +270,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v193] Loaded — Full-animation splash gate');
+console.log('[SW v194] Loaded — Liquid Glass cards');

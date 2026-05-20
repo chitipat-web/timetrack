@@ -578,17 +578,22 @@ body.dark .nav{
 
 .card{
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.05) 100%);
-  -webkit-backdrop-filter:blur(60px) saturate(160%);
-  backdrop-filter:blur(60px) saturate(160%);
-  border:1px solid rgba(255,255,255,0.25);
+    linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.10) 40%, rgba(255,255,255,0.05) 100%);
+  -webkit-backdrop-filter:blur(40px) saturate(190%) brightness(1.08);
+  backdrop-filter:blur(40px) saturate(190%) brightness(1.08);
+  border:1px solid rgba(255,255,255,0.30);
   border-radius:var(--r-lg);
   padding:18px;
+  /* iOS 26 Liquid Glass: ambient halo + multi-stop drop + chromatic edge
+     dispersion (blue left, warm right) for prismatic refraction feel. */
   box-shadow:
-    0 16px 48px rgba(15,40,80,0.16),
-    0 2px 8px rgba(15,40,80,0.06),
-    inset 0 1px 0 rgba(255,255,255,0.4),
-    inset 0 -1px 0 rgba(255,255,255,0.05);
+    0 0 24px -6px rgba(255,255,255,0.10),
+    0 22px 60px -8px rgba(15,40,80,0.20),
+    0 6px 16px -4px rgba(15,40,80,0.08),
+    inset 0 1.5px 0 rgba(255,255,255,0.55),
+    inset 0 -1px 0 rgba(0,0,0,0.04),
+    inset 1.5px 0 0 rgba(180,210,255,0.22),
+    inset -1.5px 0 0 rgba(255,220,200,0.14);
   margin-bottom:14px;
   position:relative; overflow:hidden;
   isolation:isolate;
@@ -596,31 +601,37 @@ body.dark .nav{
 .card > * { position:relative; z-index:1; }
 body.dark .card{
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 40%, rgba(20,32,56,0.20) 100%);
-  border-color:rgba(255,255,255,0.10);
+    linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 40%, rgba(20,32,56,0.22) 100%);
+  border-color:rgba(255,255,255,0.12);
   box-shadow:
-    0 16px 48px rgba(0,0,0,0.45),
-    inset 0 1px 0 rgba(255,255,255,0.18),
-    inset 0 -1px 0 rgba(0,0,0,0.2);
+    0 0 24px -6px rgba(94,200,250,0.06),
+    0 24px 64px -8px rgba(0,0,0,0.50),
+    0 6px 18px -4px rgba(0,0,0,0.30),
+    inset 0 1.5px 0 rgba(255,255,255,0.22),
+    inset 0 -1px 0 rgba(0,0,0,0.30),
+    inset 1.5px 0 0 rgba(140,180,255,0.12),
+    inset -1.5px 0 0 rgba(255,200,160,0.06);
 }
-/* Specular highlight — subtle diagonal light streak */
+/* Specular highlight — wider arc, stronger fade for "wet glass" sheen */
 .card::before{
   content:""; position:absolute;
-  top:0; left:0; right:0; height:50%;
-  background:linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.03) 60%, transparent 100%);
+  top:0; left:0; right:0; height:55%;
+  background:
+    radial-gradient(ellipse 80% 100% at 35% -10%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 50%, transparent 75%),
+    linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 60%, transparent 100%);
   pointer-events:none;
   border-radius:var(--r-lg) var(--r-lg) 50% 50% / var(--r-lg) var(--r-lg) 100% 100%;
-  opacity:0.6;
+  opacity:0.7;
 }
-body.dark .card::before { opacity:0.08; }
+body.dark .card::before { opacity:0.10; }
 /* Top edge bright line — thin specular */
 .card::after{
   content:""; position:absolute;
   top:0; left:8%; right:8%; height:1px;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent);
   pointer-events:none;
 }
-body.dark .card::after { background:linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent); }
+body.dark .card::after { background:linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent); }
 
 .clock-hero{
   background:
@@ -1456,11 +1467,23 @@ body.dark .team-subtab:not(.active):hover{
   transition:transform 0.2s var(--ease-spring), box-shadow 0.25s ease-out;
 }
 .card:active, .stat-box:active, .emp-card:active, .team-card:active, .announce-card:active, .poll-card:active, .report-card:active{
-  transform:scale(0.985);
-  box-shadow:0 16px 48px rgba(15,40,80,0.16), 0 0 0 2px rgba(94,200,250,0.4), inset 0 1px 0 rgba(255,255,255,0.4);
+  transform:scale(0.975);
+  /* On press: shadow recedes (card sinks toward surface) + focus ring +
+     chromatic insets intensify briefly for a "squeezed glass" effect. */
+  box-shadow:
+    0 6px 18px -4px rgba(15,40,80,0.18),
+    0 0 0 2px rgba(94,200,250,0.45),
+    inset 0 1.5px 0 rgba(255,255,255,0.55),
+    inset 2px 0 0 rgba(180,210,255,0.32),
+    inset -2px 0 0 rgba(255,220,200,0.20);
 }
 body.dark .card:active, body.dark .stat-box:active, body.dark .emp-card:active, body.dark .team-card:active{
-  box-shadow:0 16px 48px rgba(0,0,0,0.4), 0 0 0 2px rgba(94,200,250,0.5), inset 0 1px 0 rgba(255,255,255,0.18);
+  box-shadow:
+    0 6px 18px -4px rgba(0,0,0,0.45),
+    0 0 0 2px rgba(94,200,250,0.55),
+    inset 0 1.5px 0 rgba(255,255,255,0.22),
+    inset 2px 0 0 rgba(140,180,255,0.18),
+    inset -2px 0 0 rgba(255,200,160,0.10);
 }
 
 /* 7. Pull-to-refresh */
