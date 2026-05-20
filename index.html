@@ -3179,9 +3179,14 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
       <div class="cn-ring r1" aria-hidden="true"></div>
       <div class="cn-ring r2" aria-hidden="true"></div>
       <div class="cn-ring r3" aria-hidden="true"></div>
-      <!-- v199 splash logo: actual app icon (matches the PWA icon on the
-           user's home screen for visual continuity). -->
-      <img class="cn-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
+      <!-- v200 cn-tilt wrapper: 3D wobble + optional real gyro tilt.
+           CSS wobble runs continuously after splash settles. If the
+           inline script below detects real deviceorientation values
+           (Android, or iOS where motion permission was granted), it
+           takes over and applies live tilt instead. -->
+      <div class="cn-tilt">
+        <img class="cn-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
+      </div>
     </div>
     <div class="cn-wm" aria-label="RUDY">
       <span class="cn-l cn-l1">R</span><span class="cn-l cn-l2">U</span><span class="cn-l cn-l3">D</span><span class="cn-l cn-l4">Y</span><span class="cn-l cn-l5" aria-hidden="true">.</span>
@@ -3200,6 +3205,33 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   <!-- Hidden skip button -->
   <div id="overlay-skip" style="display:none"></div>
 </div>
+
+<!-- v200 gyro-tilt handler for the splash logo. Silently upgrades the
+     CSS wobble to real device tilt when deviceorientation events fire.
+     On iOS 13+ without motion permission, events never arrive and the
+     CSS wobble keeps running — no error, no degraded experience. -->
+<script>
+(function(){
+  if (typeof window.DeviceOrientationEvent === 'undefined') return;
+  var pendingG = 0, pendingB = 0, rafId = null;
+  function paint(){
+    rafId = null;
+    var el = document.querySelector('.cn-tilt');
+    if (!el) return;
+    var ry = pendingG * 0.55;        // left-right tilt → rotateY
+    var rx = -pendingB * 0.30;       // front-back tilt → rotateX (inverted)
+    if (ry >  20) ry =  20; if (ry < -20) ry = -20;
+    if (rx >  15) rx =  15; if (rx < -15) rx = -15;
+    el.style.transform = 'rotateY(' + ry.toFixed(2) + 'deg) rotateX(' + rx.toFixed(2) + 'deg)';
+    el.style.animation = 'none';     // disable CSS wobble — real gyro now driving
+  }
+  window.addEventListener('deviceorientation', function(e){
+    if (e.gamma === null || e.beta === null) return;   // perm not granted on iOS
+    pendingG = e.gamma; pendingB = e.beta;
+    if (rafId === null) rafId = requestAnimationFrame(paint);
+  });
+})();
+</script>
 
 <!-- Keyframes for overlay animations + v173 Dime-style wordmark -->
 <style id="dm-inline-anims">
@@ -3462,6 +3494,23 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 @keyframes cnLogoBreathe{
   0%, 100% { transform:scale(1);     }
   50%      { transform:scale(1.035); }
+}
+/* v200: 3D tilt wrapper for the logo. CSS wobble runs continuously
+   after reveal as a baseline. JS deviceorientation handler (below the
+   splash markup) overrides this with live gyro values when the browser
+   sends them (Android, or iOS with motion permission granted). */
+.cn-tilt{
+  position:relative;
+  width:96px; height:96px;
+  transform-style:preserve-3d;
+  animation:cnLogoWobble 6.5s ease-in-out 2.60s infinite;
+}
+@keyframes cnLogoWobble{
+  0%   { transform:rotateY( 0deg) rotateX( 0deg); }
+  20%  { transform:rotateY( 9deg) rotateX(-4deg); }
+  45%  { transform:rotateY(-7deg) rotateX( 6deg); }
+  70%  { transform:rotateY( 6deg) rotateX(-5deg); }
+  100% { transform:rotateY( 0deg) rotateX( 0deg); }
 }
 .cn-logo{
   position:relative;
