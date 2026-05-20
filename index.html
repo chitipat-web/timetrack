@@ -3179,67 +3179,57 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
       <div class="cn-ring r1" aria-hidden="true"></div>
       <div class="cn-ring r2" aria-hidden="true"></div>
       <div class="cn-ring r3" aria-hidden="true"></div>
-      <!-- v197 splash logo: "Aurora Liquid Crystal" — deep navy squircle
-           with 3 aurora-light ribbons (cyan/purple/pink) curving across
-           the interior, Gaussian-blurred for soft glow. No letter — the
-           wordmark below carries the brand. Inline SVG inherits the
-           3D rotate / scale animation from .cn-logo. -->
+      <!-- v198 splash logo: "Iris Aperture" — circular icon with 6
+           radial petals (camera-iris look) around a luminous core.
+           Different shape (round, not squircle) + different motif
+           (radial geometry, not aurora ribbons or letters). Inline
+           SVG inherits the .cn-logo 3D rotate animation. -->
       <svg class="cn-logo" viewBox="0 0 96 96" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="auBg" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%"   stop-color="#1A2455"/>
-            <stop offset="55%"  stop-color="#0A1430"/>
-            <stop offset="100%" stop-color="#04081E"/>
-          </linearGradient>
-          <linearGradient id="auCyan" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"   stop-color="rgba(94,200,250,0)"/>
-            <stop offset="45%"  stop-color="rgba(94,200,250,0.95)"/>
-            <stop offset="55%"  stop-color="rgba(94,200,250,0.95)"/>
-            <stop offset="100%" stop-color="rgba(94,200,250,0)"/>
-          </linearGradient>
-          <linearGradient id="auPurple" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"   stop-color="rgba(177,156,255,0)"/>
-            <stop offset="45%"  stop-color="rgba(177,156,255,0.80)"/>
-            <stop offset="55%"  stop-color="rgba(177,156,255,0.80)"/>
-            <stop offset="100%" stop-color="rgba(177,156,255,0)"/>
-          </linearGradient>
-          <linearGradient id="auPink" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"   stop-color="rgba(255,140,200,0)"/>
-            <stop offset="45%"  stop-color="rgba(255,140,200,0.65)"/>
-            <stop offset="55%"  stop-color="rgba(255,140,200,0.65)"/>
-            <stop offset="100%" stop-color="rgba(255,140,200,0)"/>
-          </linearGradient>
-          <radialGradient id="auShine" cx="28%" cy="18%" r="55%">
-            <stop offset="0%"  stop-color="rgba(255,255,255,0.45)"/>
-            <stop offset="70%" stop-color="rgba(255,255,255,0)"/>
+          <radialGradient id="irBg" cx="50%" cy="50%" r="55%">
+            <stop offset="0%"   stop-color="#0F1F4A"/>
+            <stop offset="70%"  stop-color="#050C24"/>
+            <stop offset="100%" stop-color="#02060F"/>
           </radialGradient>
-          <radialGradient id="auCore" cx="50%" cy="55%" r="35%">
-            <stop offset="0%"  stop-color="rgba(94,200,250,0.40)"/>
+          <linearGradient id="irPetal" x1="50%" y1="100%" x2="50%" y2="0%">
+            <stop offset="0%"   stop-color="#0A1A40"/>
+            <stop offset="55%"  stop-color="#1E5FCE"/>
+            <stop offset="100%" stop-color="#5AC8FA"/>
+          </linearGradient>
+          <radialGradient id="irCore" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stop-color="#ffffff"/>
+            <stop offset="35%"  stop-color="#5AC8FA"/>
             <stop offset="100%" stop-color="rgba(94,200,250,0)"/>
           </radialGradient>
-          <filter id="auBlur" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2.4"/>
-          </filter>
-          <clipPath id="auClip">
-            <rect x="0" y="0" width="96" height="96" rx="22" ry="22"/>
-          </clipPath>
+          <linearGradient id="irFrame" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stop-color="rgba(255,255,255,0.75)"/>
+            <stop offset="45%"  stop-color="rgba(255,255,255,0.18)"/>
+            <stop offset="100%" stop-color="rgba(255,255,255,0.55)"/>
+          </linearGradient>
+          <radialGradient id="irShine" cx="32%" cy="22%" r="40%">
+            <stop offset="0%"  stop-color="rgba(255,255,255,0.55)"/>
+            <stop offset="80%" stop-color="rgba(255,255,255,0)"/>
+          </radialGradient>
         </defs>
-        <g clip-path="url(#auClip)">
-          <rect width="96" height="96" fill="url(#auBg)"/>
-          <rect width="96" height="96" fill="url(#auCore)"/>
-          <!-- Aurora ribbon 1 (cyan, top arc) -->
-          <path d="M -10 24 Q 28 52, 55 22 T 110 42 L 110 50 Q 78 30, 50 60 T -10 56 Z"
-                fill="url(#auCyan)" filter="url(#auBlur)" opacity="0.90"/>
-          <!-- Aurora ribbon 2 (purple, middle arc) -->
-          <path d="M -10 50 Q 30 78, 62 48 T 110 64 L 110 74 Q 76 56, 46 84 T -10 86 Z"
-                fill="url(#auPurple)" filter="url(#auBlur)" opacity="0.78"/>
-          <!-- Aurora ribbon 3 (pink, lower arc) -->
-          <path d="M -10 72 Q 26 92, 60 70 T 110 88 L 110 100 Q 70 86, 40 110 T -10 110 Z"
-                fill="url(#auPink)" filter="url(#auBlur)" opacity="0.60"/>
-          <rect width="96" height="96" fill="url(#auShine)"/>
+        <!-- Dark circular base -->
+        <circle cx="48" cy="48" r="46" fill="url(#irBg)"/>
+        <!-- 6 petal blades rotated 60° around centre. Slim teardrop
+             pointing to centre, gradient fades from dark base to cyan tip. -->
+        <g transform="translate(48 48)">
+          <g transform="rotate(0)">  <path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.95"/></g>
+          <g transform="rotate(60)"> <path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.90"/></g>
+          <g transform="rotate(120)"><path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.85"/></g>
+          <g transform="rotate(180)"><path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.80"/></g>
+          <g transform="rotate(240)"><path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.85"/></g>
+          <g transform="rotate(300)"><path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.90"/></g>
         </g>
-        <rect x="0.5" y="0.5" width="95" height="95" rx="21.5" ry="21.5"
-              fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+        <!-- Luminous core -->
+        <circle cx="48" cy="48" r="9" fill="url(#irCore)"/>
+        <circle cx="48" cy="48" r="3" fill="#ffffff"/>
+        <!-- Specular crescent at top-left -->
+        <circle cx="48" cy="48" r="46" fill="url(#irShine)"/>
+        <!-- Outer metallic frame ring -->
+        <circle cx="48" cy="48" r="45.5" fill="none" stroke="url(#irFrame)" stroke-width="1.5"/>
       </svg>
     </div>
     <div class="cn-wm" aria-label="RUDY">
@@ -3526,7 +3516,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   position:relative;
   z-index:5;
   width:96px; height:96px;
-  border-radius:22%;
+  border-radius:50%;  /* v198: round icon (Iris) instead of squircle */
   opacity:0;
   transform:rotateY(180deg) scale(0.4);
   backface-visibility:hidden;
@@ -3549,7 +3539,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 .cn-ring{
   position:absolute;
   inset:0;
-  border-radius:22%;
+  border-radius:50%;  /* v198: circular ripples to match round Iris logo */
   border:1.5px solid rgba(94,200,250,0.65);
   opacity:0;
   z-index:2;
