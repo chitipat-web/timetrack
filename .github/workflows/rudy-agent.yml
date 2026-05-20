@@ -1,0 +1,55 @@
+name: RUDY Code Agent
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+jobs:
+  agent:
+    # Trigger when:
+    #  - an issue gets the `claude-fix` label, OR
+    #  - someone comments `@claude fix` on an issue (not a PR)
+    if: >
+      (github.event_name == 'issues' && github.event.label.name == 'claude-fix') ||
+      (github.event_name == 'issue_comment'
+       && github.event.issue.pull_request == null
+       && contains(github.event.comment.body, '@claude fix'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install agent deps
+        working-directory: scripts/rudy-agent
+        run: npm install --no-audit --no-fund
+
+      - name: Configure git identity
+        run: |
+          git config user.name "rudy-agent[bot]"
+          git config user.email "rudy-agent@users.noreply.github.com"
+
+      - name: Run agent
+        working-directory: scripts/rudy-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: node agent.mjs
