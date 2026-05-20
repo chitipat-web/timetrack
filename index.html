@@ -3179,58 +3179,9 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
       <div class="cn-ring r1" aria-hidden="true"></div>
       <div class="cn-ring r2" aria-hidden="true"></div>
       <div class="cn-ring r3" aria-hidden="true"></div>
-      <!-- v198 splash logo: "Iris Aperture" — circular icon with 6
-           radial petals (camera-iris look) around a luminous core.
-           Different shape (round, not squircle) + different motif
-           (radial geometry, not aurora ribbons or letters). Inline
-           SVG inherits the .cn-logo 3D rotate animation. -->
-      <svg class="cn-logo" viewBox="0 0 96 96" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <radialGradient id="irBg" cx="50%" cy="50%" r="55%">
-            <stop offset="0%"   stop-color="#0F1F4A"/>
-            <stop offset="70%"  stop-color="#050C24"/>
-            <stop offset="100%" stop-color="#02060F"/>
-          </radialGradient>
-          <linearGradient id="irPetal" x1="50%" y1="100%" x2="50%" y2="0%">
-            <stop offset="0%"   stop-color="#0A1A40"/>
-            <stop offset="55%"  stop-color="#1E5FCE"/>
-            <stop offset="100%" stop-color="#5AC8FA"/>
-          </linearGradient>
-          <radialGradient id="irCore" cx="50%" cy="50%" r="50%">
-            <stop offset="0%"   stop-color="#ffffff"/>
-            <stop offset="35%"  stop-color="#5AC8FA"/>
-            <stop offset="100%" stop-color="rgba(94,200,250,0)"/>
-          </radialGradient>
-          <linearGradient id="irFrame" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%"   stop-color="rgba(255,255,255,0.75)"/>
-            <stop offset="45%"  stop-color="rgba(255,255,255,0.18)"/>
-            <stop offset="100%" stop-color="rgba(255,255,255,0.55)"/>
-          </linearGradient>
-          <radialGradient id="irShine" cx="32%" cy="22%" r="40%">
-            <stop offset="0%"  stop-color="rgba(255,255,255,0.55)"/>
-            <stop offset="80%" stop-color="rgba(255,255,255,0)"/>
-          </radialGradient>
-        </defs>
-        <!-- Dark circular base -->
-        <circle cx="48" cy="48" r="46" fill="url(#irBg)"/>
-        <!-- 6 petal blades rotated 60° around centre. Slim teardrop
-             pointing to centre, gradient fades from dark base to cyan tip. -->
-        <g transform="translate(48 48)">
-          <g transform="rotate(0)">  <path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.95"/></g>
-          <g transform="rotate(60)"> <path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.90"/></g>
-          <g transform="rotate(120)"><path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.85"/></g>
-          <g transform="rotate(180)"><path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.80"/></g>
-          <g transform="rotate(240)"><path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.85"/></g>
-          <g transform="rotate(300)"><path d="M 0 -36 L 11 -4 L 0 6 L -11 -4 Z" fill="url(#irPetal)" opacity="0.90"/></g>
-        </g>
-        <!-- Luminous core -->
-        <circle cx="48" cy="48" r="9" fill="url(#irCore)"/>
-        <circle cx="48" cy="48" r="3" fill="#ffffff"/>
-        <!-- Specular crescent at top-left -->
-        <circle cx="48" cy="48" r="46" fill="url(#irShine)"/>
-        <!-- Outer metallic frame ring -->
-        <circle cx="48" cy="48" r="45.5" fill="none" stroke="url(#irFrame)" stroke-width="1.5"/>
-      </svg>
+      <!-- v199 splash logo: actual app icon (matches the PWA icon on the
+           user's home screen for visual continuity). -->
+      <img class="cn-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
     </div>
     <div class="cn-wm" aria-label="RUDY">
       <span class="cn-l cn-l1">R</span><span class="cn-l cn-l2">U</span><span class="cn-l cn-l3">D</span><span class="cn-l cn-l4">Y</span><span class="cn-l cn-l5" aria-hidden="true">.</span>
@@ -3516,7 +3467,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   position:relative;
   z-index:5;
   width:96px; height:96px;
-  border-radius:50%;  /* v198: round icon (Iris) instead of squircle */
+  border-radius:22%;  /* squircle to match the PWA icon shape */
   opacity:0;
   transform:rotateY(180deg) scale(0.4);
   backface-visibility:hidden;
@@ -3539,7 +3490,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 .cn-ring{
   position:absolute;
   inset:0;
-  border-radius:50%;  /* v198: circular ripples to match round Iris logo */
+  border-radius:22%;  /* squircle ripples to match the squircle logo */
   border:1.5px solid rgba(94,200,250,0.65);
   opacity:0;
   z-index:2;
