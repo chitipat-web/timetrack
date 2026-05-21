@@ -1,14 +1,14 @@
 name: Claude Code
 
 # Official Anthropic Claude Code action.
-# Replaces the custom rudy-agent script — uses Pat's Claude.ai subscription
-# (via OAuth token) instead of pay-per-token API billing, while running the
-# same Claude Opus that powers Claude Code sessions. The action automatically
-# discovers and uses every CLAUDE.md / skill / plugin in this repo.
+# Authenticates with ANTHROPIC_API_KEY (pay-per-use Claude API — $5 free
+# trial on new accounts, no credit card required to start). The action
+# automatically discovers and uses every CLAUDE.md / skill / plugin in
+# this repo. Trigger by mentioning @claude in any issue or PR comment.
 #
-# Setup (one time): in Claude Code CLI, run /install-github-app — or visit
-# https://github.com/apps/claude → install → grant access to this repo.
-# That step creates the CLAUDE_CODE_OAUTH_TOKEN repo secret automatically.
+# Setup (one time): generate an API key at
+# https://console.anthropic.com/settings/keys → add as repo secret
+# named ANTHROPIC_API_KEY.
 
 on:
   issue_comment:
@@ -50,4 +50,4 @@ jobs:
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
