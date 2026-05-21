@@ -1,0 +1,21 @@
+{
+  "name": "rudy-marketplace",
+  "owner": {
+    "name": "Chitipat (Pat)",
+    "email": "chitipat.kao@gmail.com"
+  },
+  "description": "Skills bundled as a Claude Code plugin for the RUDY HR/time-tracking PWA (chitipat-web/timetrack). Encodes the deploy rules, editing rules, theme rules, sw.js bypass rules, bug-triage protocol, and Firebase schema reference so other repos / Claude sessions can install them in one shot.",
+  "plugins": [
+    {
+      "name": "rudy",
+      "source": "./plugins/rudy",
+      "description": "RUDY project skills suite (deploy, editing-html, theme-vars, sw-fetch, bug-triage, firebase-data). After install, invoke as /rudy:<skill-name>.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Chitipat (Pat)"
+      },
+      "category": "Productivity",
+      "tags": ["rudy", "pwa", "firebase", "service-worker", "hr", "time-tracking"]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "rudy",
+  "description": "RUDY (chitipat-web/timetrack) project skills — deploy protocol (3-file rule + version sync), index.html editing rules, light/dark theme rules, sw.js bypass-list rules, user-bug triage protocol, and Firebase RTDB schema reference. Auto-activates when relevant; invoke directly with /rudy:<name>.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Chitipat (Pat)"
+  },
+  "homepage": "https://github.com/chitipat-web/timetrack",
+  "repository": "https://github.com/chitipat-web/timetrack",
+  "license": "MIT",
+  "keywords": ["rudy", "pwa", "firebase", "service-worker", "hr", "time-tracking", "ios"]
+}
