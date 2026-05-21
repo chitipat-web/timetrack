@@ -1,0 +1,53 @@
+name: Claude Code
+
+# Official Anthropic Claude Code action.
+# Replaces the custom rudy-agent script — uses Pat's Claude.ai subscription
+# (via OAuth token) instead of pay-per-token API billing, while running the
+# same Claude Opus that powers Claude Code sessions. The action automatically
+# discovers and uses every CLAUDE.md / skill / plugin in this repo.
+#
+# Setup (one time): in Claude Code CLI, run /install-github-app — or visit
+# https://github.com/apps/claude → install → grant access to this repo.
+# That step creates the CLAUDE_CODE_OAUTH_TOKEN repo secret automatically.
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+jobs:
+  claude:
+    # Trigger when @claude is mentioned in:
+    #   - any issue or PR comment
+    #   - any inline review comment
+    #   - an issue body/title at creation, or when an issue is assigned
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' &&
+        (contains(github.event.issue.body, '@claude') ||
+         contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
