@@ -3349,12 +3349,17 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   display:flex;
   flex-direction:column;
   align-items:center;
-  perspective:700px;
-  animation:cnStageZoom 2.70s ease-out 0s forwards;
+  /* v201: deeper perspective + preserve-3d so descendants can layer in Z.
+     Camera dolly = stage scales AND moves through Z space, giving a
+     "pushed-into-the-scene" feel instead of a flat scale. */
+  perspective:1200px;
+  transform-style:preserve-3d;
+  animation:cnStageZoom 2.70s cubic-bezier(0.22, 0.8, 0.30, 1) 0s forwards;
 }
 @keyframes cnStageZoom{
-  0%   { transform:scale(0.94); }
-  100% { transform:scale(1.00); }
+  0%   { transform:scale(0.88) translateZ(-120px); }
+  60%  { transform:scale(1.02) translateZ(20px);   }
+  100% { transform:scale(1.00) translateZ(0);      }
 }
 
 /* ── ORBIT DASHED RING (around logo, spins forever) ────────── */
@@ -3443,10 +3448,12 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   animation:cnConverge 1.10s cubic-bezier(0.42, 0, 0.20, 1) forwards;
 }
 @keyframes cnConverge{
-  0%   { opacity:0; transform:translate(var(--sx,0), var(--sy,0)) translate(-50%,-50%) scale(0.6); }
+  /* v201: particles start FAR back (translateZ -400) and fly through the
+     camera plane to +150, so they read as 3D depth not flat 2D motion. */
+  0%   { opacity:0; transform:translate(var(--sx,0), var(--sy,0)) translate(-50%,-50%) translateZ(-400px) scale(0.6); }
   18%  { opacity:1; }
-  85%  { opacity:1; transform:translate(0, 0) translate(-50%,-50%) scale(1.5); }
-  100% { opacity:0; transform:translate(0, 0) translate(-50%,-50%) scale(0); }
+  85%  { opacity:1; transform:translate(0, 0) translate(-50%,-50%) translateZ(150px) scale(1.6); }
+  100% { opacity:0; transform:translate(0, 0) translate(-50%,-50%) translateZ(250px) scale(0); }
 }
 /* 12 particles around a ~280px radius ring, white + cyan mix */
 .cn-p.p1 { --sx:-280px; --sy:-110px; animation-delay:0.30s; background:#5AC8FA; }
@@ -3527,10 +3534,13 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
             cnLogoGlow 3.0s ease-in-out 2.60s infinite;
 }
 @keyframes cnLogoReveal{
-  0%   { opacity:0; transform:rotateY(180deg) scale(0.4); }
+  /* v201: multi-axis rotation (rotateY + rotateX + slight rotateZ) +
+     translateZ punch — logo no longer just flips, it tumbles toward
+     the camera through 3D space. */
+  0%   { opacity:0; transform:rotateY(180deg) rotateX(-40deg) rotateZ(-8deg) translateZ(-300px) scale(0.4); }
   35%  { opacity:1; }
-  60%  { transform:rotateY(15deg)  scale(1.10); }
-  100% { opacity:1; transform:rotateY(0deg)   scale(1.0);  }
+  60%  { transform:rotateY(15deg)  rotateX(8deg)  rotateZ(3deg)  translateZ(40px)   scale(1.10); }
+  100% { opacity:1; transform:rotateY(0deg)   rotateX(0deg)  rotateZ(0deg)  translateZ(0)      scale(1.0);  }
 }
 @keyframes cnLogoGlow{
   0%, 100% { box-shadow:0 22px 64px rgba(94,200,250,0.55), 0 4px 14px rgba(0,0,0,0.55); }
@@ -3700,12 +3710,15 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   opacity:0;
   z-index:0;
   pointer-events:none;
+  /* v201: pushed back in 3D space for depth */
+  transform:translateZ(-200px);
   animation:cnHaloIn 0.9s ease-out 0.10s forwards, cnHaloPulse 2.6s ease-in-out 1.50s infinite;
 }
 @keyframes cnHaloIn   { to{ opacity:1; } }
 @keyframes cnHaloPulse{
-  0%, 100% { transform:scale(1);    filter:blur(0);   opacity:0.9; }
-  50%      { transform:scale(1.20); filter:blur(3px); opacity:1.0; }
+  /* v201: preserve translateZ(-200px) base so halo stays pushed back */
+  0%, 100% { transform:translateZ(-200px) scale(1);    filter:blur(0);   opacity:0.9; }
+  50%      { transform:translateZ(-200px) scale(1.20); filter:blur(3px); opacity:1.0; }
 }
 
 /* ── LIGHTNING BOLTS (4 radial flashes) ────────────────────── */
