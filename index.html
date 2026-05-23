@@ -3143,60 +3143,17 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   <div id="dm-bubbles" style="display:none"></div>
   <div id="dm-sparkles" style="display:none"></div>
 
-  <!-- v192 AAA splash — 3-act structure (atmosphere → impact → resolution)
-       16+ layers, ~2.7s total runtime.
-       Layers: grid · scan · corners · glitch · halo · orbit · beams ·
-               particles · bolts · flash · shockwave×2 · logo+rings ·
-               wordmark warp · sparkles · status -->
-  <div class="cn-grid" aria-hidden="true"></div>
-  <div class="cn-scan" aria-hidden="true"></div>
-  <div class="cn-corners" aria-hidden="true">
-    <div class="cn-corner tl"></div><div class="cn-corner tr"></div>
-    <div class="cn-corner bl"></div><div class="cn-corner br"></div>
-  </div>
-  <div class="cn-glitch" aria-hidden="true"></div>
-  <div class="cn-stage">
-    <div class="cn-halo" aria-hidden="true"></div>
-    <div class="cn-beam left" aria-hidden="true"></div>
-    <div class="cn-beam right" aria-hidden="true"></div>
-    <div class="cn-orbit" aria-hidden="true"></div>
-    <div class="cn-shockwave s1" aria-hidden="true"></div>
-    <div class="cn-shockwave s2" aria-hidden="true"></div>
-    <div class="cn-particles" aria-hidden="true">
-      <div class="cn-p p1"></div><div class="cn-p p2"></div><div class="cn-p p3"></div>
-      <div class="cn-p p4"></div><div class="cn-p p5"></div><div class="cn-p p6"></div>
-      <div class="cn-p p7"></div><div class="cn-p p8"></div><div class="cn-p p9"></div>
-      <div class="cn-p p10"></div><div class="cn-p p11"></div><div class="cn-p p12"></div>
+  <!-- v202 Liquid Glass intro — 3 fluid blobs (cyan/purple/pink) converge
+       toward centre, morph into a frosted glass card, logo fades through
+       the glass, wordmark slides up below. ~2.8s. Pure CSS, no SVG. -->
+  <div class="lg-stage">
+    <div class="lg-blob b1" aria-hidden="true"></div>
+    <div class="lg-blob b2" aria-hidden="true"></div>
+    <div class="lg-blob b3" aria-hidden="true"></div>
+    <div class="lg-glass">
+      <img class="lg-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
     </div>
-    <div class="cn-bolts" aria-hidden="true">
-      <div class="cn-bolt-wrap b1"><div class="cn-bolt"></div></div>
-      <div class="cn-bolt-wrap b2"><div class="cn-bolt"></div></div>
-      <div class="cn-bolt-wrap b3"><div class="cn-bolt"></div></div>
-      <div class="cn-bolt-wrap b4"><div class="cn-bolt"></div></div>
-    </div>
-    <div class="cn-flash" aria-hidden="true"></div>
-    <div class="cn-logo-wrap">
-      <div class="cn-ring r1" aria-hidden="true"></div>
-      <div class="cn-ring r2" aria-hidden="true"></div>
-      <div class="cn-ring r3" aria-hidden="true"></div>
-      <!-- v200 cn-tilt wrapper: 3D wobble + optional real gyro tilt.
-           CSS wobble runs continuously after splash settles. If the
-           inline script below detects real deviceorientation values
-           (Android, or iOS where motion permission was granted), it
-           takes over and applies live tilt instead. -->
-      <div class="cn-tilt">
-        <img class="cn-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
-      </div>
-    </div>
-    <div class="cn-wm" aria-label="RUDY">
-      <span class="cn-l cn-l1">R</span><span class="cn-l cn-l2">U</span><span class="cn-l cn-l3">D</span><span class="cn-l cn-l4">Y</span><span class="cn-l cn-l5" aria-hidden="true">.</span>
-    </div>
-    <div class="cn-sparkles" aria-hidden="true">
-      <div class="cn-sp s1"></div><div class="cn-sp s2"></div><div class="cn-sp s3"></div><div class="cn-sp s4"></div>
-      <div class="cn-sp s5"></div><div class="cn-sp s6"></div><div class="cn-sp s7"></div><div class="cn-sp s8"></div>
-      <div class="cn-sp s9"></div><div class="cn-sp s10"></div><div class="cn-sp s11"></div><div class="cn-sp s12"></div>
-      <div class="cn-sp s13"></div><div class="cn-sp s14"></div><div class="cn-sp s15"></div><div class="cn-sp s16"></div>
-    </div>
+    <div class="lg-wm" aria-label="RUDY">RUDY<span class="lg-dot" aria-hidden="true">.</span></div>
   </div>
 
   <!-- Status text — small + dim, doesn't compete with wordmark -->
@@ -3279,527 +3236,142 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   from { opacity:0; }
   to   { opacity:1; }
 }
-@keyframes rudyBreath {
-  0%, 100% { transform:scale(1);     }
-  50%      { transform:scale(1.015); }
-}
-.rudy-splash-wm{
-  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
-  font-size:64px;
-  font-weight:900;
-  letter-spacing:-0.04em;
-  line-height:1;
-  display:flex;
-  align-items:baseline;
-  gap:0;
-  text-shadow:0 8px 32px rgba(94,200,250,0.18);
-  /* Breath after the dot lands (delay 0.30 + 1.5s = 1.8s). */
-  animation:rudyBreath 2.4s ease-in-out 2.0s infinite;
-}
-.rudy-l{
-  display:inline-block;
-  opacity:0;
-  will-change:transform, opacity;
-  animation:rudySpiral 1.5s cubic-bezier(0.42, 0, 0.58, 1) forwards;
-}
-/* Per-letter parameters:
-   --cx = NEGATIVE natural offset (puts letter at wordmark centre at t=0).
-   --A  = outer rotation END = 720° + natural_angle (2 spiral revs landing
-          at letter's slot angle from centre).
-   --R  = natural radius from centre.
-   --B  = inner rotation END, chosen so A + B = 720° → glyph does exactly
-          2 visible spins, ending upright.
-   For R/U on the left half: natural_angle=180° → A=900°, B=−180° → A+B=720°.
-   For D/Y on the right half: natural_angle=0° → A=720°, B=0° → A+B=720°. */
-.rudy-l1{ color:#5AC8FA; --cx: 100px;  --A:900deg; --B:-180deg; --R:100px; animation-delay:0.00s; }
-.rudy-l2{ color:#fff;    --cx:  38px;  --A:900deg; --B:-180deg; --R: 38px; animation-delay:0.05s; }
-.rudy-l3{ color:#fff;    --cx: -38px;  --A:720deg; --B:   0deg; --R: 38px; animation-delay:0.10s; }
-.rudy-l4{ color:#fff;    --cx:-100px;  --A:720deg; --B:   0deg; --R:100px; animation-delay:0.15s; }
-.rudy-l5{
-  color:#5AC8FA;
-  margin-left:6px;
-  font-size:0.85em;
-  --cx:-145px; --A:720deg; --B:0deg; --R:145px;
-  animation:rudyDotSpiral 1.3s cubic-bezier(0.42, 0, 0.58, 1) 0.30s forwards;
-}
+
 /* ============================================================
-   v192 AAA SPLASH — 3-act cinematic reveal (~2.7s).
-   ACT 1 ATMOSPHERE (0.00-1.00s)
-     0.00s grid lattice + halo glow fade in (atmosphere builds)
-     0.00s stage slow zoom (0.94 → 1.00) for subtle parallax
-     0.20s orbit dashed ring fades in + spins forever
-     0.30s 12 particles begin slow drift inward from edge ring
-     0.40s 2 vertical light beams fade in behind logo
-   ACT 2 IMPACT (0.85-1.80s)
-     0.85s 4 lightning bolts strike radially (staggered 0.10s)
-     1.00s horizontal scanline sweeps top → bottom (1.6s)
-     1.10s flash burst + shockwave 1 launches (massive ring)
-     1.20s logo 3D-flips in (rotateY 180° → 0°)
-     1.25s screen-wide chromatic glitch frame flash (240ms)
-     1.40s 3 energy rings pulse out from logo
-     1.55s shockwave 2 secondary launch
-   ACT 3 RESOLUTION (1.85-2.70s)
-     1.85s wordmark letters warp in (blur + scale + chromatic + flicker)
-     2.20s 16 sparkles twinkle across viewport
-     2.30s HUD corner brackets fade in (staggered 0.07s)
-     2.50s status text fades in
-     2.60s logo idle breathe (scale + glow pulse, infinite) */
-.cn-stage{
+   v202 Liquid Glass intro — 3-blob convergence into frosted card.
+   Timeline (~2.8s, gated by MIN_LOADING_MS):
+     0.00s blobs drift in from edges with organic shape-morph
+     0.55s blobs slide toward centre, scale up
+     1.50s frosted glass card materialises (scale + slight rotate overshoot)
+     1.90s logo fades + scales in inside the glass
+     2.20s RUDY. wordmark slides up below
+     2.50s glass starts gentle floating loop (infinite)
+   ============================================================ */
+.lg-stage{
   position:relative;
+  width:100%; height:100%;
   display:flex;
   flex-direction:column;
   align-items:center;
-  /* v201: deeper perspective + preserve-3d so descendants can layer in Z.
-     Camera dolly = stage scales AND moves through Z space, giving a
-     "pushed-into-the-scene" feel instead of a flat scale. */
-  perspective:1200px;
-  transform-style:preserve-3d;
-  animation:cnStageZoom 2.70s cubic-bezier(0.22, 0.8, 0.30, 1) 0s forwards;
-}
-@keyframes cnStageZoom{
-  0%   { transform:scale(0.88) translateZ(-120px); }
-  60%  { transform:scale(1.02) translateZ(20px);   }
-  100% { transform:scale(1.00) translateZ(0);      }
+  justify-content:center;
+  perspective:800px;
 }
 
-/* ── ORBIT DASHED RING (around logo, spins forever) ────────── */
-.cn-orbit{
+/* ── BLOBS (3 fluid color shapes, mix-blend:screen for additive light) ── */
+.lg-blob{
   position:absolute;
-  top:48px; left:50%;
-  width:170px; height:170px;
-  margin-left:-85px; margin-top:-85px;
-  border:1.5px dashed rgba(94,200,250,0.32);
-  border-radius:50%;
-  opacity:0;
-  z-index:1;
-  pointer-events:none;
-  animation:cnOrbitIn 0.8s ease 0.20s forwards,
-            cnOrbitSpin 14s linear 0.20s infinite;
-}
-@keyframes cnOrbitIn  { to{ opacity:1; } }
-@keyframes cnOrbitSpin{
-  from{ transform:rotate(0deg); }
-  to  { transform:rotate(360deg); }
-}
-
-/* ── VERTICAL LIGHT BEAMS (volumetric god-rays) ────────────── */
-.cn-beam{
-  position:absolute;
-  top:-400px;
-  width:90px; height:900px;
-  background:linear-gradient(to bottom,
-              transparent 0%,
-              rgba(94,200,250,0.08) 30%,
-              rgba(94,200,250,0.22) 50%,
-              rgba(94,200,250,0.08) 70%,
-              transparent 100%);
-  opacity:0;
-  z-index:0;
-  pointer-events:none;
-  mix-blend-mode:screen;
-  filter:blur(6px);
-}
-.cn-beam.left { left:50%; margin-left:-170px; animation:cnBeamIn 1.0s ease-out 0.40s forwards; }
-.cn-beam.right{ left:50%; margin-left:  80px; animation:cnBeamIn 1.0s ease-out 0.50s forwards; }
-@keyframes cnBeamIn{
-  0%   { opacity:0; transform:scaleY(0.55); }
-  100% { opacity:1; transform:scaleY(1);    }
-}
-
-/* ── SHOCKWAVES (massive expanding rings at impact) ────────── */
-.cn-shockwave{
-  position:absolute;
-  top:48px; left:50%;
-  width:120px; height:120px;
-  margin-left:-60px; margin-top:-60px;
-  border-radius:50%;
-  border:2px solid rgba(94,200,250,0.75);
-  box-shadow:0 0 22px rgba(94,200,250,0.55);
-  opacity:0;
-  z-index:1;
-  pointer-events:none;
-  will-change:transform, opacity, border-width;
-}
-.cn-shockwave.s1{ animation:cnShockwave 1.15s cubic-bezier(0.16,1,0.30,1) 1.15s forwards; }
-.cn-shockwave.s2{ animation:cnShockwave 1.05s cubic-bezier(0.16,1,0.30,1) 1.55s forwards; }
-@keyframes cnShockwave{
-  0%   { opacity:0.95; transform:scale(0.2); border-width:3px;   }
-  20%  { opacity:0.95; }
-  100% { opacity:0;    transform:scale(14);  border-width:0.5px; }
-}
-/* ── PARTICLE FIELD ────────────────────────────────────────── */
-.cn-particles{
-  position:absolute;
-  top:48px;            /* logo centre within stage (logo height 96 / 2) */
-  left:50%;
-  width:0; height:0;
-  pointer-events:none;
-  z-index:2;
-}
-.cn-p{
-  position:absolute;
-  top:0; left:0;
-  width:5px; height:5px;
-  border-radius:50%;
-  background:#5AC8FA;
-  box-shadow:0 0 10px rgba(94,200,250,0.85);
-  opacity:0;
-  will-change:transform, opacity;
-  animation:cnConverge 1.10s cubic-bezier(0.42, 0, 0.20, 1) forwards;
-}
-@keyframes cnConverge{
-  /* v201: particles start FAR back (translateZ -400) and fly through the
-     camera plane to +150, so they read as 3D depth not flat 2D motion. */
-  0%   { opacity:0; transform:translate(var(--sx,0), var(--sy,0)) translate(-50%,-50%) translateZ(-400px) scale(0.6); }
-  18%  { opacity:1; }
-  85%  { opacity:1; transform:translate(0, 0) translate(-50%,-50%) translateZ(150px) scale(1.6); }
-  100% { opacity:0; transform:translate(0, 0) translate(-50%,-50%) translateZ(250px) scale(0); }
-}
-/* 12 particles around a ~280px radius ring, white + cyan mix */
-.cn-p.p1 { --sx:-280px; --sy:-110px; animation-delay:0.30s; background:#5AC8FA; }
-.cn-p.p2 { --sx:-220px; --sy:-220px; animation-delay:0.35s; background:#fff;    box-shadow:0 0 10px rgba(255,255,255,0.85); }
-.cn-p.p3 { --sx:-110px; --sy:-280px; animation-delay:0.40s; background:#5AC8FA; }
-.cn-p.p4 { --sx:  70px; --sy:-300px; animation-delay:0.45s; background:#fff;    box-shadow:0 0 10px rgba(255,255,255,0.85); }
-.cn-p.p5 { --sx: 220px; --sy:-220px; animation-delay:0.50s; background:#5AC8FA; }
-.cn-p.p6 { --sx: 300px; --sy: -70px; animation-delay:0.55s; background:#5AC8FA; }
-.cn-p.p7 { --sx: 280px; --sy: 110px; animation-delay:0.60s; background:#fff;    box-shadow:0 0 10px rgba(255,255,255,0.85); }
-.cn-p.p8 { --sx: 220px; --sy: 220px; animation-delay:0.65s; background:#5AC8FA; }
-.cn-p.p9 { --sx:  90px; --sy: 300px; animation-delay:0.70s; background:#5AC8FA; }
-.cn-p.p10{ --sx: -90px; --sy: 300px; animation-delay:0.75s; background:#fff;    box-shadow:0 0 10px rgba(255,255,255,0.85); }
-.cn-p.p11{ --sx:-220px; --sy: 220px; animation-delay:0.80s; background:#5AC8FA; }
-.cn-p.p12{ --sx:-300px; --sy:  70px; animation-delay:0.85s; background:#5AC8FA; }
-
-/* ── FLASH BURST ───────────────────────────────────────────── */
-.cn-flash{
-  position:absolute;
-  top:48px; left:50%;
+  top:50%; left:50%;
   width:300px; height:300px;
-  margin-left:-150px; margin-top:-150px;
-  border-radius:50%;
-  background:radial-gradient(circle, rgba(94,200,250,0.95) 0%, rgba(94,200,250,0.35) 35%, rgba(94,200,250,0) 65%);
+  margin-top:-150px; margin-left:-150px;
+  border-radius:60% 40% 50% 50% / 50% 60% 40% 50%;
+  filter:blur(45px);
   opacity:0;
-  transform:scale(0.3);
-  pointer-events:none;
-  z-index:1;
-  animation:cnFlash 0.65s cubic-bezier(0, 0, 0.20, 1) 1.10s forwards;
+  mix-blend-mode:screen;
+  will-change:transform, border-radius, opacity;
 }
-@keyframes cnFlash{
-  0%   { opacity:0; transform:scale(0.3); }
-  25%  { opacity:1; }
-  100% { opacity:0; transform:scale(3.2); }
+.lg-blob.b1{
+  background:radial-gradient(circle at 30% 30%, #5AC8FA 0%, rgba(94,200,250,0.65) 50%, rgba(94,200,250,0) 100%);
+  animation:lgBlob1 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0s forwards;
+}
+.lg-blob.b2{
+  background:radial-gradient(circle at 70% 40%, #B19CFF 0%, rgba(177,156,255,0.65) 50%, rgba(177,156,255,0) 100%);
+  animation:lgBlob2 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0.10s forwards;
+}
+.lg-blob.b3{
+  background:radial-gradient(circle at 50% 70%, #FF8CC8 0%, rgba(255,140,200,0.55) 50%, rgba(255,140,200,0) 100%);
+  animation:lgBlob3 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0.20s forwards;
+}
+@keyframes lgBlob1{
+  0%   { opacity:0;    transform:translate(-220px,-110px) rotate(0deg)   scale(0.6); border-radius:60% 40% 50% 50% / 50% 60% 40% 50%; }
+  20%  { opacity:0.85; }
+  55%  { transform:translate(-70px,-25px)   rotate(80deg)  scale(1.15); border-radius:50% 50% 70% 30% / 40% 60% 50% 50%; }
+  80%  { opacity:0.5;  transform:translate(0,0)            rotate(140deg) scale(1.0);  border-radius:50%; }
+  100% { opacity:0;    transform:translate(0,0)            rotate(200deg) scale(0.7); }
+}
+@keyframes lgBlob2{
+  0%   { opacity:0;    transform:translate(220px,-90px)   rotate(0deg)    scale(0.6); border-radius:50% 50% 50% 50% / 60% 40% 60% 40%; }
+  20%  { opacity:0.85; }
+  55%  { transform:translate(50px,-15px)    rotate(-60deg) scale(1.15); border-radius:40% 60% 50% 50% / 60% 40% 60% 40%; }
+  80%  { opacity:0.5;  transform:translate(0,0)            rotate(-110deg) scale(1.0); border-radius:50%; }
+  100% { opacity:0;    transform:translate(0,0)            rotate(-180deg) scale(0.7); }
+}
+@keyframes lgBlob3{
+  0%   { opacity:0;    transform:translate(20px,200px)    rotate(0deg)   scale(0.6); border-radius:50% 50% 40% 60% / 70% 30% 50% 50%; }
+  20%  { opacity:0.85; }
+  55%  { transform:translate(15px,55px)     rotate(45deg)  scale(1.15); border-radius:60% 40% 50% 50% / 50% 50% 60% 40%; }
+  80%  { opacity:0.5;  transform:translate(0,0)            rotate(90deg)  scale(1.0);  border-radius:50%; }
+  100% { opacity:0;    transform:translate(0,0)            rotate(150deg) scale(0.7); }
 }
 
-/* ── LOGO + RINGS ──────────────────────────────────────────── */
-.cn-logo-wrap{
+/* ── FROSTED GLASS CARD ─────────────────────────────────────── */
+.lg-glass{
   position:relative;
-  width:96px; height:96px;
-  margin-bottom:32px;
-  transform-style:preserve-3d;
-  z-index:3;
-  animation:cnLogoBreathe 3.0s ease-in-out 2.60s infinite;
-}
-@keyframes cnLogoBreathe{
-  0%, 100% { transform:scale(1);     }
-  50%      { transform:scale(1.035); }
-}
-/* v200: 3D tilt wrapper for the logo. CSS wobble runs continuously
-   after reveal as a baseline. JS deviceorientation handler (below the
-   splash markup) overrides this with live gyro values when the browser
-   sends them (Android, or iOS with motion permission granted). */
-.cn-tilt{
-  position:relative;
-  width:96px; height:96px;
-  transform-style:preserve-3d;
-  animation:cnLogoWobble 6.5s ease-in-out 2.60s infinite;
-}
-@keyframes cnLogoWobble{
-  0%   { transform:rotateY( 0deg) rotateX( 0deg); }
-  20%  { transform:rotateY( 9deg) rotateX(-4deg); }
-  45%  { transform:rotateY(-7deg) rotateX( 6deg); }
-  70%  { transform:rotateY( 6deg) rotateX(-5deg); }
-  100% { transform:rotateY( 0deg) rotateX( 0deg); }
-}
-.cn-logo{
-  position:relative;
-  z-index:5;
-  width:96px; height:96px;
-  border-radius:22%;  /* squircle to match the PWA icon shape */
+  width:120px; height:120px;
+  border-radius:30%;
+  background:linear-gradient(135deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.08) 100%);
+  -webkit-backdrop-filter:blur(24px) saturate(200%) brightness(1.10);
+          backdrop-filter:blur(24px) saturate(200%) brightness(1.10);
+  border:1px solid rgba(255,255,255,0.35);
+  display:flex; align-items:center; justify-content:center;
   opacity:0;
-  transform:rotateY(180deg) scale(0.4);
-  backface-visibility:hidden;
+  transform:scale(0.4) rotate(-20deg);
   will-change:transform, opacity;
-  box-shadow:0 22px 64px rgba(94,200,250,0.55),
-             0 4px 14px rgba(0,0,0,0.55);
-  animation:cnLogoReveal 0.85s cubic-bezier(0.34, 1.45, 0.55, 1) 1.20s forwards,
-            cnLogoGlow 3.0s ease-in-out 2.60s infinite;
+  /* iOS 26 Liquid Glass: ambient halo + chromatic edge insets */
+  box-shadow:
+    0 24px 64px rgba(94,200,250,0.30),
+    0 8px 20px rgba(0,0,0,0.20),
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 1.5px 0 0 rgba(180,210,255,0.22),
+    inset -1.5px 0 0 rgba(255,220,200,0.14);
+  animation:lgGlassIn 0.85s cubic-bezier(0.34, 1.45, 0.55, 1) 1.50s forwards,
+            lgGlassFloat 4.0s ease-in-out 2.50s infinite;
 }
-@keyframes cnLogoReveal{
-  /* v201: multi-axis rotation (rotateY + rotateX + slight rotateZ) +
-     translateZ punch — logo no longer just flips, it tumbles toward
-     the camera through 3D space. */
-  0%   { opacity:0; transform:rotateY(180deg) rotateX(-40deg) rotateZ(-8deg) translateZ(-300px) scale(0.4); }
-  35%  { opacity:1; }
-  60%  { transform:rotateY(15deg)  rotateX(8deg)  rotateZ(3deg)  translateZ(40px)   scale(1.10); }
-  100% { opacity:1; transform:rotateY(0deg)   rotateX(0deg)  rotateZ(0deg)  translateZ(0)      scale(1.0);  }
+@keyframes lgGlassIn{
+  0%   { opacity:0; transform:scale(0.4) rotate(-20deg); }
+  60%  { opacity:1; transform:scale(1.06) rotate(3deg);  }
+  100% { opacity:1; transform:scale(1)   rotate(0);      }
 }
-@keyframes cnLogoGlow{
-  0%, 100% { box-shadow:0 22px 64px rgba(94,200,250,0.55), 0 4px 14px rgba(0,0,0,0.55); }
-  50%      { box-shadow:0 30px 84px rgba(94,200,250,0.80), 0 4px 14px rgba(0,0,0,0.55); }
-}
-.cn-ring{
-  position:absolute;
-  inset:0;
-  border-radius:22%;  /* squircle ripples to match the squircle logo */
-  border:1.5px solid rgba(94,200,250,0.65);
-  opacity:0;
-  z-index:2;
-  pointer-events:none;
-  will-change:transform, opacity;
-}
-.cn-ring.r1{ animation:cnRing 1.2s cubic-bezier(0.22, 1, 0.36, 1) 1.40s forwards; }
-.cn-ring.r2{ animation:cnRing 1.2s cubic-bezier(0.22, 1, 0.36, 1) 1.55s forwards; border-color:rgba(255,255,255,0.45); }
-.cn-ring.r3{ animation:cnRing 1.2s cubic-bezier(0.22, 1, 0.36, 1) 1.70s forwards; }
-@keyframes cnRing{
-  0%   { opacity:0.70; transform:scale(1);   }
-  100% { opacity:0;    transform:scale(2.5); }
+@keyframes lgGlassFloat{
+  0%, 100% { transform:translateY(0);   }
+  50%      { transform:translateY(-5px); }
 }
 
-/* ── WORDMARK with chromatic-split glitch ──────────────────── */
-.cn-wm{
+.lg-logo{
+  width:80px; height:80px;
+  border-radius:22%;
+  opacity:0;
+  transform:scale(0.7);
+  filter:drop-shadow(0 8px 20px rgba(94,200,250,0.40));
+  animation:lgLogoIn 0.6s cubic-bezier(0.34, 1.40, 0.55, 1) 1.90s forwards;
+}
+@keyframes lgLogoIn{
+  0%   { opacity:0; transform:scale(0.7); }
+  100% { opacity:1; transform:scale(1);   }
+}
+
+/* ── WORDMARK ───────────────────────────────────────────────── */
+.lg-wm{
   font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
-  font-size:46px;
+  font-size:44px;
   font-weight:800;
   letter-spacing:-0.04em;
-  line-height:1;
   color:#fff;
-  display:flex;
-  align-items:baseline;
-  z-index:4;
-}
-.cn-l{
-  display:inline-block;
+  margin-top:32px;
   opacity:0;
-  transform:scale(2) translateY(28px);
-  filter:blur(10px);
-  will-change:transform, opacity, text-shadow, filter;
-  animation:cnLetterWarp 0.85s cubic-bezier(0.20, 0.85, 0.30, 1) forwards;
+  transform:translateY(14px);
+  text-shadow:0 6px 28px rgba(94,200,250,0.30);
+  will-change:transform, opacity;
+  animation:lgWmIn 0.7s cubic-bezier(0.16, 1, 0.30, 1) 2.20s forwards;
 }
-.cn-l1{ animation-delay:1.85s; }
-.cn-l2{ animation-delay:1.94s; }
-.cn-l3{ animation-delay:2.03s; }
-.cn-l4{ animation-delay:2.12s; }
-.cn-l5{
-  animation-delay:2.28s;
+.lg-dot{
   color:#5AC8FA;
-  margin-left:3px;
-  font-size:0.9em;
+  margin-left:2px;
 }
-@keyframes cnLetterWarp{
-  0%   { opacity:0;    transform:scale(2)    translateY(28px); filter:blur(10px);
-         text-shadow: 9px 0 0 rgba(255,0,122,0.85), -9px 0 0 rgba(0,255,255,0.85); }
-  20%  { opacity:0.6;  }
-  30%  { opacity:0.15; }   /* flicker — looks like static */
-  40%  { opacity:0.9;  transform:scale(1.35) translateY(12px); filter:blur(4px);
-         text-shadow: 5px 0 0 rgba(255,0,122,0.70), -5px 0 0 rgba(0,255,255,0.70); }
-  55%  { opacity:0.5;  }   /* second flicker */
-  65%  { opacity:1;    transform:scale(1.10) translateY(4px);  filter:blur(1.5px);
-         text-shadow: 3px 0 0 rgba(255,0,122,0.50), -3px 0 0 rgba(0,255,255,0.50); }
-  85%  {               transform:scale(1.0)  translateY(0);    filter:blur(0);
-         text-shadow: 1px 0 0 rgba(255,0,122,0.20), -1px 0 0 rgba(0,255,255,0.20); }
-  100% { opacity:1;    transform:scale(1.0)  translateY(0);    filter:blur(0);
-         text-shadow: 0 6px 22px rgba(94,200,250,0.30); }
+@keyframes lgWmIn{
+  0%   { opacity:0; transform:translateY(14px); }
+  100% { opacity:1; transform:translateY(0);     }
 }
 
-/* ============================================================
-   v192 ATMOSPHERIC + HUD LAYERS (continued)
-   ============================================================ */
-
-/* ── BG GRID LATTICE ───────────────────────────────────────── */
-.cn-grid{
-  position:absolute; inset:0;
-  background-image:
-    linear-gradient(to right,  rgba(94,200,250,0.10) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(94,200,250,0.10) 1px, transparent 1px);
-  background-size: 40px 40px;
-  -webkit-mask-image: radial-gradient(ellipse at center, #000 25%, transparent 75%);
-          mask-image: radial-gradient(ellipse at center, #000 25%, transparent 75%);
-  opacity:0;
-  z-index:0;
-  pointer-events:none;
-  animation:cnGridIn 1.2s ease-out 0s forwards, cnGridDrift 22s linear 0s infinite;
-}
-@keyframes cnGridIn  { to{ opacity:1; } }
-@keyframes cnGridDrift {
-  from{ background-position: 0 0, 0 0; }
-  to  { background-position: 40px 40px, 40px 40px; }
-}
-
-/* ── HORIZONTAL SCANLINE SWEEP ─────────────────────────────── */
-.cn-scan{
-  position:absolute;
-  left:0; right:0;
-  height:120px;
-  top:-120px;
-  background:linear-gradient(to bottom,
-              transparent 0%,
-              rgba(94,200,250,0.06) 20%,
-              rgba(94,200,250,0.50) 50%,
-              rgba(94,200,250,0.06) 80%,
-              transparent 100%);
-  opacity:0;
-  z-index:6;
-  pointer-events:none;
-  mix-blend-mode:screen;
-  animation:cnScan 1.6s cubic-bezier(0.22,1,0.36,1) 1.00s forwards;
-}
-@keyframes cnScan{
-  0%   { opacity:0;    top:-120px; }
-  15%  { opacity:0.90; }
-  85%  { opacity:0.90; }
-  100% { opacity:0;    top:100%; }
-}
-
-/* ── HUD CORNER BRACKETS ───────────────────────────────────── */
-.cn-corners{ position:absolute; inset:22px; z-index:7; pointer-events:none; }
-.cn-corner{
-  position:absolute;
-  width:22px; height:22px;
-  border:2px solid rgba(94,200,250,0.65);
-  opacity:0;
-  will-change:opacity, transform;
-}
-.cn-corner.tl{ top:0;    left:0;    border-right:none; border-bottom:none; animation:cnCornerIn 0.5s cubic-bezier(0.22,1,0.36,1) 2.30s forwards; }
-.cn-corner.tr{ top:0;    right:0;   border-left:none;  border-bottom:none; animation:cnCornerIn 0.5s cubic-bezier(0.22,1,0.36,1) 2.37s forwards; }
-.cn-corner.bl{ bottom:0; left:0;    border-right:none; border-top:none;    animation:cnCornerIn 0.5s cubic-bezier(0.22,1,0.36,1) 2.44s forwards; }
-.cn-corner.br{ bottom:0; right:0;   border-left:none;  border-top:none;    animation:cnCornerIn 0.5s cubic-bezier(0.22,1,0.36,1) 2.51s forwards; }
-@keyframes cnCornerIn{
-  0%   { opacity:0; transform:scale(0.6); }
-  100% { opacity:1; transform:scale(1); }
-}
-
-/* ── FULL-SCREEN GLITCH FRAME FLASH (at logo reveal moment) ── */
-.cn-glitch{
-  position:absolute; inset:0;
-  background:linear-gradient(135deg,
-              rgba(255,0,122,0.20) 0%,
-              rgba(0,255,255,0.20) 100%);
-  mix-blend-mode:screen;
-  opacity:0;
-  z-index:8;
-  pointer-events:none;
-  animation:cnGlitchFlash 0.24s steps(2,end) 1.25s forwards;
-}
-@keyframes cnGlitchFlash{
-  0%   { opacity:0;   transform:translateX(0); }
-  25%  { opacity:1;   transform:translateX(3px); }
-  50%  { opacity:0.6; transform:translateX(-3px); }
-  75%  { opacity:0.9; transform:translateX(1px); }
-  100% { opacity:0;   transform:translateX(0); }
-}
-
-/* ── HALO GLOW behind logo (pulses forever) ────────────────── */
-.cn-halo{
-  position:absolute;
-  top:48px; left:50%;
-  width:380px; height:380px;
-  margin-left:-190px; margin-top:-190px;
-  background:radial-gradient(circle,
-              rgba(94,200,250,0.35) 0%,
-              rgba(94,200,250,0.15) 30%,
-              rgba(94,200,250,0)    65%);
-  opacity:0;
-  z-index:0;
-  pointer-events:none;
-  /* v201: pushed back in 3D space for depth */
-  transform:translateZ(-200px);
-  animation:cnHaloIn 0.9s ease-out 0.10s forwards, cnHaloPulse 2.6s ease-in-out 1.50s infinite;
-}
-@keyframes cnHaloIn   { to{ opacity:1; } }
-@keyframes cnHaloPulse{
-  /* v201: preserve translateZ(-200px) base so halo stays pushed back */
-  0%, 100% { transform:translateZ(-200px) scale(1);    filter:blur(0);   opacity:0.9; }
-  50%      { transform:translateZ(-200px) scale(1.20); filter:blur(3px); opacity:1.0; }
-}
-
-/* ── LIGHTNING BOLTS (4 radial flashes) ────────────────────── */
-.cn-bolts{
-  position:absolute;
-  top:48px; left:50%;
-  width:0; height:0;
-  z-index:1;
-  pointer-events:none;
-}
-.cn-bolt-wrap{ position:absolute; top:0; left:0; }
-.cn-bolt-wrap.b1{ transform:rotate(0deg); }
-.cn-bolt-wrap.b2{ transform:rotate(45deg); }
-.cn-bolt-wrap.b3{ transform:rotate(90deg); }
-.cn-bolt-wrap.b4{ transform:rotate(135deg); }
-.cn-bolt{
-  position:absolute;
-  top:-170px; left:-1px;
-  width:2px; height:340px;
-  background:linear-gradient(to bottom,
-              transparent 0%,
-              rgba(94,200,250,0)    18%,
-              rgba(94,200,250,0.95) 50%,
-              rgba(94,200,250,0)    82%,
-              transparent 100%);
-  filter:drop-shadow(0 0 8px rgba(94,200,250,0.85));
-  opacity:0;
-  transform-origin:center center;
-  will-change:transform, opacity;
-}
-.cn-bolt-wrap.b1 .cn-bolt{ animation:cnBoltFlash 0.60s cubic-bezier(0,0,0.20,1) 0.85s forwards; }
-.cn-bolt-wrap.b2 .cn-bolt{ animation:cnBoltFlash 0.60s cubic-bezier(0,0,0.20,1) 0.95s forwards; }
-.cn-bolt-wrap.b3 .cn-bolt{ animation:cnBoltFlash 0.60s cubic-bezier(0,0,0.20,1) 1.05s forwards; }
-.cn-bolt-wrap.b4 .cn-bolt{ animation:cnBoltFlash 0.60s cubic-bezier(0,0,0.20,1) 1.15s forwards; }
-@keyframes cnBoltFlash{
-  0%   { opacity:0;    transform:scaleY(0);   }
-  25%  { opacity:1;    transform:scaleY(1);   }
-  100% { opacity:0;    transform:scaleY(1.4); }
-}
-
-/* ── SPARKLES (16 twinkling dots after reveal) ─────────────── */
-.cn-sparkles{
-  position:absolute;
-  inset:-220px;        /* extend outside stage so sparkles can fill viewport */
-  pointer-events:none;
-  z-index:3;
-}
-.cn-sp{
-  position:absolute;
-  width:3px; height:3px;
-  border-radius:50%;
-  background:#fff;
-  box-shadow:0 0 6px rgba(255,255,255,0.95),
-             0 0 14px rgba(94,200,250,0.65);
-  opacity:0;
-  will-change:transform, opacity;
-  animation:cnSparkle 1.4s ease-in-out forwards;
-}
-@keyframes cnSparkle{
-  0%   { opacity:0; transform:scale(0.3); }
-  30%  { opacity:1; transform:scale(1.3); }
-  60%  { opacity:1; transform:scale(1);   }
-  100% { opacity:0; transform:scale(0.3); }
-}
-/* Random placements across viewport (relative to extended sparkles box) */
-.cn-sp.s1 { top:18%; left:14%; animation-delay:2.20s; }
-.cn-sp.s2 { top:12%; left:78%; animation-delay:2.25s; }
-.cn-sp.s3 { top:30%; left:88%; animation-delay:2.30s; width:4px; height:4px; }
-.cn-sp.s4 { top:68%; left:10%; animation-delay:2.25s; width:4px; height:4px; }
-.cn-sp.s5 { top:75%; left:82%; animation-delay:2.35s; }
-.cn-sp.s6 { top:85%; left:24%; animation-delay:2.40s; }
-.cn-sp.s7 { top:22%; left:50%; animation-delay:2.30s; width:2px; height:2px; }
-.cn-sp.s8 { top:78%; left:54%; animation-delay:2.35s; width:2px; height:2px; }
-.cn-sp.s9 { top:45%; left:8%;  animation-delay:2.45s; }
-.cn-sp.s10{ top:55%; left:92%; animation-delay:2.50s; }
-.cn-sp.s11{ top:38%; left:72%; animation-delay:2.40s; width:2px; height:2px; }
-.cn-sp.s12{ top:62%; left:28%; animation-delay:2.55s; width:2px; height:2px; }
-.cn-sp.s13{ top:8%;  left:42%; animation-delay:2.20s; }
-.cn-sp.s14{ top:92%; left:62%; animation-delay:2.30s; }
-.cn-sp.s15{ top:50%; left:18%; animation-delay:2.55s; width:4px; height:4px; }
-.cn-sp.s16{ top:42%; left:88%; animation-delay:2.60s; }
 /* Legacy dm-* keyframes kept since other styles in this file reference
    them via the .dm-droplet class (still present elsewhere — only the
    instance INSIDE #init-overlay was removed). */
