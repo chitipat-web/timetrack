@@ -3143,17 +3143,25 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   <div id="dm-bubbles" style="display:none"></div>
   <div id="dm-sparkles" style="display:none"></div>
 
-  <!-- v202 Liquid Glass intro — 3 fluid blobs (cyan/purple/pink) converge
-       toward centre, morph into a frosted glass card, logo fades through
-       the glass, wordmark slides up below. ~2.8s. Pure CSS, no SVG. -->
-  <div class="lg-stage">
-    <div class="lg-blob b1" aria-hidden="true"></div>
-    <div class="lg-blob b2" aria-hidden="true"></div>
-    <div class="lg-blob b3" aria-hidden="true"></div>
-    <div class="lg-glass">
-      <img class="lg-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
-    </div>
-    <div class="lg-wm" aria-label="RUDY">RUDY<span class="lg-dot" aria-hidden="true">.</span></div>
+  <!-- v203 Glass Shatter intro — flash burst → 12 glass shards explode
+       radially → shards pulled back toward centre → logo materialises
+       at coalescence point → wordmark slides up. ~2.7s total. -->
+  <div class="sh-stage">
+    <div class="sh-flash" aria-hidden="true"></div>
+    <div class="sh-shard s1"  aria-hidden="true"></div>
+    <div class="sh-shard s2"  aria-hidden="true"></div>
+    <div class="sh-shard s3"  aria-hidden="true"></div>
+    <div class="sh-shard s4"  aria-hidden="true"></div>
+    <div class="sh-shard s5"  aria-hidden="true"></div>
+    <div class="sh-shard s6"  aria-hidden="true"></div>
+    <div class="sh-shard s7"  aria-hidden="true"></div>
+    <div class="sh-shard s8"  aria-hidden="true"></div>
+    <div class="sh-shard s9"  aria-hidden="true"></div>
+    <div class="sh-shard s10" aria-hidden="true"></div>
+    <div class="sh-shard s11" aria-hidden="true"></div>
+    <div class="sh-shard s12" aria-hidden="true"></div>
+    <img class="sh-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
+    <div class="sh-wm" aria-label="RUDY">RUDY<span class="sh-dot" aria-hidden="true">.</span></div>
   </div>
 
   <!-- Status text — small + dim, doesn't compete with wordmark -->
@@ -3238,136 +3246,123 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 }
 
 /* ============================================================
-   v202 Liquid Glass intro — 3-blob convergence into frosted card.
-   Timeline (~2.8s, gated by MIN_LOADING_MS):
-     0.00s blobs drift in from edges with organic shape-morph
-     0.55s blobs slide toward centre, scale up
-     1.50s frosted glass card materialises (scale + slight rotate overshoot)
-     1.90s logo fades + scales in inside the glass
-     2.20s RUDY. wordmark slides up below
-     2.50s glass starts gentle floating loop (infinite)
+   v203 Glass Shatter intro — explode then reform.
+   Timeline (~2.7s):
+     0.05s flash burst at centre (white-cyan radial, scale 0.3 → 2.6)
+     0.10s 12 glass shards explode outward (30° intervals, ~320px reach)
+     0.78s shards at peak distance with rotation
+     1.38s shards collapsing back, scaling down, fading
+     1.55s logo materialises at coalescence point
+     2.00s wordmark slides up
+     2.30s logo idle breathe begins (infinite)
    ============================================================ */
-.lg-stage{
+.sh-stage{
   position:relative;
   width:100%; height:100%;
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  perspective:800px;
 }
 
-/* ── BLOBS (3 fluid color shapes, mix-blend:screen for additive light) ── */
-.lg-blob{
+/* ── FLASH BURST (the moment of shattering) ─────────────────── */
+.sh-flash{
   position:absolute;
   top:50%; left:50%;
-  width:300px; height:300px;
-  margin-top:-150px; margin-left:-150px;
-  border-radius:60% 40% 50% 50% / 50% 60% 40% 50%;
-  filter:blur(45px);
+  width:240px; height:240px;
+  margin-top:-120px; margin-left:-120px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(94,200,250,0.55) 40%, rgba(94,200,250,0) 70%);
   opacity:0;
-  mix-blend-mode:screen;
-  will-change:transform, border-radius, opacity;
+  transform:scale(0.3);
+  pointer-events:none;
+  z-index:2;
+  animation:shFlash 0.55s cubic-bezier(0, 0, 0.20, 1) 0.05s forwards;
 }
-.lg-blob.b1{
-  background:radial-gradient(circle at 30% 30%, #5AC8FA 0%, rgba(94,200,250,0.65) 50%, rgba(94,200,250,0) 100%);
-  animation:lgBlob1 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0s forwards;
-}
-.lg-blob.b2{
-  background:radial-gradient(circle at 70% 40%, #B19CFF 0%, rgba(177,156,255,0.65) 50%, rgba(177,156,255,0) 100%);
-  animation:lgBlob2 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0.10s forwards;
-}
-.lg-blob.b3{
-  background:radial-gradient(circle at 50% 70%, #FF8CC8 0%, rgba(255,140,200,0.55) 50%, rgba(255,140,200,0) 100%);
-  animation:lgBlob3 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0.20s forwards;
-}
-@keyframes lgBlob1{
-  0%   { opacity:0;    transform:translate(-220px,-110px) rotate(0deg)   scale(0.6); border-radius:60% 40% 50% 50% / 50% 60% 40% 50%; }
-  20%  { opacity:0.85; }
-  55%  { transform:translate(-70px,-25px)   rotate(80deg)  scale(1.15); border-radius:50% 50% 70% 30% / 40% 60% 50% 50%; }
-  80%  { opacity:0.5;  transform:translate(0,0)            rotate(140deg) scale(1.0);  border-radius:50%; }
-  100% { opacity:0;    transform:translate(0,0)            rotate(200deg) scale(0.7); }
-}
-@keyframes lgBlob2{
-  0%   { opacity:0;    transform:translate(220px,-90px)   rotate(0deg)    scale(0.6); border-radius:50% 50% 50% 50% / 60% 40% 60% 40%; }
-  20%  { opacity:0.85; }
-  55%  { transform:translate(50px,-15px)    rotate(-60deg) scale(1.15); border-radius:40% 60% 50% 50% / 60% 40% 60% 40%; }
-  80%  { opacity:0.5;  transform:translate(0,0)            rotate(-110deg) scale(1.0); border-radius:50%; }
-  100% { opacity:0;    transform:translate(0,0)            rotate(-180deg) scale(0.7); }
-}
-@keyframes lgBlob3{
-  0%   { opacity:0;    transform:translate(20px,200px)    rotate(0deg)   scale(0.6); border-radius:50% 50% 40% 60% / 70% 30% 50% 50%; }
-  20%  { opacity:0.85; }
-  55%  { transform:translate(15px,55px)     rotate(45deg)  scale(1.15); border-radius:60% 40% 50% 50% / 50% 50% 60% 40%; }
-  80%  { opacity:0.5;  transform:translate(0,0)            rotate(90deg)  scale(1.0);  border-radius:50%; }
-  100% { opacity:0;    transform:translate(0,0)            rotate(150deg) scale(0.7); }
+@keyframes shFlash{
+  0%   { opacity:0;    transform:scale(0.3); }
+  25%  { opacity:1; }
+  100% { opacity:0;    transform:scale(2.6); }
 }
 
-/* ── FROSTED GLASS CARD ─────────────────────────────────────── */
-.lg-glass{
-  position:relative;
-  width:120px; height:120px;
-  border-radius:30%;
-  background:linear-gradient(135deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.08) 100%);
-  -webkit-backdrop-filter:blur(24px) saturate(200%) brightness(1.10);
-          backdrop-filter:blur(24px) saturate(200%) brightness(1.10);
-  border:1px solid rgba(255,255,255,0.35);
-  display:flex; align-items:center; justify-content:center;
+/* ── GLASS SHARDS (12 pieces, explode then collapse) ────────── */
+.sh-shard{
+  position:absolute;
+  top:50%; left:50%;
+  width:38px; height:38px;
+  margin-top:-19px; margin-left:-19px;
+  background:linear-gradient(135deg,
+              rgba(255,255,255,0.55) 0%,
+              rgba(94,200,250,0.60) 50%,
+              rgba(255,255,255,0.30) 100%);
+  filter:drop-shadow(0 4px 10px rgba(94,200,250,0.45));
   opacity:0;
-  transform:scale(0.4) rotate(-20deg);
   will-change:transform, opacity;
-  /* iOS 26 Liquid Glass: ambient halo + chromatic edge insets */
-  box-shadow:
-    0 24px 64px rgba(94,200,250,0.30),
-    0 8px 20px rgba(0,0,0,0.20),
-    inset 0 1px 0 rgba(255,255,255,0.55),
-    inset 1.5px 0 0 rgba(180,210,255,0.22),
-    inset -1.5px 0 0 rgba(255,220,200,0.14);
-  animation:lgGlassIn 0.85s cubic-bezier(0.34, 1.45, 0.55, 1) 1.50s forwards,
-            lgGlassFloat 4.0s ease-in-out 2.50s infinite;
+  z-index:1;
+  animation:shShatter 1.75s cubic-bezier(0.28, 0, 0.40, 1) 0.10s forwards;
 }
-@keyframes lgGlassIn{
-  0%   { opacity:0; transform:scale(0.4) rotate(-20deg); }
-  60%  { opacity:1; transform:scale(1.06) rotate(3deg);  }
-  100% { opacity:1; transform:scale(1)   rotate(0);      }
-}
-@keyframes lgGlassFloat{
-  0%, 100% { transform:translateY(0);   }
-  50%      { transform:translateY(-5px); }
+@keyframes shShatter{
+  0%   { opacity:0;   transform:translate(0,0) rotate(0deg) scale(1); }
+  8%   { opacity:1;   transform:translate(0,0) rotate(0deg) scale(1); }
+  42%  { opacity:1;   transform:translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1.25); }
+  78%  { opacity:0.6; transform:translate(calc(var(--tx) * 0.30), calc(var(--ty) * 0.30)) rotate(calc(var(--rot) * 2)) scale(0.7); }
+  100% { opacity:0;   transform:translate(0,0) rotate(calc(var(--rot) * 2.4)) scale(0.25); }
 }
 
-.lg-logo{
-  width:80px; height:80px;
+/* 12 shards at 30° intervals around a 320px reach, 3 shape variants */
+.sh-shard.s1  { --tx:  320px; --ty:    0;    --rot: 360deg;  clip-path:polygon(50% 0%, 0% 100%, 100% 100%); }
+.sh-shard.s2  { --tx:  277px; --ty: -160px;  --rot:-420deg;  clip-path:polygon(30% 0%, 100% 30%, 70% 100%, 0% 70%); }
+.sh-shard.s3  { --tx:  160px; --ty: -277px;  --rot: 480deg;  clip-path:polygon(40% 0%, 100% 30%, 80% 100%, 20% 90%, 0% 50%); }
+.sh-shard.s4  { --tx:    0;   --ty: -320px;  --rot:-360deg;  clip-path:polygon(50% 0%, 0% 100%, 100% 100%); }
+.sh-shard.s5  { --tx: -160px; --ty: -277px;  --rot: 420deg;  clip-path:polygon(30% 0%, 100% 30%, 70% 100%, 0% 70%); }
+.sh-shard.s6  { --tx: -277px; --ty: -160px;  --rot:-480deg;  clip-path:polygon(40% 0%, 100% 30%, 80% 100%, 20% 90%, 0% 50%); }
+.sh-shard.s7  { --tx: -320px; --ty:    0;    --rot: 360deg;  clip-path:polygon(50% 0%, 0% 100%, 100% 100%); }
+.sh-shard.s8  { --tx: -277px; --ty:  160px;  --rot:-420deg;  clip-path:polygon(30% 0%, 100% 30%, 70% 100%, 0% 70%); }
+.sh-shard.s9  { --tx: -160px; --ty:  277px;  --rot: 480deg;  clip-path:polygon(40% 0%, 100% 30%, 80% 100%, 20% 90%, 0% 50%); }
+.sh-shard.s10 { --tx:    0;   --ty:  320px;  --rot:-360deg;  clip-path:polygon(50% 0%, 0% 100%, 100% 100%); }
+.sh-shard.s11 { --tx:  160px; --ty:  277px;  --rot: 420deg;  clip-path:polygon(30% 0%, 100% 30%, 70% 100%, 0% 70%); }
+.sh-shard.s12 { --tx:  277px; --ty:  160px;  --rot:-480deg;  clip-path:polygon(40% 0%, 100% 30%, 80% 100%, 20% 90%, 0% 50%); }
+
+/* ── LOGO (emerges at coalescence) ──────────────────────────── */
+.sh-logo{
+  width:96px; height:96px;
   border-radius:22%;
   opacity:0;
-  transform:scale(0.7);
-  filter:drop-shadow(0 8px 20px rgba(94,200,250,0.40));
-  animation:lgLogoIn 0.6s cubic-bezier(0.34, 1.40, 0.55, 1) 1.90s forwards;
+  transform:scale(0.5);
+  filter:drop-shadow(0 12px 32px rgba(94,200,250,0.45));
+  will-change:transform, opacity;
+  z-index:3;
+  animation:shLogoIn 0.75s cubic-bezier(0.34, 1.45, 0.55, 1) 1.55s forwards,
+            shLogoBreathe 3.5s ease-in-out 2.30s infinite;
 }
-@keyframes lgLogoIn{
-  0%   { opacity:0; transform:scale(0.7); }
+@keyframes shLogoIn{
+  0%   { opacity:0; transform:scale(0.5); }
   100% { opacity:1; transform:scale(1);   }
+}
+@keyframes shLogoBreathe{
+  0%, 100% { transform:scale(1);     }
+  50%      { transform:scale(1.035); }
 }
 
 /* ── WORDMARK ───────────────────────────────────────────────── */
-.lg-wm{
+.sh-wm{
   font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
   font-size:44px;
   font-weight:800;
   letter-spacing:-0.04em;
   color:#fff;
-  margin-top:32px;
+  margin-top:28px;
   opacity:0;
   transform:translateY(14px);
   text-shadow:0 6px 28px rgba(94,200,250,0.30);
   will-change:transform, opacity;
-  animation:lgWmIn 0.7s cubic-bezier(0.16, 1, 0.30, 1) 2.20s forwards;
+  animation:shWmIn 0.7s cubic-bezier(0.16, 1, 0.30, 1) 2.00s forwards;
 }
-.lg-dot{
+.sh-dot{
   color:#5AC8FA;
   margin-left:2px;
 }
-@keyframes lgWmIn{
+@keyframes shWmIn{
   0%   { opacity:0; transform:translateY(14px); }
   100% { opacity:1; transform:translateY(0);     }
 }
