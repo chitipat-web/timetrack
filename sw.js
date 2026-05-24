@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v203
-// Cache: rudy-static-v203, firebase-v203
-// Build: 2026-05-21 · Glass Shatter intro — 12 shards explode + reform into logo
+// RUDY · Service Worker v204
+// Cache: rudy-static-v204, firebase-v204
+// Build: 2026-05-21 · Cosmic Genesis intro — 6-scene cinematic (cosmos/energy/detonation/forge/brand/aftermath)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v203';
-const FIREBASE_CACHE = 'firebase-v203';
-const RUNTIME_CACHE = 'rudy-runtime-v203';
+const STATIC_CACHE  = 'rudy-static-v204';
+const FIREBASE_CACHE = 'firebase-v204';
+const RUNTIME_CACHE = 'rudy-runtime-v204';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v203] Installing...');
+  console.log('[SW v204] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v203] Precache partial fail (ok):', err);
+          console.warn('[SW v204] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v203] Activating...');
+  console.log('[SW v204] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v203] Deleting old cache:', name);
+              console.log('[SW v204] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -227,7 +227,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v203' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v204' });
     return;
   }
 });
@@ -250,7 +250,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v203] Push parse fail:', e);
+    console.warn('[SW v204] Push parse fail:', e);
   }
 });
 
@@ -270,4 +270,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v203] Loaded — Glass Shatter intro');
+console.log('[SW v204] Loaded — Cosmic Genesis intro');
