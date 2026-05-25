@@ -17,8 +17,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Fonts loaded async to prevent render-blocking -->
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@900&family=Sarabun:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@900&family=Sarabun:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"></noscript>
 <!-- Firebase SDK - NO defer (must load in order before inline scripts) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -3143,7 +3143,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   <div id="dm-bubbles" style="display:none"></div>
   <div id="dm-sparkles" style="display:none"></div>
 
-  <!-- v206 Apex Title cinematic reveal — pushes CSS to its ceiling:
+  <!-- v207 Apex Title cinematic reveal (Cinzel Black wordmark):
        letterbox bars + radial vignette + god-ray sweep + nebula glow +
        lens-flare bloom + anamorphic horizontal streak + chrome logo
        blur-to-clear + chromatic aberration. ~3.6s before status.
@@ -3257,7 +3257,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 }
 
 /* ============================================================
-   v206 Apex Title cinematic intro — pure CSS+SVG.
+   v207 Apex Title cinematic intro — pure CSS+SVG with Cinzel Black.
    Pushes the CSS ceiling: letterbox bars, god rays, nebula glow,
    lens flare bloom, anamorphic horizontal streak, chrome logo
    blur-to-clear, chromatic aberration.
@@ -3452,10 +3452,10 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
 /* Main chrome wordmark */
 .apx-text{
-  font-family:'Inter','SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif;
-  font-size:90px;
+  font-family:'Cinzel','Trajan Pro','Times New Roman',serif;
+  font-size:78px;
   font-weight:900;
-  letter-spacing:-0.04em;
+  letter-spacing:0.04em;
   fill:url(#apxChrome);
   stroke:rgba(255,255,255,0.35);
   stroke-width:0.6;
@@ -3464,10 +3464,10 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
 /* Chromatic aberration — R/cyan stroke duplicates, fade in after reveal */
 .apx-aberr{
-  font-family:'Inter','SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif;
-  font-size:90px;
+  font-family:'Cinzel','Trajan Pro','Times New Roman',serif;
+  font-size:78px;
   font-weight:900;
-  letter-spacing:-0.04em;
+  letter-spacing:0.04em;
   fill:transparent;
   stroke-width:1.6;
   stroke-linecap:round;
