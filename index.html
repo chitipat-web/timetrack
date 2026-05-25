@@ -3143,72 +3143,35 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   <div id="dm-bubbles" style="display:none"></div>
   <div id="dm-sparkles" style="display:none"></div>
 
-  <!-- v204 Cosmic Genesis intro — 6-scene cinematic ~4.8s.
-       Scene 1 Cosmos (0.0-1.2s)    starfield + nebula + slow drift
-       Scene 2 Energy (1.0-2.2s)    8 rotating beams + 8 streaks converge
-       Scene 3 Detonation (2.2-2.6) white flash + 3 shockwaves + lens flare
-       Scene 4 Forge (2.4-3.5s)     16 shards orbit-assemble into squircle
-       Scene 5 Brand (3.5-4.5s)     logo emerges + halo + RUDY. typewriter
-       Scene 6 Aftermath (4.5+)     underline draws + status fades in -->
-  <div class="cg-stage">
-    <!-- Scene 1: Cosmos backdrop -->
-    <div class="cg-nebula" aria-hidden="true"></div>
-    <div class="cg-stars" aria-hidden="true">
-      <div class="cg-star s1"></div><div class="cg-star s2"></div><div class="cg-star s3"></div><div class="cg-star s4"></div><div class="cg-star s5"></div>
-      <div class="cg-star s6"></div><div class="cg-star s7"></div><div class="cg-star s8"></div><div class="cg-star s9"></div><div class="cg-star s10"></div>
-      <div class="cg-star s11"></div><div class="cg-star s12"></div><div class="cg-star s13"></div><div class="cg-star s14"></div><div class="cg-star s15"></div>
-      <div class="cg-star s16"></div><div class="cg-star s17"></div><div class="cg-star s18"></div><div class="cg-star s19"></div><div class="cg-star s20"></div>
-      <div class="cg-star s21"></div><div class="cg-star s22"></div><div class="cg-star s23"></div><div class="cg-star s24"></div><div class="cg-star s25"></div>
-      <div class="cg-star s26"></div><div class="cg-star s27"></div><div class="cg-star s28"></div><div class="cg-star s29"></div><div class="cg-star s30"></div>
-      <div class="cg-star s31"></div><div class="cg-star s32"></div><div class="cg-star s33"></div><div class="cg-star s34"></div><div class="cg-star s35"></div>
-      <div class="cg-star s36"></div><div class="cg-star s37"></div><div class="cg-star s38"></div><div class="cg-star s39"></div><div class="cg-star s40"></div>
-    </div>
-    <div class="cg-vignette" aria-hidden="true"></div>
-
-    <!-- Scene 2: Energy buildup -->
-    <div class="cg-beams" aria-hidden="true">
-      <div class="cg-beam b1"></div><div class="cg-beam b2"></div>
-      <div class="cg-beam b3"></div><div class="cg-beam b4"></div>
-      <div class="cg-beam b5"></div><div class="cg-beam b6"></div>
-      <div class="cg-beam b7"></div><div class="cg-beam b8"></div>
-    </div>
-    <div class="cg-streaks" aria-hidden="true">
-      <div class="cg-streak r1"></div><div class="cg-streak r2"></div>
-      <div class="cg-streak r3"></div><div class="cg-streak r4"></div>
-      <div class="cg-streak r5"></div><div class="cg-streak r6"></div>
-      <div class="cg-streak r7"></div><div class="cg-streak r8"></div>
-    </div>
-
-    <!-- Scene 3: Detonation -->
-    <div class="cg-flash" aria-hidden="true"></div>
-    <div class="cg-shock r1" aria-hidden="true"></div>
-    <div class="cg-shock r2" aria-hidden="true"></div>
-    <div class="cg-shock r3" aria-hidden="true"></div>
-    <div class="cg-flare" aria-hidden="true"></div>
-
-    <!-- Scene 4: Crystal forge — 16 shards orbit-assemble -->
-    <div class="cg-shard s1"  aria-hidden="true"></div><div class="cg-shard s2"  aria-hidden="true"></div>
-    <div class="cg-shard s3"  aria-hidden="true"></div><div class="cg-shard s4"  aria-hidden="true"></div>
-    <div class="cg-shard s5"  aria-hidden="true"></div><div class="cg-shard s6"  aria-hidden="true"></div>
-    <div class="cg-shard s7"  aria-hidden="true"></div><div class="cg-shard s8"  aria-hidden="true"></div>
-    <div class="cg-shard s9"  aria-hidden="true"></div><div class="cg-shard s10" aria-hidden="true"></div>
-    <div class="cg-shard s11" aria-hidden="true"></div><div class="cg-shard s12" aria-hidden="true"></div>
-    <div class="cg-shard s13" aria-hidden="true"></div><div class="cg-shard s14" aria-hidden="true"></div>
-    <div class="cg-shard s15" aria-hidden="true"></div><div class="cg-shard s16" aria-hidden="true"></div>
-
-    <!-- Scene 5: Brand reveal -->
-    <div class="cg-logo-wrap">
-      <div class="cg-halo" aria-hidden="true"></div>
-      <img class="cg-logo" src="./icon-192.png" alt="" aria-hidden="true"/>
-    </div>
-    <div class="cg-wm" aria-label="RUDY">
-      <span class="cg-l cl1">R</span><span class="cg-l cl2">U</span><span class="cg-l cl3">D</span><span class="cg-l cl4">Y</span><span class="cg-l cl5" aria-hidden="true">.</span>
-    </div>
-    <div class="cg-underline" aria-hidden="true"></div>
+  <!-- v205 Outline Trace 3D intro — RUDY. wordmark draws its outline
+       via SVG stroke-dashoffset, then fills with chrome metallic
+       gradient, then chromatic aberration (red/cyan stroke offsets)
+       fades in for a glitch reveal. ~3.4s total.
+       Inspired by @cj.introsp on TikTok (3D outline-trace intro
+       template). Pure CSS + SVG, no JS. -->
+  <div class="rt-stage">
+    <div class="rt-noise" aria-hidden="true"></div>
+    <svg class="rt-svg" viewBox="0 0 600 160" aria-label="RUDY" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="rtChrome" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="#fafdff"/>
+          <stop offset="45%"  stop-color="#d8e2ec"/>
+          <stop offset="55%"  stop-color="#9aa9bc"/>
+          <stop offset="100%" stop-color="#5a6878"/>
+        </linearGradient>
+      </defs>
+      <!-- Chromatic aberration: 2 stroke-only layers, offset ±3px,
+           fade in after main outline is drawn + filled. -->
+      <text class="rt-aberr rt-aberr-red"  x="50%" y="108" text-anchor="middle">RUDY.</text>
+      <text class="rt-aberr rt-aberr-cyan" x="50%" y="108" text-anchor="middle">RUDY.</text>
+      <!-- Main text: starts as white stroke outline, traces in,
+           then transitions to chrome gradient fill. -->
+      <text class="rt-text" x="50%" y="108" text-anchor="middle">RUDY.</text>
+    </svg>
   </div>
 
   <!-- Status text — small + dim, doesn't compete with wordmark -->
-  <div id="overlay-status" style="font-size:10px;color:rgba(255,255,255,0.30);letter-spacing:0.20em;text-transform:uppercase;transition:opacity 0.3s ease;margin-top:40px;opacity:0;animation:rudyStatusIn 0.5s ease 4.50s forwards">กำลังเตรียมข้อมูล</div>
+  <div id="overlay-status" style="font-size:10px;color:rgba(255,255,255,0.30);letter-spacing:0.20em;text-transform:uppercase;transition:opacity 0.3s ease;margin-top:40px;opacity:0;animation:rudyStatusIn 0.5s ease 3.60s forwards">กำลังเตรียมข้อมูล</div>
 
   <!-- Hidden skip button -->
   <div id="overlay-skip" style="display:none"></div>
@@ -3289,375 +3252,98 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 }
 
 /* ============================================================
-   v204 Cosmic Genesis intro — 6-scene cinematic ~4.8s.
-   Scene 1 Cosmos (0.0-1.2s)    starfield twinkle + nebula glow + vignette
-   Scene 2 Energy (1.0-2.2s)    8 rotating beams sweep, 8 streaks fly in
-   Scene 3 Detonation (2.2-2.7) white flash + 3 staggered shockwaves + flare
-   Scene 4 Forge (2.4-3.5s)     16 shards orbit-assemble into squircle
-   Scene 5 Brand (3.5-4.4s)     logo materialises + halo + RUDY. chromatic
-                                typewriter letter by letter
-   Scene 6 Aftermath (4.4+)     underline draws + idle pulse + status text
+   v205 Outline Trace 3D intro — SVG-based RUDY. logo reveal.
+   Inspired by @cj.introsp TikTok intro templates.
+   Timeline (~3.4s):
+     0.00s   subtle radial-noise overlay fades in
+     0.30s   main outline (white stroke) traces RUDY. via stroke-
+             dasharray animation (1.9s draw)
+     2.20s   outline transitions to chrome metallic gradient fill
+             + stroke thins
+     2.40s   chromatic aberration layers fade in (red stroke offset
+             -3px, cyan stroke offset +3px) — the "3D edge split"
+     3.00s   subtle idle pulse begins (infinite, scale 1↔1.015)
    ============================================================ */
-.cg-stage{
+.rt-stage{
   position:relative;
   width:100%; height:100%;
   display:flex;
-  flex-direction:column;
   align-items:center;
   justify-content:center;
-  perspective:1200px;
-  transform-style:preserve-3d;
 }
-
-/* ── SCENE 1: COSMOS BACKDROP ───────────────────────────────── */
-.cg-nebula{
+.rt-noise{
   position:absolute; inset:0;
-  background:
-    radial-gradient(ellipse 60% 40% at 30% 30%, rgba(94,200,250,0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 50% at 70% 70%, rgba(177,156,255,0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(255,140,200,0.06) 0%, transparent 60%);
-  opacity:0;
+  background-image:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.05) 0%, transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(94,200,250,0.04) 0%, transparent 50%);
   pointer-events:none;
-  z-index:0;
-  animation:cgNebulaIn 1.5s ease-out 0s forwards, cgNebulaPulse 4.5s ease-in-out 1.5s infinite;
+  opacity:0;
+  animation:rtNoiseIn 0.6s ease-out 0s forwards;
 }
-@keyframes cgNebulaIn { to{ opacity:1; } }
-@keyframes cgNebulaPulse {
-  0%, 100% { transform:scale(1);    opacity:0.9; }
-  50%      { transform:scale(1.08); opacity:1;   }
-}
+@keyframes rtNoiseIn { to{ opacity:1; } }
 
-.cg-stars{
-  position:absolute; inset:0;
-  pointer-events:none;
-  z-index:0;
+.rt-svg{
+  width:85%;
+  max-width:380px;
+  height:auto;
+  filter:drop-shadow(0 14px 36px rgba(255,255,255,0.10))
+         drop-shadow(0 4px 12px rgba(0,0,0,0.55));
+  animation:rtIdlePulse 4.0s ease-in-out 3.00s infinite;
 }
-.cg-star{
-  position:absolute;
-  width:2px; height:2px;
-  border-radius:50%;
-  background:#fff;
-  box-shadow:0 0 4px rgba(255,255,255,0.85);
-  opacity:0;
-  will-change:opacity, transform;
-  animation:cgStarTwinkle 3s ease-in-out infinite;
-}
-@keyframes cgStarTwinkle {
-  0%, 100% { opacity:0.3; transform:scale(0.8); }
-  50%      { opacity:1;   transform:scale(1.4); }
-}
-.cg-star.s1  { top: 8%;  left:12%; animation-delay:0.0s;  width:3px; height:3px; }
-.cg-star.s2  { top:14%;  left:78%; animation-delay:0.3s; }
-.cg-star.s3  { top:22%;  left:35%; animation-delay:0.6s;  width:1px; height:1px; }
-.cg-star.s4  { top:28%;  left:88%; animation-delay:0.9s; }
-.cg-star.s5  { top: 6%;  left:55%; animation-delay:1.2s;  width:2px; height:2px; }
-.cg-star.s6  { top:36%;  left: 8%; animation-delay:1.5s; }
-.cg-star.s7  { top:42%;  left:92%; animation-delay:1.8s;  width:3px; height:3px; }
-.cg-star.s8  { top:18%;  left:20%; animation-delay:0.1s; }
-.cg-star.s9  { top:26%;  left:65%; animation-delay:0.4s; }
-.cg-star.s10 { top:32%;  left:48%; animation-delay:0.7s;  width:1px; height:1px; }
-.cg-star.s11 { top:46%;  left:28%; animation-delay:1.0s; }
-.cg-star.s12 { top:52%;  left:72%; animation-delay:1.3s;  width:2px; height:2px; }
-.cg-star.s13 { top:60%;  left: 5%; animation-delay:1.6s; }
-.cg-star.s14 { top:64%;  left:95%; animation-delay:1.9s;  width:3px; height:3px; }
-.cg-star.s15 { top:58%;  left:40%; animation-delay:0.2s; }
-.cg-star.s16 { top:68%;  left:62%; animation-delay:0.5s; }
-.cg-star.s17 { top:74%;  left:18%; animation-delay:0.8s;  width:1px; height:1px; }
-.cg-star.s18 { top:80%;  left:80%; animation-delay:1.1s; }
-.cg-star.s19 { top:86%;  left:45%; animation-delay:1.4s;  width:2px; height:2px; }
-.cg-star.s20 { top:90%;  left:25%; animation-delay:1.7s; }
-.cg-star.s21 { top:92%;  left:68%; animation-delay:2.0s;  width:3px; height:3px; }
-.cg-star.s22 { top:12%;  left:42%; animation-delay:0.25s; }
-.cg-star.s23 { top:20%;  left: 5%; animation-delay:0.55s; }
-.cg-star.s24 { top: 4%;  left:25%; animation-delay:0.85s;  width:1px; height:1px; }
-.cg-star.s25 { top:34%;  left:75%; animation-delay:1.15s; }
-.cg-star.s26 { top:48%;  left:58%; animation-delay:1.45s;  width:2px; height:2px; }
-.cg-star.s27 { top:56%;  left:18%; animation-delay:1.75s; }
-.cg-star.s28 { top:70%;  left:85%; animation-delay:0.35s; }
-.cg-star.s29 { top:76%;  left:52%; animation-delay:0.65s;  width:1px; height:1px; }
-.cg-star.s30 { top:84%;  left: 8%; animation-delay:0.95s; }
-.cg-star.s31 { top: 2%;  left:70%; animation-delay:1.25s;  width:2px; height:2px; }
-.cg-star.s32 { top:16%;  left:62%; animation-delay:1.55s; }
-.cg-star.s33 { top:30%;  left:18%; animation-delay:1.85s; }
-.cg-star.s34 { top:44%;  left:48%; animation-delay:0.45s;  width:3px; height:3px; }
-.cg-star.s35 { top:50%;  left: 2%; animation-delay:0.75s; }
-.cg-star.s36 { top:62%;  left:32%; animation-delay:1.05s;  width:1px; height:1px; }
-.cg-star.s37 { top:72%;  left:42%; animation-delay:1.35s; }
-.cg-star.s38 { top:82%;  left:72%; animation-delay:1.65s; }
-.cg-star.s39 { top:88%;  left:88%; animation-delay:0.05s;  width:2px; height:2px; }
-.cg-star.s40 { top:24%;  left:50%; animation-delay:0.15s; }
-
-.cg-vignette{
-  position:absolute; inset:0;
-  background:radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.55) 100%);
-  pointer-events:none;
-  z-index:0;
-  opacity:0;
-  animation:cgNebulaIn 1.2s ease-out 0.3s forwards;
-}
-
-/* ── SCENE 2: ENERGY BUILDUP ────────────────────────────────── */
-.cg-beams,
-.cg-streaks{
-  position:absolute;
-  top:50%; left:50%;
-  width:0; height:0;
-  z-index:1;
-  pointer-events:none;
-}
-.cg-beam{
-  position:absolute;
-  top:0; left:0;
-  width:2px; height:600px;
-  margin-top:-300px; margin-left:-1px;
-  background:linear-gradient(to bottom,
-              transparent 0%,
-              rgba(94,200,250,0)    35%,
-              rgba(94,200,250,0.65) 50%,
-              rgba(94,200,250,0)    65%,
-              transparent 100%);
-  filter:drop-shadow(0 0 6px rgba(94,200,250,0.7));
-  opacity:0;
-  transform-origin:center center;
-  will-change:transform, opacity;
-}
-.cg-beam.b1 { animation:cgBeamR0   1.0s cubic-bezier(0.4, 0, 0.2, 1) 1.00s forwards; }
-.cg-beam.b2 { animation:cgBeamR45  1.0s cubic-bezier(0.4, 0, 0.2, 1) 1.10s forwards; }
-.cg-beam.b3 { animation:cgBeamR90  1.0s cubic-bezier(0.4, 0, 0.2, 1) 1.20s forwards; }
-.cg-beam.b4 { animation:cgBeamR135 1.0s cubic-bezier(0.4, 0, 0.2, 1) 1.30s forwards; }
-.cg-beam.b5 { animation:cgBeamR22  1.0s cubic-bezier(0.4, 0, 0.2, 1) 1.05s forwards; }
-.cg-beam.b6 { animation:cgBeamR67  1.0s cubic-bezier(0.4, 0, 0.2, 1) 1.15s forwards; }
-.cg-beam.b7 { animation:cgBeamR112 1.0s cubic-bezier(0.4, 0, 0.2, 1) 1.25s forwards; }
-.cg-beam.b8 { animation:cgBeamR157 1.0s cubic-bezier(0.4, 0, 0.2, 1) 1.35s forwards; }
-@keyframes cgBeamR0   { 0%{opacity:0;transform:scaleY(0) rotate(0deg);}30%{opacity:0.9;}100%{opacity:0;transform:scaleY(1.2) rotate(0deg);} }
-@keyframes cgBeamR22  { 0%{opacity:0;transform:scaleY(0) rotate(22deg);}30%{opacity:0.9;}100%{opacity:0;transform:scaleY(1.2) rotate(22deg);} }
-@keyframes cgBeamR45  { 0%{opacity:0;transform:scaleY(0) rotate(45deg);}30%{opacity:0.9;}100%{opacity:0;transform:scaleY(1.2) rotate(45deg);} }
-@keyframes cgBeamR67  { 0%{opacity:0;transform:scaleY(0) rotate(67deg);}30%{opacity:0.9;}100%{opacity:0;transform:scaleY(1.2) rotate(67deg);} }
-@keyframes cgBeamR90  { 0%{opacity:0;transform:scaleY(0) rotate(90deg);}30%{opacity:0.9;}100%{opacity:0;transform:scaleY(1.2) rotate(90deg);} }
-@keyframes cgBeamR112 { 0%{opacity:0;transform:scaleY(0) rotate(112deg);}30%{opacity:0.9;}100%{opacity:0;transform:scaleY(1.2) rotate(112deg);} }
-@keyframes cgBeamR135 { 0%{opacity:0;transform:scaleY(0) rotate(135deg);}30%{opacity:0.9;}100%{opacity:0;transform:scaleY(1.2) rotate(135deg);} }
-@keyframes cgBeamR157 { 0%{opacity:0;transform:scaleY(0) rotate(157deg);}30%{opacity:0.9;}100%{opacity:0;transform:scaleY(1.2) rotate(157deg);} }
-
-.cg-streak{
-  position:absolute;
-  top:0; left:0;
-  width:4px; height:4px;
-  border-radius:50%;
-  background:#fff;
-  box-shadow:0 0 12px rgba(94,200,250,0.95);
-  opacity:0;
-  will-change:transform, opacity;
-  animation:cgStreakIn 1.0s cubic-bezier(0.45, 0, 0.20, 1) forwards;
-}
-.cg-streak.r1 { --sx:-280px; --sy:-100px; animation-delay:1.20s; }
-.cg-streak.r2 { --sx:-200px; --sy:-220px; animation-delay:1.30s; }
-.cg-streak.r3 { --sx:  60px; --sy:-280px; animation-delay:1.40s; }
-.cg-streak.r4 { --sx: 240px; --sy:-180px; animation-delay:1.25s; }
-.cg-streak.r5 { --sx: 280px; --sy:  80px; animation-delay:1.35s; }
-.cg-streak.r6 { --sx: 180px; --sy: 240px; animation-delay:1.45s; }
-.cg-streak.r7 { --sx: -80px; --sy: 280px; animation-delay:1.30s; }
-.cg-streak.r8 { --sx:-260px; --sy: 140px; animation-delay:1.40s; }
-@keyframes cgStreakIn {
-  0%   { opacity:0; transform:translate(var(--sx,0), var(--sy,0)) translate(-50%,-50%) scale(0.3); }
-  20%  { opacity:1; }
-  85%  { opacity:1; transform:translate(0,0) translate(-50%,-50%) scale(2); }
-  100% { opacity:0; transform:translate(0,0) translate(-50%,-50%) scale(0); }
-}
-
-/* ── SCENE 3: DETONATION ────────────────────────────────────── */
-.cg-flash{
-  position:absolute;
-  top:50%; left:50%;
-  width:340px; height:340px;
-  margin-top:-170px; margin-left:-170px;
-  border-radius:50%;
-  background:radial-gradient(circle, rgba(255,255,255,0.98) 0%, rgba(94,200,250,0.55) 35%, rgba(94,200,250,0) 65%);
-  opacity:0;
-  transform:scale(0.2);
-  pointer-events:none;
-  z-index:2;
-  animation:cgFlash 0.6s cubic-bezier(0, 0, 0.20, 1) 2.20s forwards;
-}
-@keyframes cgFlash {
-  0%   { opacity:0; transform:scale(0.2); }
-  20%  { opacity:1; }
-  100% { opacity:0; transform:scale(3.5); }
-}
-
-.cg-shock{
-  position:absolute;
-  top:50%; left:50%;
-  width:140px; height:140px;
-  margin-top:-70px; margin-left:-70px;
-  border-radius:50%;
-  border:2px solid rgba(94,200,250,0.8);
-  box-shadow:0 0 24px rgba(94,200,250,0.6);
-  opacity:0;
-  pointer-events:none;
-  z-index:1;
-  will-change:transform, opacity;
-}
-.cg-shock.r1 { animation:cgShock 1.2s cubic-bezier(0.16, 1, 0.30, 1) 2.25s forwards; }
-.cg-shock.r2 { animation:cgShock 1.2s cubic-bezier(0.16, 1, 0.30, 1) 2.40s forwards; border-color:rgba(255,255,255,0.55); }
-.cg-shock.r3 { animation:cgShock 1.2s cubic-bezier(0.16, 1, 0.30, 1) 2.55s forwards; }
-@keyframes cgShock {
-  0%   { opacity:0.95; transform:scale(0.2); border-width:3px;   }
-  100% { opacity:0;    transform:scale(12);  border-width:0.5px; }
-}
-
-.cg-flare{
-  position:absolute;
-  top:50%; left:50%;
-  width:600px; height:8px;
-  margin-top:-4px; margin-left:-300px;
-  background:linear-gradient(to right, transparent 0%, rgba(255,255,255,0.9) 45%, rgba(94,200,250,0.95) 50%, rgba(255,255,255,0.9) 55%, transparent 100%);
-  filter:blur(2px);
-  opacity:0;
-  pointer-events:none;
-  z-index:2;
-  animation:cgFlare 0.7s cubic-bezier(0, 0, 0.20, 1) 2.30s forwards;
-}
-@keyframes cgFlare {
-  0%   { opacity:0; transform:scaleX(0);   }
-  30%  { opacity:1; transform:scaleX(1);   }
-  100% { opacity:0; transform:scaleX(1.3); }
-}
-
-/* ── SCENE 4: CRYSTAL FORGE — 16 shards orbit-assemble ──────── */
-.cg-shard{
-  position:absolute;
-  top:50%; left:50%;
-  width:36px; height:36px;
-  margin-top:-18px; margin-left:-18px;
-  background:linear-gradient(135deg,
-              rgba(255,255,255,0.65) 0%,
-              rgba(94,200,250,0.70) 50%,
-              rgba(255,255,255,0.45) 100%);
-  filter:drop-shadow(0 6px 14px rgba(94,200,250,0.55));
-  opacity:0;
-  will-change:transform, opacity;
-  z-index:2;
-  animation:cgShardForge 1.1s cubic-bezier(0.34, 1.20, 0.50, 1) 2.40s forwards;
-}
-@keyframes cgShardForge {
-  0%   { opacity:0;   transform:translate(var(--sx,0), var(--sy,0)) rotate(0deg)   scale(0.4); }
-  15%  { opacity:1; }
-  60%  { opacity:1;   transform:translate(calc(var(--sx,0) * 0.35), calc(var(--sy,0) * 0.35)) rotate(180deg) scale(1.1); }
-  100% { opacity:0.7; transform:translate(0,0) rotate(360deg) scale(0.2); }
-}
-.cg-shard.s1  { --sx: 280px; --sy:    0;   clip-path:polygon(50% 0%, 0% 100%, 100% 100%); }
-.cg-shard.s2  { --sx: 259px; --sy: -107px; clip-path:polygon(30% 0%, 100% 30%, 70% 100%, 0% 70%); }
-.cg-shard.s3  { --sx: 198px; --sy: -198px; clip-path:polygon(40% 0%, 100% 30%, 80% 100%, 20% 90%, 0% 50%); }
-.cg-shard.s4  { --sx: 107px; --sy: -259px; clip-path:polygon(50% 0%, 0% 100%, 100% 100%); }
-.cg-shard.s5  { --sx:    0;  --sy: -280px; clip-path:polygon(30% 0%, 100% 30%, 70% 100%, 0% 70%); }
-.cg-shard.s6  { --sx:-107px; --sy: -259px; clip-path:polygon(40% 0%, 100% 30%, 80% 100%, 20% 90%, 0% 50%); }
-.cg-shard.s7  { --sx:-198px; --sy: -198px; clip-path:polygon(50% 0%, 0% 100%, 100% 100%); }
-.cg-shard.s8  { --sx:-259px; --sy: -107px; clip-path:polygon(30% 0%, 100% 30%, 70% 100%, 0% 70%); }
-.cg-shard.s9  { --sx:-280px; --sy:    0;   clip-path:polygon(40% 0%, 100% 30%, 80% 100%, 20% 90%, 0% 50%); }
-.cg-shard.s10 { --sx:-259px; --sy:  107px; clip-path:polygon(50% 0%, 0% 100%, 100% 100%); }
-.cg-shard.s11 { --sx:-198px; --sy:  198px; clip-path:polygon(30% 0%, 100% 30%, 70% 100%, 0% 70%); }
-.cg-shard.s12 { --sx:-107px; --sy:  259px; clip-path:polygon(40% 0%, 100% 30%, 80% 100%, 20% 90%, 0% 50%); }
-.cg-shard.s13 { --sx:    0;  --sy:  280px; clip-path:polygon(50% 0%, 0% 100%, 100% 100%); }
-.cg-shard.s14 { --sx: 107px; --sy:  259px; clip-path:polygon(30% 0%, 100% 30%, 70% 100%, 0% 70%); }
-.cg-shard.s15 { --sx: 198px; --sy:  198px; clip-path:polygon(40% 0%, 100% 30%, 80% 100%, 20% 90%, 0% 50%); }
-.cg-shard.s16 { --sx: 259px; --sy:  107px; clip-path:polygon(50% 0%, 0% 100%, 100% 100%); }
-
-/* ── SCENE 5: BRAND REVEAL ──────────────────────────────────── */
-.cg-logo-wrap{
-  position:relative;
-  width:96px; height:96px;
-  z-index:3;
-}
-.cg-halo{
-  position:absolute;
-  top:50%; left:50%;
-  width:280px; height:280px;
-  margin-top:-140px; margin-left:-140px;
-  background:radial-gradient(circle, rgba(94,200,250,0.40) 0%, rgba(94,200,250,0.15) 35%, rgba(94,200,250,0) 65%);
-  opacity:0;
-  pointer-events:none;
-  z-index:-1;
-  animation:cgHaloIn 0.8s ease-out 3.50s forwards, cgHaloPulse 3.0s ease-in-out 4.30s infinite;
-}
-@keyframes cgHaloIn    { to{ opacity:1; } }
-@keyframes cgHaloPulse {
-  0%, 100% { transform:scale(1);    filter:blur(0); }
-  50%      { transform:scale(1.15); filter:blur(2px); }
-}
-.cg-logo{
-  position:relative;
-  width:96px; height:96px;
-  border-radius:22%;
-  opacity:0;
-  transform:rotateY(180deg) scale(0.4);
-  backface-visibility:hidden;
-  filter:drop-shadow(0 16px 40px rgba(94,200,250,0.55));
-  will-change:transform, opacity;
-  z-index:3;
-  animation:cgLogoMaterialise 0.85s cubic-bezier(0.34, 1.45, 0.55, 1) 3.50s forwards,
-            cgLogoBreathe 3.5s ease-in-out 4.60s infinite;
-}
-@keyframes cgLogoMaterialise {
-  0%   { opacity:0; transform:rotateY(180deg) scale(0.4); }
-  35%  { opacity:1; }
-  60%  { transform:rotateY(15deg)  scale(1.10); }
-  100% { opacity:1; transform:rotateY(0deg)   scale(1.0);  }
-}
-@keyframes cgLogoBreathe {
+@keyframes rtIdlePulse{
   0%, 100% { transform:scale(1);     }
-  50%      { transform:scale(1.035); }
+  50%      { transform:scale(1.015); }
 }
 
-.cg-wm{
-  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
-  font-size:46px;
-  font-weight:800;
+/* Main wordmark — outlines first, then fills chrome */
+.rt-text{
+  font-family:'Inter','SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:90px;
+  font-weight:900;
   letter-spacing:-0.04em;
-  line-height:1;
-  color:#fff;
-  margin-top:28px;
-  display:flex;
-  align-items:baseline;
-  z-index:3;
+  fill:transparent;
+  stroke:#fff;
+  stroke-width:1.6;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  stroke-dasharray:1500;
+  stroke-dashoffset:1500;
+  will-change:stroke-dashoffset, fill;
+  animation:rtTrace 1.9s cubic-bezier(0.45, 0, 0.30, 1) 0.30s forwards,
+            rtFill 0.6s ease 2.20s forwards;
 }
-.cg-l{
-  display:inline-block;
-  opacity:0;
-  transform:translateY(20px) scale(1.3);
-  filter:blur(8px);
-  will-change:transform, opacity, filter, text-shadow;
-  animation:cgLetterChroma 0.7s cubic-bezier(0.20, 0.85, 0.30, 1) forwards;
-}
-.cg-l.cl1 { animation-delay:4.00s; }
-.cg-l.cl2 { animation-delay:4.08s; }
-.cg-l.cl3 { animation-delay:4.16s; }
-.cg-l.cl4 { animation-delay:4.24s; }
-.cg-l.cl5 { animation-delay:4.36s; color:#5AC8FA; margin-left:3px; font-size:0.9em; }
-@keyframes cgLetterChroma {
-  0%   { opacity:0;   transform:translateY(20px) scale(1.3); filter:blur(8px);
-         text-shadow:8px 0 0 rgba(255,0,122,0.85), -8px 0 0 rgba(0,255,255,0.85); }
-  40%  { opacity:0.9; transform:translateY(8px)  scale(1.12); filter:blur(3px);
-         text-shadow:4px 0 0 rgba(255,0,122,0.60), -4px 0 0 rgba(0,255,255,0.60); }
-  75%  { opacity:1;   transform:translateY(2px)  scale(1.02); filter:blur(0.5px);
-         text-shadow:2px 0 0 rgba(255,0,122,0.30), -2px 0 0 rgba(0,255,255,0.30); }
-  100% { opacity:1;   transform:translateY(0)    scale(1);    filter:blur(0);
-         text-shadow:0 6px 24px rgba(94,200,250,0.30); }
+@keyframes rtTrace { to { stroke-dashoffset:0; } }
+@keyframes rtFill {
+  to {
+    fill:url(#rtChrome);
+    stroke-width:0.8;
+  }
 }
 
-.cg-underline{
-  width:200px; height:1.5px;
-  margin-top:12px;
-  background:linear-gradient(to right, transparent 0%, rgba(94,200,250,0.85) 50%, transparent 100%);
-  transform-origin:center;
-  transform:scaleX(0);
+/* Chromatic aberration — stroke-only duplicates, offset ±3px,
+   fade in after main outline has filled. */
+.rt-aberr{
+  font-family:'Inter','SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:90px;
+  font-weight:900;
+  letter-spacing:-0.04em;
+  fill:transparent;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
   opacity:0;
-  z-index:3;
-  animation:cgUnderlineIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) 4.55s forwards;
+  will-change:opacity;
+  animation:rtAberrIn 0.55s ease 2.40s forwards;
 }
-@keyframes cgUnderlineIn {
-  0%   { opacity:0; transform:scaleX(0); }
-  100% { opacity:1; transform:scaleX(1); }
+.rt-aberr-red {
+  stroke:rgba(255, 60, 100, 0.72);
+  transform:translateX(-3px) translateY(-1px);
 }
+.rt-aberr-cyan {
+  stroke:rgba(80, 220, 255, 0.72);
+  transform:translateX(3px) translateY(1px);
+}
+@keyframes rtAberrIn { to { opacity:1; } }
 
 /* Legacy dm-* keyframes kept since other styles in this file reference
    them via the .dm-droplet class (still present elsewhere — only the
@@ -4571,7 +4257,7 @@ const _loadStartTime = performance.now();
 // "settled wordmark" beat before the 500ms fade begins, so the user
 // always sees the full reveal play out before the app appears.
 // Total splash visible time: 3.5s hold + 0.5s fade = 4.0s.
-const MIN_LOADING_MS = 5000;
+const MIN_LOADING_MS = 4000;
 
 // Hide overlay after enforcing minimum display time
 function _delayedHideOverlay(callback){
