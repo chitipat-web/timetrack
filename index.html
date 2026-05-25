@@ -3143,31 +3143,36 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   <div id="dm-bubbles" style="display:none"></div>
   <div id="dm-sparkles" style="display:none"></div>
 
-  <!-- v205 Outline Trace 3D intro — RUDY. wordmark draws its outline
-       via SVG stroke-dashoffset, then fills with chrome metallic
-       gradient, then chromatic aberration (red/cyan stroke offsets)
-       fades in for a glitch reveal. ~3.4s total.
-       Inspired by @cj.introsp on TikTok (3D outline-trace intro
-       template). Pure CSS + SVG, no JS. -->
-  <div class="rt-stage">
-    <div class="rt-noise" aria-hidden="true"></div>
-    <svg class="rt-svg" viewBox="0 0 600 160" aria-label="RUDY" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="rtChrome" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%"   stop-color="#fafdff"/>
-          <stop offset="45%"  stop-color="#d8e2ec"/>
-          <stop offset="55%"  stop-color="#9aa9bc"/>
-          <stop offset="100%" stop-color="#5a6878"/>
-        </linearGradient>
-      </defs>
-      <!-- Chromatic aberration: 2 stroke-only layers, offset ±3px,
-           fade in after main outline is drawn + filled. -->
-      <text class="rt-aberr rt-aberr-red"  x="50%" y="108" text-anchor="middle">RUDY.</text>
-      <text class="rt-aberr rt-aberr-cyan" x="50%" y="108" text-anchor="middle">RUDY.</text>
-      <!-- Main text: starts as white stroke outline, traces in,
-           then transitions to chrome gradient fill. -->
-      <text class="rt-text" x="50%" y="108" text-anchor="middle">RUDY.</text>
-    </svg>
+  <!-- v206 Apex Title cinematic reveal — pushes CSS to its ceiling:
+       letterbox bars + radial vignette + god-ray sweep + nebula glow +
+       lens-flare bloom + anamorphic horizontal streak + chrome logo
+       blur-to-clear + chromatic aberration. ~3.6s before status.
+       All transform+opacity+filter (GPU). Pure CSS + SVG, no JS. -->
+  <div class="apx-stage">
+    <div class="apx-vignette" aria-hidden="true"></div>
+    <div class="apx-nebula"   aria-hidden="true"></div>
+    <div class="apx-rays"     aria-hidden="true"></div>
+    <div class="apx-grain"    aria-hidden="true"></div>
+    <div class="apx-bar-top"  aria-hidden="true"></div>
+    <div class="apx-bar-bot"  aria-hidden="true"></div>
+    <div class="apx-flare"    aria-hidden="true"></div>
+    <div class="apx-streak"   aria-hidden="true"></div>
+    <div class="apx-logo">
+      <svg class="apx-svg" viewBox="0 0 600 160" aria-label="RUDY" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="apxChrome" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%"   stop-color="#fafdff"/>
+            <stop offset="40%"  stop-color="#e0eaf4"/>
+            <stop offset="50%"  stop-color="#b8c5d4"/>
+            <stop offset="60%"  stop-color="#7a8898"/>
+            <stop offset="100%" stop-color="#3a4858"/>
+          </linearGradient>
+        </defs>
+        <text class="apx-aberr apx-aberr-red"  x="50%" y="108" text-anchor="middle">RUDY.</text>
+        <text class="apx-aberr apx-aberr-cyan" x="50%" y="108" text-anchor="middle">RUDY.</text>
+        <text class="apx-text" x="50%" y="108" text-anchor="middle">RUDY.</text>
+      </svg>
+    </div>
   </div>
 
   <!-- Status text — small + dim, doesn't compete with wordmark -->
@@ -3252,98 +3257,228 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 }
 
 /* ============================================================
-   v205 Outline Trace 3D intro — SVG-based RUDY. logo reveal.
-   Inspired by @cj.introsp TikTok intro templates.
-   Timeline (~3.4s):
-     0.00s   subtle radial-noise overlay fades in
-     0.30s   main outline (white stroke) traces RUDY. via stroke-
-             dasharray animation (1.9s draw)
-     2.20s   outline transitions to chrome metallic gradient fill
-             + stroke thins
-     2.40s   chromatic aberration layers fade in (red stroke offset
-             -3px, cyan stroke offset +3px) — the "3D edge split"
-     3.00s   subtle idle pulse begins (infinite, scale 1↔1.015)
-   ============================================================ */
-.rt-stage{
+   v206 Apex Title cinematic intro — pure CSS+SVG.
+   Pushes the CSS ceiling: letterbox bars, god rays, nebula glow,
+   lens flare bloom, anamorphic horizontal streak, chrome logo
+   blur-to-clear, chromatic aberration.
+   Timeline (~3.4s before status, MIN_LOADING_MS 4000):
+     0.00s   vignette fade + dark gradient bg
+     0.10s   letterbox bars slide in from top/bottom (cinema feel)
+     0.40s   film grain overlay fades in (mix-blend-mode:overlay)
+     0.50s   god-ray beams (3 angled gradients) sweep L→R
+     0.80s   nebula glow pulses in behind logo
+     1.20s   lens-flare bloom bursts at center
+     1.40s   logo blur(24px)+scale(1.15) settles to blur(0)+scale(1)
+     2.10s   anamorphic horizontal lens streak sweeps across logo
+     2.40s   chromatic aberration R/cyan tints hold (always-on)
+     3.00s   subtle idle pulse begins (infinite)
+   GPU-friendly: transform + opacity + filter only. <12 elements. */
+
+.apx-stage{
   position:relative;
   width:100%; height:100%;
   display:flex;
   align-items:center;
   justify-content:center;
+  background:radial-gradient(ellipse at center, #0a1430 0%, #04081e 70%, #000 100%);
+  overflow:hidden;
 }
-.rt-noise{
+
+/* Radial vignette darkens the edges (cinema framing) */
+.apx-vignette{
   position:absolute; inset:0;
-  background-image:
-    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.05) 0%, transparent 50%),
-    radial-gradient(circle at 70% 80%, rgba(94,200,250,0.04) 0%, transparent 50%);
+  background:radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.80) 100%);
   pointer-events:none;
   opacity:0;
-  animation:rtNoiseIn 0.6s ease-out 0s forwards;
+  animation:apxVignetteIn 0.6s ease 0s forwards;
 }
-@keyframes rtNoiseIn { to{ opacity:1; } }
+@keyframes apxVignetteIn { to { opacity:1; } }
 
-.rt-svg{
-  width:85%;
-  max-width:380px;
-  height:auto;
-  filter:drop-shadow(0 14px 36px rgba(255,255,255,0.10))
-         drop-shadow(0 4px 12px rgba(0,0,0,0.55));
-  animation:rtIdlePulse 4.0s ease-in-out 3.00s infinite;
+/* Nebula — soft pulsing cyan+purple glow behind logo */
+.apx-nebula{
+  position:absolute; top:50%; left:50%;
+  width:80vmin; height:80vmin;
+  transform:translate(-50%, -50%) scale(0.4);
+  background:radial-gradient(circle, rgba(90,200,250,0.28) 0%, rgba(177,156,255,0.10) 40%, transparent 70%);
+  filter:blur(18px);
+  pointer-events:none;
+  opacity:0;
+  will-change:opacity, transform;
+  animation:apxNebulaIn 1.2s ease 0.80s forwards;
 }
-@keyframes rtIdlePulse{
-  0%, 100% { transform:scale(1);     }
-  50%      { transform:scale(1.015); }
+@keyframes apxNebulaIn {
+  0%   { opacity:0;    transform:translate(-50%, -50%) scale(0.4); }
+  60%  { opacity:0.95; transform:translate(-50%, -50%) scale(1.0); }
+  100% { opacity:0.70; transform:translate(-50%, -50%) scale(1.1); }
 }
 
-/* Main wordmark — outlines first, then fills chrome */
-.rt-text{
+/* God-ray sweep — angled cyan beam crosses screen once */
+.apx-rays{
+  position:absolute; top:-30%; left:-30%;
+  width:160%; height:160%;
+  transform:rotate(-22deg);
+  transform-origin:center;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(90,200,250,0.00) 35%,
+    rgba(90,200,250,0.28) 47%,
+    rgba(255,255,255,0.55) 50%,
+    rgba(90,200,250,0.28) 53%,
+    rgba(90,200,250,0.00) 65%,
+    transparent 100%);
+  background-size:35% 100%;
+  background-repeat:no-repeat;
+  background-position:-35% 0;
+  mix-blend-mode:screen;
+  pointer-events:none;
+  opacity:0;
+  filter:blur(8px);
+  will-change:background-position, opacity;
+  animation:apxRaysSweep 1.6s ease 0.50s forwards;
+}
+@keyframes apxRaysSweep {
+  0%   { background-position:-35% 0; opacity:0;   }
+  20%  {                              opacity:1;   }
+  80%  {                              opacity:1;   }
+  100% { background-position:135% 0;  opacity:0;   }
+}
+
+/* Film grain — animated noise overlay via stacked radial dots */
+.apx-grain{
+  position:absolute; inset:0;
+  background-image:
+    radial-gradient(circle at 25% 30%, rgba(255,255,255,0.04) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 75% 70%, rgba(255,255,255,0.04) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 45% 80%, rgba(255,255,255,0.03) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 85% 20%, rgba(255,255,255,0.03) 0.5px, transparent 1.5px);
+  background-size:3px 3px, 3px 3px, 2px 2px, 4px 4px;
+  pointer-events:none;
+  opacity:0;
+  mix-blend-mode:overlay;
+  will-change:opacity;
+  animation:apxGrainIn 1.0s ease 0.40s forwards;
+}
+@keyframes apxGrainIn { to { opacity:0.55; } }
+
+/* Letterbox cinematic black bars top + bottom */
+.apx-bar-top, .apx-bar-bot{
+  position:absolute; left:0; right:0;
+  height:9vh;
+  background:#000;
+  pointer-events:none;
+  z-index:2;
+  will-change:transform;
+}
+.apx-bar-top{ top:0;    transform:translateY(-100%); animation:apxBarTop 0.5s cubic-bezier(0.55,0,0.30,1) 0.10s forwards; }
+.apx-bar-bot{ bottom:0; transform:translateY(100%);  animation:apxBarBot 0.5s cubic-bezier(0.55,0,0.30,1) 0.10s forwards; }
+@keyframes apxBarTop { to { transform:translateY(0); } }
+@keyframes apxBarBot { to { transform:translateY(0); } }
+
+/* Lens-flare bloom — bright burst expanding outward */
+.apx-flare{
+  position:absolute; top:50%; left:50%;
+  width:36vmin; height:36vmin;
+  transform:translate(-50%, -50%) scale(0);
+  background:radial-gradient(circle,
+    #fff 0%,
+    rgba(255,255,255,0.65) 8%,
+    rgba(170,225,255,0.55) 18%,
+    rgba(90,200,250,0.35) 32%,
+    transparent 55%);
+  filter:blur(2px);
+  pointer-events:none;
+  opacity:0;
+  mix-blend-mode:screen;
+  z-index:3;
+  will-change:transform, opacity;
+  animation:apxFlareIn 0.9s ease 1.20s forwards;
+}
+@keyframes apxFlareIn {
+  0%   { opacity:0; transform:translate(-50%, -50%) scale(0);   }
+  30%  { opacity:1; transform:translate(-50%, -50%) scale(1);   }
+  100% { opacity:0; transform:translate(-50%, -50%) scale(1.7); }
+}
+
+/* Anamorphic horizontal lens streak (the J.J. Abrams classic) */
+.apx-streak{
+  position:absolute; top:50%; left:50%;
+  width:140vmin; height:2px;
+  transform:translate(-50%, -50%) scaleX(0);
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(90,200,250,0.55) 30%,
+    #fff 50%,
+    rgba(90,200,250,0.55) 70%,
+    transparent 100%);
+  filter:blur(1px);
+  pointer-events:none;
+  opacity:0;
+  mix-blend-mode:screen;
+  box-shadow:0 0 18px rgba(90,200,250,0.75), 0 0 36px rgba(90,200,250,0.45);
+  z-index:4;
+  will-change:transform, opacity;
+  animation:apxStreakIn 0.8s ease 2.10s forwards;
+}
+@keyframes apxStreakIn {
+  0%   { opacity:0; transform:translate(-50%, -50%) scaleX(0); }
+  35%  { opacity:1; transform:translate(-50%, -50%) scaleX(1); }
+  100% { opacity:0; transform:translate(-50%, -50%) scaleX(1); }
+}
+
+/* Logo wrapper — settles in with blur-to-clear "depth of field" */
+.apx-logo{
+  position:relative;
+  z-index:5;
+  opacity:0;
+  filter:blur(24px);
+  transform:scale(1.15);
+  will-change:opacity, filter, transform;
+  animation:apxLogoIn 0.95s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1.40s forwards,
+            apxLogoIdle 5.0s ease-in-out 3.00s infinite;
+}
+@keyframes apxLogoIn {
+  to { opacity:1; filter:blur(0); transform:scale(1); }
+}
+@keyframes apxLogoIdle {
+  0%, 100% { transform:scale(1)     translateY(0);    }
+  50%      { transform:scale(1.012) translateY(-2px); }
+}
+
+.apx-svg{
+  width:85%; max-width:380px; height:auto; display:block;
+  filter:drop-shadow(0 14px 36px rgba(90,200,250,0.30))
+         drop-shadow(0 4px 12px rgba(0,0,0,0.60));
+}
+
+/* Main chrome wordmark */
+.apx-text{
+  font-family:'Inter','SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:90px;
+  font-weight:900;
+  letter-spacing:-0.04em;
+  fill:url(#apxChrome);
+  stroke:rgba(255,255,255,0.35);
+  stroke-width:0.6;
+  paint-order:stroke fill;
+}
+
+/* Chromatic aberration — R/cyan stroke duplicates, fade in after reveal */
+.apx-aberr{
   font-family:'Inter','SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif;
   font-size:90px;
   font-weight:900;
   letter-spacing:-0.04em;
   fill:transparent;
-  stroke:#fff;
   stroke-width:1.6;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-  stroke-dasharray:1500;
-  stroke-dashoffset:1500;
-  will-change:stroke-dashoffset, fill;
-  animation:rtTrace 1.9s cubic-bezier(0.45, 0, 0.30, 1) 0.30s forwards,
-            rtFill 0.6s ease 2.20s forwards;
-}
-@keyframes rtTrace { to { stroke-dashoffset:0; } }
-@keyframes rtFill {
-  to {
-    fill:url(#rtChrome);
-    stroke-width:0.8;
-  }
-}
-
-/* Chromatic aberration — stroke-only duplicates, offset ±3px,
-   fade in after main outline has filled. */
-.rt-aberr{
-  font-family:'Inter','SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif;
-  font-size:90px;
-  font-weight:900;
-  letter-spacing:-0.04em;
-  fill:transparent;
-  stroke-width:1.8;
   stroke-linecap:round;
   stroke-linejoin:round;
   opacity:0;
   will-change:opacity;
-  animation:rtAberrIn 0.55s ease 2.40s forwards;
+  animation:apxAberrIn 0.55s ease 2.40s forwards;
 }
-.rt-aberr-red {
-  stroke:rgba(255, 60, 100, 0.72);
-  transform:translateX(-3px) translateY(-1px);
-}
-.rt-aberr-cyan {
-  stroke:rgba(80, 220, 255, 0.72);
-  transform:translateX(3px) translateY(1px);
-}
-@keyframes rtAberrIn { to { opacity:1; } }
+.apx-aberr-red  { stroke:rgba(255, 60, 100, 0.70); transform:translateX(-2.5px) translateY(-1px); }
+.apx-aberr-cyan { stroke:rgba(80, 220, 255, 0.70); transform:translateX( 2.5px) translateY( 1px); }
+@keyframes apxAberrIn { to { opacity:1; } }
 
 /* Legacy dm-* keyframes kept since other styles in this file reference
    them via the .dm-droplet class (still present elsewhere — only the

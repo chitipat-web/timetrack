@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v205
-// Cache: rudy-static-v205, firebase-v205
-// Build: 2026-05-25 · Outline Trace 3D intro — SVG trace + chrome fill + chromatic aberration (CJ.introsp style)
+// RUDY · Service Worker v206
+// Cache: rudy-static-v206, firebase-v206
+// Build: 2026-05-25 · Apex Title cinematic intro — letterbox + god rays + flare + chrome logo
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v205';
-const FIREBASE_CACHE = 'firebase-v205';
-const RUNTIME_CACHE = 'rudy-runtime-v205';
+const STATIC_CACHE  = 'rudy-static-v206';
+const FIREBASE_CACHE = 'firebase-v206';
+const RUNTIME_CACHE = 'rudy-runtime-v206';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -55,12 +55,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v205] Installing...');
+  console.log('[SW v206] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v205] Precache partial fail (ok):', err);
+          console.warn('[SW v206] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v205] Activating...');
+  console.log('[SW v206] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v205] Deleting old cache:', name);
+              console.log('[SW v206] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -227,7 +227,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v205' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v206' });
     return;
   }
 });
@@ -250,7 +250,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v205] Push parse fail:', e);
+    console.warn('[SW v206] Push parse fail:', e);
   }
 });
 
@@ -270,4 +270,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v205] Loaded — Outline Trace 3D intro');
+console.log('[SW v206] Loaded — Apex Title cinematic intro');
