@@ -3143,40 +3143,25 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   <div id="dm-bubbles" style="display:none"></div>
   <div id="dm-sparkles" style="display:none"></div>
 
-  <!-- v207 Apex Title cinematic reveal (Cinzel Black wordmark):
-       letterbox bars + radial vignette + god-ray sweep + nebula glow +
-       lens-flare bloom + anamorphic horizontal streak + chrome logo
-       blur-to-clear + chromatic aberration. ~3.6s before status.
-       All transform+opacity+filter (GPU). Pure CSS + SVG, no JS. -->
-  <div class="apx-stage">
-    <div class="apx-vignette" aria-hidden="true"></div>
-    <div class="apx-nebula"   aria-hidden="true"></div>
-    <div class="apx-rays"     aria-hidden="true"></div>
-    <div class="apx-grain"    aria-hidden="true"></div>
-    <div class="apx-bar-top"  aria-hidden="true"></div>
-    <div class="apx-bar-bot"  aria-hidden="true"></div>
-    <div class="apx-flare"    aria-hidden="true"></div>
-    <div class="apx-streak"   aria-hidden="true"></div>
-    <div class="apx-logo">
-      <svg class="apx-svg" viewBox="0 0 600 160" aria-label="RUDY" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="apxChrome" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%"   stop-color="#fafdff"/>
-            <stop offset="40%"  stop-color="#e0eaf4"/>
-            <stop offset="50%"  stop-color="#b8c5d4"/>
-            <stop offset="60%"  stop-color="#7a8898"/>
-            <stop offset="100%" stop-color="#3a4858"/>
-          </linearGradient>
-        </defs>
-        <text class="apx-aberr apx-aberr-red"  x="50%" y="108" text-anchor="middle">RUDY.</text>
-        <text class="apx-aberr apx-aberr-cyan" x="50%" y="108" text-anchor="middle">RUDY.</text>
-        <text class="apx-text" x="50%" y="108" text-anchor="middle">RUDY.</text>
+  <!-- v208 Geometric Stripe-style intro (Cinzel Black wordmark):
+       dark gradient + cyan/purple gradient mesh blobs + faint fine grid +
+       single diagonal light sweep + accent line draw under wordmark.
+       ~2.4s before status. Pure CSS + SVG. Transform+opacity+filter (GPU). -->
+  <div class="geo-stage">
+    <div class="geo-grid"   aria-hidden="true"></div>
+    <div class="geo-mesh-a" aria-hidden="true"></div>
+    <div class="geo-mesh-b" aria-hidden="true"></div>
+    <div class="geo-sweep"  aria-hidden="true"></div>
+    <div class="geo-logo">
+      <svg class="geo-svg" viewBox="0 0 600 160" aria-label="RUDY" xmlns="http://www.w3.org/2000/svg">
+        <text class="geo-text" x="50%" y="108" text-anchor="middle">RUDY.</text>
       </svg>
+      <div class="geo-line" aria-hidden="true"></div>
     </div>
   </div>
 
   <!-- Status text — small + dim, doesn't compete with wordmark -->
-  <div id="overlay-status" style="font-size:10px;color:rgba(255,255,255,0.30);letter-spacing:0.20em;text-transform:uppercase;transition:opacity 0.3s ease;margin-top:40px;opacity:0;animation:rudyStatusIn 0.5s ease 3.60s forwards">กำลังเตรียมข้อมูล</div>
+  <div id="overlay-status" style="font-size:10px;color:rgba(255,255,255,0.30);letter-spacing:0.20em;text-transform:uppercase;transition:opacity 0.3s ease;margin-top:40px;opacity:0;animation:rudyStatusIn 0.5s ease 2.40s forwards">กำลังเตรียมข้อมูล</div>
 
   <!-- Hidden skip button -->
   <div id="overlay-skip" style="display:none"></div>
@@ -3257,228 +3242,162 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 }
 
 /* ============================================================
-   v207 Apex Title cinematic intro — pure CSS+SVG with Cinzel Black.
-   Pushes the CSS ceiling: letterbox bars, god rays, nebula glow,
-   lens flare bloom, anamorphic horizontal streak, chrome logo
-   blur-to-clear, chromatic aberration.
-   Timeline (~3.4s before status, MIN_LOADING_MS 4000):
-     0.00s   vignette fade + dark gradient bg
-     0.10s   letterbox bars slide in from top/bottom (cinema feel)
-     0.40s   film grain overlay fades in (mix-blend-mode:overlay)
-     0.50s   god-ray beams (3 angled gradients) sweep L→R
-     0.80s   nebula glow pulses in behind logo
-     1.20s   lens-flare bloom bursts at center
-     1.40s   logo blur(24px)+scale(1.15) settles to blur(0)+scale(1)
-     2.10s   anamorphic horizontal lens streak sweeps across logo
-     2.40s   chromatic aberration R/cyan tints hold (always-on)
-     3.00s   subtle idle pulse begins (infinite)
-   GPU-friendly: transform + opacity + filter only. <12 elements. */
+   v208 Geometric Stripe-style intro — pure CSS+SVG with Cinzel Black.
+   Dark gradient bg + faint fine grid + 2 gradient mesh blobs
+   (cyan + purple) + single diagonal light sweep +
+   thin accent line draw under wordmark.
+   Timeline (~2.2s before status, MIN_LOADING_MS 3000):
+     0.00s   dark radial gradient bg
+     0.15s   fine grid fades in (radial-mask, faint cyan)
+     0.30s   cyan mesh blob fades in (top-left) + slow infinite drift
+     0.45s   purple mesh blob fades in (bottom-right) + slow infinite drift
+     0.60s   diagonal light sweep crosses screen once
+     1.20s   "RUDY." Cinzel wordmark fades in + scale 0.96→1
+     1.80s   thin cyan accent line draws under wordmark (scaleX center)
+     2.20s   settled; status fades in (rudyStatusIn 2.40s)
+   GPU-friendly: transform + opacity + filter only. ~8 elements. */
 
-.apx-stage{
+.geo-stage{
   position:relative;
   width:100%; height:100%;
   display:flex;
   align-items:center;
   justify-content:center;
-  background:radial-gradient(ellipse at center, #0a1430 0%, #04081e 70%, #000 100%);
+  background:radial-gradient(ellipse at 50% 40%, #0E2B66 0%, #07173A 50%, #03061A 100%);
   overflow:hidden;
 }
 
-/* Radial vignette darkens the edges (cinema framing) */
-.apx-vignette{
+/* Fine grid — Stripe homepage feel, faded by radial mask */
+.geo-grid{
   position:absolute; inset:0;
-  background:radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.80) 100%);
   pointer-events:none;
-  opacity:0;
-  animation:apxVignetteIn 0.6s ease 0s forwards;
-}
-@keyframes apxVignetteIn { to { opacity:1; } }
-
-/* Nebula — soft pulsing cyan+purple glow behind logo */
-.apx-nebula{
-  position:absolute; top:50%; left:50%;
-  width:80vmin; height:80vmin;
-  transform:translate(-50%, -50%) scale(0.4);
-  background:radial-gradient(circle, rgba(90,200,250,0.28) 0%, rgba(177,156,255,0.10) 40%, transparent 70%);
-  filter:blur(18px);
-  pointer-events:none;
+  background-image:
+    linear-gradient(to right,  rgba(90, 200, 250, 0.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(90, 200, 250, 0.10) 1px, transparent 1px);
+  background-size:48px 48px;
+  -webkit-mask-image:radial-gradient(ellipse at center, #000 20%, transparent 70%);
+          mask-image:radial-gradient(ellipse at center, #000 20%, transparent 70%);
   opacity:0;
   will-change:opacity, transform;
-  animation:apxNebulaIn 1.2s ease 0.80s forwards;
+  animation:geoGridIn 1.0s ease 0.15s forwards;
 }
-@keyframes apxNebulaIn {
-  0%   { opacity:0;    transform:translate(-50%, -50%) scale(0.4); }
-  60%  { opacity:0.95; transform:translate(-50%, -50%) scale(1.0); }
-  100% { opacity:0.70; transform:translate(-50%, -50%) scale(1.1); }
+@keyframes geoGridIn {
+  from { opacity:0; transform:scale(1.10); }
+  to   { opacity:1; transform:scale(1);    }
 }
 
-/* God-ray sweep — angled cyan beam crosses screen once */
-.apx-rays{
-  position:absolute; top:-30%; left:-30%;
-  width:160%; height:160%;
-  transform:rotate(-22deg);
-  transform-origin:center;
-  background:linear-gradient(90deg,
+/* Gradient mesh blobs — large, soft, slowly drifting */
+.geo-mesh-a, .geo-mesh-b{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(70px);
+  opacity:0;
+  mix-blend-mode:screen;
+  pointer-events:none;
+  will-change:opacity, transform;
+}
+.geo-mesh-a{
+  width:55%; aspect-ratio:1;
+  left:-15%; top:-15%;
+  background:radial-gradient(circle at center, rgba(90, 200, 250, 0.65), transparent 65%);
+  animation:geoMeshInA 1.4s ease 0.30s forwards,
+            geoMeshDriftA 22s ease-in-out 1.7s infinite;
+}
+.geo-mesh-b{
+  width:55%; aspect-ratio:1;
+  right:-20%; bottom:-20%;
+  background:radial-gradient(circle at center, rgba(177, 156, 255, 0.55), transparent 65%);
+  animation:geoMeshInB 1.4s ease 0.45s forwards,
+            geoMeshDriftB 26s ease-in-out 2.0s infinite;
+}
+@keyframes geoMeshInA { to { opacity:1; } }
+@keyframes geoMeshInB { to { opacity:1; } }
+@keyframes geoMeshDriftA {
+  0%, 100% { transform:translate(0, 0); }
+  50%      { transform:translate(8%, 5%); }
+}
+@keyframes geoMeshDriftB {
+  0%, 100% { transform:translate(0, 0); }
+  50%      { transform:translate(-7%, -5%); }
+}
+
+/* Diagonal light sweep — single pass across screen */
+.geo-sweep{
+  position:absolute;
+  top:-50%; left:-50%;
+  width:200%; height:200%;
+  pointer-events:none;
+  background:linear-gradient(115deg,
     transparent 0%,
-    rgba(90,200,250,0.00) 35%,
-    rgba(90,200,250,0.28) 47%,
-    rgba(255,255,255,0.55) 50%,
-    rgba(90,200,250,0.28) 53%,
-    rgba(90,200,250,0.00) 65%,
+    transparent 40%,
+    rgba(255,255,255,0.05) 48%,
+    rgba(255,255,255,0.10) 50%,
+    rgba(255,255,255,0.05) 52%,
+    transparent 60%,
     transparent 100%);
-  background-size:35% 100%;
-  background-repeat:no-repeat;
-  background-position:-35% 0;
-  mix-blend-mode:screen;
-  pointer-events:none;
-  opacity:0;
-  filter:blur(8px);
-  will-change:background-position, opacity;
-  animation:apxRaysSweep 1.6s ease 0.50s forwards;
-}
-@keyframes apxRaysSweep {
-  0%   { background-position:-35% 0; opacity:0;   }
-  20%  {                              opacity:1;   }
-  80%  {                              opacity:1;   }
-  100% { background-position:135% 0;  opacity:0;   }
-}
-
-/* Film grain — animated noise overlay via stacked radial dots */
-.apx-grain{
-  position:absolute; inset:0;
-  background-image:
-    radial-gradient(circle at 25% 30%, rgba(255,255,255,0.04) 0.5px, transparent 1.5px),
-    radial-gradient(circle at 75% 70%, rgba(255,255,255,0.04) 0.5px, transparent 1.5px),
-    radial-gradient(circle at 45% 80%, rgba(255,255,255,0.03) 0.5px, transparent 1.5px),
-    radial-gradient(circle at 85% 20%, rgba(255,255,255,0.03) 0.5px, transparent 1.5px);
-  background-size:3px 3px, 3px 3px, 2px 2px, 4px 4px;
-  pointer-events:none;
-  opacity:0;
-  mix-blend-mode:overlay;
-  will-change:opacity;
-  animation:apxGrainIn 1.0s ease 0.40s forwards;
-}
-@keyframes apxGrainIn { to { opacity:0.55; } }
-
-/* Letterbox cinematic black bars top + bottom */
-.apx-bar-top, .apx-bar-bot{
-  position:absolute; left:0; right:0;
-  height:9vh;
-  background:#000;
-  pointer-events:none;
-  z-index:2;
-  will-change:transform;
-}
-.apx-bar-top{ top:0;    transform:translateY(-100%); animation:apxBarTop 0.5s cubic-bezier(0.55,0,0.30,1) 0.10s forwards; }
-.apx-bar-bot{ bottom:0; transform:translateY(100%);  animation:apxBarBot 0.5s cubic-bezier(0.55,0,0.30,1) 0.10s forwards; }
-@keyframes apxBarTop { to { transform:translateY(0); } }
-@keyframes apxBarBot { to { transform:translateY(0); } }
-
-/* Lens-flare bloom — bright burst expanding outward */
-.apx-flare{
-  position:absolute; top:50%; left:50%;
-  width:36vmin; height:36vmin;
-  transform:translate(-50%, -50%) scale(0);
-  background:radial-gradient(circle,
-    #fff 0%,
-    rgba(255,255,255,0.65) 8%,
-    rgba(170,225,255,0.55) 18%,
-    rgba(90,200,250,0.35) 32%,
-    transparent 55%);
-  filter:blur(2px);
-  pointer-events:none;
+  transform:translateX(-30%);
   opacity:0;
   mix-blend-mode:screen;
-  z-index:3;
   will-change:transform, opacity;
-  animation:apxFlareIn 0.9s ease 1.20s forwards;
+  animation:geoSweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) 0.60s forwards;
 }
-@keyframes apxFlareIn {
-  0%   { opacity:0; transform:translate(-50%, -50%) scale(0);   }
-  30%  { opacity:1; transform:translate(-50%, -50%) scale(1);   }
-  100% { opacity:0; transform:translate(-50%, -50%) scale(1.7); }
-}
-
-/* Anamorphic horizontal lens streak (the J.J. Abrams classic) */
-.apx-streak{
-  position:absolute; top:50%; left:50%;
-  width:140vmin; height:2px;
-  transform:translate(-50%, -50%) scaleX(0);
-  background:linear-gradient(90deg,
-    transparent 0%,
-    rgba(90,200,250,0.55) 30%,
-    #fff 50%,
-    rgba(90,200,250,0.55) 70%,
-    transparent 100%);
-  filter:blur(1px);
-  pointer-events:none;
-  opacity:0;
-  mix-blend-mode:screen;
-  box-shadow:0 0 18px rgba(90,200,250,0.75), 0 0 36px rgba(90,200,250,0.45);
-  z-index:4;
-  will-change:transform, opacity;
-  animation:apxStreakIn 0.8s ease 2.10s forwards;
-}
-@keyframes apxStreakIn {
-  0%   { opacity:0; transform:translate(-50%, -50%) scaleX(0); }
-  35%  { opacity:1; transform:translate(-50%, -50%) scaleX(1); }
-  100% { opacity:0; transform:translate(-50%, -50%) scaleX(1); }
+@keyframes geoSweep {
+  0%   { transform:translateX(-30%); opacity:0; }
+  20%  {                              opacity:1; }
+  80%  {                              opacity:1; }
+  100% { transform:translateX( 30%); opacity:0; }
 }
 
-/* Logo wrapper — settles in with blur-to-clear "depth of field" */
-.apx-logo{
+/* Logo wrapper — wordmark + accent line stacked */
+.geo-logo{
   position:relative;
-  z-index:5;
+  z-index:10;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
   opacity:0;
-  filter:blur(24px);
-  transform:scale(1.15);
-  will-change:opacity, filter, transform;
-  animation:apxLogoIn 0.95s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1.40s forwards,
-            apxLogoIdle 5.0s ease-in-out 3.00s infinite;
+  transform:scale(0.96);
+  will-change:opacity, transform;
+  animation:geoLogoIn 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) 1.20s forwards;
 }
-@keyframes apxLogoIn {
-  to { opacity:1; filter:blur(0); transform:scale(1); }
-}
-@keyframes apxLogoIdle {
-  0%, 100% { transform:scale(1)     translateY(0);    }
-  50%      { transform:scale(1.012) translateY(-2px); }
+@keyframes geoLogoIn {
+  from { opacity:0; transform:scale(0.96); }
+  to   { opacity:1; transform:scale(1.00); }
 }
 
-.apx-svg{
-  width:85%; max-width:380px; height:auto; display:block;
-  filter:drop-shadow(0 14px 36px rgba(90,200,250,0.30))
-         drop-shadow(0 4px 12px rgba(0,0,0,0.60));
+.geo-svg{
+  width:min(80vw, 460px);
+  height:auto;
+  display:block;
+  filter:drop-shadow(0 10px 28px rgba(90, 200, 250, 0.25));
 }
-
-/* Main chrome wordmark */
-.apx-text{
+.geo-text{
   font-family:'Cinzel','Trajan Pro','Times New Roman',serif;
-  font-size:78px;
+  font-size:96px;
   font-weight:900;
   letter-spacing:0.04em;
-  fill:url(#apxChrome);
-  stroke:rgba(255,255,255,0.35);
-  stroke-width:0.6;
-  paint-order:stroke fill;
+  fill:#fff;
 }
 
-/* Chromatic aberration — R/cyan stroke duplicates, fade in after reveal */
-.apx-aberr{
-  font-family:'Cinzel','Trajan Pro','Times New Roman',serif;
-  font-size:78px;
-  font-weight:900;
-  letter-spacing:0.04em;
-  fill:transparent;
-  stroke-width:1.6;
-  stroke-linecap:round;
-  stroke-linejoin:round;
+/* Thin accent line — draws via scaleX from center */
+.geo-line{
+  width:240px;
+  height:1px;
+  background:linear-gradient(to right,
+    transparent 0%,
+    rgba(90, 200, 250, 0.85) 50%,
+    transparent 100%);
+  transform:scaleX(0);
+  transform-origin:center;
   opacity:0;
-  will-change:opacity;
-  animation:apxAberrIn 0.55s ease 2.40s forwards;
+  will-change:transform, opacity;
+  animation:geoLineDraw 0.7s cubic-bezier(0.4, 0, 0.2, 1) 1.80s forwards;
 }
-.apx-aberr-red  { stroke:rgba(255, 60, 100, 0.70); transform:translateX(-2.5px) translateY(-1px); }
-.apx-aberr-cyan { stroke:rgba(80, 220, 255, 0.70); transform:translateX( 2.5px) translateY( 1px); }
-@keyframes apxAberrIn { to { opacity:1; } }
+@keyframes geoLineDraw {
+  from { transform:scaleX(0); opacity:0; }
+  to   { transform:scaleX(1); opacity:1; }
+}
 
 /* Legacy dm-* keyframes kept since other styles in this file reference
    them via the .dm-droplet class (still present elsewhere — only the
@@ -4392,7 +4311,7 @@ const _loadStartTime = performance.now();
 // "settled wordmark" beat before the 500ms fade begins, so the user
 // always sees the full reveal play out before the app appears.
 // Total splash visible time: 3.5s hold + 0.5s fade = 4.0s.
-const MIN_LOADING_MS = 4000;
+const MIN_LOADING_MS = 3000;
 
 // Hide overlay after enforcing minimum display time
 function _delayedHideOverlay(callback){
