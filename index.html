@@ -505,18 +505,18 @@ body.dark .nav{
 }
 .page > * { max-width:100%; }
 .page img, .page video { max-width:100%; height:auto; }
-/* v210 — vertical-center page content via auto-margin trick.
-   No iOS Safari quirks (`safe` keyword not needed). Auto-margins on
-   first/last child expand when content is short → center. When content
-   overflows min-height, auto-margins collapse to 0 → natural top-align,
-   long pages (history, calendar) still scroll from the top. */
+/* v211 — vertical-center only on TRULY short pages (login, manual
+   entry). `min-height: 60vh` keeps centering off on medium pages
+   (settings with some cards hidden, ~700px) where v210's larger
+   min-height was wrongly expanding margins and ADDING empty space.
+   `justify-content: center` (no `safe` keyword) works everywhere;
+   container grows with content so no overflow above viewport. */
 .page.active {
   display:flex;
   flex-direction:column;
-  min-height:calc(100vh - (env(safe-area-inset-bottom, 0px) + 100px));
+  justify-content:center;
+  min-height:60vh;
 }
-.page.active > :first-child { margin-top:auto; }
-.page.active > :last-child  { margin-bottom:auto; }
 @keyframes pageIn{ from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
 /* === UNIFIED PAGE HEADER === */
