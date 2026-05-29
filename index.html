@@ -505,18 +505,11 @@ body.dark .nav{
 }
 .page > * { max-width:100%; }
 .page img, .page video { max-width:100%; height:auto; }
-/* v211 — vertical-center only on TRULY short pages (login, manual
-   entry). `min-height: 60vh` keeps centering off on medium pages
-   (settings with some cards hidden, ~700px) where v210's larger
-   min-height was wrongly expanding margins and ADDING empty space.
-   `justify-content: center` (no `safe` keyword) works everywhere;
-   container grows with content so no overflow above viewport. */
-.page.active {
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  min-height:60vh;
-}
+/* v212 — base .active state is plain block. Vertical centering is
+   applied by JS measurement (see "AUTO PAGE LAYOUT" IIFE near SW
+   registration) — CSS-only centering at fixed thresholds (v209-v211
+   attempts) couldn't handle pages that landed between thresholds. */
+.page.active { display:block; }
 @keyframes pageIn{ from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
 /* === UNIFIED PAGE HEADER === */
@@ -12329,6 +12322,59 @@ if('serviceWorker' in navigator) {
       document.addEventListener('visibilitychange', function(){
         if (document.visibilityState === 'visible') setTimeout(vjCheck, 1500);
       });
+    })();
+
+    // ═══════════════════════════════════════════════════════════════
+    // v212 AUTO PAGE LAYOUT — JS-driven vertical centering per page
+    //
+    // Measures each .page.active content height and EITHER vertical-
+    // centers it (when content < viewport) OR top-aligns (when content
+    // fills viewport). Pure JS — avoids the CSS threshold problem of
+    // v209-v211 where pages whose content sat between min-height and
+    // viewport got awkward empty space.
+    //
+    // Triggers: resize, orientationchange, page class toggle (showPage),
+    // and a few delayed re-runs to catch async-loaded content
+    // (Firebase records, photos, etc.) that arrive after first paint.
+    // ═══════════════════════════════════════════════════════════════
+    (function(){
+      let raf = 0;
+      function adjust(){
+        if (raf) return;
+        raf = requestAnimationFrame(function(){
+          raf = 0;
+          try {
+            const p = document.querySelector('.page.active');
+            if (!p) return;
+            const shell = document.getElementById('app-shell');
+            const padBottom = shell ? parseFloat(getComputedStyle(shell).paddingBottom) : 100;
+            const fit = Math.max(0, window.innerHeight - (padBottom || 100) - 16);
+            // Reset before measuring so our own min-height doesn't inflate scrollHeight
+            p.style.minHeight = '';
+            p.style.justifyContent = '';
+            p.style.display = '';
+            p.style.flexDirection = '';
+            const content = p.scrollHeight;
+            if (content > 0 && content < fit) {
+              p.style.display = 'flex';
+              p.style.flexDirection = 'column';
+              p.style.justifyContent = 'center';
+              p.style.minHeight = fit + 'px';
+            }
+          } catch(_) { /* never throw */ }
+        });
+      }
+      window.addEventListener('resize', adjust, { passive: true });
+      window.addEventListener('orientationchange', adjust);
+      // Class toggle on any .page (showPage adds/removes .active)
+      const mo = new MutationObserver(function(){ setTimeout(adjust, 360); });
+      document.querySelectorAll('.page').forEach(function(p){
+        mo.observe(p, { attributes: true, attributeFilter: ['class'] });
+      });
+      // Initial + delayed re-runs for async-loaded content
+      [50, 250, 800, 1800, 3500].forEach(function(t){ setTimeout(adjust, t); });
+      // Public hook — other code can call after content changes
+      window.rudyAdjustPage = adjust;
     })();
   });
 }
