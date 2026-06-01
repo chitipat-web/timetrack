@@ -3138,24 +3138,32 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 <!-- Firebase preloaded via direct script tags -->
 </head>
 <body>
-<!-- INIT LOADING OVERLAY (load-D-motion: underwater theme) -->
-<div id="init-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;z-index:2147483647;overflow:hidden;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Sarabun','Inter',sans-serif;color:#fff">
+<!-- INIT LOADING OVERLAY (v214 Dime-style: lime green + bouncing RUDY! + pulsing dots) -->
+<div id="init-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;z-index:2147483647;overflow:hidden;background:#C6FF00;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Inter','Sarabun',-apple-system,BlinkMacSystemFont,sans-serif;color:#111">
 
-  <!-- v173 Dime-style splash: pure black + just RUDY wordmark with letter
-       stagger animation. Bubbles/sparkles containers are kept (initDMotion
-       in Phase D looks them up by id) but hidden so they don't render. -->
+  <!-- Bubbles/sparkles containers kept hidden (initDMotion in Phase D looks them up by id) -->
   <div id="dm-bubbles" style="display:none"></div>
   <div id="dm-sparkles" style="display:none"></div>
 
-  <!-- v213 AI-generated splash video (Gemini Veo, 9:16 portrait, 2x sped from 10s→5s,
-       audio stripped, H.264 yuv420p main/3.1 iOS-compat, ~1.9MB).
-       MIN_LOADING_MS = 5500 to let it play through. -->
-  <video class="splash-video" autoplay muted playsinline preload="auto" disableRemotePlayback>
-    <source src="./splash.mp4" type="video/mp4">
-  </video>
+  <!-- v214 Dime-style splash — bouncing "RUDY!" letters on lime green.
+       Letters cascade 0.1s-0.5s, settle ~1.2s; pulsing dots at bottom;
+       status text fades in at 1.5s; MIN_LOADING_MS = 2500. -->
+  <div class="splash-text">
+    <span class="splash-letter">R</span>
+    <span class="splash-letter">U</span>
+    <span class="splash-letter">D</span>
+    <span class="splash-letter">Y</span>
+    <span class="splash-letter splash-exclaim">!</span>
+  </div>
 
-  <!-- Status text — overlaid at bottom, fades in last second of video -->
-  <div id="overlay-status" style="position:absolute;left:50%;bottom:12%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.60);letter-spacing:0.20em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.65);transition:opacity 0.3s ease;opacity:0;z-index:2;white-space:nowrap;animation:rudyStatusIn 0.5s ease 4.20s forwards">กำลังเตรียมข้อมูล</div>
+  <div class="splash-dots" aria-hidden="true">
+    <div class="splash-dot"></div>
+    <div class="splash-dot"></div>
+    <div class="splash-dot"></div>
+  </div>
+
+  <!-- Status text — small dark on lime, below dots -->
+  <div id="overlay-status" style="position:absolute;left:50%;bottom:8%;transform:translateX(-50%);font-size:9px;color:rgba(17,17,17,0.55);letter-spacing:0.20em;text-transform:uppercase;transition:opacity 0.3s ease;opacity:0;z-index:2;white-space:nowrap;animation:rudyStatusIn 0.5s ease 1.50s forwards">กำลังเตรียมข้อมูล</div>
 
   <!-- Hidden skip button -->
   <div id="overlay-skip" style="display:none"></div>
@@ -3236,17 +3244,59 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 }
 
 /* ============================================================
-   v213 AI-generated splash video (Gemini Veo, replaces v208 geo CSS).
-   Original 10s 1080p was 2x sped to 5.08s and audio stripped.
-   File: ./splash.mp4 (~1.9MB, H.264 yuv420p main/3.1).
-   MIN_LOADING_MS = 5500 (lets video play through + tiny buffer). */
-.splash-video{
-  position:absolute; inset:0;
-  width:100%; height:100%;
-  object-fit:cover;
-  background:#000;
-  pointer-events:none;
-  z-index:0;
+   v214 Dime-style splash — lime green + bouncing "RUDY!" + pulsing
+   dots. Pure CSS, no video, no SVG. ~8 elements.
+   Timeline (~1.5s before status, MIN_LOADING_MS 2500):
+     0.10s   R bounces up
+     0.20s   U bounces up
+     0.30s   D bounces up
+     0.40s   Y bounces up
+     0.50s   ! bounces up
+     1.20s   letters settled; dots pulse infinitely (1.2s loop)
+     1.50s   "กำลังเตรียมข้อมูล" status fades in (rudyStatusIn) */
+.splash-text{
+  display:flex;
+  font-size:4.5rem;
+  font-weight:900;
+  color:#111;
+  letter-spacing:-2px;
+  line-height:1;
+}
+.splash-letter{
+  display:inline-block;
+  opacity:0;
+  transform:translateY(40px) scale(0.8);
+  will-change:opacity, transform;
+  animation:splashBounceUp 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.splash-letter:nth-child(1) { animation-delay:0.10s; }
+.splash-letter:nth-child(2) { animation-delay:0.20s; }
+.splash-letter:nth-child(3) { animation-delay:0.30s; }
+.splash-letter:nth-child(4) { animation-delay:0.40s; }
+.splash-exclaim             { animation-delay:0.50s; }
+@keyframes splashBounceUp{
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.splash-dots{
+  position:absolute;
+  bottom:18%;
+  display:flex;
+  gap:8px;
+}
+.splash-dot{
+  width:10px; height:10px;
+  background:rgba(17, 17, 17, 0.3);
+  border-radius:50%;
+  will-change:transform, background-color;
+  animation:splashPulse 1.2s infinite ease-in-out;
+}
+.splash-dot:nth-child(1) { animation-delay:0s;    }
+.splash-dot:nth-child(2) { animation-delay:0.2s;  }
+.splash-dot:nth-child(3) { animation-delay:0.4s;  }
+@keyframes splashPulse{
+  0%, 100% { transform:scale(0.8); background:rgba(17, 17, 17, 0.3); }
+  50%      { transform:scale(1.2); background:rgba(17, 17, 17, 1);   }
 }
 
 /* Legacy dm-* keyframes kept since other styles in this file reference
@@ -4161,7 +4211,7 @@ const _loadStartTime = performance.now();
 // "settled wordmark" beat before the 500ms fade begins, so the user
 // always sees the full reveal play out before the app appears.
 // Total splash visible time: 3.5s hold + 0.5s fade = 4.0s.
-const MIN_LOADING_MS = 5500;
+const MIN_LOADING_MS = 2500;
 
 // Hide overlay after enforcing minimum display time
 function _delayedHideOverlay(callback){
