@@ -3147,25 +3147,15 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   <div id="dm-bubbles" style="display:none"></div>
   <div id="dm-sparkles" style="display:none"></div>
 
-  <!-- v208 Geometric Stripe-style intro (Cinzel Black wordmark):
-       dark gradient + cyan/purple gradient mesh blobs + faint fine grid +
-       single diagonal light sweep + accent line draw under wordmark.
-       ~2.4s before status. Pure CSS + SVG. Transform+opacity+filter (GPU). -->
-  <div class="geo-stage">
-    <div class="geo-grid"   aria-hidden="true"></div>
-    <div class="geo-mesh-a" aria-hidden="true"></div>
-    <div class="geo-mesh-b" aria-hidden="true"></div>
-    <div class="geo-sweep"  aria-hidden="true"></div>
-    <div class="geo-logo">
-      <svg class="geo-svg" viewBox="0 0 600 160" aria-label="RUDY" xmlns="http://www.w3.org/2000/svg">
-        <text class="geo-text" x="50%" y="108" text-anchor="middle">RUDY.</text>
-      </svg>
-      <div class="geo-line" aria-hidden="true"></div>
-    </div>
-  </div>
+  <!-- v213 AI-generated splash video (Gemini Veo, 9:16 portrait, 2x sped from 10s→5s,
+       audio stripped, H.264 yuv420p main/3.1 iOS-compat, ~1.9MB).
+       MIN_LOADING_MS = 5500 to let it play through. -->
+  <video class="splash-video" autoplay muted playsinline preload="auto" disableRemotePlayback>
+    <source src="./splash.mp4" type="video/mp4">
+  </video>
 
-  <!-- Status text — small + dim, doesn't compete with wordmark -->
-  <div id="overlay-status" style="font-size:10px;color:rgba(255,255,255,0.30);letter-spacing:0.20em;text-transform:uppercase;transition:opacity 0.3s ease;margin-top:40px;opacity:0;animation:rudyStatusIn 0.5s ease 2.40s forwards">กำลังเตรียมข้อมูล</div>
+  <!-- Status text — overlaid at bottom, fades in last second of video -->
+  <div id="overlay-status" style="position:absolute;left:50%;bottom:12%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.60);letter-spacing:0.20em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.65);transition:opacity 0.3s ease;opacity:0;z-index:2;white-space:nowrap;animation:rudyStatusIn 0.5s ease 4.20s forwards">กำลังเตรียมข้อมูล</div>
 
   <!-- Hidden skip button -->
   <div id="overlay-skip" style="display:none"></div>
@@ -3246,161 +3236,17 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 }
 
 /* ============================================================
-   v208 Geometric Stripe-style intro — pure CSS+SVG with Cinzel Black.
-   Dark gradient bg + faint fine grid + 2 gradient mesh blobs
-   (cyan + purple) + single diagonal light sweep +
-   thin accent line draw under wordmark.
-   Timeline (~2.2s before status, MIN_LOADING_MS 3000):
-     0.00s   dark radial gradient bg
-     0.15s   fine grid fades in (radial-mask, faint cyan)
-     0.30s   cyan mesh blob fades in (top-left) + slow infinite drift
-     0.45s   purple mesh blob fades in (bottom-right) + slow infinite drift
-     0.60s   diagonal light sweep crosses screen once
-     1.20s   "RUDY." Cinzel wordmark fades in + scale 0.96→1
-     1.80s   thin cyan accent line draws under wordmark (scaleX center)
-     2.20s   settled; status fades in (rudyStatusIn 2.40s)
-   GPU-friendly: transform + opacity + filter only. ~8 elements. */
-
-.geo-stage{
-  position:relative;
-  width:100%; height:100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:radial-gradient(ellipse at 50% 40%, #0E2B66 0%, #07173A 50%, #03061A 100%);
-  overflow:hidden;
-}
-
-/* Fine grid — Stripe homepage feel, faded by radial mask */
-.geo-grid{
+   v213 AI-generated splash video (Gemini Veo, replaces v208 geo CSS).
+   Original 10s 1080p was 2x sped to 5.08s and audio stripped.
+   File: ./splash.mp4 (~1.9MB, H.264 yuv420p main/3.1).
+   MIN_LOADING_MS = 5500 (lets video play through + tiny buffer). */
+.splash-video{
   position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  background:#000;
   pointer-events:none;
-  background-image:
-    linear-gradient(to right,  rgba(90, 200, 250, 0.10) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(90, 200, 250, 0.10) 1px, transparent 1px);
-  background-size:48px 48px;
-  -webkit-mask-image:radial-gradient(ellipse at center, #000 20%, transparent 70%);
-          mask-image:radial-gradient(ellipse at center, #000 20%, transparent 70%);
-  opacity:0;
-  will-change:opacity, transform;
-  animation:geoGridIn 1.0s ease 0.15s forwards;
-}
-@keyframes geoGridIn {
-  from { opacity:0; transform:scale(1.10); }
-  to   { opacity:1; transform:scale(1);    }
-}
-
-/* Gradient mesh blobs — large, soft, slowly drifting */
-.geo-mesh-a, .geo-mesh-b{
-  position:absolute;
-  border-radius:50%;
-  filter:blur(70px);
-  opacity:0;
-  mix-blend-mode:screen;
-  pointer-events:none;
-  will-change:opacity, transform;
-}
-.geo-mesh-a{
-  width:55%; aspect-ratio:1;
-  left:-15%; top:-15%;
-  background:radial-gradient(circle at center, rgba(90, 200, 250, 0.65), transparent 65%);
-  animation:geoMeshInA 1.4s ease 0.30s forwards,
-            geoMeshDriftA 22s ease-in-out 1.7s infinite;
-}
-.geo-mesh-b{
-  width:55%; aspect-ratio:1;
-  right:-20%; bottom:-20%;
-  background:radial-gradient(circle at center, rgba(177, 156, 255, 0.55), transparent 65%);
-  animation:geoMeshInB 1.4s ease 0.45s forwards,
-            geoMeshDriftB 26s ease-in-out 2.0s infinite;
-}
-@keyframes geoMeshInA { to { opacity:1; } }
-@keyframes geoMeshInB { to { opacity:1; } }
-@keyframes geoMeshDriftA {
-  0%, 100% { transform:translate(0, 0); }
-  50%      { transform:translate(8%, 5%); }
-}
-@keyframes geoMeshDriftB {
-  0%, 100% { transform:translate(0, 0); }
-  50%      { transform:translate(-7%, -5%); }
-}
-
-/* Diagonal light sweep — single pass across screen */
-.geo-sweep{
-  position:absolute;
-  top:-50%; left:-50%;
-  width:200%; height:200%;
-  pointer-events:none;
-  background:linear-gradient(115deg,
-    transparent 0%,
-    transparent 40%,
-    rgba(255,255,255,0.05) 48%,
-    rgba(255,255,255,0.10) 50%,
-    rgba(255,255,255,0.05) 52%,
-    transparent 60%,
-    transparent 100%);
-  transform:translateX(-30%);
-  opacity:0;
-  mix-blend-mode:screen;
-  will-change:transform, opacity;
-  animation:geoSweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) 0.60s forwards;
-}
-@keyframes geoSweep {
-  0%   { transform:translateX(-30%); opacity:0; }
-  20%  {                              opacity:1; }
-  80%  {                              opacity:1; }
-  100% { transform:translateX( 30%); opacity:0; }
-}
-
-/* Logo wrapper — wordmark + accent line stacked */
-.geo-logo{
-  position:relative;
-  z-index:10;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:14px;
-  opacity:0;
-  transform:scale(0.96);
-  will-change:opacity, transform;
-  animation:geoLogoIn 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) 1.20s forwards;
-}
-@keyframes geoLogoIn {
-  from { opacity:0; transform:scale(0.96); }
-  to   { opacity:1; transform:scale(1.00); }
-}
-
-.geo-svg{
-  width:min(80vw, 460px);
-  height:auto;
-  display:block;
-  filter:drop-shadow(0 10px 28px rgba(90, 200, 250, 0.25));
-}
-.geo-text{
-  font-family:'Cinzel','Trajan Pro','Times New Roman',serif;
-  font-size:96px;
-  font-weight:900;
-  letter-spacing:0.04em;
-  fill:#fff;
-}
-
-/* Thin accent line — draws via scaleX from center */
-.geo-line{
-  width:240px;
-  height:1px;
-  background:linear-gradient(to right,
-    transparent 0%,
-    rgba(90, 200, 250, 0.85) 50%,
-    transparent 100%);
-  transform:scaleX(0);
-  transform-origin:center;
-  opacity:0;
-  will-change:transform, opacity;
-  animation:geoLineDraw 0.7s cubic-bezier(0.4, 0, 0.2, 1) 1.80s forwards;
-}
-@keyframes geoLineDraw {
-  from { transform:scaleX(0); opacity:0; }
-  to   { transform:scaleX(1); opacity:1; }
+  z-index:0;
 }
 
 /* Legacy dm-* keyframes kept since other styles in this file reference
@@ -4315,7 +4161,7 @@ const _loadStartTime = performance.now();
 // "settled wordmark" beat before the 500ms fade begins, so the user
 // always sees the full reveal play out before the app appears.
 // Total splash visible time: 3.5s hold + 0.5s fade = 4.0s.
-const MIN_LOADING_MS = 3000;
+const MIN_LOADING_MS = 5500;
 
 // Hide overlay after enforcing minimum display time
 function _delayedHideOverlay(callback){
