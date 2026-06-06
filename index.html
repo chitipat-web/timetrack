@@ -3236,14 +3236,15 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 }
 
 /* ============================================================
-   v213 AI-generated splash video (Gemini Veo, replaces v208 geo CSS).
-   Original 10s 1080p was 2x sped to 5.08s and audio stripped.
-   File: ./splash.mp4 (~1.9MB, H.264 yuv420p main/3.1).
-   MIN_LOADING_MS = 5500 (lets video play through + tiny buffer). */
+   v216 AI splash video (Gemini Veo replacement — landscape 1280×720).
+   Original 10s sped 2x to 5.08s, audio stripped, H.264 yuv420p main/3.1.
+   `object-fit:contain` because source is landscape vs portrait phone:
+   shows full content with cinema bars top/bottom (no content cropped).
+   MIN_LOADING_MS = 5500. File: ./splash.mp4 (~1.1MB). */
 .splash-video{
   position:absolute; inset:0;
   width:100%; height:100%;
-  object-fit:cover;
+  object-fit:contain;
   background:#000;
   pointer-events:none;
   z-index:0;

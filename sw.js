@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v215
-// Cache: rudy-static-v215, firebase-v215
-// Build: 2026-06-01 · v215 — restore Gemini Veo splash video (revert Dime-style v214 per Pat's request, content identical to v213)
+// RUDY · Service Worker v216
+// Cache: rudy-static-v216, firebase-v216
+// Build: 2026-06-06 · v216 — replace splash video with new Gemini Veo landscape 1280×720 (object-fit:contain, cinema bars top/bottom)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v215';
-const FIREBASE_CACHE = 'firebase-v215';
-const RUNTIME_CACHE = 'rudy-runtime-v215';
+const STATIC_CACHE  = 'rudy-static-v216';
+const FIREBASE_CACHE = 'firebase-v216';
+const RUNTIME_CACHE = 'rudy-runtime-v216';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -56,12 +56,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v215] Installing...');
+  console.log('[SW v216] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v215] Precache partial fail (ok):', err);
+          console.warn('[SW v216] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -72,7 +72,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v215] Activating...');
+  console.log('[SW v216] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -80,7 +80,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v215] Deleting old cache:', name);
+              console.log('[SW v216] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -228,7 +228,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v215' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v216' });
     return;
   }
 });
@@ -251,7 +251,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v215] Push parse fail:', e);
+    console.warn('[SW v216] Push parse fail:', e);
   }
 });
 
@@ -271,4 +271,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v215] Loaded — AI splash video (restored)');
+console.log('[SW v216] Loaded — AI splash video (landscape, contain)');
