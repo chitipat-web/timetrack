@@ -12191,16 +12191,23 @@ if('serviceWorker' in navigator) {
         raf = requestAnimationFrame(function(){
           raf = 0;
           try {
+            // v218fix — clear our inline layout styles from ALL pages
+            // FIRST. A page we centered while active keeps inline
+            // display:flex after it loses .active, and inline style beats
+            // the .page{display:none} rule, leaving the old page visible
+            // behind the new one (calendar "ghost" bug). Resetting every
+            // page lets the CSS class rules hide the inactive ones again.
+            document.querySelectorAll('.page').forEach(function(el){
+              el.style.minHeight = '';
+              el.style.justifyContent = '';
+              el.style.display = '';
+              el.style.flexDirection = '';
+            });
             const p = document.querySelector('.page.active');
             if (!p) return;
             const shell = document.getElementById('app-shell');
             const padBottom = shell ? parseFloat(getComputedStyle(shell).paddingBottom) : 100;
             const fit = Math.max(0, window.innerHeight - (padBottom || 100) - 16);
-            // Reset before measuring so our own min-height doesn't inflate scrollHeight
-            p.style.minHeight = '';
-            p.style.justifyContent = '';
-            p.style.display = '';
-            p.style.flexDirection = '';
             const content = p.scrollHeight;
             if (content > 0 && content < fit) {
               p.style.display = 'flex';
@@ -12213,8 +12220,21 @@ if('serviceWorker' in navigator) {
       }
       window.addEventListener('resize', adjust, { passive: true });
       window.addEventListener('orientationchange', adjust);
-      // Class toggle on any .page (showPage adds/removes .active)
-      const mo = new MutationObserver(function(){ setTimeout(adjust, 360); });
+      // Class toggle on any .page (showPage adds/removes .active).
+      // Clear stale inline layout SYNCHRONOUSLY so the page that just
+      // lost .active hides immediately (no 360ms ghost), then re-measure
+      // the new active page after async content settles.
+      const mo = new MutationObserver(function(){
+        document.querySelectorAll('.page').forEach(function(el){
+          if (!el.classList.contains('active')) {
+            el.style.minHeight = '';
+            el.style.justifyContent = '';
+            el.style.display = '';
+            el.style.flexDirection = '';
+          }
+        });
+        setTimeout(adjust, 360);
+      });
       document.querySelectorAll('.page').forEach(function(p){
         mo.observe(p, { attributes: true, attributeFilter: ['class'] });
       });

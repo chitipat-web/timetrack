@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v218
-// Cache: rudy-static-v218, firebase-v218
-// Build: 2026-06-06 · v218 — rollback icons to v216 content (revert v217 icon swap per Pat's request, cache version bumped)
+// RUDY · Service Worker v219
+// Cache: rudy-static-v219, firebase-v219
+// Build: 2026-06-06 · v219 — fix calendar "ghost" bug: v212 auto-layout left stale inline display:flex on deactivated pages
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v218';
-const FIREBASE_CACHE = 'firebase-v218';
-const RUNTIME_CACHE = 'rudy-runtime-v218';
+const STATIC_CACHE  = 'rudy-static-v219';
+const FIREBASE_CACHE = 'firebase-v219';
+const RUNTIME_CACHE = 'rudy-runtime-v219';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -56,12 +56,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v218] Installing...');
+  console.log('[SW v219] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v218] Precache partial fail (ok):', err);
+          console.warn('[SW v219] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -72,7 +72,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v218] Activating...');
+  console.log('[SW v219] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -80,7 +80,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v218] Deleting old cache:', name);
+              console.log('[SW v219] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -228,7 +228,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v218' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v219' });
     return;
   }
 });
@@ -251,7 +251,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v218] Push parse fail:', e);
+    console.warn('[SW v219] Push parse fail:', e);
   }
 });
 
@@ -271,4 +271,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v218] Loaded — icons rolled back to v216');
+console.log('[SW v219] Loaded — calendar ghost-page fix');
