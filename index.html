@@ -3236,15 +3236,14 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 }
 
 /* ============================================================
-   v216 AI splash video (Gemini Veo replacement — landscape 1280×720).
+   v220 AI splash video — portrait 720×1280 (9:16, matches phone aspect).
    Original 10s sped 2x to 5.08s, audio stripped, H.264 yuv420p main/3.1.
-   `object-fit:contain` because source is landscape vs portrait phone:
-   shows full content with cinema bars top/bottom (no content cropped).
-   MIN_LOADING_MS = 5500. File: ./splash.mp4 (~1.1MB). */
+   `object-fit:cover` fills the screen fully (matching aspect → near-zero
+   crop). MIN_LOADING_MS = 5500. File: ./splash.mp4 (~1.3MB). */
 .splash-video{
   position:absolute; inset:0;
   width:100%; height:100%;
-  object-fit:contain;
+  object-fit:cover;
   background:#000;
   pointer-events:none;
   z-index:0;

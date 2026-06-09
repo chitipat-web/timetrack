@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v219
-// Cache: rudy-static-v219, firebase-v219
-// Build: 2026-06-06 · v219 — fix calendar "ghost" bug: v212 auto-layout left stale inline display:flex on deactivated pages
+// RUDY · Service Worker v220
+// Cache: rudy-static-v220, firebase-v220
+// Build: 2026-06-09 · v220 — replace splash video with new portrait 720×1280 (object-fit:cover, fills phone screen)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v219';
-const FIREBASE_CACHE = 'firebase-v219';
-const RUNTIME_CACHE = 'rudy-runtime-v219';
+const STATIC_CACHE  = 'rudy-static-v220';
+const FIREBASE_CACHE = 'firebase-v220';
+const RUNTIME_CACHE = 'rudy-runtime-v220';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -56,12 +56,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v219] Installing...');
+  console.log('[SW v220] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v219] Precache partial fail (ok):', err);
+          console.warn('[SW v220] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -72,7 +72,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v219] Activating...');
+  console.log('[SW v220] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -80,7 +80,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v219] Deleting old cache:', name);
+              console.log('[SW v220] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -228,7 +228,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v219' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v220' });
     return;
   }
 });
@@ -251,7 +251,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v219] Push parse fail:', e);
+    console.warn('[SW v220] Push parse fail:', e);
   }
 });
 
@@ -271,4 +271,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v219] Loaded — calendar ghost-page fix');
+console.log('[SW v220] Loaded — new portrait splash video (fullscreen cover)');
