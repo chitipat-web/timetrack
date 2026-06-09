@@ -3149,13 +3149,13 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
   <!-- v213 AI-generated splash video (Gemini Veo, 9:16 portrait, 2x sped from 10s→5s,
        audio stripped, H.264 yuv420p main/3.1 iOS-compat, ~1.9MB).
-       MIN_LOADING_MS = 5500 to let it play through. -->
+       MIN_LOADING_MS = 8500 to let it play through. -->
   <video class="splash-video" autoplay muted playsinline preload="auto" disableRemotePlayback>
     <source src="./splash.mp4" type="video/mp4">
   </video>
 
   <!-- Status text — overlaid at bottom, fades in last second of video -->
-  <div id="overlay-status" style="position:absolute;left:50%;bottom:12%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.60);letter-spacing:0.20em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.65);transition:opacity 0.3s ease;opacity:0;z-index:2;white-space:nowrap;animation:rudyStatusIn 0.5s ease 4.20s forwards">กำลังเตรียมข้อมูล</div>
+  <div id="overlay-status" style="position:absolute;left:50%;bottom:12%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.60);letter-spacing:0.20em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.65);transition:opacity 0.3s ease;opacity:0;z-index:2;white-space:nowrap;animation:rudyStatusIn 0.5s ease 7.00s forwards">กำลังเตรียมข้อมูล</div>
 
   <!-- Hidden skip button -->
   <div id="overlay-skip" style="display:none"></div>
@@ -3236,10 +3236,10 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 }
 
 /* ============================================================
-   v220 AI splash video — portrait 720×1280 (9:16, matches phone aspect).
-   Original 10s sped 2x to 5.08s, audio stripped, H.264 yuv420p main/3.1.
+   v221 AI splash video — portrait 720×1280 (9:16, matches phone aspect).
+   Original 10s sped 1.25x to 8.08s, audio stripped, H.264 yuv420p main/3.1.
    `object-fit:cover` fills the screen fully (matching aspect → near-zero
-   crop). MIN_LOADING_MS = 5500. File: ./splash.mp4 (~1.3MB). */
+   crop). MIN_LOADING_MS = 8500. File: ./splash.mp4 (~1.8MB). */
 .splash-video{
   position:absolute; inset:0;
   width:100%; height:100%;
@@ -4161,7 +4161,7 @@ const _loadStartTime = performance.now();
 // "settled wordmark" beat before the 500ms fade begins, so the user
 // always sees the full reveal play out before the app appears.
 // Total splash visible time: 3.5s hold + 0.5s fade = 4.0s.
-const MIN_LOADING_MS = 5500;
+const MIN_LOADING_MS = 8500;
 
 // Hide overlay after enforcing minimum display time
 function _delayedHideOverlay(callback){
