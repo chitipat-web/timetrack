@@ -3252,6 +3252,123 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 .more-row-lbl{ flex:1; }
 .more-row-chev{ color:var(--ink-3, rgba(128,128,128,0.6)); font-size:20px; font-weight:400; }
 
+/* ============================================================
+   v230 Analog clock — SVG, theme-aware, hands rotate via inline
+   transform set by tick() in startClock(). transform-origin is the
+   center of the 200×200 viewBox so rotations stay on-axis. */
+.clock-analog{
+  width:min(70vw, 240px);
+  margin:8px auto 4px;
+  position:relative; z-index:1;
+}
+.clock-svg{ display:block; width:100%; height:auto; }
+.clock-face-bg{ fill:rgba(255,255,255,0.06); }
+.clock-face-ring{ fill:none; stroke:rgba(255,255,255,0.20); stroke-width:1.5; }
+.clock-ticks line{ stroke:var(--ink); stroke-width:1.6; opacity:0.55; }
+.clock-ticks .tick-major{ stroke-width:2.6; opacity:0.9; }
+.clock-num{
+  font-family:var(--font-display);
+  font-size:18px; font-weight:700;
+  fill:var(--ink); letter-spacing:-0.02em;
+}
+.clock-hand-grp{
+  transform-box:fill-box; transform-origin:center;
+}
+.hand{ stroke:var(--ink); stroke-linecap:round; }
+.hand.hour  { stroke-width:5; }
+.hand.minute{ stroke-width:3.5; }
+.hand.second{ stroke:var(--sys-red); stroke-width:1.6; }
+.hand-cap-outer{ fill:var(--ink); }
+.hand-cap{ fill:var(--sys-red); }
+body:not(.dark) .clock-face-bg{ fill:rgba(11,20,38,0.04); }
+body:not(.dark) .clock-face-ring{ stroke:rgba(11,20,38,0.18); }
+
+/* ============================================================
+   v230 Slide-to-act control — iPhone "slide to power off" idiom.
+   On release-at-end we synthesize a click on the enabled hidden
+   button so the existing wrapper / ckg guard / doCheckIn[Out]
+   logic runs unmodified. */
+.slide-action{
+  position:relative; z-index:2;
+  height:64px; margin:6px 0 2px;
+  border-radius:var(--r-pill);
+  background:rgba(255,255,255,0.10);
+  border:1px solid rgba(255,255,255,0.22);
+  -webkit-backdrop-filter:blur(20px) saturate(170%);
+          backdrop-filter:blur(20px) saturate(170%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.30);
+  overflow:hidden;
+  touch-action:none;
+  user-select:none; -webkit-user-select:none;
+}
+body.dark .slide-action{
+  background:rgba(255,255,255,0.06);
+  border-color:rgba(255,255,255,0.12);
+}
+.slide-fill{
+  position:absolute; inset:0 auto 0 0;
+  width:0;
+  background:linear-gradient(90deg, rgba(48,209,88,0.50), rgba(48,209,88,0.85));
+  transition:width 0.25s var(--ease-spring);
+  pointer-events:none;
+}
+.slide-action[data-mode="out"] .slide-fill{
+  background:linear-gradient(90deg, rgba(255,69,58,0.50), rgba(255,69,58,0.85));
+}
+.slide-track{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  gap:8px;
+  font-size:15px; font-weight:700;
+  color:var(--ink);
+  letter-spacing:-0.01em;
+  pointer-events:none;
+  text-shadow:0 1px 2px rgba(0,0,0,0.10);
+}
+.slide-arrows{
+  font-weight:900; opacity:0.55;
+  animation:slideArrowPulse 1.6s ease-in-out infinite;
+}
+@keyframes slideArrowPulse{
+  0%, 100% { opacity:0.35; transform:translateX(0); }
+  50%      { opacity:0.85; transform:translateX(4px); }
+}
+.slide-thumb{
+  position:absolute; top:4px; left:4px;
+  width:56px; height:56px;
+  border-radius:50%;
+  background:var(--sys-green);
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 14px rgba(48,209,88,0.45);
+  transition:transform 0.25s var(--ease-spring), background 0.2s;
+  cursor:grab;
+  z-index:2;
+  will-change:transform;
+}
+.slide-thumb:active{ cursor:grabbing; }
+.slide-action[data-mode="out"] .slide-thumb{
+  background:var(--sys-red);
+  box-shadow:0 4px 14px rgba(255,69,58,0.45);
+}
+.slide-action[data-mode="idle"]{
+  opacity:0.55;
+  pointer-events:none;
+}
+.slide-action[data-mode="idle"] .slide-thumb{
+  background:rgba(128,128,128,0.6);
+  box-shadow:none;
+}
+.slide-action.is-dragging .slide-thumb,
+.slide-action.is-dragging .slide-fill{ transition:none; }
+
+/* Keep the original buttons functional and reachable to assistive
+   tech, but hide them visually (slider takes their place). */
+.sr-only-btns{
+  position:absolute; left:-9999px;
+  width:1px; height:1px; overflow:hidden;
+}
+
 @keyframes rudyStatusIn {
   from { opacity:0; }
   to   { opacity:1; }
@@ -3457,9 +3574,58 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
           <div class="welcome-meta" id="wc-meta">—</div>
         </div>
       </div>
-      <div class="clock-time" id="clock-display">00:00:00</div>
+      <!-- v230 analog clock — SVG hands updated in tick().
+           The old digital #clock-display is kept (visually hidden) so
+           other code paths that set .textContent still resolve. -->
+      <div class="clock-analog" id="clock-analog" aria-label="นาฬิกาเข็ม">
+        <svg viewBox="0 0 200 200" class="clock-svg" aria-hidden="true">
+          <circle class="clock-face-bg"   cx="100" cy="100" r="94"/>
+          <circle class="clock-face-ring" cx="100" cy="100" r="94"/>
+          <g class="clock-ticks">
+            <line x1="100" y1="10"  x2="100" y2="22" class="tick-major"/>
+            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(30 100 100)"/>
+            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(60 100 100)"/>
+            <line x1="100" y1="10"  x2="100" y2="22" transform="rotate(90 100 100)" class="tick-major"/>
+            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(120 100 100)"/>
+            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(150 100 100)"/>
+            <line x1="100" y1="10"  x2="100" y2="22" transform="rotate(180 100 100)" class="tick-major"/>
+            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(210 100 100)"/>
+            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(240 100 100)"/>
+            <line x1="100" y1="10"  x2="100" y2="22" transform="rotate(270 100 100)" class="tick-major"/>
+            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(300 100 100)"/>
+            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(330 100 100)"/>
+          </g>
+          <text class="clock-num" x="100" y="34"  text-anchor="middle">12</text>
+          <text class="clock-num" x="166" y="106" text-anchor="middle">3</text>
+          <text class="clock-num" x="100" y="178" text-anchor="middle">6</text>
+          <text class="clock-num" x="34"  y="106" text-anchor="middle">9</text>
+          <g class="clock-hand-grp" id="clock-hand-hour"><line class="hand hour"   x1="100" y1="108" x2="100" y2="56"/></g>
+          <g class="clock-hand-grp" id="clock-hand-min"> <line class="hand minute" x1="100" y1="110" x2="100" y2="36"/></g>
+          <g class="clock-hand-grp" id="clock-hand-sec"> <line class="hand second" x1="100" y1="116" x2="100" y2="28"/></g>
+          <circle class="hand-cap-outer" cx="100" cy="100" r="6"/>
+          <circle class="hand-cap"       cx="100" cy="100" r="3"/>
+        </svg>
+      </div>
+      <div class="clock-time" id="clock-display" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">00:00:00</div>
       <div class="clock-date" id="clock-date">—</div>
-      <div class="clock-btns">
+
+      <!-- v230 slide-to-act control. The two original buttons are kept
+           in DOM (sr-only) because renderHome()/CKG guard/etc. set their
+           .disabled to drive state. Slider reads from those and, on
+           release-at-end, .click()s whichever button is enabled — so
+           every existing wrapper/guard around doCheckIn/doCheckOut still
+           runs. -->
+      <div class="slide-action" id="slide-action" data-mode="in">
+        <div class="slide-fill" id="slide-fill"></div>
+        <div class="slide-track">
+          <span class="slide-label" id="slide-label">เลื่อนเพื่อเข้างาน</span>
+          <span class="slide-arrows" aria-hidden="true">›››</span>
+        </div>
+        <div class="slide-thumb" id="slide-thumb" role="button" aria-label="เลื่อนเพื่อเข้างาน">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+        </div>
+      </div>
+      <div class="clock-btns sr-only-btns" aria-hidden="true">
         <div class="btn-row">
           <button class="btn-in btn-liquid" id="btn-in" onclick="doCheckIn()"><span class="btn-main-label">เข้างาน</span><span class="btn-sub">บันทึกเวลาเข้า</span></button>
           <button class="btn-out btn-liquid" id="btn-out" onclick="doCheckOut()" disabled><span class="btn-main-label">ออกงาน</span><span class="btn-sub">บันทึกเวลาออก</span></button>
@@ -4589,6 +4755,16 @@ function startClock(){
     const n=new Date();
     const cl = document.getElementById('clock-display');
     if(cl) cl.textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+    // v230 analog hands — fractional minute carries hour smoothly
+    const sec = n.getSeconds() + n.getMilliseconds()/1000;
+    const min = n.getMinutes() + sec/60;
+    const hr  = (n.getHours()%12) + min/60;
+    const hH = document.getElementById('clock-hand-hour');
+    const hM = document.getElementById('clock-hand-min');
+    const hS = document.getElementById('clock-hand-sec');
+    if(hH) hH.style.transform = `rotate(${hr*30}deg)`;
+    if(hM) hM.style.transform = `rotate(${min*6}deg)`;
+    if(hS) hS.style.transform = `rotate(${sec*6}deg)`;
     const cd = document.getElementById('clock-date');
     if(cd) cd.textContent=`วัน${days[n.getDay()]}ที่ ${n.getDate()} ${mons[n.getMonth()]} ${n.getFullYear()+543}`;
     // Neon color by hour
@@ -12289,6 +12465,132 @@ if('serviceWorker' in navigator) {
     })();
   });
 }
+
+// ═══════════════════════════════════════════════════════════════
+// v230 SLIDE-TO-ACT — Pointer-driven slider that mirrors the
+// hidden #btn-in / #btn-out state. We never touch business logic;
+// on release-at-end we synthesize a .click() on whichever button is
+// enabled, so the existing wrappers (do-not-reload, ckg guard,
+// renderHome flow) all keep working.
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  let track, thumb, fill, label, action;
+  let dragging = false;
+  let startX = 0, dx = 0, maxX = 0;
+
+  function el(id){ return document.getElementById(id); }
+
+  function refreshMode(){
+    if(!action) return;
+    const btnIn  = el('btn-in');
+    const btnOut = el('btn-out');
+    if(!btnIn || !btnOut) return;
+    let mode = 'idle';
+    if(!btnIn.disabled)       mode = 'in';
+    else if(!btnOut.disabled) mode = 'out';
+    action.dataset.mode = mode;
+    if(label){
+      label.textContent = mode === 'in'  ? 'เลื่อนเพื่อเข้างาน'
+                        : mode === 'out' ? 'เลื่อนเพื่อออกงาน'
+                        : 'ปิดทำงานวันนี้แล้ว';
+    }
+    if(thumb){
+      thumb.setAttribute('aria-label', label ? label.textContent : '');
+    }
+  }
+
+  function setX(x){
+    dx = Math.max(0, Math.min(maxX, x));
+    if(thumb) thumb.style.transform = `translateX(${dx}px)`;
+    if(fill)  fill.style.width      = `${dx + 56}px`;
+  }
+
+  function snapBack(){
+    if(action) action.classList.remove('is-dragging');
+    if(thumb)  thumb.style.transform = '';
+    if(fill)   fill.style.width = '';
+    dx = 0;
+  }
+
+  function fire(){
+    const mode = action.dataset.mode;
+    const target = mode === 'in'  ? el('btn-in')
+                 : mode === 'out' ? el('btn-out')
+                 : null;
+    if(target && !target.disabled){
+      try { target.click(); } catch(_){}
+    }
+    // Let renderHome flip the disabled state; we re-sync after a tick.
+    setTimeout(refreshMode, 60);
+    snapBack();
+  }
+
+  function onDown(e){
+    if(!action || action.dataset.mode === 'idle') return;
+    dragging = true;
+    action.classList.add('is-dragging');
+    startX = (e.touches ? e.touches[0].clientX : e.clientX);
+    const trackRect = action.getBoundingClientRect();
+    maxX = trackRect.width - 56 - 8; // 56 thumb, 8 padding (4 each side)
+    if(thumb && thumb.setPointerCapture && e.pointerId != null){
+      try { thumb.setPointerCapture(e.pointerId); } catch(_){}
+    }
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const x = (e.touches ? e.touches[0].clientX : e.clientX);
+    setX(x - startX);
+    if(e.cancelable) e.preventDefault();
+  }
+  function onUp(){
+    if(!dragging) return;
+    dragging = false;
+    if(dx >= maxX - 4) fire();
+    else snapBack();
+  }
+
+  function init(){
+    action = el('slide-action');
+    if(!action) return;
+    thumb = el('slide-thumb');
+    fill  = el('slide-fill');
+    label = el('slide-label');
+    if(!thumb) return;
+
+    // Prefer Pointer Events (one path covers mouse, touch, pen)
+    if(window.PointerEvent){
+      thumb.addEventListener('pointerdown', onDown, { passive:true });
+      thumb.addEventListener('pointermove', onMove, { passive:false });
+      thumb.addEventListener('pointerup',   onUp,   { passive:true });
+      thumb.addEventListener('pointercancel', onUp, { passive:true });
+    } else {
+      thumb.addEventListener('touchstart', onDown, { passive:true });
+      thumb.addEventListener('touchmove',  onMove, { passive:false });
+      thumb.addEventListener('touchend',   onUp,   { passive:true });
+      thumb.addEventListener('mousedown',  onDown);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup',   onUp);
+    }
+
+    // Mirror disabled-state changes on the hidden buttons.
+    const btnIn  = el('btn-in');
+    const btnOut = el('btn-out');
+    if(btnIn && btnOut && window.MutationObserver){
+      const mo = new MutationObserver(refreshMode);
+      mo.observe(btnIn,  { attributes:true, attributeFilter:['disabled'] });
+      mo.observe(btnOut, { attributes:true, attributeFilter:['disabled'] });
+    }
+    // Also re-check after each interval-driven render (cheap belt-and-braces)
+    setInterval(refreshMode, 4000);
+    refreshMode();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 
 // ----- Hook check-in/out actions to mark "do not reload now" -----
 // (these functions exist earlier in the script; we just add a wrapper)

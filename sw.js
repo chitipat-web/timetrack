@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v229
-// Cache: rudy-static-v229, firebase-v229
-// Build: 2026-06-10 · v229 — iOS Liquid Glass theme restored (glass cards/modals/nav/buttons + mesh canvas), kept 5-tab nav + Large Titles + video splash
+// RUDY · Service Worker v230
+// Cache: rudy-static-v230, firebase-v230
+// Build: 2026-06-10 · v230 — new home interaction: analog SVG clock + slide-to-act control (replaces digital clock + 2-button row, business logic untouched)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v229';
-const FIREBASE_CACHE = 'firebase-v229';
-const RUNTIME_CACHE = 'rudy-runtime-v229';
+const STATIC_CACHE  = 'rudy-static-v230';
+const FIREBASE_CACHE = 'firebase-v230';
+const RUNTIME_CACHE = 'rudy-runtime-v230';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -56,12 +56,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v229] Installing...');
+  console.log('[SW v230] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v229] Precache partial fail (ok):', err);
+          console.warn('[SW v230] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -72,7 +72,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v229] Activating...');
+  console.log('[SW v230] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -80,7 +80,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v229] Deleting old cache:', name);
+              console.log('[SW v230] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -228,7 +228,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v229' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v230' });
     return;
   }
 });
@@ -251,7 +251,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v229] Push parse fail:', e);
+    console.warn('[SW v230] Push parse fail:', e);
   }
 });
 
@@ -271,4 +271,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v229] Loaded — Liquid Glass theme restored');
+console.log('[SW v230] Loaded — analog clock + slide-to-act');
