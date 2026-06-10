@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v227
-// Cache: rudy-static-v227, firebase-v227
-// Build: 2026-06-10 · v227 — new-look pass: iOS Large Titles, Settings-style section headers, iOS nav/tab bars, Apple-Clock digits
+// RUDY · Service Worker v228
+// Cache: rudy-static-v228, firebase-v228
+// Build: 2026-06-10 · v228 — NEW BRAND IDENTITY: lime #C6FF00 (owner's RUDY! mockup) — lime hero card, black/white action buttons, lime tab pill, chunky wordmark
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v227';
-const FIREBASE_CACHE = 'firebase-v227';
-const RUNTIME_CACHE = 'rudy-runtime-v227';
+const STATIC_CACHE  = 'rudy-static-v228';
+const FIREBASE_CACHE = 'firebase-v228';
+const RUNTIME_CACHE = 'rudy-runtime-v228';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -56,12 +56,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v227] Installing...');
+  console.log('[SW v228] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v227] Precache partial fail (ok):', err);
+          console.warn('[SW v228] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -72,7 +72,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v227] Activating...');
+  console.log('[SW v228] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -80,7 +80,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v227] Deleting old cache:', name);
+              console.log('[SW v228] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -228,7 +228,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v227' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v228' });
     return;
   }
 });
@@ -251,7 +251,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v227] Push parse fail:', e);
+    console.warn('[SW v228] Push parse fail:', e);
   }
 });
 
@@ -271,4 +271,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v227] Loaded — new look: Large Titles + iOS chrome');
+console.log('[SW v228] Loaded — lime brand identity');

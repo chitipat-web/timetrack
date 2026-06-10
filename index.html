@@ -33,11 +33,17 @@
   /* v223 iOS-native skin: flat systemGroupedBackground, mesh collapsed
      to the base color so every rule that paints the mesh becomes a
      no-op without being edited. */
-  --bg-base:#F2F2F7;
-  --bg-mesh-1:#F2F2F7; --bg-mesh-2:#EDEDF2;
-  --bg-mesh-3:#F2F2F7; --bg-mesh-4:#EDEDF2;
+  --bg-base:#FAFAF7;
+  --bg-mesh-1:#FAFAF7; --bg-mesh-2:#F4F4EF;
+  --bg-mesh-3:#FAFAF7; --bg-mesh-4:#F4F4EF;
   --card-bg:#FFFFFF;
   --card-stroke:rgba(60,60,67,0.12);
+  /* v228 NEW BRAND — lime identity (from the owner's own RUDY! mockup).
+     Lime is a FILL color: always pair with --brand-ink text on top.
+     Never use lime as text on light surfaces (fails contrast). */
+  --brand:#C6FF00;
+  --brand-press:#A8D900;
+  --brand-ink:#111111;
   /* v225 iOS-native light: glass tokens were 6-15% translucent white —
      invisible on the new flat #F2F2F7 canvas (phase-2 only fixed dark).
      Now opaque iOS light surfaces; every rule using these updates free. */
@@ -107,6 +113,10 @@ body.dark{
   --bg-mesh-1:#0A0A0C; --bg-mesh-2:#060608;
   --bg-mesh-3:#0A0A0C; --bg-mesh-4:#060608;
   --card-bg:#1C1C1E;
+  /* v228 brand tokens (same lime — it pops hardest on black) */
+  --brand:#C6FF00;
+  --brand-press:#A8D900;
+  --brand-ink:#111111;
   --card-stroke:rgba(84,84,88,0.42);
   --glass-1:#232326;
   --glass-2:#1C1C1E;
@@ -363,8 +373,11 @@ body.dark .topbar{
   background:linear-gradient(135deg, var(--sys-blue), var(--sys-indigo));
   box-shadow:0 4px 10px rgba(10,132,255,0.3);
 }
-.logo-text{ font-family:var(--font-display); font-size:18px; font-weight:800; letter-spacing:-0.04em; color:var(--ink); }
-.logo-text span { color:var(--sys-blue); }
+/* v228 brand wordmark: chunky black; the DY half goes lime on dark
+   (lime text on white fails contrast, so light mode stays solid ink) */
+.logo-text{ font-family:var(--font-display); font-size:19px; font-weight:900; letter-spacing:-0.04em; color:var(--ink); }
+.logo-text span { color:var(--ink); }
+body.dark .logo-text span { color:var(--brand); }
 
 .live-badge{
   display:flex; align-items:center; gap:6px;
@@ -485,11 +498,11 @@ body.dark .nav{
     transform:none !important;
   }
 }
-/* v227 iOS tab bar selection: the active tab just turns systemBlue —
-   no filled pill, no glow (matches Apple's real tab bars). */
+/* v228 brand tab selection: lime pill + dark ink icon/label — the
+   look-defining accent, visible on every screen, both themes. */
 .nav-btn.active{
-  background:transparent;
-  color:var(--sys-blue);
+  background:var(--brand);
+  color:var(--brand-ink);
   box-shadow:none;
   position:relative;
   isolation:isolate;
@@ -526,9 +539,9 @@ body.dark .nav{
 .page-header-text{ flex:1; min-width:0; }
 .page-title{
   font-family:var(--font-display);
-  font-size:32px; font-weight:800;
-  letter-spacing:-0.03em; color:var(--ink);
-  line-height:1.12;
+  font-size:34px; font-weight:900;
+  letter-spacing:-0.035em; color:var(--ink);
+  line-height:1.10;
   margin:0;
 }
 .page-subtitle{
@@ -612,18 +625,31 @@ body.dark .card{
 /* v224 iOS-native hero: opaque themed card (was glass gradient + 60px
    backdrop blur + floating refraction blobs). Blobs and their
    blobFloat1/2 keyframes are gone — digits sit on a calm surface. */
+/* v228 BRAND HERO — the lime statement card. Everything inside is
+   forced to dark ink in BOTH themes (white text on lime is unreadable;
+   dark-mode --ink is white, so the override below is load-bearing). */
 .clock-hero{
-  background:var(--card-bg);
-  border:1px solid var(--card-stroke);
+  background:var(--brand);
+  border:1px solid rgba(0,0,0,0.08);
   border-radius:var(--r-xl);
   padding:24px 22px 22px;
   margin-bottom:18px;
   position:relative; overflow:hidden;
   isolation:isolate;
-  box-shadow:0 2px 10px rgba(0,0,0,0.08);
+  box-shadow:0 6px 24px rgba(198,255,0,0.25);
 }
 body.dark .clock-hero{
-  box-shadow:0 2px 10px rgba(0,0,0,0.35);
+  box-shadow:0 6px 24px rgba(198,255,0,0.12);
+}
+.clock-hero .clock-time, .clock-hero .clock-date,
+.clock-hero .welcome-name, .clock-hero .welcome-meta{
+  color:var(--brand-ink);
+}
+.clock-hero .welcome-meta{ opacity:0.72; }
+.clock-hero .clock-date{ opacity:0.65; }
+.clock-hero .wc-name-gradient{
+  background:none;
+  -webkit-text-fill-color:var(--brand-ink);
 }
 .float-dot { display:none; }
 
@@ -688,15 +714,20 @@ body.dark .clock-hero{
 .btn-in > span, .btn-out > span, .btn-liquid > span{
   flex:none; line-height:1;
 }
+/* v228 brand buttons (they sit ON the lime hero): check-in is the
+   black primary action with a lime label — the mockup's RUDY! idiom;
+   check-out is white with dark ink. Solid green/red retired; the
+   labels เข้างาน/ออกงาน carry the meaning. */
 .btn-in{
-  /* v224 iOS-native: solid systemGreen, single soft colored shadow —
-     the frosted-glass tint + 4-layer edge stack is gone. */
-  background:var(--sys-green);
-  box-shadow:0 4px 14px rgba(48,209,88,0.30);
+  background:var(--brand-ink);
+  color:var(--brand);
+  box-shadow:0 4px 14px rgba(0,0,0,0.25);
 }
 .btn-out{
-  background:var(--sys-red);
-  box-shadow:0 4px 14px rgba(255,69,58,0.30);
+  background:#FFFFFF;
+  color:var(--brand-ink);
+  border:1px solid rgba(0,0,0,0.18);
+  box-shadow:0 2px 8px rgba(0,0,0,0.10);
 }
 /* v224 iOS-native: the v161 shine-sweep ::before (and its btnShine
    keyframe) removed — iOS buttons don't glint. FORTRESS lock on the
@@ -706,15 +737,15 @@ body.dark .clock-hero{
    deep inner shadow, so the button reads as physically pressed into the
    surface. No transform (FORTRESS lock), no filter (avoids the WebKit
    compositing-layer rebuild that caused label jitter — see notes above). */
-/* v224 iOS-native press: darker solid, no inner-shadow theatrics.
-   Still no transform/filter (FORTRESS — WebKit jitter fix holds). */
+/* v228 press states: darken in place. Still no transform/filter
+   (FORTRESS — WebKit jitter fix holds). */
 .btn-in:active{
-  background:var(--sys-green-2);
-  box-shadow:0 2px 8px rgba(0,0,0,0.20);
+  background:#000000;
+  box-shadow:0 2px 8px rgba(0,0,0,0.30);
 }
 .btn-out:active{
-  background:var(--sys-red-2);
-  box-shadow:0 2px 8px rgba(0,0,0,0.20);
+  background:#ECECE6;
+  box-shadow:0 1px 4px rgba(0,0,0,0.12);
 }
 
 /* DISABLED state — clearly shows button is locked after check-in/out.
