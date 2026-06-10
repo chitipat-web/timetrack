@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v225
-// Cache: rudy-static-v225, firebase-v225
-// Build: 2026-06-10 · v225 — redesign phase 4: light-mode glass tokens → opaque iOS surfaces; stat tiles/chart/record rows cleaned
+// RUDY · Service Worker v226
+// Cache: rudy-static-v226, firebase-v226
+// Build: 2026-06-10 · v226 — redesign phase 5 (final): glass sweep — cards/modals/team/report/punct all var-driven iOS surfaces
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v225';
-const FIREBASE_CACHE = 'firebase-v225';
-const RUNTIME_CACHE = 'rudy-runtime-v225';
+const STATIC_CACHE  = 'rudy-static-v226';
+const FIREBASE_CACHE = 'firebase-v226';
+const RUNTIME_CACHE = 'rudy-runtime-v226';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -56,12 +56,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v225] Installing...');
+  console.log('[SW v226] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v225] Precache partial fail (ok):', err);
+          console.warn('[SW v226] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -72,7 +72,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v225] Activating...');
+  console.log('[SW v226] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -80,7 +80,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v225] Deleting old cache:', name);
+              console.log('[SW v226] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -228,7 +228,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v225' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v226' });
     return;
   }
 });
@@ -251,7 +251,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v225] Push parse fail:', e);
+    console.warn('[SW v226] Push parse fail:', e);
   }
 });
 
@@ -271,4 +271,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v225] Loaded — stats/history surfaces iOS-native (phase 4)');
+console.log('[SW v226] Loaded — iOS redesign complete (phase 5 glass sweep)');
