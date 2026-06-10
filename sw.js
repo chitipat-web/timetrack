@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v222
-// Cache: rudy-static-v222, firebase-v222
-// Build: 2026-06-10 · v222 — nav restructure phase 1: 9 tabs → 5 (home/stats/history/team/more) + iOS-style More page
+// RUDY · Service Worker v223
+// Cache: rudy-static-v223, firebase-v223
+// Build: 2026-06-10 · v223 — redesign phase 2: iOS-native skin (flat bg, opaque cards, neutral tab bar, SF font, Apple radii)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v222';
-const FIREBASE_CACHE = 'firebase-v222';
-const RUNTIME_CACHE = 'rudy-runtime-v222';
+const STATIC_CACHE  = 'rudy-static-v223';
+const FIREBASE_CACHE = 'firebase-v223';
+const RUNTIME_CACHE = 'rudy-runtime-v223';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -56,12 +56,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v222] Installing...');
+  console.log('[SW v223] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v222] Precache partial fail (ok):', err);
+          console.warn('[SW v223] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -72,7 +72,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v222] Activating...');
+  console.log('[SW v223] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -80,7 +80,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v222] Deleting old cache:', name);
+              console.log('[SW v223] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -228,7 +228,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v222' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v223' });
     return;
   }
 });
@@ -251,7 +251,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v222] Push parse fail:', e);
+    console.warn('[SW v223] Push parse fail:', e);
   }
 });
 
@@ -271,4 +271,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v222] Loaded — nav restructure phase 1 (5 tabs + More page)');
+console.log('[SW v223] Loaded — iOS-native skin (redesign phase 2)');

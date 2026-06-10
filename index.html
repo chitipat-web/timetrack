@@ -30,9 +30,14 @@
 /* RUDY — Liquid Glass / iOS 26 Redesign */
 
 :root{
-  --bg-base:#E8F1FB;
-  --bg-mesh-1:#C5DEF9; --bg-mesh-2:#9FCAF5;
-  --bg-mesh-3:#DDE9FB; --bg-mesh-4:#B8D4F0;
+  /* v223 iOS-native skin: flat systemGroupedBackground, mesh collapsed
+     to the base color so every rule that paints the mesh becomes a
+     no-op without being edited. */
+  --bg-base:#F2F2F7;
+  --bg-mesh-1:#F2F2F7; --bg-mesh-2:#EDEDF2;
+  --bg-mesh-3:#F2F2F7; --bg-mesh-4:#EDEDF2;
+  --card-bg:#FFFFFF;
+  --card-stroke:rgba(60,60,67,0.12);
   --glass-1:rgba(255,255,255,0.15);
   --glass-2:rgba(255,255,255,0.10);
   --glass-3:rgba(255,255,255,0.06);
@@ -62,9 +67,11 @@
   --shadow:0 4px 14px rgba(15,40,80,0.08), 0 2px 4px rgba(15,40,80,0.04);
   --shadow-lg:0 12px 36px rgba(15,40,80,0.14), 0 4px 12px rgba(15,40,80,0.08);
   --shadow-xl:0 24px 64px rgba(15,40,80,0.20), 0 8px 24px rgba(15,40,80,0.12);
-  --r-xs:8px; --r-sm:12px; --r:16px; --r-lg:22px; --r-xl:28px; --r-2xl:36px; --r-pill:999px;
-  --font:'Sarabun','Inter',-apple-system,BlinkMacSystemFont,sans-serif;
-  --font-display:'Inter','Sarabun',sans-serif;
+  /* v223 iOS-native: tighter Apple-style corner radii + SF (-apple-system)
+     leads the stack so Thai renders with SF Thai on iOS. */
+  --r-xs:8px; --r-sm:10px; --r:12px; --r-lg:16px; --r-xl:20px; --r-2xl:26px; --r-pill:999px;
+  --font:-apple-system,BlinkMacSystemFont,'Sarabun','Inter',sans-serif;
+  --font-display:-apple-system,BlinkMacSystemFont,'Inter','Sarabun',sans-serif;
   --font-mono:'JetBrains Mono','SF Mono',ui-monospace,monospace;
   --ease-out:cubic-bezier(0.22,0.61,0.36,1);
   --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
@@ -78,7 +85,8 @@
   --purple:var(--sys-purple); --purple-light:var(--tint-purple);
   --text:var(--ink); --text2:var(--ink-3); --text3:var(--ink-4);
   --glass-blur:var(--blur-card); --glass-blur-lg:var(--blur-chrome);
-  --neon-glow:0 0 0 1px rgba(10,132,255,0.18), 0 8px 24px rgba(10,132,255,0.22);
+  /* v223 iOS-native: neon halo retired — plain soft shadow instead */
+  --neon-glow:0 2px 10px rgba(15,40,80,0.10);
   --radius:var(--r); --radius-sm:var(--r-sm); --radius-xs:var(--r-xs);
   --water:var(--sys-blue); --gold:var(--sys-orange); --lotus:var(--sys-red); --sky:var(--sys-teal);
   --field-bg:rgba(255,255,255,0.7);
@@ -86,18 +94,22 @@
 }
 
 body.dark{
-  --bg-base:#06101F;
-  --bg-mesh-1:#0F2347; --bg-mesh-2:#1A3873;
-  --bg-mesh-3:#0A1A33; --bg-mesh-4:#1B2F5C;
-  /* STAGE-1 READABILITY FIX: card backgrounds were 18-36% opaque, so the
-     background showed through and text lost contrast. Raised to ~92-96%
-     opacity — cards are now near-solid surfaces. Kept the variable names
-     so every existing rule that uses --glass-* updates consistently. */
-  --glass-1:rgba(28,40,64,0.96);
-  --glass-2:rgba(24,35,58,0.94);
-  --glass-3:rgba(20,30,50,0.92);
-  --glass-stroke:rgba(255,255,255,0.16);
-  --glass-stroke-dim:rgba(255,255,255,0.10);
+  /* v223 iOS-native dark: pure black base (iOS dark mode), mesh collapsed
+     to near-black so mesh-painting rules become invisible without edits.
+     Cards/surfaces use iOS elevated gray #1C1C1E family.
+     NOTE: --ink-* values below are intentionally NOT lowered to Apple's
+     0.6 secondary alpha — this app had a real "text unreadable" bug
+     (STAGE-1 fix) and keeps its higher-contrast text. */
+  --bg-base:#000000;
+  --bg-mesh-1:#0A0A0C; --bg-mesh-2:#060608;
+  --bg-mesh-3:#0A0A0C; --bg-mesh-4:#060608;
+  --card-bg:#1C1C1E;
+  --card-stroke:rgba(84,84,88,0.42);
+  --glass-1:#232326;
+  --glass-2:#1C1C1E;
+  --glass-3:#161618;
+  --glass-stroke:rgba(255,255,255,0.14);
+  --glass-stroke-dim:rgba(255,255,255,0.08);
   --glass-inner:inset 0 1px 0 rgba(255,255,255,0.06);
   --ink:#FFFFFF; --ink-2:#E8EEF7;
   --ink-3:rgba(240,244,251,0.96);
@@ -424,26 +436,22 @@ body.dark .user-chip {
   transform:translateX(-50%);
   z-index:40;
   display:flex; gap:2px; padding:6px;
-  background:linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.15) 100%);
-  -webkit-backdrop-filter:blur(60px) saturate(180%);
-  backdrop-filter:blur(60px) saturate(180%);
-  border:1px solid rgba(255,255,255,0.35);
+  /* v223 iOS-native tab bar: neutral translucent material (iOS keeps the
+     blur), hairline stroke, one soft shadow — gradients/inset shine gone. */
+  background:rgba(249,249,251,0.82);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);
+  backdrop-filter:blur(30px) saturate(180%);
+  border:1px solid rgba(60,60,67,0.14);
   border-radius:var(--r-pill);
-  box-shadow:
-    0 14px 40px rgba(15,40,80,0.18),
-    0 4px 12px rgba(15,40,80,0.10),
-    inset 0 1px 0 rgba(255,255,255,0.65),
-    inset 0 -1px 0 rgba(255,255,255,0.10);
+  box-shadow:0 6px 24px rgba(0,0,0,0.10);
   max-width:calc(100vw - 24px);
   overflow-x:auto; scrollbar-width:none;
 }
 body.dark .nav{
-  background:linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(20,32,56,0.30) 100%);
-  border-color:rgba(255,255,255,0.20);
-  box-shadow:
-    0 12px 36px rgba(0,0,0,0.5),
-    inset 0 1px 0 rgba(255,255,255,0.22),
-    inset 0 -1px 0 rgba(0,0,0,0.3);
+  /* v223 iOS-native dark tab bar material */
+  background:rgba(22,22,24,0.82);
+  border-color:rgba(255,255,255,0.10);
+  box-shadow:0 6px 24px rgba(0,0,0,0.45);
 }
 .nav::-webkit-scrollbar { display:none; }
 .nav-btn{
@@ -581,24 +589,15 @@ body.dark .nav{
 }
 
 .card{
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.02) 100%);
-  -webkit-backdrop-filter:blur(40px) saturate(190%) brightness(1.08);
-  backdrop-filter:blur(40px) saturate(190%) brightness(1.08);
-  border:1px solid rgba(255,255,255,0.20);
+  /* v223 iOS-native: opaque grouped-list card (was liquid-glass gradient +
+     heavy backdrop blur + chromatic shadows). Solid surface via theme vars,
+     hairline stroke, one soft shadow. Dropping backdrop-filter also saves
+     battery on iOS. */
+  background:var(--card-bg);
+  border:1px solid var(--card-stroke);
   border-radius:var(--r-lg);
   padding:18px;
-  /* iOS 26 Liquid Glass: ambient halo + multi-stop drop + chromatic edge
-     dispersion (blue left, warm right) for prismatic refraction feel.
-     v195: alphas halved for a more see-through "true glass" look. */
-  box-shadow:
-    0 0 24px -6px rgba(255,255,255,0.08),
-    0 22px 60px -8px rgba(15,40,80,0.18),
-    0 6px 16px -4px rgba(15,40,80,0.06),
-    inset 0 1.5px 0 rgba(255,255,255,0.45),
-    inset 0 -1px 0 rgba(0,0,0,0.03),
-    inset 1.5px 0 0 rgba(180,210,255,0.20),
-    inset -1.5px 0 0 rgba(255,220,200,0.12);
+  box-shadow:0 1px 3px rgba(0,0,0,0.06);
   margin-bottom:14px;
   position:relative; overflow:hidden;
   isolation:isolate;
