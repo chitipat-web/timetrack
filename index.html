@@ -33,26 +33,17 @@
   /* v223 iOS-native skin: flat systemGroupedBackground, mesh collapsed
      to the base color so every rule that paints the mesh becomes a
      no-op without being edited. */
-  --bg-base:#FAFAF7;
-  --bg-mesh-1:#FAFAF7; --bg-mesh-2:#F4F4EF;
-  --bg-mesh-3:#FAFAF7; --bg-mesh-4:#F4F4EF;
-  --card-bg:#FFFFFF;
-  --card-stroke:rgba(60,60,67,0.12);
-  /* v228 NEW BRAND — lime identity (from the owner's own RUDY! mockup).
-     Lime is a FILL color: always pair with --brand-ink text on top.
-     Never use lime as text on light surfaces (fails contrast). */
-  --brand:#C6FF00;
-  --brand-press:#A8D900;
-  --brand-ink:#111111;
-  /* v225 iOS-native light: glass tokens were 6-15% translucent white —
-     invisible on the new flat #F2F2F7 canvas (phase-2 only fixed dark).
-     Now opaque iOS light surfaces; every rule using these updates free. */
-  --glass-1:#FFFFFF;
-  --glass-2:#FFFFFF;
-  --glass-3:#FAFAFC;
-  --glass-stroke:rgba(60,60,67,0.16);
-  --glass-stroke-dim:rgba(60,60,67,0.10);
-  --glass-inner:inset 0 0 0 transparent;
+  /* v229 Liquid Glass restore — original blue-tinted mesh canvas */
+  --bg-base:#E8F1FB;
+  --bg-mesh-1:#C5DEF9; --bg-mesh-2:#9FCAF5;
+  --bg-mesh-3:#DDE9FB; --bg-mesh-4:#B8D4F0;
+  /* v229 Liquid Glass restore — translucent surfaces over the mesh */
+  --glass-1:rgba(255,255,255,0.15);
+  --glass-2:rgba(255,255,255,0.10);
+  --glass-3:rgba(255,255,255,0.06);
+  --glass-stroke:rgba(255,255,255,0.28);
+  --glass-stroke-dim:rgba(255,255,255,0.15);
+  --glass-inner:inset 0 1px 0 rgba(255,255,255,0.4);
   --blur-chrome:blur(60px) saturate(160%);
   --blur-card:blur(60px) saturate(160%);
   --blur-light:blur(40px) saturate(150%);
@@ -76,9 +67,9 @@
   --shadow:0 4px 14px rgba(15,40,80,0.08), 0 2px 4px rgba(15,40,80,0.04);
   --shadow-lg:0 12px 36px rgba(15,40,80,0.14), 0 4px 12px rgba(15,40,80,0.08);
   --shadow-xl:0 24px 64px rgba(15,40,80,0.20), 0 8px 24px rgba(15,40,80,0.12);
-  /* v223 iOS-native: tighter Apple-style corner radii + SF (-apple-system)
-     leads the stack so Thai renders with SF Thai on iOS. */
-  --r-xs:8px; --r-sm:10px; --r:12px; --r-lg:16px; --r-xl:20px; --r-2xl:26px; --r-pill:999px;
+  /* v229 Liquid Glass restore — generous glass-era radii; SF kept
+     leading the stack (it suits the iOS glass look) */
+  --r-xs:8px; --r-sm:12px; --r:16px; --r-lg:22px; --r-xl:28px; --r-2xl:36px; --r-pill:999px;
   --font:-apple-system,BlinkMacSystemFont,'Sarabun','Inter',sans-serif;
   --font-display:-apple-system,BlinkMacSystemFont,'Inter','Sarabun',sans-serif;
   --font-mono:'JetBrains Mono','SF Mono',ui-monospace,monospace;
@@ -94,8 +85,8 @@
   --purple:var(--sys-purple); --purple-light:var(--tint-purple);
   --text:var(--ink); --text2:var(--ink-3); --text3:var(--ink-4);
   --glass-blur:var(--blur-card); --glass-blur-lg:var(--blur-chrome);
-  /* v223 iOS-native: neon halo retired — plain soft shadow instead */
-  --neon-glow:0 2px 10px rgba(15,40,80,0.10);
+  /* v229 Liquid Glass restore — blue neon halo */
+  --neon-glow:0 0 0 1px rgba(10,132,255,0.18), 0 8px 24px rgba(10,132,255,0.22);
   --radius:var(--r); --radius-sm:var(--r-sm); --radius-xs:var(--r-xs);
   --water:var(--sys-blue); --gold:var(--sys-orange); --lotus:var(--sys-red); --sky:var(--sys-teal);
   --field-bg:rgba(255,255,255,0.7);
@@ -103,26 +94,16 @@
 }
 
 body.dark{
-  /* v223 iOS-native dark: pure black base (iOS dark mode), mesh collapsed
-     to near-black so mesh-painting rules become invisible without edits.
-     Cards/surfaces use iOS elevated gray #1C1C1E family.
-     NOTE: --ink-* values below are intentionally NOT lowered to Apple's
-     0.6 secondary alpha — this app had a real "text unreadable" bug
-     (STAGE-1 fix) and keeps its higher-contrast text. */
-  --bg-base:#000000;
-  --bg-mesh-1:#0A0A0C; --bg-mesh-2:#060608;
-  --bg-mesh-3:#0A0A0C; --bg-mesh-4:#060608;
-  --card-bg:#1C1C1E;
-  /* v228 brand tokens (same lime — it pops hardest on black) */
-  --brand:#C6FF00;
-  --brand-press:#A8D900;
-  --brand-ink:#111111;
-  --card-stroke:rgba(84,84,88,0.42);
-  --glass-1:#232326;
-  --glass-2:#1C1C1E;
-  --glass-3:#161618;
-  --glass-stroke:rgba(255,255,255,0.14);
-  --glass-stroke-dim:rgba(255,255,255,0.08);
+  /* v229 Liquid Glass restore — navy mesh + near-solid glass surfaces
+     (the STAGE-1 readability values: 92-96% opacity keeps text crisp) */
+  --bg-base:#06101F;
+  --bg-mesh-1:#0F2347; --bg-mesh-2:#1A3873;
+  --bg-mesh-3:#0A1A33; --bg-mesh-4:#1B2F5C;
+  --glass-1:rgba(28,40,64,0.96);
+  --glass-2:rgba(24,35,58,0.94);
+  --glass-3:rgba(20,30,50,0.92);
+  --glass-stroke:rgba(255,255,255,0.16);
+  --glass-stroke-dim:rgba(255,255,255,0.10);
   --glass-inner:inset 0 1px 0 rgba(255,255,255,0.06);
   --ink:#FFFFFF; --ink-2:#E8EEF7;
   --ink-3:rgba(240,244,251,0.96);
@@ -345,19 +326,18 @@ body.dark .btn-forgot, body.dark .btn-register, body.dark .btn-secondary {
   padding-bottom:10px;
   padding-left:calc(env(safe-area-inset-left, 0px) + 12px);
   padding-right:calc(env(safe-area-inset-right, 0px) + 12px);
-  /* v227 iOS nav-bar material: neutral translucent + hairline */
-  background:rgba(249,249,251,0.82);
-  -webkit-backdrop-filter:blur(30px) saturate(180%);
-  backdrop-filter:blur(30px) saturate(180%);
-  border-bottom:1px solid rgba(60,60,67,0.14);
+  /* v229 Liquid Glass restore */
+  background:linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.10) 100%);
+  -webkit-backdrop-filter:blur(50px) saturate(180%);
+  backdrop-filter:blur(50px) saturate(180%);
+  border-bottom:1px solid rgba(255,255,255,0.20);
   width:100%;
   max-width:100vw;
   overflow:hidden;
   gap:6px;
 }
 body.dark .topbar{
-  /* v227 iOS dark nav-bar material */
-  background:rgba(22,22,24,0.82);
+  background:linear-gradient(180deg, rgba(20,32,56,0.30) 0%, rgba(20,32,56,0.10) 100%);
   border-bottom-color:rgba(255,255,255,0.10);
 }
 .topbar-logo{ display:flex; align-items:center; gap:6px; flex-shrink:0; min-width:0; }
@@ -373,11 +353,9 @@ body.dark .topbar{
   background:linear-gradient(135deg, var(--sys-blue), var(--sys-indigo));
   box-shadow:0 4px 10px rgba(10,132,255,0.3);
 }
-/* v228 brand wordmark: chunky black; the DY half goes lime on dark
-   (lime text on white fails contrast, so light mode stays solid ink) */
-.logo-text{ font-family:var(--font-display); font-size:19px; font-weight:900; letter-spacing:-0.04em; color:var(--ink); }
-.logo-text span { color:var(--ink); }
-body.dark .logo-text span { color:var(--brand); }
+/* v229 Liquid Glass restore — blue DY wordmark */
+.logo-text{ font-family:var(--font-display); font-size:18px; font-weight:800; letter-spacing:-0.04em; color:var(--ink); }
+.logo-text span { color:var(--sys-blue); }
 
 .live-badge{
   display:flex; align-items:center; gap:6px;
@@ -454,22 +432,27 @@ body.dark .user-chip {
   transform:translateX(-50%);
   z-index:40;
   display:flex; gap:2px; padding:6px;
-  /* v223 iOS-native tab bar: neutral translucent material (iOS keeps the
-     blur), hairline stroke, one soft shadow — gradients/inset shine gone. */
-  background:rgba(249,249,251,0.82);
-  -webkit-backdrop-filter:blur(30px) saturate(180%);
-  backdrop-filter:blur(30px) saturate(180%);
-  border:1px solid rgba(60,60,67,0.14);
+  /* v229 Liquid Glass restore — floating glass pill dock */
+  background:linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.15) 100%);
+  -webkit-backdrop-filter:blur(60px) saturate(180%);
+  backdrop-filter:blur(60px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.35);
   border-radius:var(--r-pill);
-  box-shadow:0 6px 24px rgba(0,0,0,0.10);
+  box-shadow:
+    0 14px 40px rgba(15,40,80,0.18),
+    0 4px 12px rgba(15,40,80,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.65),
+    inset 0 -1px 0 rgba(255,255,255,0.10);
   max-width:calc(100vw - 24px);
   overflow-x:auto; scrollbar-width:none;
 }
 body.dark .nav{
-  /* v223 iOS-native dark tab bar material */
-  background:rgba(22,22,24,0.82);
-  border-color:rgba(255,255,255,0.10);
-  box-shadow:0 6px 24px rgba(0,0,0,0.45);
+  background:linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(20,32,56,0.30) 100%);
+  border-color:rgba(255,255,255,0.20);
+  box-shadow:
+    0 12px 36px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 -1px 0 rgba(0,0,0,0.3);
 }
 .nav::-webkit-scrollbar { display:none; }
 .nav-btn{
@@ -498,14 +481,25 @@ body.dark .nav{
     transform:none !important;
   }
 }
-/* v228 brand tab selection: lime pill + dark ink icon/label — the
-   look-defining accent, visible on every screen, both themes. */
+/* v229 Liquid Glass restore — glowing blue glass pill for the active tab */
 .nav-btn.active{
-  background:var(--brand);
-  color:var(--brand-ink);
-  box-shadow:none;
+  background:linear-gradient(135deg, #5AC8FA 0%, #0A84FF 60%, #0066D6 100%);
+  color:#fff;
+  box-shadow:
+    0 6px 16px rgba(10,132,255,0.5),
+    0 2px 4px rgba(10,132,255,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.5),
+    inset 0 -1px 0 rgba(0,0,0,0.15);
   position:relative;
   isolation:isolate;
+}
+.nav-btn.active::before{
+  content:""; position:absolute;
+  top:0; left:0; right:0; height:55%;
+  background:linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%);
+  border-radius:var(--r-pill);
+  pointer-events:none;
+  z-index:0;
 }
 .nav-btn.active > * { position:relative; z-index:1; }
 
@@ -600,56 +594,132 @@ body.dark .nav{
   margin-bottom:10px; color:var(--ink-4);
 }
 
+/* v229 Liquid Glass restore — the iOS 26 card material: translucent
+   gradient + heavy blur + chromatic edge dispersion */
 .card{
-  /* v223 iOS-native: opaque grouped-list card (was liquid-glass gradient +
-     heavy backdrop blur + chromatic shadows). Solid surface via theme vars,
-     hairline stroke, one soft shadow. Dropping backdrop-filter also saves
-     battery on iOS. */
-  background:var(--card-bg);
-  border:1px solid var(--card-stroke);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.02) 100%);
+  -webkit-backdrop-filter:blur(40px) saturate(190%) brightness(1.08);
+  backdrop-filter:blur(40px) saturate(190%) brightness(1.08);
+  border:1px solid rgba(255,255,255,0.20);
   border-radius:var(--r-lg);
   padding:18px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  box-shadow:
+    0 0 24px -6px rgba(255,255,255,0.08),
+    0 22px 60px -8px rgba(15,40,80,0.18),
+    0 6px 16px -4px rgba(15,40,80,0.06),
+    inset 0 1.5px 0 rgba(255,255,255,0.45),
+    inset 0 -1px 0 rgba(0,0,0,0.03),
+    inset 1.5px 0 0 rgba(180,210,255,0.20),
+    inset -1.5px 0 0 rgba(255,220,200,0.12);
   margin-bottom:14px;
   position:relative; overflow:hidden;
   isolation:isolate;
 }
 .card > * { position:relative; z-index:1; }
-/* v226 iOS-native: the stale body.dark .card glass override (which was
-   beating the phase-2 var-driven .card on specificity) is gone, along
-   with the "wet glass" sheen ::before and top specular ::after. */
 body.dark .card{
-  box-shadow:0 1px 3px rgba(0,0,0,0.30);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 40%, rgba(20,32,56,0.10) 100%);
+  border-color:rgba(255,255,255,0.08);
+  box-shadow:
+    0 0 24px -6px rgba(94,200,250,0.05),
+    0 24px 64px -8px rgba(0,0,0,0.45),
+    0 6px 18px -4px rgba(0,0,0,0.25),
+    inset 0 1.5px 0 rgba(255,255,255,0.18),
+    inset 0 -1px 0 rgba(0,0,0,0.25),
+    inset 1.5px 0 0 rgba(140,180,255,0.10),
+    inset -1.5px 0 0 rgba(255,200,160,0.05);
 }
+/* Specular highlight — wider arc, stronger fade for "wet glass" sheen */
+.card::before{
+  content:""; position:absolute;
+  top:0; left:0; right:0; height:55%;
+  background:
+    radial-gradient(ellipse 80% 100% at 35% -10%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 50%, transparent 75%),
+    linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 60%, transparent 100%);
+  pointer-events:none;
+  border-radius:var(--r-lg) var(--r-lg) 50% 50% / var(--r-lg) var(--r-lg) 100% 100%;
+  opacity:0.7;
+}
+body.dark .card::before { opacity:0.10; }
+/* Top edge bright line — thin specular */
+.card::after{
+  content:""; position:absolute;
+  top:0; left:8%; right:8%; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent);
+  pointer-events:none;
+}
+body.dark .card::after { background:linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent); }
 
 /* v224 iOS-native hero: opaque themed card (was glass gradient + 60px
    backdrop blur + floating refraction blobs). Blobs and their
    blobFloat1/2 keyframes are gone — digits sit on a calm surface. */
-/* v228 BRAND HERO — the lime statement card. Everything inside is
-   forced to dark ink in BOTH themes (white text on lime is unreadable;
-   dark-mode --ink is white, so the override below is load-bearing). */
+/* v229 Liquid Glass restore — glass hero with floating refraction blobs */
 .clock-hero{
-  background:var(--brand);
-  border:1px solid rgba(0,0,0,0.08);
-  border-radius:var(--r-xl);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.05) 50%, rgba(10,132,255,0.10) 100%),
+    radial-gradient(ellipse at top right, rgba(94,92,230,0.14), transparent 60%);
+  -webkit-backdrop-filter:blur(60px) saturate(160%);
+  backdrop-filter:blur(60px) saturate(160%);
+  border:1px solid rgba(255,255,255,0.28);
+  border-radius:var(--r-2xl);
   padding:24px 22px 22px;
   margin-bottom:18px;
   position:relative; overflow:hidden;
   isolation:isolate;
-  box-shadow:0 6px 24px rgba(198,255,0,0.25);
+  box-shadow:
+    0 20px 56px rgba(15,40,80,0.18),
+    0 6px 16px rgba(15,40,80,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.5),
+    inset 0 -1px 0 rgba(255,255,255,0.06);
 }
 body.dark .clock-hero{
-  box-shadow:0 6px 24px rgba(198,255,0,0.12);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 50%, rgba(10,132,255,0.10) 100%),
+    radial-gradient(ellipse at top right, rgba(94,92,230,0.18), transparent 60%);
+  border-color:rgba(255,255,255,0.12);
+  box-shadow:
+    0 20px 56px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.3);
 }
-.clock-hero .clock-time, .clock-hero .clock-date,
-.clock-hero .welcome-name, .clock-hero .welcome-meta{
-  color:var(--brand-ink);
+/* LIGHT MODE: near-solid white so the clock digits read clearly */
+body:not(.dark) .clock-hero{
+  background:#FFFFFF;
+  border-color:rgba(11,20,38,0.08);
+  box-shadow:0 12px 32px rgba(15,40,80,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
 }
-.clock-hero .welcome-meta{ opacity:0.72; }
-.clock-hero .clock-date{ opacity:0.65; }
-.clock-hero .wc-name-gradient{
-  background:none;
-  -webkit-text-fill-color:var(--brand-ink);
+body:not(.dark) .clock-hero::before,
+body:not(.dark) .clock-hero::after{ opacity:0.35; }
+/* Glass refraction blob - blue */
+.clock-hero::before{
+  content:""; position:absolute;
+  top:-40%; right:-25%;
+  width:260px; height:260px;
+  background:radial-gradient(circle, rgba(10,132,255,0.5) 0%, rgba(10,132,255,0.15) 40%, transparent 70%);
+  border-radius:50%;
+  filter:blur(30px);
+  pointer-events:none;
+  animation:blobFloat1 12s ease-in-out infinite alternate;
+}
+/* Glass refraction blob - purple */
+.clock-hero::after{
+  content:""; position:absolute;
+  bottom:-40%; left:-25%;
+  width:260px; height:260px;
+  background:radial-gradient(circle, rgba(191,90,242,0.5) 0%, rgba(191,90,242,0.12) 40%, transparent 70%);
+  border-radius:50%;
+  filter:blur(30px);
+  pointer-events:none;
+  animation:blobFloat2 14s ease-in-out infinite alternate;
+}
+@keyframes blobFloat1 {
+  0% { transform:translate(0, 0) scale(1); }
+  100% { transform:translate(-15px, 20px) scale(1.15); }
+}
+@keyframes blobFloat2 {
+  0% { transform:translate(0, 0) scale(1); }
+  100% { transform:translate(20px, -15px) scale(1.1); }
 }
 .float-dot { display:none; }
 
@@ -695,9 +765,10 @@ body.dark .clock-hero{
   border:none; border-radius:var(--r-lg);
   font-family:inherit; font-size:15px; font-weight:700;
   cursor:pointer; color:#fff; overflow:hidden;
-  /* v224 iOS-native: buttons are now solid fills — backdrop blur and
-     text-shadow (both liquid-glass era) removed. White label on solid
-     iOS green/red passes contrast without a shadow. */
+  /* v229 Liquid Glass restore — frosted buttons over the hero */
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  backdrop-filter:blur(24px) saturate(180%);
+  text-shadow:0 1px 3px rgba(0,0,0,0.35);
   transition:background 0.15s ease-out, box-shadow 0.15s ease-out, opacity 0.15s ease-out;
   letter-spacing:-0.01em;
   isolation:isolate;
@@ -714,38 +785,62 @@ body.dark .clock-hero{
 .btn-in > span, .btn-out > span, .btn-liquid > span{
   flex:none; line-height:1;
 }
-/* v228 brand buttons (they sit ON the lime hero): check-in is the
-   black primary action with a lime label — the mockup's RUDY! idiom;
-   check-out is white with dark ink. Solid green/red retired; the
-   labels เข้างาน/ออกงาน carry the meaning. */
+/* v229 Liquid Glass restore — translucent green/red glass panels */
 .btn-in{
-  background:var(--brand-ink);
-  color:var(--brand);
-  box-shadow:0 4px 14px rgba(0,0,0,0.25);
+  background:linear-gradient(180deg, rgba(91,255,181,0.55) 0%, rgba(48,209,88,0.72) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.50),
+    inset 0 -1px 0 rgba(0,0,0,0.15),
+    inset 0 0 0 0.5px rgba(255,255,255,0.25),
+    0 10px 28px rgba(48,209,88,0.38);
 }
 .btn-out{
-  background:#FFFFFF;
-  color:var(--brand-ink);
-  border:1px solid rgba(0,0,0,0.18);
-  box-shadow:0 2px 8px rgba(0,0,0,0.10);
+  background:linear-gradient(180deg, rgba(255,123,114,0.55) 0%, rgba(239,68,68,0.72) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.50),
+    inset 0 -1px 0 rgba(0,0,0,0.15),
+    inset 0 0 0 0.5px rgba(255,255,255,0.25),
+    0 10px 28px rgba(239,68,68,0.38);
 }
-/* v224 iOS-native: the v161 shine-sweep ::before (and its btnShine
-   keyframe) removed — iOS buttons don't glint. FORTRESS lock on the
-   buttons themselves is untouched. */
+/* v229 Liquid Glass restore — slow shine bar sweeps the glass every
+   4.5s. Pseudo-element only; buttons stay FORTRESS-locked. */
+.btn-in::before, .btn-out::before{
+  content:""; position:absolute;
+  top:0; bottom:0; left:-40%; width:40%;
+  background:linear-gradient(105deg,
+    transparent 20%,
+    rgba(255,255,255,0.38) 50%,
+    transparent 80%);
+  transform:skewX(-15deg);
+  animation:btnShine 4.5s ease-in-out infinite;
+  pointer-events:none;
+  z-index:0;
+}
+@keyframes btnShine{
+  0%, 55%   { left:-40%; opacity:0; }
+  65%       { opacity:1; }
+  100%      { left:130%; opacity:0; }
+}
 .btn-in > *, .btn-out > * { position:relative; z-index:1; }
 /* v161: stronger press feedback. The glass goes opaque-ish and gains a
    deep inner shadow, so the button reads as physically pressed into the
    surface. No transform (FORTRESS lock), no filter (avoids the WebKit
    compositing-layer rebuild that caused label jitter — see notes above). */
-/* v228 press states: darken in place. Still no transform/filter
-   (FORTRESS — WebKit jitter fix holds). */
+/* v229 Liquid Glass restore — press = glass goes opaque-ish with deep
+   inner shadow. No transform/filter (FORTRESS jitter fix holds). */
 .btn-in:active{
-  background:#000000;
-  box-shadow:0 2px 8px rgba(0,0,0,0.30);
+  background:linear-gradient(180deg, rgba(48,209,88,0.88) 0%, rgba(31,157,64,0.96) 100%);
+  box-shadow:
+    inset 0 3px 8px rgba(0,0,0,0.30),
+    inset 0 0 0 0.5px rgba(255,255,255,0.20),
+    0 4px 12px rgba(0,0,0,0.18);
 }
 .btn-out:active{
-  background:#ECECE6;
-  box-shadow:0 1px 4px rgba(0,0,0,0.12);
+  background:linear-gradient(180deg, rgba(239,68,68,0.88) 0%, rgba(215,55,45,0.96) 100%);
+  box-shadow:
+    inset 0 3px 8px rgba(0,0,0,0.30),
+    inset 0 0 0 0.5px rgba(255,255,255,0.20),
+    0 4px 12px rgba(0,0,0,0.18);
 }
 
 /* DISABLED state — clearly shows button is locked after check-in/out.
@@ -764,22 +859,38 @@ body.dark .clock-hero{
 .liquid-cv { display:none !important; }
 
 .stats-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
-/* v225 iOS-native stat tile: one var-driven rule for both themes (was a
-   hardcoded light gradient + 60px blur + a dark override + a gloss
-   ::before). Gloss and blur removed. */
+/* v229 Liquid Glass restore */
 .stat-box{
-  background:var(--card-bg);
-  border:1px solid var(--card-stroke);
+  background:linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+  -webkit-backdrop-filter:blur(60px) saturate(160%);
+  backdrop-filter:blur(60px) saturate(160%);
+  border:1px solid rgba(255,255,255,0.22);
   border-radius:var(--r);
   padding:14px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  box-shadow:
+    0 8px 22px rgba(15,40,80,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    inset 0 -1px 0 rgba(255,255,255,0.05);
   position:relative; overflow:hidden;
   isolation:isolate;
 }
 .stat-box > * { position:relative; z-index:1; }
 body.dark .stat-box{
-  box-shadow:0 1px 3px rgba(0,0,0,0.30);
+  background:var(--glass-2);
+  border-color:var(--glass-stroke);
+  box-shadow:
+    0 4px 14px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.10);
 }
+.stat-box::before{
+  content:""; position:absolute;
+  top:0; left:0; right:0; height:50%;
+  background:linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%);
+  border-radius:var(--r) var(--r) 50% 50% / var(--r) var(--r) 100% 100%;
+  pointer-events:none;
+  opacity:0.7;
+}
+body.dark .stat-box::before{ opacity:0.06; }
 .stat-icon{ font-size:18px; margin-bottom:6px; }
 .stat-val{
   font-family:var(--font-display);
@@ -814,25 +925,33 @@ body.dark .c-green { color:#5BFFB5; }
 body.dark .status-pill.in { color:#5BFFB5; }
 body.dark .status-pill.out { color:#FF9E97; }
 
-/* v226 iOS-native team/employee rows: var-driven opaque surfaces */
+/* v229 Liquid Glass restore */
 .emp-card{
   display:flex; align-items:center; gap:12px;
   padding:14px;
-  background:var(--card-bg);
-  border:1px solid var(--card-stroke);
+  background:linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.10) 100%);
+  -webkit-backdrop-filter:blur(40px) saturate(170%);
+  backdrop-filter:blur(40px) saturate(170%);
+  border:1px solid rgba(255,255,255,0.30);
   border-radius:var(--r);
   margin-bottom:8px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  box-shadow:
+    0 4px 14px rgba(15,40,80,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.55);
   transition:all 0.25s var(--ease-out);
 }
 .team-card{
   display:flex; flex-direction:column; gap:10px;
   padding:14px;
-  background:var(--card-bg);
-  border:1px solid var(--card-stroke);
+  background:linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.10) 100%);
+  -webkit-backdrop-filter:blur(40px) saturate(170%);
+  backdrop-filter:blur(40px) saturate(170%);
+  border:1px solid rgba(255,255,255,0.30);
   border-radius:var(--r);
   margin-bottom:8px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  box-shadow:
+    0 4px 14px rgba(15,40,80,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.55);
   transition:all 0.25s var(--ease-out);
   cursor:pointer;
   width:100%;
@@ -841,7 +960,11 @@ body.dark .status-pill.out { color:#FF9E97; }
   box-sizing:border-box;
 }
 body.dark .emp-card, body.dark .team-card{
-  box-shadow:0 1px 3px rgba(0,0,0,0.30);
+  background:linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  border-color:rgba(255,255,255,0.12);
+  box-shadow:
+    0 4px 14px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.12);
 }
 .emp-card:hover, .team-card:hover { transform:translateY(-1px); box-shadow:var(--shadow); }
 .emp-name, .team-name { font-size:14px; font-weight:600; color:var(--ink); }
@@ -938,22 +1061,29 @@ body:not(.dark) .cal-day.holiday { color:var(--sys-purple); }
 }
 @media (min-width: 540px){ .modal-overlay { align-items:center; padding:24px; } }
 .modal-overlay.open { display:flex; }
-/* v226 iOS-native sheet: opaque var-driven surface (iOS modals are not
-   see-through). Drag-handle ::before below is kept — it's a grabber,
-   not a sheen. */
+/* v229 Liquid Glass restore — frosted sheet */
 .modal{
   width:100%; max-width:480px;
-  background:var(--card-bg);
-  border:1px solid var(--card-stroke);
+  background:linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.15) 100%);
+  -webkit-backdrop-filter:blur(55px) saturate(180%);
+  backdrop-filter:blur(55px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.35);
   border-radius:var(--r-2xl) var(--r-2xl) 0 0;
   padding:22px 22px 28px;
-  box-shadow:0 -8px 32px rgba(0,0,0,0.18);
+  box-shadow:
+    0 -16px 48px rgba(15,40,80,0.20),
+    inset 0 1px 0 rgba(255,255,255,0.6),
+    inset 0 -1px 0 rgba(255,255,255,0.08);
   position:relative;
   max-height:90vh; overflow-y:auto;
   animation:modalUp 0.35s var(--ease-spring);
 }
 body.dark .modal{
-  box-shadow:0 -8px 32px rgba(0,0,0,0.55);
+  background:linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(20,32,56,0.30) 100%);
+  border-color:rgba(255,255,255,0.15);
+  box-shadow:
+    0 -16px 48px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.18);
 }
 @media (min-width: 540px){ .modal { border-radius:var(--r-2xl); } }
 .modal::before{
@@ -1442,7 +1572,7 @@ body.dark .card:active, body.dark .stat-box:active, body.dark .emp-card:active, 
   display:flex; align-items:center; gap:12px;
   padding:12px 14px;
   background:var(--glass-2);
-  /* v225: backdrop-filter dropped — surface is opaque now */
+  -webkit-backdrop-filter:var(--blur-card); backdrop-filter:var(--blur-card);
   border:1px solid var(--glass-stroke-dim);
   border-radius:var(--r);
   margin-bottom:6px;
@@ -1475,19 +1605,28 @@ body.dark .card:active, body.dark .stat-box:active, body.dark .emp-card:active, 
   padding:20px;
 }
 .confirm-overlay.open{ display:flex; }
-/* v226 iOS-native alert: opaque, like a UIAlertController card */
+/* v229 Liquid Glass restore — frosted alert */
 .confirm-box{
-  background:var(--card-bg);
-  border:1px solid var(--card-stroke);
-  border-radius:var(--r-xl);
+  background:linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.15) 100%);
+  -webkit-backdrop-filter:blur(55px) saturate(180%);
+  backdrop-filter:blur(55px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.35);
+  border-radius:var(--r-2xl);
   padding:24px;
   max-width:340px; width:100%;
-  box-shadow:0 12px 40px rgba(0,0,0,0.22);
+  box-shadow:
+    0 20px 56px rgba(15,40,80,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.6),
+    inset 0 -1px 0 rgba(255,255,255,0.08);
   text-align:center;
   animation:modalUp 0.35s var(--ease-spring);
 }
 body.dark .confirm-box{
-  box-shadow:0 12px 40px rgba(0,0,0,0.60);
+  background:linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(20,32,56,0.30) 100%);
+  border-color:rgba(255,255,255,0.15);
+  box-shadow:
+    0 20px 56px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.18);
 }
 .confirm-title{ font-family:var(--font-display); font-size:18px; font-weight:700; margin-bottom:8px; letter-spacing:-0.02em; }
 .confirm-msg{ font-size:14px; color:var(--ink-3); margin-bottom:20px; line-height:1.5; }
@@ -1680,7 +1819,7 @@ body.dark .confirm-cancel { background:rgba(255,255,255,0.08); }
 
 .chart-card{
   background:var(--glass-2);
-  /* v225: backdrop-filter dropped — surface is opaque now */
+  -webkit-backdrop-filter:var(--blur-card); backdrop-filter:var(--blur-card);
   border:1px solid var(--glass-stroke-dim);
   border-radius:var(--r-lg);
   padding:16px;
@@ -1784,19 +1923,28 @@ body.dark .badge-red{ color:#FF9E97; }
 }
 
 /* Report cards (admin dashboard) */
-/* v226 iOS-native admin report card */
+/* v229 Liquid Glass restore */
 .report-card{
-  background:var(--card-bg);
-  border:1px solid var(--card-stroke);
+  background:linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.10) 100%);
+  -webkit-backdrop-filter:blur(45px) saturate(170%);
+  backdrop-filter:blur(45px) saturate(170%);
+  border:1px solid rgba(255,255,255,0.30);
   border-radius:var(--r-lg);
   padding:16px;
   margin-bottom:12px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  box-shadow:
+    0 6px 20px rgba(15,40,80,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 -1px 0 rgba(255,255,255,0.08);
   position:relative;
   isolation:isolate;
 }
 body.dark .report-card{
-  box-shadow:0 1px 3px rgba(0,0,0,0.30);
+  background:linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  border-color:rgba(255,255,255,0.12);
+  box-shadow:
+    0 6px 20px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.12);
 }
 .report-card > * { position:relative; z-index:1; }
 .report-title{
@@ -2060,18 +2208,26 @@ body.dark .report-card{
 .peak-axis{ font-size:9px; color:var(--ink-4); display:flex; justify-content:space-between; margin-top:4px; }
 
 /* Punctuality (progress ring) */
-/* v226 iOS-native punctuality ring card */
+/* v229 Liquid Glass restore */
 .punct-card{
-  background:var(--card-bg);
-  border:1px solid var(--card-stroke);
+  background:linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.10) 100%);
+  -webkit-backdrop-filter:blur(45px) saturate(170%);
+  backdrop-filter:blur(45px) saturate(170%);
+  border:1px solid rgba(255,255,255,0.30);
   border-radius:var(--r-lg);
   padding:14px;
   text-align:center;
   margin-bottom:12px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  box-shadow:
+    0 6px 20px rgba(15,40,80,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.55);
 }
 body.dark .punct-card{
-  box-shadow:0 1px 3px rgba(0,0,0,0.30);
+  background:linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  border-color:rgba(255,255,255,0.12);
+  box-shadow:
+    0 6px 20px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.12);
 }
 .punct-label{ font-size:11px; color:var(--ink-3); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em; font-weight:700; }
 .punct-ring{
@@ -2736,12 +2892,36 @@ body > main, body > .topbar, body > .top-bar, body > .pages, body > .page,
   100%{ transform:translateY(-32px) scale(0.5); opacity:0; }
 }
 
-/* v224 iOS-native: AAA-EPIC pulsing glow ::after removed (with its
-   aaaBtnGlowG/R keyframes) — solid iOS buttons carry their own weight.
-   position/isolation kept: other code relies on the stacking context. */
+/* v229 Liquid Glass restore — AAA EPIC pulsing glow behind the buttons.
+   blur set once, never animated (WebKit jitter rule); opacity animates. */
 .btn-in, .btn-out{
   position:relative;
   isolation:isolate;
+}
+.btn-in::after, .btn-out::after{
+  content:''; position:absolute;
+  inset:-3px;
+  border-radius:inherit;
+  z-index:-1;
+  filter:blur(10px);
+  pointer-events:none;
+  will-change:opacity;
+}
+.btn-in::after{
+  background:linear-gradient(135deg, #5BFFB5, #30D158);
+  animation:aaaBtnGlowG 2s ease-in-out infinite alternate;
+}
+.btn-out::after{
+  background:linear-gradient(135deg, #FF7B72, #FF453A);
+  animation:aaaBtnGlowR 2s ease-in-out infinite alternate;
+}
+@keyframes aaaBtnGlowG{
+  0%{ opacity:0.40; }
+  100%{ opacity:0.80; }
+}
+@keyframes aaaBtnGlowR{
+  0%{ opacity:0.40; }
+  100%{ opacity:0.80; }
 }
 .btn-in:disabled::after, .btn-out:disabled::after{ animation:none !important; opacity:0 !important; }
 
