@@ -1,0 +1,19 @@
+{
+  "appId": "com.chitipat.rudy",
+  "appName": "RUDY",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "automatic",
+    "scrollEnabled": true,
+    "limitsNavigationsToAppBoundDomains": false,
+    "scheme": "RUDY"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true,
+      "backgroundColor": "#000000"
+    }
+  }
+}

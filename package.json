@@ -1,0 +1,20 @@
+{
+  "name": "rudy-ios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor wrapper for the RUDY PWA — packages the existing web build (index.html + sw.js + assets) into a native iOS app for App Store distribution. Web app keeps living at GitHub Pages; this is the App Store track.",
+  "scripts": {
+    "build:web": "rm -rf www && mkdir www && cp index.html sw.js manifest.json version.json splash.mp4 icon-120.png icon-152.png icon-167.png icon-180.png icon-192.png icon-512.png www/",
+    "ios:add": "npm run build:web && npx cap add ios",
+    "ios:sync": "npm run build:web && npx cap sync ios",
+    "ios:open": "npx cap open ios",
+    "ios:build": "npm run ios:sync && echo 'Open Xcode and run Product → Archive'"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
