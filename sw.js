@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v232
-// Cache: rudy-static-v232, firebase-v232
-// Build: 2026-06-15 · v232 — UI regroup phase 2: at-a-glance today chips moved above clock-hero (answer "did I check in?" first, then big clock + slider)
+// RUDY · Service Worker v233
+// Cache: rudy-static-v233, firebase-v233
+// Build: 2026-06-15 · v233 — UI regroup phase 3 polish: chips 2×2 grid (no overflow), transparent clock face, slider label right of thumb, thumb halo for CTA prominence
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v232';
-const FIREBASE_CACHE = 'firebase-v232';
-const RUNTIME_CACHE = 'rudy-runtime-v232';
+const STATIC_CACHE  = 'rudy-static-v233';
+const FIREBASE_CACHE = 'firebase-v233';
+const RUNTIME_CACHE = 'rudy-runtime-v233';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -56,12 +56,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v232] Installing...');
+  console.log('[SW v233] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v232] Precache partial fail (ok):', err);
+          console.warn('[SW v233] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -72,7 +72,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v232] Activating...');
+  console.log('[SW v233] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -80,7 +80,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v232] Deleting old cache:', name);
+              console.log('[SW v233] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -228,7 +228,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v232' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v233' });
     return;
   }
 });
@@ -251,7 +251,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v232] Push parse fail:', e);
+    console.warn('[SW v233] Push parse fail:', e);
   }
 });
 
@@ -271,4 +271,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v232] Loaded — home chips moved up (phase 2)');
+console.log('[SW v233] Loaded — phase 3 polish (chip grid, clock, slider)');

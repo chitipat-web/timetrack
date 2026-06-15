@@ -3037,10 +3037,11 @@ body.dark .wc-name-gradient, body.dark #wc-name{
 .ha-section-title{ font-family:var(--font-display); font-size:13px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--ink-3); }
 
 /* Horizontal chips */
-.ha-chips-row{ display:flex; gap:8px; overflow-x:auto; padding:2px 4px 8px; scrollbar-width:none; margin:0 -4px 12px; }
-.ha-chips-row::-webkit-scrollbar{ display:none; }
-.ha-chip{ flex:0 0 auto; background:var(--glass-2);
-  border:0.5px solid rgba(255,255,255,0.12); border-radius:14px; padding:11px 14px; min-width:120px; display:flex; flex-direction:column; gap:2px; position:relative; overflow:hidden; }
+/* v233 chips: 2×2 grid (was overflow-x scroll) — fits all 4 chips on
+   any iPhone width, no horizontal scroll needed. */
+.ha-chips-row{ display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:2px 4px 8px; margin:0 -4px 12px; }
+.ha-chip{ background:var(--glass-2);
+  border:0.5px solid rgba(255,255,255,0.12); border-radius:14px; padding:11px 14px; display:flex; flex-direction:column; gap:2px; position:relative; overflow:hidden; }
 body:not(.dark) .ha-chip{ background:rgba(255,255,255,0.55); border-color:rgba(255,255,255,0.35); }
 .ha-chip::before{ content:''; position:absolute; top:0; left:0; right:0; height:40%; background:linear-gradient(180deg,rgba(255,255,255,0.18),transparent); pointer-events:none; }
 body:not(.dark) .ha-chip::before{ background:linear-gradient(180deg,rgba(255,255,255,0.35),transparent); }
@@ -3295,10 +3296,12 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   position:relative; z-index:1;
 }
 .clock-svg{ display:block; width:100%; height:auto; }
-.clock-face-bg{ fill:rgba(255,255,255,0.06); }
-.clock-face-ring{ fill:none; stroke:rgba(255,255,255,0.20); stroke-width:1.5; }
-.clock-ticks line{ stroke:var(--ink); stroke-width:1.6; opacity:0.55; }
-.clock-ticks .tick-major{ stroke-width:2.6; opacity:0.9; }
+/* v233 clock face: bg transparent so the parent hero card shows through
+   (was washed-out white circle on dark). Ticks + ring bumped contrast. */
+.clock-face-bg{ fill:transparent; }
+.clock-face-ring{ fill:none; stroke:rgba(255,255,255,0.32); stroke-width:1.5; }
+.clock-ticks line{ stroke:var(--ink); stroke-width:2; opacity:0.80; }
+.clock-ticks .tick-major{ stroke-width:3.2; opacity:1; }
 .clock-num{
   font-family:var(--font-display);
   font-size:18px; font-weight:700;
@@ -3313,7 +3316,8 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 .hand.second{ stroke:var(--sys-red); stroke-width:1.6; }
 .hand-cap-outer{ fill:var(--ink); }
 .hand-cap{ fill:var(--sys-red); }
-body:not(.dark) .clock-face-bg{ fill:rgba(11,20,38,0.04); }
+body:not(.dark) .clock-face-bg{ fill:transparent; }
+body:not(.dark) .clock-face-ring{ stroke:rgba(11,20,38,0.18); }
 body:not(.dark) .clock-face-ring{ stroke:rgba(11,20,38,0.18); }
 
 /* ============================================================
@@ -3350,6 +3354,9 @@ body.dark .slide-action{
 }
 .slide-track{
   position:absolute; inset:0;
+  /* v233: padding-left = thumb width + gap so the label always sits in
+     the "right half" of the track — never under the thumb at rest. */
+  padding-left:68px; padding-right:16px;
   display:flex; align-items:center; justify-content:center;
   gap:8px;
   font-size:15px; font-weight:700;
@@ -3373,8 +3380,12 @@ body.dark .slide-action{
   background:var(--sys-green);
   color:#fff;
   display:flex; align-items:center; justify-content:center;
-  box-shadow:0 4px 14px rgba(48,209,88,0.45);
-  transition:transform 0.25s var(--ease-spring), background 0.2s;
+  /* v233 thumb pops as primary CTA: deeper colored shadow + white halo ring */
+  box-shadow:
+    0 6px 18px rgba(48,209,88,0.55),
+    0 0 0 3px rgba(255,255,255,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.35);
+  transition:transform 0.25s var(--ease-spring), background 0.2s, box-shadow 0.2s;
   cursor:grab;
   z-index:2;
   will-change:transform;
@@ -3382,7 +3393,11 @@ body.dark .slide-action{
 .slide-thumb:active{ cursor:grabbing; }
 .slide-action[data-mode="out"] .slide-thumb{
   background:var(--sys-red);
-  box-shadow:0 4px 14px rgba(255,69,58,0.45);
+  /* v233 match the new green thumb depth/halo */
+  box-shadow:
+    0 6px 18px rgba(255,69,58,0.55),
+    0 0 0 3px rgba(255,255,255,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.35);
 }
 .slide-action[data-mode="idle"]{
   opacity:0.55;
