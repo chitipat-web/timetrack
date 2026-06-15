@@ -3592,6 +3592,33 @@ body.dark .slide-action{
       </div>
     </div>
 
+    <!-- v232 at-a-glance chips moved up: user sees today's facts BEFORE
+         the clock+slider so "did I check in already?" is answered without
+         scrolling or thinking. -->
+    <div class="ha-section-h"><div class="ha-section-title">📊 วันนี้</div></div>
+    <div class="ha-chips-row">
+      <div class="ha-chip">
+        <div class="ha-chip-icon">🕐</div>
+        <div class="ha-chip-label">เข้าครั้งแรก</div>
+        <div class="ha-chip-value muted" id="s-firstin">--:--</div>
+      </div>
+      <div class="ha-chip green">
+        <div class="ha-chip-icon">⏱</div>
+        <div class="ha-chip-label">ทำงาน</div>
+        <div class="ha-chip-value"><span id="s-hours">0.0</span><span class="u">ชม</span></div>
+      </div>
+      <div class="ha-chip orange">
+        <div class="ha-chip-icon">⚡</div>
+        <div class="ha-chip-label">โอที</div>
+        <div class="ha-chip-value"><span id="s-ot">0.0</span><span class="u">ชม</span></div>
+      </div>
+      <div class="ha-chip purple">
+        <div class="ha-chip-icon">🔄</div>
+        <div class="ha-chip-label">รอบ</div>
+        <div class="ha-chip-value" id="s-rounds">0</div>
+      </div>
+    </div>
+
     <!-- ╔═══════════════════════════════════════════════════════╗ -->
     <!-- ║ CLOCK + CHECK IN/OUT BUTTONS (moved to top)          ║ -->
     <!-- ╚═══════════════════════════════════════════════════════╝ -->
@@ -3672,30 +3699,8 @@ body.dark .slide-action{
     <!-- ╚═══════════════════════════════════════════════════════╝ -->
     <div id="hw-container" style="display:flex;flex-direction:column;gap:10px;margin:14px 0"></div>
 
-    <!-- 📊 วันนี้ — horizontal chips -->
-    <div class="ha-section-h"><div class="ha-section-title">📊 วันนี้</div></div>
-    <div class="ha-chips-row">
-      <div class="ha-chip">
-        <div class="ha-chip-icon">🕐</div>
-        <div class="ha-chip-label">เข้าครั้งแรก</div>
-        <div class="ha-chip-value muted" id="s-firstin">--:--</div>
-      </div>
-      <div class="ha-chip green">
-        <div class="ha-chip-icon">⏱</div>
-        <div class="ha-chip-label">ทำงาน</div>
-        <div class="ha-chip-value"><span id="s-hours">0.0</span><span class="u">ชม</span></div>
-      </div>
-      <div class="ha-chip orange">
-        <div class="ha-chip-icon">⚡</div>
-        <div class="ha-chip-label">โอที</div>
-        <div class="ha-chip-value"><span id="s-ot">0.0</span><span class="u">ชม</span></div>
-      </div>
-      <div class="ha-chip purple">
-        <div class="ha-chip-icon">🔄</div>
-        <div class="ha-chip-label">รอบ</div>
-        <div class="ha-chip-value" id="s-rounds">0</div>
-      </div>
-    </div>
+    <!-- v232 chips moved up (now between greeting and clock-hero) — id="s-*"
+         hooks unchanged, refreshHomeStats() still finds them by id -->
 
     <!-- 📅 Timeline -->
     <div class="ha-section-h"><div class="ha-section-title">📅 Timeline วันนี้</div></div>
