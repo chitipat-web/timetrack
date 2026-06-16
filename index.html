@@ -3296,29 +3296,37 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   position:relative; z-index:1;
 }
 .clock-svg{ display:block; width:100%; height:auto; }
-/* v233 clock face: bg transparent so the parent hero card shows through
-   (was washed-out white circle on dark). Ticks + ring bumped contrast. */
-.clock-face-bg{ fill:transparent; }
-.clock-face-ring{ fill:none; stroke:rgba(255,255,255,0.32); stroke-width:1.5; }
-.clock-ticks line{ stroke:var(--ink); stroke-width:2; opacity:0.80; }
-.clock-ticks .tick-major{ stroke-width:3.2; opacity:1; }
-.clock-num{
-  font-family:var(--font-display);
-  font-size:18px; font-weight:700;
-  fill:var(--ink); letter-spacing:-0.02em;
+/* v234 LUXURY DIAL — twin gold bezel, Roman numerals (Cinzel),
+   tapered diamond hands, gold sweep seconds, two-tone center cap.
+   Rotation pivots at SVG (100,100) via attribute (tick() sets it). */
+.lux-bezel-out{ fill:none; stroke:url(#lux-gold); stroke-width:1.6; opacity:0.95; }
+.lux-bezel-in { fill:none; stroke:url(#lux-gold); stroke-width:0.6; opacity:0.55; }
+.lux-chapter  { fill:none; stroke:rgba(255,255,255,0.07); stroke-width:0.5; }
+body:not(.dark) .lux-chapter{ stroke:rgba(11,20,38,0.10); }
+
+.lux-mark{ fill:var(--ink); opacity:0.65; }
+.lux-mark.major{ fill:url(#lux-gold); opacity:1; }
+
+.lux-roman{
+  font-family:'Cinzel','Trajan Pro','Times New Roman',serif;
+  font-size:13px; font-weight:600;
+  fill:var(--ink);
+  letter-spacing:0.05em;
+  opacity:0.85;
 }
-.clock-hand-grp{
-  transform-box:fill-box; transform-origin:center;
-}
-.hand{ stroke:var(--ink); stroke-linecap:round; }
-.hand.hour  { stroke-width:5; }
-.hand.minute{ stroke-width:3.5; }
-.hand.second{ stroke:var(--sys-red); stroke-width:1.6; }
-.hand-cap-outer{ fill:var(--ink); }
-.hand-cap{ fill:var(--sys-red); }
-body:not(.dark) .clock-face-bg{ fill:transparent; }
-body:not(.dark) .clock-face-ring{ stroke:rgba(11,20,38,0.18); }
-body:not(.dark) .clock-face-ring{ stroke:rgba(11,20,38,0.18); }
+body:not(.dark) .lux-roman{ opacity:0.9; }
+
+/* hands — explicit per-shape styles so attribute-based rotate works
+   without depending on transform-box quirks. */
+.lux-hand-hour-body{ fill:var(--ink); }
+.lux-hand-min-body{  fill:var(--ink); opacity:0.92; }
+.lux-hand-sec-body{  stroke:url(#lux-gold); stroke-width:1.4; stroke-linecap:round; }
+.lux-hand-sec-counter{ fill:url(#lux-gold); }
+
+.lux-cap-shadow{ fill:rgba(0,0,0,0.45); }
+body:not(.dark) .lux-cap-shadow{ fill:rgba(0,0,0,0.20); }
+.lux-cap-gold{ fill:url(#lux-cap-shine); }
+.lux-cap-dot { fill:var(--ink); }
 
 /* ============================================================
    v230 Slide-to-act control — iPhone "slide to power off" idiom.
@@ -3654,31 +3662,66 @@ body.dark .slide-action{
            other code paths that set .textContent still resolve. -->
       <div class="clock-analog" id="clock-analog" aria-label="นาฬิกาเข็ม">
         <svg viewBox="0 0 200 200" class="clock-svg" aria-hidden="true">
-          <circle class="clock-face-bg"   cx="100" cy="100" r="94"/>
-          <circle class="clock-face-ring" cx="100" cy="100" r="94"/>
-          <g class="clock-ticks">
-            <line x1="100" y1="10"  x2="100" y2="22" class="tick-major"/>
-            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(30 100 100)"/>
-            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(60 100 100)"/>
-            <line x1="100" y1="10"  x2="100" y2="22" transform="rotate(90 100 100)" class="tick-major"/>
-            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(120 100 100)"/>
-            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(150 100 100)"/>
-            <line x1="100" y1="10"  x2="100" y2="22" transform="rotate(180 100 100)" class="tick-major"/>
-            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(210 100 100)"/>
-            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(240 100 100)"/>
-            <line x1="100" y1="10"  x2="100" y2="22" transform="rotate(270 100 100)" class="tick-major"/>
-            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(300 100 100)"/>
-            <line x1="100" y1="10"  x2="100" y2="18" transform="rotate(330 100 100)"/>
+          <defs>
+            <linearGradient id="lux-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%"   stop-color="#F7E29A"/>
+              <stop offset="35%"  stop-color="#E6C56A"/>
+              <stop offset="55%"  stop-color="#C9A551"/>
+              <stop offset="100%" stop-color="#8C6A22"/>
+            </linearGradient>
+            <radialGradient id="lux-cap-shine" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#FFF4C7" stop-opacity="0.9"/>
+              <stop offset="60%" stop-color="#D4AF37" stop-opacity="0.6"/>
+              <stop offset="100%" stop-color="#7C5A1A"/>
+            </radialGradient>
+          </defs>
+
+          <!-- Twin gold bezel rings -->
+          <circle class="lux-bezel-out" cx="100" cy="100" r="95"/>
+          <circle class="lux-bezel-in"  cx="100" cy="100" r="89"/>
+          <!-- Inner chapter ring (subtle) -->
+          <circle class="lux-chapter"   cx="100" cy="100" r="78"/>
+
+          <!-- 12 elongated rectangular hour markers; cardinals (12/3/6/9) are gold + thicker -->
+          <g class="lux-markers">
+            <rect class="lux-mark major" x="98.4" y="14" width="3.2" height="13" rx="1"/>
+            <rect class="lux-mark"       x="99.2" y="14" width="1.6" height="9"  rx="0.8" transform="rotate(30 100 100)"/>
+            <rect class="lux-mark"       x="99.2" y="14" width="1.6" height="9"  rx="0.8" transform="rotate(60 100 100)"/>
+            <rect class="lux-mark major" x="98.4" y="14" width="3.2" height="13" rx="1"   transform="rotate(90 100 100)"/>
+            <rect class="lux-mark"       x="99.2" y="14" width="1.6" height="9"  rx="0.8" transform="rotate(120 100 100)"/>
+            <rect class="lux-mark"       x="99.2" y="14" width="1.6" height="9"  rx="0.8" transform="rotate(150 100 100)"/>
+            <rect class="lux-mark major" x="98.4" y="14" width="3.2" height="13" rx="1"   transform="rotate(180 100 100)"/>
+            <rect class="lux-mark"       x="99.2" y="14" width="1.6" height="9"  rx="0.8" transform="rotate(210 100 100)"/>
+            <rect class="lux-mark"       x="99.2" y="14" width="1.6" height="9"  rx="0.8" transform="rotate(240 100 100)"/>
+            <rect class="lux-mark major" x="98.4" y="14" width="3.2" height="13" rx="1"   transform="rotate(270 100 100)"/>
+            <rect class="lux-mark"       x="99.2" y="14" width="1.6" height="9"  rx="0.8" transform="rotate(300 100 100)"/>
+            <rect class="lux-mark"       x="99.2" y="14" width="1.6" height="9"  rx="0.8" transform="rotate(330 100 100)"/>
           </g>
-          <text class="clock-num" x="100" y="34"  text-anchor="middle">12</text>
-          <text class="clock-num" x="166" y="106" text-anchor="middle">3</text>
-          <text class="clock-num" x="100" y="178" text-anchor="middle">6</text>
-          <text class="clock-num" x="34"  y="106" text-anchor="middle">9</text>
-          <g class="clock-hand-grp" id="clock-hand-hour"><line class="hand hour"   x1="100" y1="108" x2="100" y2="56"/></g>
-          <g class="clock-hand-grp" id="clock-hand-min"> <line class="hand minute" x1="100" y1="110" x2="100" y2="36"/></g>
-          <g class="clock-hand-grp" id="clock-hand-sec"> <line class="hand second" x1="100" y1="116" x2="100" y2="28"/></g>
-          <circle class="hand-cap-outer" cx="100" cy="100" r="6"/>
-          <circle class="hand-cap"       cx="100" cy="100" r="3"/>
+
+          <!-- Roman numerals at cardinals -->
+          <text class="lux-roman" x="100" y="44"  text-anchor="middle">XII</text>
+          <text class="lux-roman" x="160" y="106" text-anchor="middle">III</text>
+          <text class="lux-roman" x="100" y="170" text-anchor="middle">VI</text>
+          <text class="lux-roman" x="40"  y="106" text-anchor="middle">IX</text>
+
+          <!-- Hands — pivot is set via SVG transform attribute in tick() so
+               rotation is exactly at (100,100). Each shape is a tapered
+               sword with a short tail behind the cap. -->
+          <g class="lux-hand" id="clock-hand-hour" transform="rotate(0 100 100)">
+            <polygon class="lux-hand-hour-body" points="100,60 103,98 100,107 97,98"/>
+          </g>
+          <g class="lux-hand" id="clock-hand-min" transform="rotate(0 100 100)">
+            <polygon class="lux-hand-min-body"  points="100,32 102.4,98 100,110 97.6,98"/>
+          </g>
+          <g class="lux-hand" id="clock-hand-sec" transform="rotate(0 100 100)">
+            <line class="lux-hand-sec-body" x1="100" y1="120" x2="100" y2="22"/>
+            <circle class="lux-hand-sec-counter" cx="100" cy="120" r="4"/>
+          </g>
+
+          <!-- Center cap stack: shadow disc → gold dome → tiny dark dot -->
+          <circle class="lux-cap-shadow" cx="100" cy="100" r="8"/>
+          <circle class="lux-cap-gold"   cx="100" cy="100" r="6"/>
+          <circle class="lux-cap-dot"    cx="100" cy="100" r="1.6"/>
         </svg>
       </div>
       <div class="clock-time" id="clock-display" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">00:00:00</div>
@@ -4827,9 +4870,13 @@ function startClock(){
     const hH = document.getElementById('clock-hand-hour');
     const hM = document.getElementById('clock-hand-min');
     const hS = document.getElementById('clock-hand-sec');
-    if(hH) hH.style.transform = `rotate(${hr*30}deg)`;
-    if(hM) hM.style.transform = `rotate(${min*6}deg)`;
-    if(hS) hS.style.transform = `rotate(${sec*6}deg)`;
+    // v234 — set the SVG transform attribute so rotation pivots exactly at
+    // the clock center (100,100). Old CSS `style.transform = rotate(...)`
+    // pivoted around each hand's bbox center, which sat ~18px above (100,100)
+    // and made the tips fly off-axis on long hands.
+    if(hH) hH.setAttribute('transform', 'rotate('+(hr*30)+' 100 100)');
+    if(hM) hM.setAttribute('transform', 'rotate('+(min*6)+' 100 100)');
+    if(hS) hS.setAttribute('transform', 'rotate('+(sec*6)+' 100 100)');
     const cd = document.getElementById('clock-date');
     if(cd) cd.textContent=`วัน${days[n.getDay()]}ที่ ${n.getDate()} ${mons[n.getMonth()]} ${n.getFullYear()+543}`;
     // Neon color by hour
