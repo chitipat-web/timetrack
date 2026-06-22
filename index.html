@@ -5166,7 +5166,7 @@ function showMentionSuggest(ta, query){
     <div class="mention-suggest-item" onclick="insertMention('${e.id}','${e.name.replace(/'/g,"\\'")}')">
       <div class="em-av" style="background:${avatarGrad(e.name)}">${avatarLetter(e.name)}</div>
       <div>
-        <div style="font-weight:600">${e.name}</div>
+        <div style="font-weight:600">${escHtml(e.name)}</div>
         <div style="font-size:10px;color:var(--text3)">${e.dept||''}</div>
       </div>
     </div>
@@ -5203,7 +5203,7 @@ function renderMentions(text){
   const safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   return safe.replace(/@(\S+(?:\s\S+)?)/g, (match, name) => {
     const found = employees.find(e => e.name === name || e.name.startsWith(name));
-    if(found) return `<span class="mention-tag">@${found.name}</span>`;
+    if(found) return `<span class="mention-tag">@${escHtml(found.name)}</span>`;
     return match;
   });
 }
@@ -5251,7 +5251,7 @@ function renderBirthdayBanner(){
     return `<div class="bday-banner">
       <div class="bday-cake">🎂</div>
       <div class="bday-text">
-        <div class="bday-title">สุขสันต์วันเกิด ${alert.name}!</div>
+        <div class="bday-title">สุขสันต์วันเกิด ${escHtml(alert.name)}!</div>
         <div class="bday-sub">ขอให้มีความสุขและสุขภาพแข็งแรงตลอดปี ✨</div>
       </div>
     </div>`;
@@ -5515,9 +5515,9 @@ function renderBadgesCard(empId){
     <div class="section-title">🏅 ตรารางวัล <span style="font-size:11px;font-weight:400;color:var(--text2);margin-left:auto">${unlockedCount}/${badges.length}</span></div>
     <div class="badges-grid">
       ${badges.map(b => `
-        <div class="badge-item ${b.unlocked?'unlocked':'locked'}" title="${b.desc}">
+        <div class="badge-item ${b.unlocked?'unlocked':'locked'}" title="${escHtml(b.desc)}">
           <div class="badge-icon">${b.icon}</div>
-          <div class="badge-name">${b.name}</div>
+          <div class="badge-name">${escHtml(b.name)}</div>
         </div>
       `).join('')}
     </div>
@@ -6474,7 +6474,7 @@ function renderHome(){
           <span class="badge badge-green">${hrs.toFixed(1)} ชม.</span>
           ${r.isLate?'<span class="badge badge-red">⚠ สาย</span>':'<span class="badge badge-blue">✓ ตรงเวลา</span>'}
           ${otH>0?`<span class="badge badge-orange">⚡ OT ${otH.toFixed(1)}ชม.</span>`:''}
-          ${r.note?`<span class="badge" style="background:var(--surface);border:1px solid var(--border);color:var(--text2)">${r.note}</span>`:''}
+          ${r.note?`<span class="badge" style="background:var(--surface);border:1px solid var(--border);color:var(--text2)">${escHtml(r.note)}</span>`:''}
         </div>
       </div>
       <div class="rec-actions">
@@ -6704,7 +6704,7 @@ function renderHistory(resetPage){
         ${rs.map((r,i)=>`<div class="hi-rec" data-rid="${r.id}">
           <div>
             <span class="hi-times">${r.checkIn} → ${r.checkOut||'...'}</span>
-            ${r.note?`<span style="font-size:11px;color:var(--text3);margin-left:6px">${r.note}</span>`:''}
+            ${r.note?`<span style="font-size:11px;color:var(--text3);margin-left:6px">${escHtml(r.note)}</span>`:''}
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <span class="hi-net">${r.checkOut?calcHours(r.checkIn,r.checkOut).toFixed(1)+'ชม.':''}</span>
@@ -7173,7 +7173,7 @@ function showDayDetail(dateStr,email){
           <div class="rec-badges">
             ${r.checkOut?`<span class="badge badge-green">${calcHours(r.checkIn,r.checkOut).toFixed(1)} ชม.</span>`:''}
             ${r.isLate?'<span class="badge badge-red">สาย</span>':''}
-            ${r.note?`<span class="badge" style="background:var(--surface2);color:var(--text2)">${r.note}</span>`:''}
+            ${r.note?`<span class="badge" style="background:var(--surface2);color:var(--text2)">${escHtml(r.note)}</span>`:''}
           </div>
         </div>
         ${(isAdmin()||emp.id===curUser.id)?`<button class="btn-edit" onclick="closeModal('day-modal');openEdit('${r.id}','${email}')">✏️</button>`:''}
