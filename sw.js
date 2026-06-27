@@ -1,20 +1,22 @@
 // =============================================================
-// RUDY · Service Worker v235
-// Cache: rudy-static-v235, firebase-v235
-// Build: 2026-06-16 · v235 — security: XSS patch — 8 user-input fields (names/note/badge/birthday/mention) now escHtml() before innerHTML insertion
+// RUDY · Service Worker v236
+// Cache: rudy-static-v236, firebase-v236
+// Build: 2026-06-22 · v236 — iOS splash fix: bypass SW for video/Range requests + drop splash.mp4 from precache (cached full-200 broke iOS 206 video playback)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v235';
-const FIREBASE_CACHE = 'firebase-v235';
-const RUNTIME_CACHE = 'rudy-runtime-v235';
+const STATIC_CACHE  = 'rudy-static-v236';
+const FIREBASE_CACHE = 'firebase-v236';
+const RUNTIME_CACHE = 'rudy-runtime-v236';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
   './',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png',
-  './splash.mp4'
+  './icon-512.png'
+  // NOTE: splash.mp4 intentionally NOT precached (v236). iOS Safari needs
+  // 206 Range responses to play video; a cached full-200 body breaks it.
+  // The video is fetched from network so the browser negotiates ranges.
 ];
 
 // =============================================================
@@ -56,12 +58,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v235] Installing...');
+  console.log('[SW v236] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v235] Precache partial fail (ok):', err);
+          console.warn('[SW v236] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -72,7 +74,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v235] Activating...');
+  console.log('[SW v236] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -80,7 +82,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v235] Deleting old cache:', name);
+              console.log('[SW v236] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -112,6 +114,19 @@ self.addEventListener('fetch', (event) => {
   }
 
   const reqUrl = new URL(url);
+
+  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v236 iOS splash fix).
+  // iOS Safari plays <video> only when the server answers its
+  // `Range:` request with a 206 Partial Content + Content-Range.
+  // A Service Worker that serves a cached FULL 200 body (which a
+  // cache-first match does) makes iOS refuse to render the video —
+  // the splash goes black. Let the browser fetch media itself so it
+  // negotiates ranges natively. Covers any Range request and .mp4.
+  if (event.request.headers.has('range') ||
+      reqUrl.pathname.endsWith('.mp4') ||
+      event.request.destination === 'video') {
+    return;
+  }
 
   // STEP 3.5: version.json → NETWORK ONLY, never cached.
   // The auto-update poller relies on this being fresh; if the SW
@@ -228,7 +243,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v235' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v236' });
     return;
   }
 });
@@ -251,7 +266,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v235] Push parse fail:', e);
+    console.warn('[SW v236] Push parse fail:', e);
   }
 });
 
@@ -271,4 +286,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v235] Loaded — XSS patch (8 unescaped user-input fields)');
+console.log('[SW v236] Loaded — iOS splash video fix (Range bypass)');

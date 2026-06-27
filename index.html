@@ -3154,7 +3154,9 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
   <!-- v213 AI-generated splash video (Gemini Veo, 9:16 portrait, 2x sped from 10s→5s,
        audio stripped, H.264 yuv420p main/3.1 iOS-compat, ~1.9MB).
-       MIN_LOADING_MS = 8500 to let it play through. -->
+       MIN_LOADING_MS = 8500 to let it play through.
+       v236: the SW now bypasses this .mp4 / Range requests so iOS gets a
+       proper 206 and the video renders (a cached full-200 left it black). -->
   <video class="splash-video" autoplay muted playsinline preload="auto" disableRemotePlayback>
     <source src="./splash.mp4" type="video/mp4">
   </video>
