@@ -3157,9 +3157,30 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
        MIN_LOADING_MS = 8500 to let it play through.
        v236: the SW now bypasses this .mp4 / Range requests so iOS gets a
        proper 206 and the video renders (a cached full-200 left it black). -->
-  <video class="splash-video" autoplay muted playsinline preload="auto" disableRemotePlayback>
+  <video id="splash-video" class="splash-video" autoplay muted playsinline webkit-playsinline preload="auto" disableRemotePlayback>
     <source src="./splash.mp4" type="video/mp4">
   </video>
+  <script>
+  /* v237 iOS standalone-PWA autoplay kick. In Safari TAB the autoplay
+     attribute is honored, but in an installed PWA (Add to Home Screen)
+     iOS frequently ignores it — the splash stays black. Two things fix
+     it reliably: (1) set the `muted` PROPERTY in JS (the HTML attribute
+     alone is sometimes treated as insufficient for autoplay on iOS), and
+     (2) call play() explicitly, retried across the events/timers that
+     standalone mode tends to need. All failures are swallowed — if play
+     never starts, the overlay still fades on the MIN_LOADING_MS timer. */
+  (function(){
+    var v = document.getElementById('splash-video');
+    if(!v) return;
+    try { v.muted = true; v.defaultMuted = true; } catch(e){}
+    function kick(){ try { var p = v.play(); if(p && p.catch) p.catch(function(){}); } catch(e){} }
+    kick();
+    v.addEventListener('loadeddata', kick, { once:true });
+    v.addEventListener('canplay',   kick, { once:true });
+    setTimeout(kick, 60);
+    setTimeout(kick, 350);
+  })();
+  </script>
 
   <!-- Status text — overlaid at bottom, fades in last second of video -->
   <div id="overlay-status" style="position:absolute;left:50%;bottom:12%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.60);letter-spacing:0.20em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.65);transition:opacity 0.3s ease;opacity:0;z-index:2;white-space:nowrap;animation:rudyStatusIn 0.5s ease 7.00s forwards">กำลังเตรียมข้อมูล</div>

@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v236
-// Cache: rudy-static-v236, firebase-v236
-// Build: 2026-06-22 · v236 — iOS splash fix: bypass SW for video/Range requests + drop splash.mp4 from precache (cached full-200 broke iOS 206 video playback)
+// RUDY · Service Worker v237
+// Cache: rudy-static-v237, firebase-v237
+// Build: 2026-06-22 · v237 — iOS standalone-PWA splash fix: JS muted-property + explicit video.play() kick (autoplay attr ignored in installed PWA; worked in Safari tab) — keeps v236 SW Range bypass
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v236';
-const FIREBASE_CACHE = 'firebase-v236';
-const RUNTIME_CACHE = 'rudy-runtime-v236';
+const STATIC_CACHE  = 'rudy-static-v237';
+const FIREBASE_CACHE = 'firebase-v237';
+const RUNTIME_CACHE = 'rudy-runtime-v237';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -14,7 +14,7 @@ const PRECACHE_URLS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
-  // NOTE: splash.mp4 intentionally NOT precached (v236). iOS Safari needs
+  // NOTE: splash.mp4 intentionally NOT precached (v237). iOS Safari needs
   // 206 Range responses to play video; a cached full-200 body breaks it.
   // The video is fetched from network so the browser negotiates ranges.
 ];
@@ -58,12 +58,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v236] Installing...');
+  console.log('[SW v237] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v236] Precache partial fail (ok):', err);
+          console.warn('[SW v237] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -74,7 +74,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v236] Activating...');
+  console.log('[SW v237] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -82,7 +82,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v236] Deleting old cache:', name);
+              console.log('[SW v237] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -115,7 +115,7 @@ self.addEventListener('fetch', (event) => {
 
   const reqUrl = new URL(url);
 
-  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v236 iOS splash fix).
+  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v237 iOS splash fix).
   // iOS Safari plays <video> only when the server answers its
   // `Range:` request with a 206 Partial Content + Content-Range.
   // A Service Worker that serves a cached FULL 200 body (which a
@@ -243,7 +243,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v236' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v237' });
     return;
   }
 });
@@ -266,7 +266,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v236] Push parse fail:', e);
+    console.warn('[SW v237] Push parse fail:', e);
   }
 });
 
@@ -286,4 +286,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v236] Loaded — iOS splash video fix (Range bypass)');
+console.log('[SW v237] Loaded — iOS standalone-PWA splash autoplay kick');
