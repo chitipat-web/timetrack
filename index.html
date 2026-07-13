@@ -23,6 +23,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
 <!-- Chart.js - defer is OK since it's only used when navigating to stats page -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
@@ -7896,9 +7897,30 @@ function renderEmpListSettings(){
         <div style="font-size:13px;font-weight:600">${escHtml(emp.name)} ${roleLabel(emp.role)}</div>
         <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(emp.email)}</div>
       </div>
+      <button class="btn-edit" style="padding:4px 8px;font-size:11px" onclick="adminSetPassword('${escHtml(emp.email)}','${escHtml(emp.name)}')" title="ตั้งรหัสผ่านใหม่">🔑</button>
       ${emp.id !== curUser.id ? `<button class="btn-edit" style="padding:4px 8px;font-size:11px" onclick="changeEmpRole('${emp.id}')" title="เปลี่ยนบทบาท">⚙️</button>` : ''}
       <button class="btn-del" onclick="removeEmp('${emp.id}')">🗑</button>
     </div>`).join('');
+}
+// v238 admin password reset — calls the setUserPassword Cloud Function.
+// The function re-verifies admin server-side; this client check is just
+// UX (hide the flow from non-admins).
+async function adminSetPassword(email, name){
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
+  if(!fns){ showToast('ระบบยังไม่พร้อม (Cloud Functions ไม่โหลด)','error'); return; }
+  const pw = prompt(`ตั้งรหัสผ่านใหม่ให้ "${name}"\n(${email})\n\nอย่างน้อย 6 ตัวอักษร:`);
+  if(pw === null) return; // ยกเลิก
+  if(pw.length < 6){ showToast('รหัสผ่านต้องอย่างน้อย 6 ตัว','error'); return; }
+  showToast('กำลังตั้งรหัสผ่าน...','success');
+  try {
+    const call = fns.httpsCallable('setUserPassword');
+    await call({ email, password: pw });
+    showToast(`✅ ตั้งรหัสใหม่ให้ ${name} แล้ว`,'success');
+  } catch(e){
+    const msg = (e && e.message) ? e.message : 'ตั้งรหัสไม่สำเร็จ';
+    showToast('❌ '+msg,'error');
+    console.error('[adminSetPassword]', e);
+  }
 }
 function changeEmpRole(id){
   if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
@@ -10118,6 +10140,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
+// v238 Cloud Functions (asia-southeast1) — used by admin password reset.
+// Guarded: firebase.functions exists only if the compat SDK loaded.
+const fns  = (firebase.functions ? firebase.app().functions('asia-southeast1') : null);
 
 // CRITICAL: Force LOCAL persistence (IndexedDB) so users stay logged in
 // across deploys, page reloads, and even when Safari ITP clears cookies.
