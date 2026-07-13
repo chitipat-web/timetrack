@@ -23,7 +23,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
 <!-- Chart.js - defer is OK since it's only used when navigating to stats page -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
@@ -7902,19 +7901,27 @@ function renderEmpListSettings(){
       <button class="btn-del" onclick="removeEmp('${emp.id}')">🗑</button>
     </div>`).join('');
 }
-// v238 admin password reset — calls the setUserPassword Cloud Function.
-// The function re-verifies admin server-side; this client check is just
-// UX (hide the flow from non-admins).
+// v239 admin password reset — POSTs to the free Netlify Function backend
+// with the admin's Firebase ID token. The server re-verifies admin from
+// the token + DB role; this client check is just UX.
 async function adminSetPassword(email, name){
   if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
-  if(!fns){ showToast('ระบบยังไม่พร้อม (Cloud Functions ไม่โหลด)','error'); return; }
+  if(ADMIN_API_BASE.includes('<YOUR-SITE>')){
+    showToast('ยังไม่ได้ตั้งค่า backend (Netlify)','error'); return;
+  }
   const pw = prompt(`ตั้งรหัสผ่านใหม่ให้ "${name}"\n(${email})\n\nอย่างน้อย 6 ตัวอักษร:`);
   if(pw === null) return; // ยกเลิก
   if(pw.length < 6){ showToast('รหัสผ่านต้องอย่างน้อย 6 ตัว','error'); return; }
   showToast('กำลังตั้งรหัสผ่าน...','success');
   try {
-    const call = fns.httpsCallable('setUserPassword');
-    await call({ email, password: pw });
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch(ADMIN_API_BASE + '/.netlify/functions/set-password', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ idToken, email, password: pw })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){ throw new Error(data.error || ('HTTP '+res.status)); }
     showToast(`✅ ตั้งรหัสใหม่ให้ ${name} แล้ว`,'success');
   } catch(e){
     const msg = (e && e.message) ? e.message : 'ตั้งรหัสไม่สำเร็จ';
@@ -10140,9 +10147,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
-// v238 Cloud Functions (asia-southeast1) — used by admin password reset.
-// Guarded: firebase.functions exists only if the compat SDK loaded.
-const fns  = (firebase.functions ? firebase.app().functions('asia-southeast1') : null);
+
+// v239 admin password reset backend (free Netlify Function, no Blaze).
+// After deploying the Netlify site, replace <YOUR-SITE> with the real
+// subdomain Netlify assigns (e.g. rudy-admin.netlify.app). Until then the
+// 🔑 button will report "backend not configured".
+const ADMIN_API_BASE = 'https://<YOUR-SITE>.netlify.app';
 
 // CRITICAL: Force LOCAL persistence (IndexedDB) so users stay logged in
 // across deploys, page reloads, and even when Safari ITP clears cookies.

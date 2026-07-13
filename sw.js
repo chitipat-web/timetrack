@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v238
-// Cache: rudy-static-v238, firebase-v238
-// Build: 2026-06-22 · v238 — admin in-app password reset: setUserPassword Cloud Function (admin-gated server-side) + 🔑 button per employee in settings
+// RUDY · Service Worker v239
+// Cache: rudy-static-v239, firebase-v239
+// Build: 2026-06-22 · v239 — admin in-app password reset via FREE Netlify Function (no Blaze/card); dropped Firebase Cloud Functions approach; 🔑 button POSTs ID token, server verifies admin
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v238';
-const FIREBASE_CACHE = 'firebase-v238';
-const RUNTIME_CACHE = 'rudy-runtime-v238';
+const STATIC_CACHE  = 'rudy-static-v239';
+const FIREBASE_CACHE = 'firebase-v239';
+const RUNTIME_CACHE = 'rudy-runtime-v239';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -14,7 +14,7 @@ const PRECACHE_URLS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
-  // NOTE: splash.mp4 intentionally NOT precached (v238). iOS Safari needs
+  // NOTE: splash.mp4 intentionally NOT precached (v239). iOS Safari needs
   // 206 Range responses to play video; a cached full-200 body breaks it.
   // The video is fetched from network so the browser negotiates ranges.
 ];
@@ -58,12 +58,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v238] Installing...');
+  console.log('[SW v239] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v238] Precache partial fail (ok):', err);
+          console.warn('[SW v239] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -74,7 +74,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v238] Activating...');
+  console.log('[SW v239] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -82,7 +82,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v238] Deleting old cache:', name);
+              console.log('[SW v239] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -115,7 +115,7 @@ self.addEventListener('fetch', (event) => {
 
   const reqUrl = new URL(url);
 
-  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v238 iOS splash fix).
+  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v239 iOS splash fix).
   // iOS Safari plays <video> only when the server answers its
   // `Range:` request with a 206 Partial Content + Content-Range.
   // A Service Worker that serves a cached FULL 200 body (which a
@@ -243,7 +243,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v238' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v239' });
     return;
   }
 });
@@ -266,7 +266,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v238] Push parse fail:', e);
+    console.warn('[SW v239] Push parse fail:', e);
   }
 });
 
@@ -286,4 +286,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v238] Loaded — admin in-app password reset (Cloud Function)');
+console.log('[SW v239] Loaded — admin password reset via Netlify Function');

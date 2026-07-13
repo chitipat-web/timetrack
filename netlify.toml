@@ -1,0 +1,13 @@
+# Netlify config — RUDY admin backend only.
+# We do NOT serve the app here (GitHub Pages does). Netlify just hosts the
+# serverless function at /.netlify/functions/set-password.
+# publish points at an empty dir so no static site is built/deployed.
+
+[build]
+  functions = "netlify/functions"
+  publish = "netlify/empty"
+
+[functions]
+  node_bundler = "esbuild"
+  # firebase-admin is installed from the root package.json dependencies.
+  external_node_modules = ["firebase-admin"]
