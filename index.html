@@ -10234,13 +10234,11 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v242';
+const APP_VERSION = 'v243';
 
-// v239 admin password reset backend (free Netlify Function, no Blaze).
-// After deploying the Netlify site, replace <YOUR-SITE> with the real
-// subdomain Netlify assigns (e.g. rudy-admin.netlify.app). Until then the
-// 🔑 button will report "backend not configured".
-const ADMIN_API_BASE = 'https://<YOUR-SITE>.netlify.app';
+// v243: admin password reset backend — the Netlify site imported from this
+// repo (free tier, function at /.netlify/functions/set-password).
+const ADMIN_API_BASE = 'https://mellifluous-kheer-eb23f0.netlify.app';
 
 // CRITICAL: Force LOCAL persistence (IndexedDB) so users stay logged in
 // across deploys, page reloads, and even when Safari ITP clears cookies.
