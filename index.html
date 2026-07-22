@@ -3756,7 +3756,7 @@ body.dark .slide-action{
            release-at-end, .click()s whichever button is enabled — so
            every existing wrapper/guard around doCheckIn/doCheckOut still
            runs. -->
-      <div class="slide-action" id="slide-action" data-mode="in">
+      <div class="slide-action" id="slide-action" data-mode="idle">
         <div class="slide-fill" id="slide-fill"></div>
         <div class="slide-track">
           <span class="slide-label" id="slide-label">เลื่อนเพื่อเข้างาน</span>
@@ -4537,8 +4537,25 @@ function escHtml(s){
   if(s==null) return '';
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function todayStr(){const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
-function nowStr(){const n=new Date();return `${pad(n.getHours())}:${pad(n.getMinutes())}`}
+// v240: derive date/time in Israel time (Asia/Jerusalem) instead of the
+// device clock, so check-in time / isLate / OT are correct even if a
+// phone's timezone drifts or the user roams. DST is handled by the zone
+// database. Falls back to device time if Intl/timeZone is unavailable —
+// so worst case is the old behavior, never a crash. Output format is
+// identical (YYYY-MM-DD and HH:MM), so all callers are unaffected.
+function _ilParts(){
+  try{
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+    const g=t=>{const p=parts.find(x=>x.type===t);return p?p.value:'';};
+    let hh=g('hour'); if(hh==='24') hh='00'; // some engines emit 24 at midnight
+    return {date:`${g('year')}-${g('month')}-${g('day')}`, time:`${hh}:${g('minute')}`};
+  }catch(e){
+    const n=new Date();
+    return {date:`${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`, time:`${pad(n.getHours())}:${pad(n.getMinutes())}`};
+  }
+}
+function todayStr(){return _ilParts().date}
+function nowStr(){return _ilParts().time}
 function saveEmp(){localStorage.setItem('tt_emp',JSON.stringify(employees))}
 function saveRec(){localStorage.setItem('tt_rec',JSON.stringify(records))}
 function getWorkStart(){return localStorage.getItem('tt_work_start')||'06:00'}
@@ -4846,8 +4863,19 @@ function calcHours(i,o){
   const[ih,im]=i.split(':').map(Number);
   const[oh,om]=o.split(':').map(Number);
   let mins=(oh*60+om)-(ih*60+im);
-  if(mins<0) mins+=24*60; // overnight shift
+  // v240: this team has no overnight shifts (start 06:00). A checkout
+  // earlier than check-in is a data-entry error (transposed digits), not
+  // a real 24h shift — return 0 instead of the old +24h that silently
+  // inflated hours/OT into salary. Saving reversed times is also blocked
+  // at the entry points (addManual / saveEdit).
+  if(mins<0) return 0;
   return mins/60;
+}
+// True when a completed record's checkout is earlier than its check-in.
+function timeReversed(inT,outT){
+  if(!inT||!outT) return false;
+  const m=t=>{const[h,mm]=t.split(':').map(Number);return h*60+mm;};
+  return m(outT) < m(inT);
 }
 function calcOTMin(checkOut, checkIn){
   if(!checkOut) return 0;
@@ -4861,8 +4889,9 @@ function calcOTMin(checkOut, checkIn){
   // ถ้าเวลาเข้า = เวลาออก → ทำงาน 0 นาที ไม่มี OT
   if(outMins === inMins) return 0;
 
-  // Handle overnight: ถ้า checkout < checkin แสดงว่าข้ามคืน
-  if(outMins < inMins) outMins += 24*60;
+  // v240: checkout earlier than check-in = data-entry error (no overnight
+  // shifts for this team) → no OT, don't inflate. Was +24h.
+  if(outMins < inMins) return 0;
 
   // OT เริ่มนับจากทีหลังกว่าระหว่าง (เวลาเข้างาน) กับ (เวลาเริ่ม OT)
   const otFrom = Math.max(inMins, otStartMins);
@@ -6046,7 +6075,19 @@ function doCheckOut(){
   _lastCheckOutTs = now;
   const today=todayStr();
   const idx=records.findIndex(r=>r.empId===curUser.id&&r.date===today&&!r.checkOut);
-  if(idx===-1){showToast('ไม่พบการเข้างาน','error'); clearTimeout(_safetyTimerOut); _reEnableOut(); return;}
+  if(idx===-1){
+    // v240: no open record today. If there's a forgotten open record from
+    // a PRIOR day, don't just say "not found" — point the user to fix it
+    // (auto-closing it here would fabricate hours we can't know).
+    const stale=records.filter(r=>r.empId===curUser.id&&!r.checkOut&&r.checkIn).sort((a,b)=>a.date<b.date?1:-1)[0];
+    if(stale){
+      const[y,m,d]=stale.date.split('-');
+      showToast(`ยังไม่ได้ออกงานวันที่ ${d}/${m} — แก้ไขในหน้าประวัติ`,'warning');
+    } else {
+      showToast('ไม่พบการเข้างาน','error');
+    }
+    clearTimeout(_safetyTimerOut); _reEnableOut(); return;
+  }
   const t=nowStr(),ts=Date.now();
   records[idx].checkOut=t;records[idx].checkOutTs=ts;records[idx].otMin=calcOTMin(t, records[idx].checkIn);records[idx].lastEditedTs=ts;
   haptic(records[idx].otMin>0 ? 'heavy' : 'success');
@@ -6069,6 +6110,7 @@ function addManual(){
   const outT=document.getElementById('man-out').value;
   const note=document.getElementById('man-note').value;
   if(!date||!inT){showToast('กรุณาระบุวันที่และเวลาเข้า','error');return}
+  if(timeReversed(inT,outT)){showToast('เวลาออกน้อยกว่าเวลาเข้า กรุณาตรวจสอบ','error');return}
   const late=isLate(inT);
   records.push({id:Date.now()+'',empId:curUser.id,date,checkIn:inT,checkInTs:null,checkOut:outT||null,checkOutTs:null,isLate:late,otMin:outT?calcOTMin(outT,inT):0,note});
   saveRec();
@@ -6106,6 +6148,7 @@ function saveEdit(){
   const outT=document.getElementById('edit-out').value;
   const note=document.getElementById('edit-note').value;
   if(!date||!inT){showToast('กรุณาระบุวันที่และเวลาเข้า','error');return}
+  if(timeReversed(inT,outT)){showToast('เวลาออกน้อยกว่าเวลาเข้า กรุณาตรวจสอบ','error');return}
   const idx=records.findIndex(r=>r.id===id&&r.empId===eid);
   if(idx===-1){showToast('ไม่พบรายการ','error');return}
   // Save edit log
@@ -6448,7 +6491,9 @@ function renderHome(){
 
   const firstIn=myRec.length?myRec[0].checkIn:'--:--';
   const totalH=comp.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0)+(open?calcHours(open.checkIn,nowStr()):0);
-  const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
+  // v240: include live OT for the in-progress shift too (mirrors totalH),
+  // so today's OT chip updates during work instead of staying 0 until checkout.
+  const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0)+(open?calcOTMin(nowStr(),open.checkIn):0);
 
   // Number flash on value change
   function flashIfChanged(id, newVal, decimals) {
@@ -9600,6 +9645,7 @@ function showPage(id,btn){
     if(groupBtn) btn = groupBtn;
   }
   if(btn)btn.classList.add('active');
+  if(id==='home')     { renderHome() } // v240: refresh home (chips + slider mode) on nav back
   if(id==='stats')    { showSkeletonStats(); renderStats() }
   if(id==='summary')  { renderSummary() }
   if(id==='team')     {
@@ -10385,6 +10431,20 @@ async function _syncFirebaseInBackground(fbUser) {
 // ===== REALTIME LISTENERS =====
 let _recordsLoadedFromFB = false;
 let _employeesLoadedFromFB = false;
+
+// v240 offline-safety: the records listener sets _recordsLoadedFromFB=true
+// in exactly one place (its 'value' callback). On a cold start with no
+// network that callback never fires, so the check-in guard (ckgIsReady)
+// would block check-in for the whole session. After 8s, stop waiting and
+// treat the locally-cached records as ready. doCheckIn/doCheckOut still
+// guard against duplicates via the open-record check + rapid-tap lock, so
+// flipping this flag only unblocks the UI — it can't cause a double entry.
+setTimeout(function(){
+  if(!_recordsLoadedFromFB){
+    try{ console.warn('[CKG] records listener timeout (offline?) — using local cache'); }catch(e){}
+    _recordsLoadedFromFB = true;
+  }
+}, 8000);
 
 // ── Defensive sanitizers ────────────────────────────────────────────
 // Firebase data can contain malformed entries if a node was hand-edited
@@ -12666,6 +12726,16 @@ if('serviceWorker' in navigator) {
     const btnIn  = el('btn-in');
     const btnOut = el('btn-out');
     if(!btnIn || !btnOut) return;
+    // v240: while records are still loading, the CKG guard force-enables
+    // both hidden buttons — reading .disabled here would wrongly pick 'in'
+    // even for a user who is actually checked in. Show a neutral loading
+    // state until ready so a slide isn't mislabelled.
+    if(document.body.classList.contains('ckg-not-ready')){
+      action.dataset.mode = 'idle';
+      if(label) label.textContent = 'กำลังโหลด...';
+      if(thumb) thumb.setAttribute('aria-label','กำลังโหลด');
+      return;
+    }
     let mode = 'idle';
     if(!btnIn.disabled)       mode = 'in';
     else if(!btnOut.disabled) mode = 'out';
