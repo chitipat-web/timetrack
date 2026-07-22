@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v241
-// Cache: rudy-static-v241, firebase-v241
-// Build: 2026-06-22 · v241 — audit round 2: poll-votes crash, role/remove persist to FB, addManual load-guard, update-banner cap+baseline (APP_VERSION seed), stale-role resync, photos listener leak, Chart guards, id collision, misc
+// RUDY · Service Worker v242
+// Cache: rudy-static-v242, firebase-v242
+// Build: 2026-06-22 · v242 — security: scope saveRec/saveEmp/queue-drain pushes to own data for non-admins, prep for strict Firebase rules (role lock + own-records-only writes)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v241';
-const FIREBASE_CACHE = 'firebase-v241';
-const RUNTIME_CACHE = 'rudy-runtime-v241';
+const STATIC_CACHE  = 'rudy-static-v242';
+const FIREBASE_CACHE = 'firebase-v242';
+const RUNTIME_CACHE = 'rudy-runtime-v242';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -14,7 +14,7 @@ const PRECACHE_URLS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
-  // NOTE: splash.mp4 intentionally NOT precached (v241). iOS Safari needs
+  // NOTE: splash.mp4 intentionally NOT precached (v242). iOS Safari needs
   // 206 Range responses to play video; a cached full-200 body breaks it.
   // The video is fetched from network so the browser negotiates ranges.
 ];
@@ -44,7 +44,7 @@ function shouldBypass(url) {
   try {
     const u = new URL(url);
     for (const host of BYPASS_HOSTS) {
-      // v241: exact or subdomain match only. The old `.includes(host)` substring
+      // v242: exact or subdomain match only. The old `.includes(host)` substring
       // clause could bypass unrelated hosts that merely embed the string.
       if (u.hostname === host || u.hostname.endsWith('.' + host)) {
         return true;
@@ -60,12 +60,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v241] Installing...');
+  console.log('[SW v242] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v241] Precache partial fail (ok):', err);
+          console.warn('[SW v242] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -76,7 +76,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v241] Activating...');
+  console.log('[SW v242] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -84,7 +84,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v241] Deleting old cache:', name);
+              console.log('[SW v242] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -117,7 +117,7 @@ self.addEventListener('fetch', (event) => {
 
   const reqUrl = new URL(url);
 
-  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v241 iOS splash fix).
+  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v242 iOS splash fix).
   // iOS Safari plays <video> only when the server answers its
   // `Range:` request with a 206 Partial Content + Content-Range.
   // A Service Worker that serves a cached FULL 200 body (which a
@@ -245,7 +245,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v241' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v242' });
     return;
   }
 });
@@ -268,7 +268,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v241] Push parse fail:', e);
+    console.warn('[SW v242] Push parse fail:', e);
   }
 });
 
@@ -288,4 +288,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v241] Loaded — audit round 2 fixes (polls/roles/update-banner/leaks)');
+console.log('[SW v242] Loaded — own-data write scoping (strict rules prep)');

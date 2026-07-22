@@ -10234,7 +10234,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v241';
+const APP_VERSION = 'v242';
 
 // v239 admin password reset backend (free Netlify Function, no Blaze).
 // After deploying the Netlify site, replace <YOUR-SITE> with the real
@@ -10698,6 +10698,12 @@ window.saveRec = function() {
   const currentIds = new Set();
   records.forEach(r => {
     if (!r || !r.id) return;
+    // v242: non-admins push ONLY their own records. Firebase rules now reject
+    // writes to other people's records, and a multi-path update is atomic —
+    // one rejected path would fail the whole batch (own records included).
+    // currentIds is scoped the same way, so deletion detection below can
+    // never emit deletes for teammates' records either.
+    if (!isAdmin() && (!curUser || r.empId !== curUser.id)) return;
     updates['records/' + r.id] = r;
     currentIds.add(r.id);
     // v169 offline queue + v172 conflict detection: enqueue id with the
@@ -10739,6 +10745,9 @@ window.saveEmp = function() {
   const currentIds = new Set();
   employees.forEach(e => {
     if (!e || !e.id) return;
+    // v242: non-admins push ONLY their own profile (rules reject writes to
+    // other employees; atomic batch would otherwise fail entirely).
+    if (!isAdmin() && (!curUser || e.id !== curUser.id)) return;
     updates['employees/' + e.id] = e;
     currentIds.add(e.id);
   });
@@ -13114,6 +13123,11 @@ if('serviceWorker' in navigator) {
     var pushed = 0;
     ids.forEach(function(id){
       var r = records.find(function(x){ return x && x.id === id; });
+      // v242: same ownership scoping as saveRec — a queue persisted from an
+      // older version may still hold teammates' record ids; pushing them would
+      // be rejected by rules and atomically sink the whole drain batch.
+      if (r && typeof isAdmin === 'function' && !isAdmin() &&
+          (typeof curUser === 'undefined' || !curUser || r.empId !== curUser.id)) return;
       if (r){ updates['records/' + id] = r; pushed++; }
     });
     if (pushed === 0) return;
