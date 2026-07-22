@@ -100,10 +100,13 @@ exports.handler = async (event) => {
 
     return { statusCode: 200, headers, body: JSON.stringify({ ok: true, email }) };
   } catch (err) {
+    // Log the real error server-side (Netlify function logs); return a generic
+    // message to the caller so internal details aren't disclosed (v241).
+    console.error('[set-password] error:', err && err.message ? err.message : err);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'เกิดข้อผิดพลาด: ' + (err && err.message ? err.message : 'unknown') }),
+      body: JSON.stringify({ error: 'เกิดข้อผิดพลาดภายในระบบ' }),
     };
   }
 };

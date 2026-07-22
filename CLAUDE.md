@@ -47,6 +47,7 @@ RUDY คือแอปพลิเคชัน HR และระบบลง�
 1. `sw.js` — ค่าตัวแปร `version: 'vNNN'`
 1. `sw.js` — ข้อความ comment `Build:` และ `Service Worker vNNN`
 1. `version.json` — ฟิลด์ `version`
+1. `index.html` — ค่าคงที่ `const APP_VERSION = 'vNNN'` (เพิ่ม v241 — เป็น baseline ให้ update poller ตรวจจับแอปที่ cache ค้าง หาด้วย `grep "const APP_VERSION"`)
 
 หากเลขไม่ตรงกันแม้จุดเดียว ระบบ auto-update (version.json polling) จะทำงานผิดพลาด
 

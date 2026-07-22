@@ -3590,7 +3590,7 @@ body.dark .slide-action{
       <div class="live-badge"><div class="live-dot"></div><span class="live-text">LIVE</span></div>
       <span id="admin-badge" class="admin-badge" style="display:none">👑</span>
       <button class="icon-btn" id="dark-btn" onclick="toggleDark()">🌙</button>
-      <div class="user-chip" onclick="showPage('settings',document.querySelector('[data-page=settings]'))">
+      <div class="user-chip" onclick="showPage('settings',document.querySelector('.nav-btn[data-page=more]'))">
         <div class="user-chip-av" id="tb-av">?</div>
         <span class="user-chip-name" id="tb-name">—</span>
       </div>
@@ -4556,6 +4556,11 @@ function _ilParts(){
 }
 function todayStr(){return _ilParts().date}
 function nowStr(){return _ilParts().time}
+// v241: record ids used to be bare Date.now() — two devices checking in within
+// the same millisecond produced identical ids (key collision → one record
+// silently overwrote the other in Firebase). A per-device random suffix makes
+// that practically impossible. Ids are only ever compared as opaque strings.
+function genRecId(){return Date.now()+'-'+Math.floor(Math.random()*1e6)}
 function saveEmp(){localStorage.setItem('tt_emp',JSON.stringify(employees))}
 function saveRec(){localStorage.setItem('tt_rec',JSON.stringify(records))}
 function getWorkStart(){return localStorage.getItem('tt_work_start')||'06:00'}
@@ -6032,7 +6037,7 @@ function doCheckIn(){
   if(open){showToast('มีการเข้างานที่ยังไม่ออก','warning'); clearTimeout(_safetyTimerIn); _reEnableIn(); return;}
   const t=nowStr();
   const late=isLate(t);
-  records.push({id:Date.now()+'',empId:curUser.id,date:today,checkIn:t,checkInTs:Date.now(),checkOut:null,checkOutTs:null,isLate:late,otMin:0,note:'',lastEditedTs:Date.now()});
+  records.push({id:genRecId(),empId:curUser.id,date:today,checkIn:t,checkInTs:Date.now(),checkOut:null,checkOutTs:null,isLate:late,otMin:0,note:'',lastEditedTs:Date.now()});
   haptic(late ? 'error' : 'success');
   saveRec();
   document.getElementById('btn-out').disabled=false;
@@ -6093,7 +6098,9 @@ function doCheckOut(){
   haptic(records[idx].otMin>0 ? 'heavy' : 'success');
   saveRec();
   document.getElementById('btn-in').disabled=false;
-  const hrs=((ts-records[idx].checkInTs)/3600000).toFixed(1);
+  // v241: compute from the HH:MM strings, not timestamps — a manual entry has
+  // checkInTs:null, and (ts - null) produced a garbage ~490,000-hour toast.
+  const hrs=calcHours(records[idx].checkIn, t).toFixed(1);
   showToast(`ออกงาน ${t} — ${hrs} ชม.${records[idx].otMin>0?' ⚡ OT!':''}`, 'success');
   // Button effects removed by user request — keep only haptic + toast
   renderHome();
@@ -6105,6 +6112,13 @@ function doCheckOut(){
 
 // ========== MANUAL ==========
 function addManual(){
+  // v241: same guard as doCheckIn — reject while Firebase records are still
+  // loading, otherwise a manual entry pushed into `records` gets overwritten
+  // (silently lost) when the FB listener fires and reassigns the array.
+  if (typeof _recordsLoadedFromFB !== 'undefined' && !_recordsLoadedFromFB) {
+    showToast('กำลังโหลดข้อมูล... รอสักครู่', 'warning'); return;
+  }
+  if (!curUser || !curUser.id) { showToast('กรุณา login ก่อน', 'error'); return; }
   const date=document.getElementById('man-date').value;
   const inT=document.getElementById('man-in').value;
   const outT=document.getElementById('man-out').value;
@@ -6112,7 +6126,7 @@ function addManual(){
   if(!date||!inT){showToast('กรุณาระบุวันที่และเวลาเข้า','error');return}
   if(timeReversed(inT,outT)){showToast('เวลาออกน้อยกว่าเวลาเข้า กรุณาตรวจสอบ','error');return}
   const late=isLate(inT);
-  records.push({id:Date.now()+'',empId:curUser.id,date,checkIn:inT,checkInTs:null,checkOut:outT||null,checkOutTs:null,isLate:late,otMin:outT?calcOTMin(outT,inT):0,note});
+  records.push({id:genRecId(),empId:curUser.id,date,checkIn:inT,checkInTs:null,checkOut:outT||null,checkOutTs:null,isLate:late,otMin:outT?calcOTMin(outT,inT):0,note});
   saveRec();
   ['man-in','man-out','man-note'].forEach(id=>document.getElementById(id).value='');
   showToast(`บันทึก ${date} เรียบร้อย`,'success');
@@ -6441,7 +6455,7 @@ function saveManualForMember(){
   if(!date || !inT){ showToast('กรุณาระบุวันที่และเวลาเข้า','error'); return; }
   const late = isLate(inT);
   const newRec = {
-    id: Date.now()+'',
+    id: genRecId(),
     empId: _mhCurrentEmp.id,
     date,
     checkIn: inT,
@@ -6716,11 +6730,15 @@ function renderStats(){
     dataH.push(+dr.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0).toFixed(2));
     dataOT.push(+(dr.reduce((s,r)=>s+(r.otMin||0),0)/60).toFixed(2));
   }
+  // v241: Chart.js comes from CDN — on a cold start / cleared cache it may not
+  // have loaded yet; without this guard renderStats throws and the page dies.
+  if(typeof Chart !== 'undefined'){
   if(chartH)chartH.destroy();
   if(chartOT)chartOT.destroy();
   const cfg={responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(148,163,184,.15)'}}}};
   chartH=new Chart(document.getElementById('chart-hours'),{type:'bar',data:{labels,datasets:[{data:dataH,backgroundColor:'rgba(59,130,246,.6)',borderColor:'#3b82f6',borderWidth:1,borderRadius:4}]},options:{...cfg}});
   chartOT=new Chart(document.getElementById('chart-ot'),{type:'bar',data:{labels,datasets:[{data:dataOT,backgroundColor:'rgba(245,158,11,.6)',borderColor:'#f59e0b',borderWidth:1,borderRadius:4}]},options:{...cfg}});
+  }
 
   // Late list
   const lateRecs=myRec.filter(r=>r.isLate);
@@ -6909,7 +6927,7 @@ function renderDashboard() {
 
     // Attend chart
     const ca = document.getElementById('dash-chart-attend');
-    if(ca) {
+    if(ca && typeof Chart !== 'undefined') {
       if(ca._chart) ca._chart.destroy();
       ca._chart = new Chart(ca, {type:'bar', data:{
         labels,
@@ -7989,6 +8007,11 @@ function changeEmpRole(id){
     () => {
       emp.role = next;
       saveEmp();
+      // v241: persist role to Firebase too. saveEmp() is localStorage-only, so
+      // without this the change reverts on next sync AND the Netlify password
+      // gate (which reads employees/<uid>/role from Firebase) never sees it —
+      // meaning promotions did nothing across devices.
+      db.ref('employees/'+emp.id+'/role').set(next).catch(()=>{});
       renderEmpListSettings();
       showToast(`เปลี่ยน ${emp.name} เป็น ${labels[next]}`, 'success');
     }
@@ -8004,7 +8027,11 @@ function removeEmp(id){
   if(id===curUser.id){showToast('ไม่สามารถลบตัวเองได้','error');return}
   const emp=employees.find(e=>e.id===id);
   showConfirm('🗑 ลบพนักงาน',`ยืนยันลบ "${emp?.name||'พนักงาน'}" ออกจากระบบ? ข้อมูลทั้งหมดจะหายไป`,()=>{
-    employees=employees.filter(e=>e.id!==id);saveEmp();renderEmpListSettings();showToast('ลบแล้ว','success');
+    employees=employees.filter(e=>e.id!==id);saveEmp();
+    // v241: persist deletion to Firebase (saveEmp is localStorage-only, so the
+    // employee otherwise reappears on the next sync).
+    db.ref('employees/'+id).remove().catch(()=>{});
+    renderEmpListSettings();showToast('ลบแล้ว','success');
   });
 }
 function addEmp(){
@@ -8018,7 +8045,9 @@ function addEmp(){
   if(!email){showToast('กรุณาใส่อีเมล','error');return}
   if(!pass){showToast('กรุณาตั้งรหัสผ่าน','error');return}
   if(employees.find(e=>e.email.toLowerCase()===email)){showToast('อีเมลนี้มีแล้ว','error');return}
-  employees.push({id:'e'+Date.now(),name,email,password:pass,dept:dept||'ทั่วไป',role,initial:name[0]});
+  // v241: do NOT store the password — nothing ever reads employees[].password
+  // (login is Firebase Auth), so persisting it in plaintext was pure risk.
+  employees.push({id:'e'+Date.now(),name,email,dept:dept||'ทั่วไป',role,initial:name[0]});
   saveEmp();renderEmpListSettings();
   ['n-name','n-email','n-pass','n-dept'].forEach(id=>document.getElementById(id).value='');
   showToast(`✅ เพิ่ม ${name} แล้ว`,'success');
@@ -9476,6 +9505,8 @@ function submitPoll() {
 function votePoll(pollId, optIdx) {
   const poll = announces.find(a=>a.id===pollId);
   if(!poll) return;
+  // v241: normalize votes (Firebase drops empty arrays on round-trip)
+  poll.options.forEach(o=>{ if(!Array.isArray(o.votes)) o.votes=[]; });
   const uid = curUser.id;
   // Check if already voted this option
   const alreadyVoted = poll.options[optIdx].votes.includes(uid);
@@ -9493,6 +9524,10 @@ function votePoll(pollId, optIdx) {
 }
 
 function renderPollCard(p) {
+  // v241: Firebase strips empty arrays, so a poll with no votes comes back
+  // with options missing their `votes` key. Normalize before any .votes access
+  // (otherwise o.votes.length throws and takes down the whole announce page).
+  p.options.forEach(o=>{ if(!Array.isArray(o.votes)) o.votes=[]; });
   const totalVotes = p.options.reduce((s,o)=>s+o.votes.length,0);
   const hasVoted = p.options.some(o=>o.votes.includes(curUser?.id));
   const optHtml = p.options.map((o,i) => {
@@ -10194,6 +10229,13 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
 
+// v241: build-time version constant. ⚠ MUST be bumped on every deploy in
+// sync with version.json + sw.js (see CLAUDE.md §3.1). Seeds the update
+// poller's baseline so an app loaded from stale cache detects immediately
+// that a newer version.json is published (previously the baseline came from
+// the first network read, which made a stale-loaded app blind to being old).
+const APP_VERSION = 'v241';
+
 // v239 admin password reset backend (free Netlify Function, no Blaze).
 // After deploying the Netlify site, replace <YOUR-SITE> with the real
 // subdomain Netlify assigns (e.g. rudy-admin.netlify.app). Until then the
@@ -10406,6 +10448,18 @@ async function _syncFirebaseInBackground(fbUser) {
         else if(profile.role === 'admin'){ adminEl.textContent = '👑'; adminEl.title = 'แอดมิน'; }
       }
       document.querySelectorAll('.admin-tab').forEach(b=>b.style.display=isView?'flex':'none');
+      // v241: also sync curUser + cached profile with the server role. Without
+      // this, isAdmin()/canEdit() keep using the stale localStorage role for
+      // the whole session — a demoted admin kept write UI, a promoted user
+      // never gained it until re-login.
+      if (curUser && curUser.role !== profile.role) {
+        curUser.role = profile.role;
+        try { localStorage.setItem('tt_user_' + curUser.id, JSON.stringify(curUser)); } catch(e){}
+        document.body.classList.remove('role-admin','role-subadmin','role-employee');
+        document.body.classList.add('role-' + (profile.role || 'employee'));
+        const pwSec = document.getElementById('admin-pw-section');
+        if (pwSec) pwSec.style.display = (profile.role === 'admin') ? 'block' : 'none';
+      }
     }
     const [empSnap, recSnap] = await Promise.all([
       db.ref('employees').once('value'),
@@ -10585,7 +10639,11 @@ function setupRealtimeListeners() {
   }, err => console.warn('employees listen err:', err));
 
   // ----- Photos realtime -----
-  db.ref('photos').on('value', snap => {
+  // v241: register in _realtimeRefs like records/employees, so re-login /
+  // reconnect retries don't stack duplicate photos listeners (leak).
+  const _phRef = db.ref('photos');
+  _realtimeRefs.push(_phRef);
+  _phRef.on('value', snap => {
     const data = snap.val();
     if(!data) return;
     let updated = false;
@@ -12448,13 +12506,9 @@ if('serviceWorker' in navigator) {
       console.log('[SW] register threw synchronously:', e && e.message);
     }
 
-    // ----- Listen for SW activation messages -----
-    navigator.serviceWorker.addEventListener('message', evt => {
-      if (evt.data && evt.data.type === 'SW_UPDATED') {
-        console.log('[SW] received SW_UPDATED:', evt.data.version);
-        if (_hasNewSW) safeReload('SW_UPDATED message');
-      }
-    });
+    // (v241: removed the SW_UPDATED message listener — sw.js never posts that
+    // message, so the handler was dead code. controllerchange below is the
+    // real activation signal.)
 
     // ----- Reload when new SW takes control (only if we knew about update) -----
     navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -12555,7 +12609,11 @@ if('serviceWorker' in navigator) {
     //     typing, reload-in-progress lock.
     // ═══════════════════════════════════════════════════════════════
     (function(){
-      let _vjBaseline = null;          // version seen at startup
+      // v241: seed from the build constant (falls back to first network read
+      // if the constant is somehow missing). With a seeded baseline, an app
+      // served from stale cache sees loaded!=published on the FIRST poll and
+      // shows the update banner — the exact iOS-cache case this poller exists for.
+      let _vjBaseline = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : null;
       const VJ_URL = './version.json';
       const VJ_INTERVAL = 5 * 60 * 1000; // every 5 min
       const VJ_MAX_RELOADS = 2;        // safety cap on update-reloads per short window
@@ -12611,12 +12669,17 @@ if('serviceWorker' in navigator) {
                   return;
                 }
                 _hasNewSW = true; // share the same flag the SW path uses
-                vjRecordReload();
-                // Nudge the SW to fetch the new files, then safeReload
+                // Nudge the SW to fetch the new files
                 navigator.serviceWorker.getRegistration()
                   .then(function(reg){ if (reg) reg.update().catch(function(){}); })
                   .catch(function(){});
                 showUpdateBanner(data.version);
+                // v241: the banner is MANUAL (no auto-reload), so do NOT burn the
+                // reload cap on display, and advance the baseline so repeated
+                // 5-min polls of the SAME version don't re-fire and exhaust the
+                // cap (which used to silently suppress the banner for the next
+                // deploy). vjRecordReload now belongs only in forceFullUpdate.
+                _vjBaseline = data.version;
               }
             })
             .catch(function(){ /* offline / 404 → silent */ });
