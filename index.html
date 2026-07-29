@@ -4169,6 +4169,19 @@ body.dark .slide-action{
       <button class="btn-secondary" style="margin-top:8px" onclick="openEditLog()">📋 ประวัติการแก้ไข</button>
     </div>
 
+    <div class="card" id="ai-command-section" style="display:none">
+      <div class="section-title">🤖 ผู้ช่วย AI — สั่งงานด้วยข้อความ</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.6">
+        พิมพ์คำสั่งเป็นภาษาคน เช่น<br>
+        • "แก้เวลาออกของ Leng เมื่อวานเป็น 17:00"<br>
+        • "เพิ่มวันที่ 25 ให้ Mu เข้า 6:00 ออก 16:30"<br>
+        • "เดือนนี้ใคร OT เยอะสุด"
+      </div>
+      <textarea class="note-area" id="ai-cmd-input" rows="2" placeholder="พิมพ์คำสั่ง..." style="width:100%"></textarea>
+      <button class="btn-primary" style="margin-top:8px;width:100%" onclick="aiCommandSubmit()">▶ สั่งงาน AI</button>
+      <div id="ai-cmd-result" style="margin-top:10px;font-size:13px;line-height:1.5"></div>
+    </div>
+
     <div class="card">
       <div class="section-title">🔔 การแจ้งเตือน</div>
       <div class="push-status">
@@ -5037,6 +5050,7 @@ function initApp(){
   // Sections for write actions: admin only
   document.getElementById('admin-sal-section').style.display=admin?'block':'none';
   document.getElementById('admin-pw-section').style.display=admin?'block':'none';
+  { const _aiSec=document.getElementById('ai-command-section'); if(_aiSec) _aiSec.style.display=admin?'block':'none'; }
   document.getElementById('admin-announce-section').style.display=admin?'block':'none';
   loadAnnounces();
   initPushSettings();
@@ -7992,6 +8006,196 @@ async function adminSetPassword(email, name){
     console.error('[adminSetPassword]', e);
   }
 }
+// ============================================================
+// 🤖 AI COMMAND AGENT (v244) — admin-only natural-language actions
+// Contract: the AI only PARSES intent; it never writes on its own. Every
+// data change is (1) shown for explicit confirm, (2) executed through the
+// same permission-gated saveRec path (Firebase rules still apply), and
+// (3) logged to editlogs. Query is read-only. isAdmin() re-checked on every
+// executor as defence-in-depth.
+// ============================================================
+function _aiTimeValid(t){ return /^([01]?\d|2[0-3]):[0-5]\d$/.test(t||''); }
+function _aiPad2(t){ const m=/^(\d{1,2}):(\d{1,2})$/.exec((t||'').trim()); return m?pad(+m[1])+':'+pad(+m[2]):(t||''); }
+function _aiEmpName(id){ const e=employees.find(x=>x.id===id); return e?e.name:id; }
+function _aiFindRecords(empId,date){ return records.filter(r=>r&&r.empId===empId&&r.date===date); }
+function _aiClearInput(){ const i=document.getElementById('ai-cmd-input'); if(i) i.value=''; }
+function _aiReRender(){
+  try{
+    renderHome();renderCalendar();renderStats();renderHistory();
+    if(document.getElementById('page-team')&&document.getElementById('page-team').classList.contains('active')) renderTeam();
+    if(document.getElementById('member-history-modal')&&document.getElementById('member-history-modal').classList.contains('open')) renderMemberHistory();
+  }catch(e){ console.warn('[AI] re-render:',e); }
+}
+
+async function aiParseCommand(cmd){
+  const roster = employees.map(e=>e.name+' = '+e.id).join('\n');
+  const today = todayStr();
+  const sys = [
+    'You are the command parser for RUDY, a Thai time-tracking app. Convert the admin instruction into ONE JSON action. Output ONLY valid JSON, no markdown.',
+    '',
+    'Employees (name = id):',
+    roster,
+    '',
+    'Today (Israel time): '+today,
+    'Work starts 06:00, OT after 16:30. Times are 24-hour HH:MM.',
+    '',
+    'action is one of: "edit","add","delete","query","unknown".',
+    '- edit: change ONE field ("checkIn" or "checkOut") of an existing record.',
+    '- add: create a new manual record.',
+    '- delete: remove a record for an employee on a date.',
+    '- query: the user is ASKING for info, not changing data.',
+    '- unknown: cannot map it, or missing who/when/what, or the name is not in the roster.',
+    '',
+    'JSON schema (fill empty string when not applicable):',
+    '{"action":"","empId":"","empName":"","date":"YYYY-MM-DD","field":"checkIn|checkOut|","value":"HH:MM|","checkIn":"HH:MM|","checkOut":"HH:MM|","confidence":0.0,"summary":"one Thai sentence stating exactly what will happen","reason":"Thai, only when unknown or query"}',
+    '',
+    'Resolve relative dates from the Today value above: today, yesterday, or "the Nth" of the current month, into YYYY-MM-DD. Map the person name to empId from the roster; if none matches, action="unknown". Never invent an employee or a date.'
+  ].join('\n');
+  const raw = await _callGemini(sys, cmd, { json:true, maxTokens:600, temperature:0 });
+  let obj; try{ obj=JSON.parse(raw); }catch(e){ throw new Error('AI ตอบไม่เป็นรูปแบบที่อ่านได้'); }
+  return obj||{};
+}
+
+async function aiRunQuery(cmd){
+  const nameById={}; employees.forEach(e=>nameById[e.id]=e.name);
+  const rows = records
+    .filter(r=>r&&r.date&&r.checkIn)
+    .slice(-400)
+    .map(r=>(nameById[r.empId]||r.empId)+'|'+r.date+'|in '+r.checkIn+'|out '+(r.checkOut||'-')+'|OT '+(r.otMin||0)+'m|'+(r.isLate?'late':'ok'))
+    .join('\n');
+  const sys = [
+    'You are the data assistant for RUDY. Answer the admin question in Thai, concise, based ONLY on the records below. Do not invent data. If there is not enough data, say so.',
+    'Today: '+todayStr()+'. Work starts 06:00, OT after 16:30.',
+    'Records (name|date|in|out|OT|status):',
+    rows
+  ].join('\n');
+  return await _callGemini(sys, cmd, { maxTokens:800, temperature:0.3 });
+}
+
+async function aiCommandSubmit(){
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
+  const cmd = ((document.getElementById('ai-cmd-input')||{}).value||'').trim();
+  const resultEl = document.getElementById('ai-cmd-result');
+  if(!resultEl) return;
+  if(!cmd){ resultEl.innerHTML=''; return; }
+  resultEl.innerHTML = '<div style="color:var(--text3)">⏳ AI กำลังคิด...</div>';
+  try{
+    const p = await aiParseCommand(cmd);
+    await aiHandleIntent(p, cmd, resultEl);
+  }catch(e){
+    resultEl.innerHTML = '<div style="color:var(--red)">❌ '+escHtml((e&&e.message)||'เกิดข้อผิดพลาด')+'</div>';
+  }
+}
+
+async function aiHandleIntent(p, cmd, resultEl){
+  const action=(p&&p.action)||'unknown';
+  const conf=typeof p.confidence==='number'?p.confidence:0;
+
+  if(action==='query'){
+    resultEl.innerHTML='<div style="color:var(--text3)">⏳ กำลังค้นข้อมูล...</div>';
+    const ans=await aiRunQuery(cmd);
+    resultEl.innerHTML='<div style="white-space:pre-wrap;background:var(--surface);padding:10px;border-radius:10px;color:var(--ink)">'+escHtml(ans)+'</div>';
+    return;
+  }
+  if(action==='unknown'||conf<0.5){
+    resultEl.innerHTML='<div style="color:var(--yellow)">🤔 ไม่แน่ใจคำสั่งนี้'+(p.reason?': '+escHtml(p.reason):'')+'<br>ลองระบุ ชื่อ + วันที่ + เวลา ให้ชัดขึ้น</div>';
+    return;
+  }
+
+  const empId=p.empId||'';
+  const empName=_aiEmpName(empId)||p.empName||'';
+  const date=(p.date||'').trim();
+  if(!empId||!employees.find(e=>e.id===empId)){
+    resultEl.innerHTML='<div style="color:var(--yellow)">🤔 ไม่รู้ว่าหมายถึงพนักงานคนไหน ลองระบุชื่อให้ตรง</div>'; return;
+  }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){
+    resultEl.innerHTML='<div style="color:var(--yellow)">🤔 ไม่แน่ใจว่าวันไหน ลองระบุวันที่ให้ชัด</div>'; return;
+  }
+
+  if(action==='edit'){
+    const field=p.field==='checkIn'?'checkIn':(p.field==='checkOut'?'checkOut':'');
+    const value=_aiPad2(p.value);
+    if(!field||!_aiTimeValid(value)){
+      resultEl.innerHTML='<div style="color:var(--yellow)">🤔 ไม่แน่ใจว่าจะแก้เวลาเข้าหรือออก หรือรูปแบบเวลาไม่ถูก</div>'; return;
+    }
+    // Build the confirm text from the RESOLVED, validated fields (not from
+    // p.summary) so what the admin approves always matches what executes.
+    const summary='แก้'+(field==='checkIn'?'เวลาเข้า':'เวลาออก')+'ของ '+empName+' วันที่ '+date+' → '+value;
+    resultEl.innerHTML='<div>🤖 '+escHtml(summary)+'</div>';
+    showConfirm('🤖 ยืนยันคำสั่ง AI', summary, ()=>{
+      const r=aiExecEdit(empId,date,field,value);
+      resultEl.innerHTML=r.ok?'<div style="color:var(--green)">✅ '+escHtml(summary)+'</div>':'<div style="color:var(--red)">❌ '+escHtml(r.error)+'</div>';
+      if(r.ok) _aiClearInput();
+    }, 'ยืนยัน', 'confirm-ok');
+    return;
+  }
+
+  if(action==='add'){
+    const ci=_aiPad2(p.checkIn); const co=p.checkOut?_aiPad2(p.checkOut):'';
+    if(!_aiTimeValid(ci)||(co&&!_aiTimeValid(co))){
+      resultEl.innerHTML='<div style="color:var(--yellow)">🤔 เวลาเข้า/ออกไม่ถูกต้อง</div>'; return;
+    }
+    const summary='เพิ่มบันทึก '+empName+' วันที่ '+date+' เข้า '+ci+(co?' ออก '+co:'');
+    resultEl.innerHTML='<div>🤖 '+escHtml(summary)+'</div>';
+    showConfirm('🤖 ยืนยันคำสั่ง AI', summary, ()=>{
+      const r=aiExecAdd(empId,date,ci,co);
+      resultEl.innerHTML=r.ok?'<div style="color:var(--green)">✅ '+escHtml(summary)+'</div>':'<div style="color:var(--red)">❌ '+escHtml(r.error)+'</div>';
+      if(r.ok) _aiClearInput();
+    }, 'ยืนยัน', 'confirm-ok');
+    return;
+  }
+
+  if(action==='delete'){
+    const summary='ลบรายการของ '+empName+' วันที่ '+date;
+    resultEl.innerHTML='<div>🤖 '+escHtml(summary)+'</div>';
+    showConfirm('⚠️ ลบข้อมูลถาวร', summary+'\n\nลบแล้วกู้คืนไม่ได้ ยืนยัน?', ()=>{
+      const r=aiExecDelete(empId,date);
+      resultEl.innerHTML=r.ok?'<div style="color:var(--green)">✅ ลบแล้ว: '+escHtml(summary)+'</div>':'<div style="color:var(--red)">❌ '+escHtml(r.error)+'</div>';
+      if(r.ok) _aiClearInput();
+    }, 'ลบถาวร', 'confirm-ok danger');
+    return;
+  }
+
+  resultEl.innerHTML='<div style="color:var(--yellow)">🤔 ยังไม่รองรับคำสั่งนี้</div>';
+}
+
+function aiExecEdit(empId,date,field,value){
+  if(!isAdmin()) return {ok:false,error:'เฉพาะ Admin'};
+  const m=_aiFindRecords(empId,date);
+  if(m.length===0) return {ok:false,error:'ไม่พบรายการของ '+_aiEmpName(empId)+' วันที่ '+date};
+  if(m.length>1) return {ok:false,error:'วันนั้นมี '+m.length+' รายการ แก้ผ่าน AI ไม่ได้ กรุณาแก้ในหน้าประวัติ'};
+  const r=m[0];
+  const before={date:r.date,checkIn:r.checkIn,checkOut:r.checkOut,note:r.note};
+  if(field==='checkIn'){ r.checkIn=value; r.isLate=isLate(value); r.otMin=r.checkOut?calcOTMin(r.checkOut,value):0; }
+  else { r.checkOut=value; r.otMin=calcOTMin(value,r.checkIn); }
+  r.lastEditedTs=Date.now();
+  saveEditLog({recId:r.id,empId:empId,editorId:curUser.id,editorName:curUser.name,before:before,after:{date:r.date,checkIn:r.checkIn,checkOut:r.checkOut,note:r.note},ts:Date.now(),via:'ai'});
+  saveRec(); _aiReRender();
+  return {ok:true};
+}
+
+function aiExecAdd(empId,date,checkIn,checkOut){
+  if(!isAdmin()) return {ok:false,error:'เฉพาะ Admin'};
+  const late=isLate(checkIn);
+  const r={id:genRecId(),empId:empId,date:date,checkIn:checkIn,checkInTs:null,checkOut:checkOut||null,checkOutTs:null,isLate:late,otMin:checkOut?calcOTMin(checkOut,checkIn):0,note:'',lastEditedTs:Date.now()};
+  records.push(r);
+  saveEditLog({recId:r.id,empId:empId,editorId:curUser.id,editorName:curUser.name,before:null,after:{date:date,checkIn:checkIn,checkOut:checkOut||null,note:''},ts:Date.now(),via:'ai-add'});
+  saveRec(); _aiReRender();
+  return {ok:true};
+}
+
+function aiExecDelete(empId,date){
+  if(!isAdmin()) return {ok:false,error:'เฉพาะ Admin'};
+  const m=_aiFindRecords(empId,date);
+  if(m.length===0) return {ok:false,error:'ไม่พบรายการของ '+_aiEmpName(empId)+' วันที่ '+date};
+  if(m.length>1) return {ok:false,error:'วันนั้นมี '+m.length+' รายการ ลบผ่าน AI ไม่ได้ กรุณาลบในหน้าประวัติ'};
+  const r=m[0];
+  saveEditLog({recId:r.id,empId:empId,editorId:curUser.id,editorName:curUser.name,before:{date:r.date,checkIn:r.checkIn,checkOut:r.checkOut,note:r.note},after:null,ts:Date.now(),via:'ai-delete'});
+  records=records.filter(x=>x.id!==r.id);
+  saveRec(); _aiReRender();
+  return {ok:true};
+}
+
 function changeEmpRole(id){
   if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   const emp = employees.find(e => e.id === id);
@@ -10234,7 +10438,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v243';
+const APP_VERSION = 'v244';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
