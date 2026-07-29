@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v244
-// Cache: rudy-static-v244, firebase-v244
-// Build: 2026-06-22 · v244 — AI command agent (admin-only): natural-language edit/add/delete/query via Gemini, confirm-before-execute, rules-gated writes, editlog audit
+// RUDY · Service Worker v245
+// Cache: rudy-static-v245, firebase-v245
+// Build: 2026-06-22 · v245 — AI agent hardening (review fixes): cold-start write guard, reversed-time block, real-calendar date check, name prompt-injection sanitize, record shown before delete/edit confirm, dup guard, richer editlog
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v244';
-const FIREBASE_CACHE = 'firebase-v244';
-const RUNTIME_CACHE = 'rudy-runtime-v244';
+const STATIC_CACHE  = 'rudy-static-v245';
+const FIREBASE_CACHE = 'firebase-v245';
+const RUNTIME_CACHE = 'rudy-runtime-v245';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -14,7 +14,7 @@ const PRECACHE_URLS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
-  // NOTE: splash.mp4 intentionally NOT precached (v244). iOS Safari needs
+  // NOTE: splash.mp4 intentionally NOT precached (v245). iOS Safari needs
   // 206 Range responses to play video; a cached full-200 body breaks it.
   // The video is fetched from network so the browser negotiates ranges.
 ];
@@ -44,7 +44,7 @@ function shouldBypass(url) {
   try {
     const u = new URL(url);
     for (const host of BYPASS_HOSTS) {
-      // v244: exact or subdomain match only. The old `.includes(host)` substring
+      // v245: exact or subdomain match only. The old `.includes(host)` substring
       // clause could bypass unrelated hosts that merely embed the string.
       if (u.hostname === host || u.hostname.endsWith('.' + host)) {
         return true;
@@ -60,12 +60,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v244] Installing...');
+  console.log('[SW v245] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v244] Precache partial fail (ok):', err);
+          console.warn('[SW v245] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -76,7 +76,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v244] Activating...');
+  console.log('[SW v245] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -84,7 +84,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v244] Deleting old cache:', name);
+              console.log('[SW v245] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -117,7 +117,7 @@ self.addEventListener('fetch', (event) => {
 
   const reqUrl = new URL(url);
 
-  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v244 iOS splash fix).
+  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v245 iOS splash fix).
   // iOS Safari plays <video> only when the server answers its
   // `Range:` request with a 206 Partial Content + Content-Range.
   // A Service Worker that serves a cached FULL 200 body (which a
@@ -245,7 +245,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v244' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v245' });
     return;
   }
 });
@@ -268,7 +268,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v244] Push parse fail:', e);
+    console.warn('[SW v245] Push parse fail:', e);
   }
 });
 
@@ -288,4 +288,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v244] Loaded — AI command agent (admin)');
+console.log('[SW v245] Loaded — AI command agent hardened');
