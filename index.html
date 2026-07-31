@@ -8107,8 +8107,10 @@ function openAIModal(){
   const m=document.getElementById('ai-modal'); if(m) m.classList.add('open');
   const i=document.getElementById('ai-cmd-input'); if(i) setTimeout(()=>{ try{ i.focus(); }catch(e){} },120);
 }
-async function aiCommandSubmit(){
+let _aiRetryTimer=null;
+async function aiCommandSubmit(auto){
   if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
+  if(_aiRetryTimer){ clearInterval(_aiRetryTimer); _aiRetryTimer=null; }
   const cmd = ((document.getElementById('ai-cmd-input')||{}).value||'').trim();
   const resultEl = document.getElementById('ai-cmd-result');
   if(!resultEl) return;
@@ -8118,8 +8120,35 @@ async function aiCommandSubmit(){
     const p = await aiParseCommand(cmd);
     await aiHandleIntent(p, cmd, resultEl);
   }catch(e){
-    resultEl.innerHTML = '<div style="color:var(--red)">❌ '+escHtml((e&&e.message)||'เกิดข้อผิดพลาด')+'</div>';
+    _aiShowError(e, resultEl, !!auto);
   }
+}
+// v247: Gemini free tier is ~20 req/min shared across the app's AI widgets.
+// On a 429/quota error, show a Thai message with a live countdown and
+// auto-retry ONCE when it elapses (only while the modal is still open).
+// A second consecutive 429 does NOT loop — it just asks the user to wait.
+function _aiShowError(e, resultEl, wasAuto){
+  const msg=(e&&e.message)||'เกิดข้อผิดพลาด';
+  const is429=(e&&e.status===429)||/quota|exceeded|rate.?limit|resource_exhausted|retry in/i.test(msg);
+  if(!is429){ resultEl.innerHTML='<div style="color:var(--red)">❌ '+escHtml(msg)+'</div>'; return; }
+  const mm=/retry in ([\d.]+)s/i.exec(msg);
+  let secs=mm?Math.ceil(parseFloat(mm[1])):30;
+  if(secs<3) secs=3; if(secs>90) secs=90;
+  if(wasAuto){
+    resultEl.innerHTML='<div style="color:var(--yellow)">⏳ ยังเกินโควตา Gemini อยู่ รอ ~'+secs+' วินาที แล้วกด "▶ สั่งงาน AI" อีกครั้ง</div>';
+    return;
+  }
+  if(_aiRetryTimer){ clearInterval(_aiRetryTimer); _aiRetryTimer=null; }
+  const tick=()=>{
+    const el=document.getElementById('ai-cmd-result');
+    const modal=document.getElementById('ai-modal');
+    if(!el || !modal || !modal.classList.contains('open')){ clearInterval(_aiRetryTimer); _aiRetryTimer=null; return; }
+    if(secs<=0){ clearInterval(_aiRetryTimer); _aiRetryTimer=null; aiCommandSubmit(true); return; }
+    el.innerHTML='<div style="color:var(--yellow)">⏳ AI ใช้งานหนักช่วงนี้ (เกินโควตาฟรีของ Gemini)<br>จะลองใหม่ให้อัตโนมัติใน '+secs+' วินาที...</div>';
+    secs--;
+  };
+  tick();
+  _aiRetryTimer=setInterval(tick,1000);
 }
 
 async function aiHandleIntent(p, cmd, resultEl){
@@ -10508,7 +10537,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v246';
+const APP_VERSION = 'v247';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -14345,10 +14374,10 @@ if('serviceWorker' in navigator) {
     const cacheKey = 'hw_quote_cache';
     let cached = null;
     try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch(_){}
-    const fourHours = 4 * 60 * 60 * 1000;
+    const quoteCacheMs = 12 * 60 * 60 * 1000; // v247: 4h → 12h, fewer Gemini calls
     let quote, signature = '— Gemini AI';
 
-    if(cached && cached.t && (Date.now() - cached.t < fourHours) && cached.q){
+    if(cached && cached.t && (Date.now() - cached.t < quoteCacheMs) && cached.q){
       quote = cached.q;
     } else {
       el.innerHTML =
