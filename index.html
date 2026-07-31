@@ -4170,16 +4170,12 @@ body.dark .slide-action{
     </div>
 
     <div class="card" id="ai-command-section" style="display:none">
-      <div class="section-title">🤖 ผู้ช่วย AI — สั่งงานด้วยข้อความ</div>
+      <div class="section-title">🤖 ผู้ช่วย AI</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.6">
-        พิมพ์คำสั่งเป็นภาษาคน เช่น<br>
-        • "แก้เวลาออกของ Leng เมื่อวานเป็น 17:00"<br>
-        • "เพิ่มวันที่ 25 ให้ Mu เข้า 6:00 ออก 16:30"<br>
-        • "เดือนนี้ใคร OT เยอะสุด"
+        สั่งงานด้วยข้อความ เช่น "แก้เวลาออกของ Leng เมื่อวานเป็น 17:00"<br>
+        หรือกดปุ่มลอย 🤖 มุมล่างขวา — ใช้ได้ทุกหน้า
       </div>
-      <textarea class="note-area" id="ai-cmd-input" rows="2" placeholder="พิมพ์คำสั่ง..." style="width:100%"></textarea>
-      <button class="btn-primary" style="margin-top:8px;width:100%" onclick="aiCommandSubmit()">▶ สั่งงาน AI</button>
-      <div id="ai-cmd-result" style="margin-top:10px;font-size:13px;line-height:1.5"></div>
+      <button class="btn-primary" style="width:100%" onclick="openAIModal()">🤖 เปิดผู้ช่วย AI</button>
     </div>
 
     <div class="card">
@@ -4222,6 +4218,24 @@ body.dark .slide-action{
   </div>
 
 <!-- EDIT MODAL -->
+<!-- v246: floating AI assistant (admin-only) — body-level so it shows on every page -->
+<button id="ai-fab" onclick="openAIModal()" title="ผู้ช่วย AI" style="display:none;position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);z-index:45;width:56px;height:56px;border-radius:50%;border:none;align-items:center;justify-content:center;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:26px;box-shadow:0 8px 24px rgba(99,102,241,.45);cursor:pointer">🤖</button>
+
+<div class="modal-overlay" id="ai-modal">
+  <div class="modal">
+    <div class="modal-title">🤖 ผู้ช่วย AI<button class="modal-close" onclick="closeModal('ai-modal')">✕</button></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.6">
+      พิมพ์คำสั่งเป็นภาษาคน เช่น<br>
+      • "แก้เวลาออกของ Leng เมื่อวานเป็น 17:00"<br>
+      • "เพิ่มวันที่ 25 ให้ Mu เข้า 6:00 ออก 16:30"<br>
+      • "เดือนนี้ใคร OT เยอะสุด"
+    </div>
+    <textarea class="note-area" id="ai-cmd-input" rows="2" placeholder="พิมพ์คำสั่ง..." style="width:100%"></textarea>
+    <button class="btn-primary" style="margin-top:8px;width:100%" onclick="aiCommandSubmit()">▶ สั่งงาน AI</button>
+    <div id="ai-cmd-result" style="margin-top:10px;font-size:13px;line-height:1.5"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="edit-modal">
   <div class="modal">
     <div class="modal-title">✏️ แก้ไขรายการ<button class="modal-close" onclick="closeModal('edit-modal')">✕</button></div>
@@ -5051,6 +5065,7 @@ function initApp(){
   document.getElementById('admin-sal-section').style.display=admin?'block':'none';
   document.getElementById('admin-pw-section').style.display=admin?'block':'none';
   { const _aiSec=document.getElementById('ai-command-section'); if(_aiSec) _aiSec.style.display=admin?'block':'none'; }
+  { const _aiFab=document.getElementById('ai-fab'); if(_aiFab) _aiFab.style.display=admin?'flex':'none'; }
   document.getElementById('admin-announce-section').style.display=admin?'block':'none';
   loadAnnounces();
   initPushSettings();
@@ -8086,6 +8101,12 @@ async function aiRunQuery(cmd){
   return await _callGemini(sys, cmd, { maxTokens:800, temperature:0.3 });
 }
 
+// v246: open the floating AI assistant modal (admin-only).
+function openAIModal(){
+  if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
+  const m=document.getElementById('ai-modal'); if(m) m.classList.add('open');
+  const i=document.getElementById('ai-cmd-input'); if(i) setTimeout(()=>{ try{ i.focus(); }catch(e){} },120);
+}
 async function aiCommandSubmit(){
   if(!isAdmin()){ showToast('เฉพาะ Admin','warning'); return; }
   const cmd = ((document.getElementById('ai-cmd-input')||{}).value||'').trim();
@@ -10487,7 +10508,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v245';
+const APP_VERSION = 'v246';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
