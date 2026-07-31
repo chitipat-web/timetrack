@@ -4223,7 +4223,7 @@ body.dark .slide-action{
 
 <div class="modal-overlay" id="ai-modal">
   <div class="modal">
-    <div class="modal-title">🤖 ผู้ช่วย AI<button class="modal-close" onclick="closeModal('ai-modal')">✕</button></div>
+    <div class="modal-title">🤖 ผู้ช่วย AI<span style="display:flex;gap:2px"><button class="modal-close" onclick="openAISettings()" title="เปลี่ยน Gemini API Key">🔑</button><button class="modal-close" onclick="closeModal('ai-modal')">✕</button></span></div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.6">
       พิมพ์คำสั่งเป็นภาษาคน เช่น<br>
       • "แก้เวลาออกของ Leng เมื่อวานเป็น 17:00"<br>
@@ -8131,6 +8131,13 @@ function _aiShowError(e, resultEl, wasAuto){
   const msg=(e&&e.message)||'เกิดข้อผิดพลาด';
   const is429=(e&&e.status===429)||/quota|exceeded|rate.?limit|resource_exhausted|retry in/i.test(msg);
   if(!is429){ resultEl.innerHTML='<div style="color:var(--red)">❌ '+escHtml(msg)+'</div>'; return; }
+  // v248: daily-cap 429 — no retry can help until the free quota resets
+  // (midnight Pacific ≈ 10:00 เวลาอิสราเอล), so say that instead of counting down.
+  if(/per.?day|daily/i.test(msg)){
+    if(_aiRetryTimer){ clearInterval(_aiRetryTimer); _aiRetryTimer=null; }
+    resultEl.innerHTML='<div style="color:var(--yellow)">⛔ โควตาฟรีรายวันของ Gemini หมดแล้ว จะรีเซ็ตราว 10:00 น. เวลาอิสราเอล<br>ถ้าต้องใช้ตอนนี้: กด 🔑 มุมบนของหน้าต่างนี้ แล้วใส่ API Key ใหม่ (สร้างจากโปรเจกต์ Google ใหม่ = โควตาก้อนใหม่)</div>';
+    return;
+  }
   const mm=/retry in ([\d.]+)s/i.exec(msg);
   let secs=mm?Math.ceil(parseFloat(mm[1])):30;
   if(secs<3) secs=3; if(secs>90) secs=90;
@@ -9125,7 +9132,10 @@ async function _callGemini(systemPrompt, userPrompt, opts){
     }],
     generationConfig: {
       maxOutputTokens: opts.maxTokens || 1500,
-      temperature: opts.temperature != null ? opts.temperature : 0.7
+      temperature: opts.temperature != null ? opts.temperature : 0.7,
+      // v248: 2.5-flash thinks by default — budget 0 disables it, cutting
+      // token burn and latency on the shared free-tier key (CLAUDE.md §5)
+      thinkingConfig: { thinkingBudget: 0 }
     }
   };
   if(systemPrompt){
@@ -9150,6 +9160,11 @@ async function _callGemini(systemPrompt, userPrompt, opts){
     try {
       const errJson = JSON.parse(errText);
       if(errJson && errJson.error && errJson.error.message) errMsg = errJson.error.message;
+      // v248: append quota violation ids (e.g. ...PerDay...) — Google puts them in
+      // error.details, not the message, and the UI needs them to tell daily cap
+      // from per-minute throttle.
+      const dets = (errJson && errJson.error && errJson.error.details) || [];
+      dets.forEach(function(d){ (d.violations || []).forEach(function(v){ if(v && v.quotaId) errMsg += ' [' + v.quotaId + ']'; }); });
     } catch(e){}
     const err = new Error(errMsg);
     err.status = response.status;
@@ -10537,7 +10552,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v247';
+const APP_VERSION = 'v248';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -14375,10 +14390,12 @@ if('serviceWorker' in navigator) {
     let cached = null;
     try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch(_){}
     const quoteCacheMs = 12 * 60 * 60 * 1000; // v247: 4h → 12h, fewer Gemini calls
+    const failCacheMs = 45 * 60 * 1000; // v248: hold the fallback this long after a failed fetch — no per-render hammering
     let quote, signature = '— Gemini AI';
 
-    if(cached && cached.t && (Date.now() - cached.t < quoteCacheMs) && cached.q){
+    if(cached && cached.t && cached.q && (Date.now() - cached.t < (cached.fb ? failCacheMs : quoteCacheMs))){
       quote = cached.q;
+      if(cached.fb) signature = '— RUDY';
     } else {
       el.innerHTML =
         '<div class="hw-title"><span class="hw-icon">💭</span>คำคมวันนี้</div>' +
@@ -14394,10 +14411,13 @@ if('serviceWorker' in navigator) {
         else timeOfDay = 'after work rest';
 
         if(typeof _callGemini === 'function'){
-          const sys = 'You are a witty Thai motivational coach. Generate ONE short Thai quote (max 80 chars) for ' + timeOfDay + '. Be playful, warm, supportive. Output JSON: {"q":"..."}';
-          const result = await _callGemini(sys, 'Quote for ' + timeOfDay + ' at work', { maxOutputTokens: 200 });
-          if(result && result.q){
-            quote = result.q;
+          // v248: _callGemini returns plain TEXT. The old code asked for JSON and
+          // read result.q — undefined on a string — so the cache never wrote and
+          // every renderHome() burned one Gemini request against the shared key.
+          const sys = 'You are a witty Thai motivational coach. Generate ONE short Thai quote (max 80 chars) for ' + timeOfDay + '. Be playful, warm, supportive. Output ONLY the quote text itself - no JSON, no surrounding quotes, no explanation.';
+          const txt = await _callGemini(sys, 'Quote for ' + timeOfDay + ' at work', { maxTokens: 120 });
+          quote = String(txt).replace(/^["'“”\s]+|["'“”\s]+$/g, '').slice(0, 120);
+          if(quote){
             try { localStorage.setItem(cacheKey, JSON.stringify({ q: quote, t: Date.now() })); } catch(_){}
           }
         }
@@ -14415,12 +14435,15 @@ if('serviceWorker' in navigator) {
         ];
         quote = fallbacks[Math.floor(Math.random() * fallbacks.length)];
         signature = '— RUDY';
+        // v248: cache the fallback too (fb flag → short TTL) so a failing/quota'd
+        // Gemini is retried at most once per failCacheMs, not on every render.
+        try { localStorage.setItem(cacheKey, JSON.stringify({ q: quote, t: Date.now(), fb: 1 })); } catch(_){}
       }
     }
 
     el.innerHTML =
       '<div class="hw-title"><span class="hw-icon">💭</span>คำคมวันนี้</div>' +
-      '<div class="hw-quote-text">"'+quote+'"</div>' +
+      '<div class="hw-quote-text">"'+((typeof escHtml==='function')?escHtml(quote):quote)+'"</div>' +
       '<div class="hw-quote-sig">'+signature+'</div>';
   }
 
