@@ -33,10 +33,10 @@
   /* v223 iOS-native skin: flat systemGroupedBackground, mesh collapsed
      to the base color so every rule that paints the mesh becomes a
      no-op without being edited. */
-  /* v229 Liquid Glass restore — original blue-tinted mesh canvas */
-  --bg-base:#E8F1FB;
-  --bg-mesh-1:#C5DEF9; --bg-mesh-2:#9FCAF5;
-  --bg-mesh-3:#DDE9FB; --bg-mesh-4:#B8D4F0;
+  /* v251 Warm Sand — pale cream/gold canvas (replaces the v229 blue mesh) */
+  --bg-base:#FCF8F0;
+  --bg-mesh-1:#F6EDDB; --bg-mesh-2:#F0E2C4;
+  --bg-mesh-3:#FAF4E8; --bg-mesh-4:#F3E8D0;
   /* v229 Liquid Glass restore — translucent surfaces over the mesh */
   --glass-1:rgba(255,255,255,0.15);
   --glass-2:rgba(255,255,255,0.10);
@@ -47,10 +47,12 @@
   --blur-chrome:blur(60px) saturate(160%);
   --blur-card:blur(60px) saturate(160%);
   --blur-light:blur(40px) saturate(150%);
-  --ink:#0B1426; --ink-2:#1F2D44;
-  --ink-3:rgba(11,20,38,0.75);
-  --ink-4:rgba(11,20,38,0.58);
-  --ink-5:rgba(11,20,38,0.18);
+  --ink:#2A2114; --ink-2:#4A3B26;
+  --ink-3:rgba(42,33,20,0.75);
+  --ink-4:rgba(42,33,20,0.58);
+  --ink-5:rgba(42,33,20,0.18);
+  --sys-gold:#C9962E; --sys-gold-2:#A67A1F;
+  --tint-gold:rgba(201,150,46,0.14);
   --sys-blue:#0A84FF; --sys-blue-2:#0066D6;
   --sys-green:#30D158; --sys-green-2:#1F9D40;
   --sys-red:#FF453A; --sys-red-2:#D7372D;
@@ -63,10 +65,10 @@
   --tint-orange:rgba(255,159,10,0.14);
   --tint-yellow:rgba(255,214,10,0.18);
   --tint-purple:rgba(191,90,242,0.14);
-  --shadow-sm:0 1px 2px rgba(15,40,80,0.06), 0 2px 6px rgba(15,40,80,0.04);
-  --shadow:0 4px 14px rgba(15,40,80,0.08), 0 2px 4px rgba(15,40,80,0.04);
-  --shadow-lg:0 12px 36px rgba(15,40,80,0.14), 0 4px 12px rgba(15,40,80,0.08);
-  --shadow-xl:0 24px 64px rgba(15,40,80,0.20), 0 8px 24px rgba(15,40,80,0.12);
+  --shadow-sm:0 1px 2px rgba(80,58,20,0.06), 0 2px 6px rgba(80,58,20,0.04);
+  --shadow:0 4px 14px rgba(80,58,20,0.08), 0 2px 4px rgba(80,58,20,0.04);
+  --shadow-lg:0 12px 36px rgba(80,58,20,0.14), 0 4px 12px rgba(80,58,20,0.08);
+  --shadow-xl:0 24px 64px rgba(80,58,20,0.20), 0 8px 24px rgba(80,58,20,0.12);
   /* v229 Liquid Glass restore — generous glass-era radii; SF kept
      leading the stack (it suits the iOS glass look) */
   --r-xs:8px; --r-sm:12px; --r:16px; --r-lg:22px; --r-xl:28px; --r-2xl:36px; --r-pill:999px;
@@ -78,37 +80,43 @@
   --bg:var(--bg-base);
   --surface:var(--glass-2); --surface2:var(--glass-3); --surface3:rgba(255,255,255,0.22);
   --border:var(--glass-stroke-dim); --border2:var(--glass-stroke);
-  --accent:var(--sys-blue); --accent2:var(--sys-blue-2); --accent-light:var(--tint-blue);
+  --accent:var(--sys-gold); --accent2:var(--sys-gold-2); --accent-light:var(--tint-gold);
   --green:var(--sys-green); --green-light:var(--tint-green);
   --red:var(--sys-red); --red-light:var(--tint-red);
   --yellow:var(--sys-orange); --yellow-light:var(--tint-orange);
   --purple:var(--sys-purple); --purple-light:var(--tint-purple);
   --text:var(--ink); --text2:var(--ink-3); --text3:var(--ink-4);
   --glass-blur:var(--blur-card); --glass-blur-lg:var(--blur-chrome);
-  /* v229 Liquid Glass restore — blue neon halo */
-  --neon-glow:0 0 0 1px rgba(10,132,255,0.18), 0 8px 24px rgba(10,132,255,0.22);
+  /* v250 Warm Sand — gold neon halo */
+  --neon-glow:0 0 0 1px rgba(201,150,46,0.20), 0 8px 24px rgba(201,150,46,0.24);
   --radius:var(--r); --radius-sm:var(--r-sm); --radius-xs:var(--r-xs);
   --water:var(--sys-blue); --gold:var(--sys-orange); --lotus:var(--sys-red); --sky:var(--sys-teal);
   --field-bg:rgba(255,255,255,0.7);
-  --field-stroke:rgba(11,20,38,0.10);
+  --field-stroke:rgba(42,33,20,0.10);
 }
 
 body.dark{
-  /* v229 Liquid Glass restore — navy mesh + near-solid glass surfaces
-     (the STAGE-1 readability values: 92-96% opacity keeps text crisp) */
-  --bg-base:#06101F;
-  --bg-mesh-1:#0F2347; --bg-mesh-2:#1A3873;
-  --bg-mesh-3:#0A1A33; --bg-mesh-4:#1B2F5C;
-  --glass-1:rgba(28,40,64,0.96);
-  --glass-2:rgba(24,35,58,0.94);
-  --glass-3:rgba(20,30,50,0.92);
+  /* v250 Warm Sand dark — warm charcoal/bronze mesh + near-solid glass
+     (keeps the STAGE-1 readability opacities: 92-96%) */
+  --bg-base:#181310;
+  --bg-mesh-1:#2A2115; --bg-mesh-2:#3A2E1C;
+  --bg-mesh-3:#221A11; --bg-mesh-4:#332818;
+  --glass-1:rgba(44,36,26,0.96);
+  --glass-2:rgba(38,31,22,0.94);
+  --glass-3:rgba(32,26,18,0.92);
   --glass-stroke:rgba(255,255,255,0.16);
   --glass-stroke-dim:rgba(255,255,255,0.10);
   --glass-inner:inset 0 1px 0 rgba(255,255,255,0.06);
-  --ink:#FFFFFF; --ink-2:#E8EEF7;
-  --ink-3:rgba(240,244,251,0.96);
-  --ink-4:rgba(240,244,251,0.82);
-  --ink-5:rgba(240,244,251,0.28);
+  --ink:#F7F1E6; --ink-2:#EADFC9;
+  --ink-3:rgba(247,241,230,0.96);
+  --ink-4:rgba(247,241,230,0.82);
+  --ink-5:rgba(247,241,230,0.28);
+  --sys-gold:#E0B054; --sys-gold-2:#C9962E;
+  --tint-gold:rgba(224,176,84,0.16);
+  /* Re-alias --accent* so they re-substitute against the dark gold above —
+     same computed-scope rule as the --text re-aliasing below. */
+  --accent:var(--sys-gold); --accent2:var(--sys-gold-2); --accent-light:var(--tint-gold);
+  --neon-glow:0 0 0 1px rgba(224,176,84,0.22), 0 8px 24px rgba(224,176,84,0.26);
   /* Re-alias --text/--text2/--text3 so they re-substitute against the dark
      --ink-* above. Custom properties are computed at their declaring scope
      and the result is what inherits — without this re-aliasing the values
@@ -143,8 +151,8 @@ body::before{
      make contrast unstable and text hard to read. Replaced with a calm,
      near-static dark canvas + 2 very faint fixed glows (no animation). */
   background:
-    radial-gradient(ellipse 60% 45% at 20% 0%, rgba(20,40,80,0.40) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 85% 100%, rgba(30,30,70,0.35) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 45% at 20% 0%, rgba(84,62,24,0.40) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 100%, rgba(70,52,22,0.35) 0%, transparent 60%),
     var(--bg-base);
   filter:blur(40px);
 }
@@ -153,8 +161,8 @@ body.dark::before{ filter:blur(40px); }
    light mode use pale tints so they read as a soft wash, not dark blobs. */
 body:not(.dark)::before{
   background:
-    radial-gradient(ellipse 60% 45% at 20% 0%, rgba(120,170,235,0.30) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 85% 100%, rgba(150,160,225,0.26) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 45% at 20% 0%, rgba(240,214,160,0.24) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 100%, rgba(236,208,162,0.20) 0%, transparent 60%),
     var(--bg-base);
   filter:blur(40px);
 }
@@ -481,13 +489,13 @@ body.dark .nav{
     transform:none !important;
   }
 }
-/* v229 Liquid Glass restore — glowing blue glass pill for the active tab */
+/* v251 Warm Sand — glowing gold glass pill for the active tab */
 .nav-btn.active{
-  background:linear-gradient(135deg, #5AC8FA 0%, #0A84FF 60%, #0066D6 100%);
+  background:linear-gradient(135deg, #E8C067 0%, #C9962E 60%, #A67A1F 100%);
   color:#fff;
   box-shadow:
-    0 6px 16px rgba(10,132,255,0.5),
-    0 2px 4px rgba(10,132,255,0.3),
+    0 6px 16px rgba(201,150,46,0.5),
+    0 2px 4px rgba(201,150,46,0.3),
     inset 0 1px 0 rgba(255,255,255,0.5),
     inset 0 -1px 0 rgba(0,0,0,0.15);
   position:relative;
@@ -657,8 +665,8 @@ body.dark .card::after { background:linear-gradient(90deg, transparent, rgba(255
 /* v229 Liquid Glass restore — glass hero with floating refraction blobs */
 .clock-hero{
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.05) 50%, rgba(10,132,255,0.10) 100%),
-    radial-gradient(ellipse at top right, rgba(94,92,230,0.14), transparent 60%);
+    linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.05) 50%, rgba(201,150,46,0.10) 100%),
+    radial-gradient(ellipse at top right, rgba(224,176,84,0.14), transparent 60%);
   -webkit-backdrop-filter:blur(60px) saturate(160%);
   backdrop-filter:blur(60px) saturate(160%);
   border:1px solid rgba(255,255,255,0.28);
@@ -675,8 +683,8 @@ body.dark .card::after { background:linear-gradient(90deg, transparent, rgba(255
 }
 body.dark .clock-hero{
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 50%, rgba(10,132,255,0.10) 100%),
-    radial-gradient(ellipse at top right, rgba(94,92,230,0.18), transparent 60%);
+    linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 50%, rgba(201,150,46,0.10) 100%),
+    radial-gradient(ellipse at top right, rgba(224,176,84,0.18), transparent 60%);
   border-color:rgba(255,255,255,0.12);
   box-shadow:
     0 20px 56px rgba(0,0,0,0.5),
@@ -686,28 +694,28 @@ body.dark .clock-hero{
 /* LIGHT MODE: near-solid white so the clock digits read clearly */
 body:not(.dark) .clock-hero{
   background:#FFFFFF;
-  border-color:rgba(11,20,38,0.08);
-  box-shadow:0 12px 32px rgba(15,40,80,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  border-color:rgba(42,33,20,0.08);
+  box-shadow:0 12px 32px rgba(80,58,20,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
 }
 body:not(.dark) .clock-hero::before,
 body:not(.dark) .clock-hero::after{ opacity:0.35; }
-/* Glass refraction blob - blue */
+/* Glass refraction blob - gold */
 .clock-hero::before{
   content:""; position:absolute;
   top:-40%; right:-25%;
   width:260px; height:260px;
-  background:radial-gradient(circle, rgba(10,132,255,0.5) 0%, rgba(10,132,255,0.15) 40%, transparent 70%);
+  background:radial-gradient(circle, rgba(201,150,46,0.5) 0%, rgba(201,150,46,0.15) 40%, transparent 70%);
   border-radius:50%;
   filter:blur(30px);
   pointer-events:none;
   animation:blobFloat1 12s ease-in-out infinite alternate;
 }
-/* Glass refraction blob - purple */
+/* Glass refraction blob - amber */
 .clock-hero::after{
   content:""; position:absolute;
   bottom:-40%; left:-25%;
   width:260px; height:260px;
-  background:radial-gradient(circle, rgba(191,90,242,0.5) 0%, rgba(191,90,242,0.12) 40%, transparent 70%);
+  background:radial-gradient(circle, rgba(230,150,60,0.45) 0%, rgba(230,150,60,0.12) 40%, transparent 70%);
   border-radius:50%;
   filter:blur(30px);
   pointer-events:none;
@@ -3335,10 +3343,12 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
    without depending on transform-box quirks. */
 .ios-hand-hour{ fill:var(--ink); }
 .ios-hand-min { fill:var(--ink); opacity:0.95; }
-.ios-hand-sec { stroke:#8B5CF6; stroke-width:2; stroke-linecap:round; }
+/* v251: seconds hand rides --accent (gold in Warm Sand) so it stays
+   in-palette in both modes and follows any future retheme. */
+.ios-hand-sec { stroke:var(--accent); stroke-width:2; stroke-linecap:round; }
 
 .ios-cap    { fill:var(--ink); }
-.ios-cap-dot{ fill:#8B5CF6; }
+.ios-cap-dot{ fill:var(--accent); }
 
 /* ============================================================
    v230 Slide-to-act control — iPhone "slide to power off" idiom.
@@ -10534,7 +10544,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v250';
+const APP_VERSION = 'v251';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
