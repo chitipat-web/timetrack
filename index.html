@@ -3651,12 +3651,12 @@ body.dark .slide-action{
       <div class="ha-chip green">
         <div class="ha-chip-icon">⏱</div>
         <div class="ha-chip-label">ทำงาน</div>
-        <div class="ha-chip-value"><span id="s-hours">0.0</span><span class="u">ชม</span></div>
+        <div class="ha-chip-value"><span id="s-hours"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></span><span class="u"></span></div>
       </div>
       <div class="ha-chip orange">
         <div class="ha-chip-icon">⚡</div>
         <div class="ha-chip-label">โอที</div>
-        <div class="ha-chip-value"><span id="s-ot">0.0</span><span class="u">ชม</span></div>
+        <div class="ha-chip-value"><span id="s-ot"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></span><span class="u"></span></div>
       </div>
       <div class="ha-chip purple">
         <div class="ha-chip-icon">🔄</div>
@@ -3800,7 +3800,7 @@ body.dark .slide-action{
       <div class="ha-week-head">
         <div>
           <div class="ha-week-lbl">รวม</div>
-          <div class="ha-week-val"><span id="ha-week-total">0.0</span><span class="u">ชม.</span></div>
+          <div class="ha-week-val"><span id="ha-week-total"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></span><span class="u"></span></div>
           <div class="ha-week-delta" id="ha-week-delta">↑ +0%</div>
         </div>
         <div class="ha-week-period" id="ha-week-period">—<strong>พ.ค.</strong></div>
@@ -4876,9 +4876,15 @@ function calcHours(i,o){
   return mins/60;
 }
 // v253: minutes → "Xช YYน" (hours + minutes) for display instead of decimal hours.
+// fmtHM = HTML (small unit letters) for big stat numbers; fmtHMt = plain text
+// for inline text, toasts, notifications and textContent.
 function fmtHM(totalMin){
   const m=Math.max(0,Math.round(totalMin||0));
-  return `${Math.floor(m/60)}<small style="font-size:.55em">ช</small> ${String(m%60).padStart(2,'0')}<small style="font-size:.55em">น</small>`;
+  return `<span style="white-space:nowrap">${Math.floor(m/60)}<small style="font-size:.55em">ช</small> ${String(m%60).padStart(2,'0')}<small style="font-size:.55em">น</small></span>`;
+}
+function fmtHMt(totalMin){
+  const m=Math.max(0,Math.round(totalMin||0));
+  return `${Math.floor(m/60)}ช ${String(m%60).padStart(2,'0')}น`;
 }
 // True when a completed record's checkout is earlier than its check-in.
 function timeReversed(inT,outT){
@@ -5679,12 +5685,12 @@ function renderComparisonChart(empId, year, month){
     <div class="compare-wrap">
       <div class="compare-side last">
         <div class="compare-label">เดือนที่แล้ว</div>
-        <div class="compare-val">${last.hours.toFixed(1)}</div>
+        <div class="compare-val">${fmtHM(last.hours*60)}</div>
         <div class="compare-sub">ชม. รวม</div>
       </div>
       <div class="compare-side this">
         <div class="compare-label">เดือนนี้</div>
-        <div class="compare-val">${cur.hours.toFixed(1)}</div>
+        <div class="compare-val">${fmtHM(cur.hours*60)}</div>
         <div class="compare-sub">ชม. รวม</div>
       </div>
     </div>
@@ -5740,9 +5746,9 @@ function renderMonthlyGoalRing(empId, year, month){
         </div>
       </div>
       <div class="progress-info">
-        <div class="progress-info-row"><span class="progress-info-label">ทำได้</span><span class="progress-info-val">${totalH.toFixed(1)} ชม.</span></div>
-        <div class="progress-info-row"><span class="progress-info-label">เป้าหมาย</span><span class="progress-info-val">${goal} ชม.</span></div>
-        <div class="progress-info-row"><span class="progress-info-label">เหลือ</span><span class="progress-info-val" style="color:${color}">${remaining.toFixed(1)} ชม.</span></div>
+        <div class="progress-info-row"><span class="progress-info-label">ทำได้</span><span class="progress-info-val">${fmtHMt(totalH*60)}</span></div>
+        <div class="progress-info-row"><span class="progress-info-label">เป้าหมาย</span><span class="progress-info-val">${fmtHMt(goal*60)}</span></div>
+        <div class="progress-info-row"><span class="progress-info-label">เหลือ</span><span class="progress-info-val" style="color:${color}">${fmtHMt(remaining*60)}</span></div>
         <div style="margin-top:8px;text-align:center">
           <button onclick="setMonthlyGoal()" style="font-size:11px;padding:4px 10px;background:rgba(0,200,255,.1);border:1px solid var(--border2);border-radius:8px;color:var(--accent2);cursor:pointer">⚙ ตั้งเป้า</button>
         </div>
@@ -5933,8 +5939,8 @@ function renderWeeklySummary(empId){
     <div class="report-title">📅 สัปดาห์นี้</div>
     <div class="week-summary">
       <div class="week-stat"><div class="week-stat-icon">📆</div><div class="week-stat-val">${days}</div><div class="week-stat-lbl">วันที่มา</div></div>
-      <div class="week-stat"><div class="week-stat-icon">⏰</div><div class="week-stat-val">${totalH.toFixed(1)}</div><div class="week-stat-lbl">ชม.รวม</div></div>
-      <div class="week-stat"><div class="week-stat-icon">⚡</div><div class="week-stat-val" style="color:var(--yellow)">${totalOT.toFixed(1)}</div><div class="week-stat-lbl">ชม.OT</div></div>
+      <div class="week-stat"><div class="week-stat-icon">⏰</div><div class="week-stat-val">${fmtHM(totalH*60)}</div><div class="week-stat-lbl">ชม.รวม</div></div>
+      <div class="week-stat"><div class="week-stat-icon">⚡</div><div class="week-stat-val" style="color:var(--yellow)">${fmtHM(totalOT*60)}</div><div class="week-stat-lbl">ชม.OT</div></div>
       <div class="week-stat"><div class="week-stat-icon">${lateCount===0?'💯':'⚠️'}</div><div class="week-stat-val" style="color:${lateCount===0?'var(--green)':'var(--red)'}">${lateCount}</div><div class="week-stat-lbl">ครั้งสาย</div></div>
     </div>
   </div>`;
@@ -5969,7 +5975,7 @@ function renderProductivityTrend(empId){
     <div style="display:flex;align-items:flex-end;gap:8px;height:90px;margin:10px 0">
       ${months.map((m,i) => `
         <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%">
-          <div style="font-family:var(--mono);font-size:10px;font-weight:600;color:${i===2?'var(--accent)':'var(--text2)'}">${m.h.toFixed(1)}</div>
+          <div style="font-family:var(--mono);font-size:10px;font-weight:600;color:${i===2?'var(--accent)':'var(--text2)'}">${fmtHMt(m.h*60)}</div>
           <div style="flex:1;display:flex;align-items:flex-end;width:100%">
             <div style="width:100%;height:${(m.h/max*100)}%;min-height:2px;background:${i===2?'linear-gradient(180deg,var(--accent2),var(--accent))':'rgba(255,255,255,.12)'};border-radius:4px 4px 0 0;${i===2?'box-shadow:0 0 10px var(--accent)':''};transition:height .8s var(--ease-out-expo)"></div>
           </div>
@@ -6106,8 +6112,8 @@ function doCheckOut(){
   document.getElementById('btn-in').disabled=false;
   // v241: compute from the HH:MM strings, not timestamps — a manual entry has
   // checkInTs:null, and (ts - null) produced a garbage ~490,000-hour toast.
-  const hrs=calcHours(records[idx].checkIn, t).toFixed(1);
-  showToast(`ออกงาน ${t} — ${hrs} ชม.${records[idx].otMin>0?' ⚡ OT!':''}`, 'success');
+  const hrs=fmtHMt(calcHours(records[idx].checkIn, t)*60);
+  showToast(`ออกงาน ${t} — ${hrs}${records[idx].otMin>0?' ⚡ OT!':''}`, 'success');
   // Button effects removed by user request — keep only haptic + toast
   renderHome();
   // Cancel the 5s safety re-enable — renderHome has already set btn-out
@@ -6257,7 +6263,7 @@ function renderMemberPicker(){
         <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:14px;color:var(--ink)">${escHtml(emp.name)}</div>
           <div style="font-size:11px;color:var(--ink-4);margin-top:1px">${escHtml(emp.email)}</div>
-          <div style="font-size:11px;color:var(--ink-3);margin-top:3px">📋 ${totalDays} วัน · ${totalH.toFixed(0)} ชม. รวม</div>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:3px">📋 ${totalDays} วัน · รวม ${fmtHMt(totalH*60)}</div>
         </div>
         <div style="color:var(--sys-blue);font-size:18px;flex-shrink:0">›</div>
       </div>
@@ -6394,8 +6400,8 @@ function renderMemberHistory(){
   document.getElementById('mh-summary').innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
       <div class="stat-box"><div class="stat-val c-blue">${totalDays}</div><div class="stat-lbl" style="font-size:10px">วันที่มา</div></div>
-      <div class="stat-box"><div class="stat-val c-green">${totalH.toFixed(1)}</div><div class="stat-lbl" style="font-size:10px">ชม.รวม</div></div>
-      <div class="stat-box"><div class="stat-val c-orange">${totalOT.toFixed(1)}</div><div class="stat-lbl" style="font-size:10px">ชม.OT</div></div>
+      <div class="stat-box"><div class="stat-val c-green">${fmtHM(totalH*60)}</div><div class="stat-lbl" style="font-size:10px">ชม.รวม</div></div>
+      <div class="stat-box"><div class="stat-val c-orange">${fmtHM(totalOT*60)}</div><div class="stat-lbl" style="font-size:10px">ชม.OT</div></div>
       <div class="stat-box"><div class="stat-val ${lateCount?'c-red':'c-green'}">${lateCount}</div><div class="stat-lbl" style="font-size:10px">ครั้งสาย</div></div>
     </div>`;
 
@@ -6419,15 +6425,15 @@ function renderMemberHistory(){
     return `<div class="card" style="margin-bottom:8px;padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-weight:700;font-size:14px">${parseInt(d)} ${mons[parseInt(m)-1]} ${parseInt(y)+543} (${dayNames[dt.getDay()]})${holiday?' 🏖':''}</div>
-        <div style="font-size:11px;color:var(--text2)">${dayH.toFixed(1)} ชม. ${dayOT>0?'+ OT '+dayOT.toFixed(1):''}</div>
+        <div style="font-size:11px;color:var(--text2)">${fmtHMt(dayH*60)} ${dayOT>0?'+ OT '+fmtHMt(dayOT*60):''}</div>
       </div>
       ${recs.map(r => `<div class="rec-item" style="margin-bottom:4px">
         <div class="rec-times" style="flex:1">
           <div class="rec-time" style="font-size:13px">${r.checkIn} → ${r.checkOut||'<span style="color:var(--red)">ยังไม่ออก</span>'}</div>
           <div class="rec-badges">
-            ${r.checkOut?`<span class="badge badge-green">${calcHours(r.checkIn,r.checkOut).toFixed(1)} ชม.</span>`:''}
+            ${r.checkOut?`<span class="badge badge-green">${fmtHMt(calcHours(r.checkIn,r.checkOut)*60)}</span>`:''}
             ${r.isLate?'<span class="badge badge-red">สาย</span>':''}
-            ${r.otMin>0?`<span class="badge" style="background:rgba(255,159,10,0.2);color:#FF9F0A">OT ${(r.otMin/60).toFixed(1)} ชม.</span>`:''}
+            ${r.otMin>0?`<span class="badge" style="background:rgba(255,159,10,0.2);color:#FF9F0A">OT ${fmtHMt(r.otMin)}</span>`:''}
             ${r.note?`<span class="badge" style="background:var(--surface2);color:var(--text2)">${escHtml(r.note)}</span>`:''}
           </div>
         </div>
@@ -6519,7 +6525,7 @@ function renderHome(){
   function flashIfChanged(id, newVal, decimals) {
     const el = document.getElementById(id);
     if(!el) return;
-    const prev = parseFloat(el.textContent);
+    const prev = decimals==='hm' ? parseFloat(el.dataset.hmVal) : parseFloat(el.textContent);
     animateNumber(el, newVal, 600, decimals);
     if(!isNaN(prev) && Math.abs(prev - newVal) > 0.05) {
       el.classList.remove('num-flash');
@@ -6531,8 +6537,8 @@ function renderHome(){
   }
 
   document.getElementById('s-firstin').textContent=firstIn;
-  flashIfChanged('s-hours', totalH, 1);
-  flashIfChanged('s-ot', totalOT/60, 1);
+  flashIfChanged('s-hours', totalH, 'hm');
+  flashIfChanged('s-ot', totalOT/60, 'hm');
   flashIfChanged('s-rounds', myRec.length, 0);
   updateTodayStatus();
 
@@ -6542,7 +6548,7 @@ function renderHome(){
     if(open) {
       const elapsed = calcHours(open.checkIn, nowStr());
       liveEl.style.display = 'flex';
-      liveEl.innerHTML = `<div class="live-dot-green"></div><span>กำลังทำงาน</span><span class="live-status-time" style="margin-left:auto">${elapsed.toFixed(1)} ชม. (${open.checkIn} → ตอนนี้)</span>`;
+      liveEl.innerHTML = `<div class="live-dot-green"></div><span>กำลังทำงาน</span><span class="live-status-time" style="margin-left:auto">${fmtHMt(elapsed*60)} (${open.checkIn} → ตอนนี้)</span>`;
     } else {
       liveEl.style.display = 'none';
     }
@@ -6559,9 +6565,9 @@ function renderHome(){
       <div class="rec-times">
         <div class="rec-time">${r.checkIn} → ${r.checkOut||'...'}</div>
         <div class="rec-badges">
-          <span class="badge badge-green">${hrs.toFixed(1)} ชม.</span>
+          <span class="badge badge-green">${fmtHMt(hrs*60)}</span>
           ${r.isLate?'<span class="badge badge-red">⚠ สาย</span>':'<span class="badge badge-blue">✓ ตรงเวลา</span>'}
-          ${otH>0?`<span class="badge badge-orange">⚡ OT ${otH.toFixed(1)}ชม.</span>`:''}
+          ${otH>0?`<span class="badge badge-orange">⚡ OT ${fmtHMt(otH*60)}</span>`:''}
           ${r.note?`<span class="badge" style="background:var(--surface);border:1px solid var(--border);color:var(--text2)">${escHtml(r.note)}</span>`:''}
         </div>
       </div>
@@ -6605,7 +6611,7 @@ function renderWeekly(){
     return `<div class="${cls}" onclick="showDayDetail('${date}','${curUser.email}')">
       <div class="wd-name">${dayNames[d.getDay()]}</div>
       <div class="wd-date">${d.getDate()}</div>
-      <div class="wd-h">${dayH>0?dayH.toFixed(1):'—'}</div>
+      <div class="wd-h">${dayH>0?fmtHMt(dayH*60):'—'}</div>
       ${dayOT>0?'<div style="font-size:9px;color:var(--yellow)">OT</div>':''}
     </div>`;
   }).join('');
@@ -6617,8 +6623,8 @@ function renderWeekly(){
     <div class="week-bar">${bars}</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
       <div class="team-stat"><div class="team-stat-val c-blue">${days}</div><div class="team-stat-lbl">วันที่มา</div></div>
-      <div class="team-stat"><div class="team-stat-val c-green">${totalH.toFixed(1)}</div><div class="team-stat-lbl">ชม.สุทธิ</div></div>
-      <div class="team-stat"><div class="team-stat-val c-orange">${(totalOT/60).toFixed(1)}</div><div class="team-stat-lbl">ชม.โอที</div></div>
+      <div class="team-stat"><div class="team-stat-val c-green">${fmtHM(totalH*60)}</div><div class="team-stat-lbl">ชม.สุทธิ</div></div>
+      <div class="team-stat"><div class="team-stat-val c-orange">${fmtHM(totalOT)}</div><div class="team-stat-lbl">ชม.โอที</div></div>
       <div class="team-stat"><div class="team-stat-val c-red">${lateCount}</div><div class="team-stat-lbl">ครั้งสาย</div></div>
     </div>`;
 }
@@ -6715,14 +6721,14 @@ function renderStats(){
 
   document.getElementById('month-summary').innerHTML=`
     <div class="sum-card"><div class="sum-val c-blue" id="anim-days">0</div><div class="sum-lbl">วันที่มา</div></div>
-    <div class="sum-card"><div class="sum-val c-green" id="anim-hrs">0.0</div><div class="sum-lbl">ชม.รวม</div></div>
-    <div class="sum-card"><div class="sum-val c-orange" id="anim-ot">0.0</div><div class="sum-lbl">ชม.โอที</div></div>
+    <div class="sum-card"><div class="sum-val c-green" id="anim-hrs"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></div><div class="sum-lbl">ชม.รวม</div></div>
+    <div class="sum-card"><div class="sum-val c-orange" id="anim-ot"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></div><div class="sum-lbl">ชม.โอที</div></div>
     <div class="sum-card"><div class="sum-val c-red" id="anim-late">0</div><div class="sum-lbl">ครั้งสาย</div></div>`;
   // Roll-up animation
   setTimeout(()=>{
     animateNumber(document.getElementById('anim-days'), days,       700, 0, '');
-    animateNumber(document.getElementById('anim-hrs'),  totalH,     900, 1, '');
-    animateNumber(document.getElementById('anim-ot'),   totalOT/60, 800, 1, '');
+    animateNumber(document.getElementById('anim-hrs'),  totalH,     900, 'hm', '');
+    animateNumber(document.getElementById('anim-ot'),   totalOT/60, 800, 'hm', '');
     animateNumber(document.getElementById('anim-late'), lateCount,  600, 0, '');
   }, 50);
 
@@ -6787,8 +6793,8 @@ function renderHistory(resetPage){
       <div class="hi-header">
         <div><div class="hi-date-lbl">${parseInt(dd)} ${mons[parseInt(m)-1]}</div><div class="hi-day-lbl">วัน${dayNames[d.getDay()]} ${holiday?'🏖 '+getHolidays()[date]:''}</div></div>
         <div style="text-align:right">
-          <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--green)">${totalH.toFixed(1)} ชม.</div>
-          ${totalOT>0?`<div style="font-size:11px;color:var(--yellow)">⚡ OT ${(totalOT/60).toFixed(1)} ชม.</div>`:''}
+          <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--green)">${fmtHMt(totalH*60)}</div>
+          ${totalOT>0?`<div style="font-size:11px;color:var(--yellow)">⚡ OT ${fmtHMt(totalOT)}</div>`:''}
           ${hasLate?'<div style="font-size:11px;color:var(--red)">⚠ สาย</div>':''}
         </div>
       </div>
@@ -6799,7 +6805,7 @@ function renderHistory(resetPage){
             ${r.note?`<span style="font-size:11px;color:var(--text3);margin-left:6px">${escHtml(r.note)}</span>`:''}
           </div>
           <div style="display:flex;gap:6px;align-items:center">
-            <span class="hi-net">${r.checkOut?calcHours(r.checkIn,r.checkOut).toFixed(1)+'ชม.':''}</span>
+            <span class="hi-net">${r.checkOut?fmtHMt(calcHours(r.checkIn,r.checkOut)*60):''}</span>
             <button class="btn-edit" onclick="openEdit('${r.id}','${curUser.email}')">✏️</button>
             <button class="btn-del" onclick="deleteRec('${r.id}','${curUser.id}')">🗑</button>
           </div>
@@ -6847,8 +6853,8 @@ function renderDashboard() {
     <!-- Summary cards -->
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
       <div class="stat-box"><div class="stat-val c-blue">${employees.length}</div><div class="stat-lbl">พนักงานทั้งหมด</div></div>
-      <div class="stat-box"><div class="stat-val c-green">${totalHours.toFixed(0)}</div><div class="stat-lbl">ชม.รวมทีม</div></div>
-      <div class="stat-box"><div class="stat-val c-orange">${totalOTAll.toFixed(1)}</div><div class="stat-lbl">ชม.โอทีรวม</div></div>
+      <div class="stat-box"><div class="stat-val c-green">${fmtHM(totalHours*60)}</div><div class="stat-lbl">ชม.รวมทีม</div></div>
+      <div class="stat-box"><div class="stat-val c-orange">${fmtHM(totalOTAll*60)}</div><div class="stat-lbl">ชม.โอทีรวม</div></div>
       <div class="stat-box"><div class="stat-val c-red">${totalLate}</div><div class="stat-lbl">ครั้งสายรวม</div></div>
     </div>
 
@@ -6865,7 +6871,7 @@ function renderDashboard() {
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px">
           <span style="font-size:24px">⚡</span>
-          <div><div style="font-size:12px;color:var(--text3)">ทำโอทีมากที่สุด</div><div style="font-weight:700">${mostOT?.emp.name||'-'} <span style="color:var(--yellow);font-size:12px">(${((mostOT?.totalOT||0)/60).toFixed(1)} ชม.)</span></div></div>
+          <div><div style="font-size:12px;color:var(--text3)">ทำโอทีมากที่สุด</div><div style="font-weight:700">${mostOT?.emp.name||'-'} <span style="color:var(--yellow);font-size:12px">(${fmtHMt(mostOT?.totalOT||0)})</span></div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px">
           <span style="font-size:24px">✅</span>
@@ -6910,8 +6916,8 @@ function renderDashboard() {
                 ${e.emp.name.split(' ')[0]}
               </div></td>
               <td style="padding:8px;text-align:center;color:var(--accent)">${e.days}</td>
-              <td style="padding:8px;text-align:center;color:var(--green)">${e.totalH.toFixed(1)}</td>
-              <td style="padding:8px;text-align:center;color:var(--yellow)">${(e.totalOT/60).toFixed(1)}</td>
+              <td style="padding:8px;text-align:center;color:var(--green)">${fmtHMt(e.totalH*60)}</td>
+              <td style="padding:8px;text-align:center;color:var(--yellow)">${fmtHMt(e.totalOT)}</td>
               <td style="padding:8px;text-align:center">${e.lateCount>0?`<span style="color:var(--red)">${e.lateCount}</span>`:'<span style="color:var(--green)">0</span>'}</td>
             </tr>`).join('')}
           </tbody>
@@ -6975,7 +6981,7 @@ function updateTodayStatus() {
     const open = myRec.find(r => !r.checkOut && r.checkIn);
     const totalH = comp.reduce((s,r) => s + calcHours(r.checkIn, r.checkOut), 0) +
                    (open ? calcHours(open.checkIn, nowStr()) : 0);
-    el_dur.textContent = totalH > 0 ? `${totalH.toFixed(1)} ชม.${open?' (กำลังทำงาน)':''}` : '—';
+    el_dur.textContent = totalH > 0 ? `${fmtHMt(totalH*60)}${open?' (กำลังทำงาน)':''}` : '—';
   }
 }
 
@@ -7010,7 +7016,7 @@ function renderStatus() {
     let durText = '';
     if(isIn && last.checkInTs) {
       const mins = Math.round((Date.now()-last.checkInTs)/60000);
-      durText = `${Math.floor(mins/60)}ชม.${mins%60}นาที`;
+      durText = fmtHMt(mins);
     }
     const photo = getPhoto(emp.email);
     const _eG=avatarGrad(emp.name), _eL=avatarLetter(emp.name);
@@ -7067,7 +7073,7 @@ function renderSummary() {
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
         <div style="text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--accent2)">${days}</div><div style="font-size:10px;color:var(--text3)">วันมา</div></div>
-        <div style="text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--accent2)">${totalH.toFixed(1)}h</div><div style="font-size:10px;color:var(--text3)">ชม.รวม</div></div>
+        <div style="text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--accent2)">${fmtHM(totalH*60)}</div><div style="font-size:10px;color:var(--text3)">ชม.รวม</div></div>
         <div style="text-align:center"><div style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--accent2)">${pct}%</div><div style="font-size:10px;color:var(--text3)">อัตรามา</div></div>
       </div>
       <div style="height:4px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden">
@@ -7159,8 +7165,8 @@ function renderTeamSummary(){
     <tbody>${results.map(r=>`<tr>
       <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:${avatarGrad(r.emp.name)};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${avatarLetter(r.emp.name)}</div>${r.emp.name}</div></td>
       <td style="color:var(--accent);font-weight:600">${r.days}</td>
-      <td style="color:var(--green);font-weight:600">${r.totalH.toFixed(1)}</td>
-      <td style="color:var(--yellow)">${(r.totalOT/60).toFixed(1)}</td>
+      <td style="color:var(--green);font-weight:600">${fmtHMt(r.totalH*60)}</td>
+      <td style="color:var(--yellow)">${fmtHMt(r.totalOT)}</td>
       <td>${r.lateCount>0?`<span class="badge badge-red">${r.lateCount}</span>`:'<span class="badge badge-green">0</span>'}</td>
     </tr>`).join('')}</tbody>
   </table></div>`;
@@ -7193,18 +7199,18 @@ function renderSalary(){
     <div class="sal-hero">
       <div style="font-size:13px;opacity:.85;margin-bottom:6px">ค่าแรงต่อชั่วโมง</div>
       <div class="sal-rate">฿${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-      <div class="sal-sub">${salary.toLocaleString('th-TH')} ÷ ${totalH.toFixed(2)} ชม.</div>
+      <div class="sal-sub">${salary.toLocaleString('th-TH')} ÷ ${fmtHMt(totalH*60)}</div>
     </div>
     <div class="card">
       <div class="section-title">📊 สรุป ${mons[month]} ${year+543}</div>
       <div class="sum-grid">
         <div class="sum-card"><div class="sum-val c-blue">${salary.toLocaleString('th-TH')}</div><div class="sum-lbl">เงินเดือน (฿)</div></div>
-        <div class="sum-card"><div class="sum-val c-green">${totalH.toFixed(2)}</div><div class="sum-lbl">ชม.ทำงานรวม</div></div>
-        <div class="sum-card"><div class="sum-val c-orange">${totalOTH.toFixed(2)}</div><div class="sum-lbl">ชม.โอที</div></div>
+        <div class="sum-card"><div class="sum-val c-green">${fmtHM(totalH*60)}</div><div class="sum-lbl">ชม.ทำงานรวม</div></div>
+        <div class="sum-card"><div class="sum-val c-orange">${fmtHM(totalOTH*60)}</div><div class="sum-lbl">ชม.โอที</div></div>
         <div class="sum-card"><div class="sum-val c-purple">${days}</div><div class="sum-lbl">วันที่มา</div></div>
       </div>
       <div style="background:var(--surface2);border-radius:10px;padding:14px">
-        ${[['เงินเดือน',`฿${salary.toLocaleString('th-TH')}`],['ชม.ทำงานรวม',`${totalH.toFixed(2)} ชม.`],['ชม.ปกติ',`${(totalH-totalOTH).toFixed(2)} ชม.`],['ชม.โอที',`${totalOTH.toFixed(2)} ชม.`],['ค่าแรง/ชม.',`฿${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`]].map(([k,v],i)=>`<div style="display:flex;justify-content:space-between;padding:8px 0;${i<4?'border-bottom:1px solid var(--border)':''}"><span>${k}</span><span style="font-weight:700;${i===4?'color:var(--accent)':''}">${v}</span></div>`).join('')}
+        ${[['เงินเดือน',`฿${salary.toLocaleString('th-TH')}`],['ชม.ทำงานรวม',fmtHMt(totalH*60)],['ชม.ปกติ',fmtHMt((totalH-totalOTH)*60)],['ชม.โอที',fmtHMt(totalOTH*60)],['ค่าแรง/ชม.',`฿${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`]].map(([k,v],i)=>`<div style="display:flex;justify-content:space-between;padding:8px 0;${i<4?'border-bottom:1px solid var(--border)':''}"><span>${k}</span><span style="font-weight:700;${i===4?'color:var(--accent)':''}">${v}</span></div>`).join('')}
       </div>
     </div>
     <div class="card" style="border-left:3px solid ${lateCount?'var(--red)':'var(--green)'}">
@@ -7227,7 +7233,7 @@ function renderAdminSalary(){
     const perH=sal>0&&totalH>0?sal/totalH:0;
     return `<div class="team-stat" style="margin-bottom:8px;text-align:left;padding:12px;border-radius:10px">
       <div style="font-weight:700;margin-bottom:4px">${escHtml(emp.name)}</div>
-      <div style="font-size:12px;color:var(--text2)">${totalH.toFixed(1)} ชม. · ${sal>0?`฿${perH.toFixed(0)}/ชม.`:'ไม่ได้ตั้งเงินเดือน'}</div>
+      <div style="font-size:12px;color:var(--text2)">${fmtHMt(totalH*60)} · ${sal>0?`฿${perH.toFixed(0)}/ชม.`:'ไม่ได้ตั้งเงินเดือน'}</div>
     </div>`;
   }).join('');
 }
@@ -7254,8 +7260,8 @@ function showDayDetail(dateStr,email){
     </div>
     ${dr.length?`
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
-        <div class="sum-card"><div class="sum-val c-green">${totalH.toFixed(1)}</div><div class="sum-lbl">ชม.รวม</div></div>
-        <div class="sum-card"><div class="sum-val c-orange">${(totalOT/60).toFixed(1)}</div><div class="sum-lbl">ชม.OT</div></div>
+        <div class="sum-card"><div class="sum-val c-green">${fmtHM(totalH*60)}</div><div class="sum-lbl">ชม.รวม</div></div>
+        <div class="sum-card"><div class="sum-val c-orange">${fmtHM(totalOT)}</div><div class="sum-lbl">ชม.OT</div></div>
         <div class="sum-card"><div class="sum-val ${dr.some(r=>r.isLate)?'c-red':'c-green'}">${dr.some(r=>r.isLate)?'สาย':'ตรงเวลา'}</div><div class="sum-lbl">สถานะ</div></div>
       </div>
       ${dr.map((r,i)=>`<div class="rec-item">
@@ -7263,7 +7269,7 @@ function showDayDetail(dateStr,email){
         <div class="rec-times">
           <div class="rec-time">${r.checkIn} → ${r.checkOut||'...'}</div>
           <div class="rec-badges">
-            ${r.checkOut?`<span class="badge badge-green">${calcHours(r.checkIn,r.checkOut).toFixed(1)} ชม.</span>`:''}
+            ${r.checkOut?`<span class="badge badge-green">${fmtHMt(calcHours(r.checkIn,r.checkOut)*60)}</span>`:''}
             ${r.isLate?'<span class="badge badge-red">สาย</span>':''}
             ${r.note?`<span class="badge" style="background:var(--surface2);color:var(--text2)">${escHtml(r.note)}</span>`:''}
           </div>
@@ -7410,8 +7416,8 @@ function exportPDF(){
       <td>${dayNames[d.getDay()]}</td>
       <td>${rs[0].checkIn||'-'}</td>
       <td>${rs[rs.length-1].checkOut||'...'}</td>
-      <td style="text-align:center">${h.toFixed(2)}</td>
-      <td style="text-align:center">${(ot/60).toFixed(2)}</td>
+      <td style="text-align:center">${fmtHMt(h*60)}</td>
+      <td style="text-align:center">${fmtHMt(ot)}</td>
       <td style="text-align:center;color:${late?'#e53e3e':'#38a169'}">${late?'สาย':'ตรงเวลา'}</td>
     </tr>`;
   }).join('');
@@ -7811,8 +7817,8 @@ function exportPDF(){
     <h2>👤 ${curUser.name} &nbsp;|&nbsp; ${curUser.dept} &nbsp;|&nbsp; ${mons[month]} ${year+543}</h2>
     <div class="summary">
       <div class="sum-box"><div class="sum-val">${days}</div><div class="sum-lbl">วันที่มา</div></div>
-      <div class="sum-box"><div class="sum-val">${totalH.toFixed(1)}</div><div class="sum-lbl">ชม.รวม</div></div>
-      <div class="sum-box"><div class="sum-val">${(totalOT/60).toFixed(1)}</div><div class="sum-lbl">ชม.โอที</div></div>
+      <div class="sum-box"><div class="sum-val">${fmtHMt(totalH*60)}</div><div class="sum-lbl">ชม.รวม</div></div>
+      <div class="sum-box"><div class="sum-val">${fmtHMt(totalOT)}</div><div class="sum-lbl">ชม.โอที</div></div>
       <div class="sum-box"><div class="sum-val">${lateCount}</div><div class="sum-lbl">ครั้งสาย</div></div>
     </div>
     ${sal?`<div style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:8px;padding:12px;margin-bottom:20px;display:flex;gap:24px">
@@ -7824,8 +7830,8 @@ function exportPDF(){
       <tbody>${rows}</tbody>
       <tfoot><tr style="background:#ebf8ff;font-weight:700">
         <td colspan="4">รวม</td>
-        <td style="text-align:center">${totalH.toFixed(2)}</td>
-        <td style="text-align:center">${(totalOT/60).toFixed(2)}</td>
+        <td style="text-align:center">${fmtHMt(totalH*60)}</td>
+        <td style="text-align:center">${fmtHMt(totalOT)}</td>
         <td></td>
       </tr></tfoot>
     </table>
@@ -8805,7 +8811,7 @@ function checkMonthlyReminder() {
   const totalOT = myRec.reduce((s,r)=>s+(r.otMin||0),0);
   const mons = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   sendPush(`📊 สรุปเดือน${mons[prevMonth.getMonth()]} — RUDY`,
-    `มา ${totalDays} วัน | ${totalHrs.toFixed(1)} ชม. | OT ${(totalOT/60).toFixed(1)} ชม.`,
+    `มา ${totalDays} วัน | ${fmtHMt(totalHrs*60)} | OT ${fmtHMt(totalOT)}`,
     'monthly-summary');
 }
 
@@ -9949,18 +9955,18 @@ function checkCheckoutReminder() {
   // Try push notification first
   if('Notification' in window && Notification.permission === 'granted') {
     new Notification('⏰ อย่าลืมออกงาน! — RUDY', {
-      body: `เข้างาน ${open.checkIn} — ผ่านมา ${hrs.toFixed(1)} ชม.แล้ว`,
+      body: `เข้างาน ${open.checkIn} — ผ่านมา ${fmtHMt(hrs*60)} แล้ว`,
       icon: './icon-192.png',
       tag: 'checkout-reminder'
     });
   }
   // Also show in-app banner
-  showReminderBanner(open.checkIn, hrs.toFixed(1));
+  showReminderBanner(open.checkIn, fmtHMt(hrs*60));
 }
 function showReminderBanner(inTime,hrs){
   let b=document.getElementById('remind-banner');
   if(!b){b=document.createElement('div');b.id='remind-banner';b.className='reminder-banner';document.body.appendChild(b)}
-  b.innerHTML=`<span style="font-size:24px">⏰</span><div style="flex:1"><div style="font-weight:700;color:var(--yellow)">อย่าลืมออกงาน!</div><div style="font-size:12px;color:var(--text2)">เข้างาน ${inTime} — ผ่านมา ${hrs} ชม.แล้ว</div></div><button class="btn-out" style="padding:8px 14px;font-size:13px;border-radius:8px" onclick="doCheckOut();document.getElementById('remind-banner').remove()">ออกงาน</button><button class="reminder-close" onclick="this.parentElement.remove()">✕</button>`;
+  b.innerHTML=`<span style="font-size:24px">⏰</span><div style="flex:1"><div style="font-weight:700;color:var(--yellow)">อย่าลืมออกงาน!</div><div style="font-size:12px;color:var(--text2)">เข้างาน ${inTime} — ผ่านมา ${hrs} แล้ว</div></div><button class="btn-out" style="padding:8px 14px;font-size:13px;border-radius:8px" onclick="doCheckOut();document.getElementById('remind-banner').remove()">ออกงาน</button><button class="reminder-close" onclick="this.parentElement.remove()">✕</button>`;
   b.style.display='flex';
   setTimeout(()=>{if(b.parentElement)b.remove()},10000);
 }
@@ -10130,7 +10136,8 @@ const swipeToast = true; // marker
 // ============================================================
 function animateNumber(el, target, duration=700, decimals=0, suffix='') {
   if(!el) return;
-  const start = parseFloat(el.textContent) || 0;
+  const hm = decimals === 'hm';
+  const start = (hm ? parseFloat(el.dataset.hmVal) : parseFloat(el.textContent)) || 0;
   const startTime = performance.now();
   // Use ease-out-expo for smoother feel
   function easeOutExpo(t){ return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); }
@@ -10139,6 +10146,11 @@ function animateNumber(el, target, duration=700, decimals=0, suffix='') {
     const progress = Math.min(elapsed / duration, 1);
     const eased = easeOutExpo(progress);
     const current = start + (target - start) * eased;
+    if(hm){
+      el.innerHTML = fmtHM((progress < 1 ? current : target) * 60);
+      if(progress < 1) requestAnimationFrame(update); else el.dataset.hmVal = String(target);
+      return;
+    }
     el.textContent = decimals > 0 ? current.toFixed(decimals) + suffix : Math.round(current) + suffix;
     if(progress < 1) requestAnimationFrame(update);
     else el.textContent = decimals > 0 ? target.toFixed(decimals) + suffix : Math.round(target) + suffix;
@@ -10318,6 +10330,7 @@ function animateStatsIn(container) {
   if (!container) return;
   container.querySelectorAll('.stat-val, .week-stat-val, .sum-val, .summary-num').forEach(el => {
     const txt = (el.textContent || '').trim();
+    if (/\dช/.test(txt)) return; // v254: hours+minutes value — not a plain number
     const num = parseFloat(txt.replace(/,/g, ''));
     if (!isNaN(num) && num !== 0 && num < 100000) {
       const dec = (txt.includes('.')) ? (txt.split('.')[1].length) : 0;
@@ -10563,7 +10576,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v253';
+const APP_VERSION = 'v254';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -11484,8 +11497,8 @@ function updateSalPreview() {
   preview.innerHTML = `
     <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">💡 ประมาณการ</div>
     <div class="sal-preview-row"><span class="sal-preview-label">เงินเดือนฐาน</span><span class="sal-preview-val">${salary.toLocaleString()} ฿</span></div>
-    <div class="sal-preview-row"><span class="sal-preview-label">ทำงาน ${workDays} วัน / ${totalH.toFixed(1)} ชม.</span><span class="sal-preview-val">${(dailyRate*workDays).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>
-    ${totalOT>0?`<div class="sal-preview-row"><span class="sal-preview-label">OT ${(totalOT/60).toFixed(1)} ชม. (×1.5)</span><span class="sal-preview-val">+${otPay.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>`:''}
+    <div class="sal-preview-row"><span class="sal-preview-label">ทำงาน ${workDays} วัน / ${fmtHMt(totalH*60)}</span><span class="sal-preview-val">${(dailyRate*workDays).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>
+    ${totalOT>0?`<div class="sal-preview-row"><span class="sal-preview-label">OT ${fmtHMt(totalOT)} (×1.5)</span><span class="sal-preview-val">+${otPay.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>`:''}
     <div class="sal-preview-row"><span class="sal-preview-label">รวมทั้งหมด</span><span class="sal-preview-val" style="color:var(--green);font-size:16px">${total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>`;
 }
 
@@ -11518,8 +11531,8 @@ function initCalendarTooltip() {
         <div class="cal-tooltip-date">${d} ${mons[m-1]} ${y+543}</div>
         ${myRec.length ? `
           <div class="cal-tooltip-row"><span>🕐 เข้างาน</span><span>${myRec[0].checkIn}</span></div>
-          <div class="cal-tooltip-row"><span>⏱ รวม</span><span>${hrs.toFixed(1)} ชม.</span></div>
-          ${ot>0?`<div class="cal-tooltip-row"><span>⚡ OT</span><span>${(ot/60).toFixed(1)} ชม.</span></div>`:''}
+          <div class="cal-tooltip-row"><span>⏱ รวม</span><span>${fmtHMt(hrs*60)}</span></div>
+          ${ot>0?`<div class="cal-tooltip-row"><span>⚡ OT</span><span>${fmtHMt(ot)}</span></div>`:''}
           ${late?`<div class="cal-tooltip-row"><span>⚠️ สาย</span><span style="color:var(--red)">ใช่</span></div>`:''}
         ` : '<div style="color:var(--text3);text-align:center">ไม่มีข้อมูล</div>'}`;
     }, 500);
@@ -12300,7 +12313,7 @@ function detectAnomaly(empId){
     return {
       type:'too_long',
       hours: (minutesWorking/60).toFixed(1),
-      msg: `⚠️ ทำงานต่อเนื่อง ${(minutesWorking/60).toFixed(1)} ชม. แล้ว — อย่าลืม check-out`
+      msg: `⚠️ ทำงานต่อเนื่อง ${fmtHMt(minutesWorking)} แล้ว — อย่าลืม check-out`
     };
   }
   if(minutesWorking > 10*60 && now.getHours() >= 22){
@@ -12399,7 +12412,7 @@ function generateWeeklyInsights(empId){
   if(curLate < prevLate && prevLate > 0) insights.push('🎉 มาตรงเวลาดีขึ้น!');
   if(curLate > prevLate) insights.push('⚠️ สายบ่อยขึ้น สัปดาห์นี้ '+curLate+' ครั้ง');
   if(curLate === 0 && cur.length >= 5) insights.push('💯 ตรงเวลาทุกวันสัปดาห์นี้');
-  if(curH >= 50) insights.push('⚡ ทำงานหนักมาก ('+curH.toFixed(1)+' ชม.)');
+  if(curH >= 50) insights.push('⚡ ทำงานหนักมาก ('+fmtHMt(curH*60)+')');
   if(insights.length === 0) insights.push('✨ สัปดาห์นี้สม่ำเสมอ ไม่มีการเปลี่ยนแปลงใหญ่');
   return insights;
 }
@@ -13597,9 +13610,9 @@ if('serviceWorker' in navigator) {
       ('วัน' + dayNames[d.getDay()] + ' ที่ ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + (d.getFullYear() + 543));
 
     const hrs = (r.checkIn && r.checkOut && typeof calcHours === 'function')
-      ? calcHours(r.checkIn, r.checkOut).toFixed(2) + ' ชม.' : '—';
+      ? fmtHMt(calcHours(r.checkIn, r.checkOut)*60) : '—';
     const otMin = (r.otMin || 0);
-    const ot = otMin > 0 ? (otMin + ' นาที (' + (otMin/60).toFixed(1) + ' ชม.)') : '—';
+    const ot = otMin > 0 ? fmtHMt(otMin) : '—';
     const lateBadge = r.isLate ? '<span class="v late">⚠ สาย</span>' : '<span class="v green">ตรงเวลา</span>';
     const note = (r.note || '').toString().trim();
 
@@ -13987,7 +14000,7 @@ if('serviceWorker' in navigator) {
           const startMs = new Date(now); startMs.setHours(h, m, 0, 0);
           const diffMin = Math.max(0, Math.floor((now - startMs) / 60000));
           const dh = Math.floor(diffMin / 60); const dm = diffMin % 60;
-          tlLive.querySelector('.ha-tl-sub').textContent = `ผ่านมา ${dh} ชม. ${dm} นาที`;
+          tlLive.querySelector('.ha-tl-sub').textContent = `ผ่านมา ${fmtHMt(diffMin)}`;
           const t = tlLive.querySelector('.ha-tl-time');
           t.textContent = 'LIVE';
           t.className = 'ha-tl-time live';
@@ -14103,7 +14116,7 @@ if('serviceWorker' in navigator) {
 
       // Total
       const totEl = document.getElementById('ha-week-total');
-      if(totEl) totEl.textContent = totalHours.toFixed(1);
+      if(totEl) totEl.innerHTML = fmtHM(totalHours*60);
 
       // Period
       const perEl = document.getElementById('ha-week-period');
@@ -14114,7 +14127,7 @@ if('serviceWorker' in navigator) {
       // Delta (just placeholder simple)
       const delEl = document.getElementById('ha-week-delta');
       if(delEl){
-        delEl.textContent = totalHours > 0 ? `${totalHours.toFixed(1)} ชม.` : '0 ชม.';
+        delEl.textContent = fmtHMt(totalHours*60);
       }
     } catch(e){ console.warn('[HomeA] updateWeek err', e); }
   }
@@ -14292,6 +14305,21 @@ if('serviceWorker' in navigator) {
     opts = opts || {};
     var duration = opts.duration || 700;
     var decimals = opts.decimals || 0;
+    if(opts.hm){
+      // v253: value in hours rendered as "Xช YYน"; numeric state kept in dataset
+      if(el._rudyRaf){ try { cancelAnimationFrame(el._rudyRaf); } catch(_){} el._rudyRaf = null; }
+      var hFrom = parseFloat(el.dataset.hmVal); if(!isFinite(hFrom)) hFrom = 0;
+      var hTo = Number(target); if(!isFinite(hTo)) hTo = 0;
+      var hStart = performance.now();
+      (function hmFrame(now){
+        var t = Math.min(1, (now - hStart) / duration);
+        var e = 1 - Math.pow(1 - t, 3);
+        el.innerHTML = fmtHM((t < 1 ? hFrom + (hTo - hFrom) * e : hTo) * 60);
+        if(t < 1){ el._rudyRaf = requestAnimationFrame(hmFrame); }
+        else { el._rudyRaf = null; el.dataset.hmVal = String(hTo); }
+      })(hStart);
+      return;
+    }
     if(el._rudyRaf){ try { cancelAnimationFrame(el._rudyRaf); } catch(_){} el._rudyRaf = null; }
     var currentText = String(el.textContent || '0').replace(/[^0-9.\-]/g, '');
     var current = parseFloat(currentText);
@@ -14537,7 +14565,7 @@ if('serviceWorker' in navigator) {
         else if(ratio > 1.1){ tag = '+' + Math.round((ratio-1)*100) + '%'; tagClass = 'good'; }
         else { tag = Math.round((ratio-1)*100) + '%'; tagClass = 'warn'; }
       }
-      rows += '<div class="hw-compare-row"><div class="hw-compare-label">⚡ ทำงาน</div><div class="hw-compare-val"><span class="hw-compare-num">'+lastHours.toFixed(1)+'</span> ชม</div>'+(tag ? '<div class="hw-compare-tag '+tagClass+'">'+tag+'</div>' : '')+'</div>';
+      rows += '<div class="hw-compare-row"><div class="hw-compare-label">⚡ ทำงาน</div><div class="hw-compare-val"><span class="hw-compare-num" data-hm-val="'+lastHours+'">'+fmtHM(lastHours*60)+'</span></div>'+(tag ? '<div class="hw-compare-tag '+tagClass+'">'+tag+'</div>' : '')+'</div>';
     }
     el.dataset.lastHours = String(todayHours);
 
@@ -14547,7 +14575,7 @@ if('serviceWorker' in navigator) {
 
     if(todayHours > 0 && window.rudyAnimateNum){
       var numEl = el.querySelector('.hw-compare-num');
-      if(numEl) window.rudyAnimateNum(numEl, todayHours, { decimals: 1 });
+      if(numEl) window.rudyAnimateNum(numEl, todayHours, { hm: true });
     }
   }
 
@@ -15798,7 +15826,7 @@ body.dark [class*="tab"] .label{
         uid: emp.id,
         name: emp.name || '-',
         value: hours,
-        displayValue: hours.toFixed(1) + ' ชม'
+        displayValue: fmtHMt(totalMs / 60000)
       });
     }
     return result;
@@ -15882,7 +15910,7 @@ body.dark [class*="tab"] .label{
         title = '⏱️ ชั่วโมงทำงาน';
         leaderSuffix = '';
         const sum = rows.reduce((s, r) => s + r.value, 0);
-        teamSummary = 'ทีมรวม <strong>' + sum.toFixed(1) + ' ชม</strong> สัปดาห์นี้';
+        teamSummary = 'ทีมรวม <strong>' + fmtHMt(sum*60) + '</strong> สัปดาห์นี้';
       } else if(metric === 'streak'){
         rows = computeStreak(emps, records);
         title = '🔥 Check-in Streak';
