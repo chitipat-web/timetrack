@@ -4090,6 +4090,7 @@ body.dark .slide-action{
 
     <div class="card">
       <div class="section-title">🌙 ธีม</div>
+      <button class="btn-primary" onclick="toggleSky()" id="sky-btn" style="background:linear-gradient(135deg,#2F6DB5,#7DB7E6);width:100%;margin-bottom:8px">🌤 ธีมท้องฟ้า: เปิด</button>
       <button class="btn-primary" onclick="toggleDark()" id="theme-btn">เปลี่ยนเป็นโหมดสว่าง</button>
     </div>
 
@@ -10588,7 +10589,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v255';
+const APP_VERSION = 'v256';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -17826,6 +17827,187 @@ body.dark [class*="tab"] .label{
   } else {
     setTimeout(recInit, 5000);
   }
+})();
+</script>
+<!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+<!-- ║ PHASE H — SKY THEME (v256)                                       ║ -->
+<!-- ║ Weather-app style: sky gradient follows the real sun at Tsofar   ║ -->
+<!-- ║ (Open-Meteo sunrise/sunset), frosted translucent cards, white    ║ -->
+<!-- ║ text. Layered on top of body.dark (white ink) as body.dark.sky.  ║ -->
+<!-- ║ Toggle in Settings → ธีม (localStorage tt_sky, default on).       ║ -->
+<!-- ║ Off = Warm Sand + the old light/dark button, untouched.          ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<style id="sky-theme">
+html:has(body.sky){ background:var(--sky-bottom,#5B9AD4); }
+body.dark.sky{
+  --glass-1:var(--sky-card-2,rgba(10,40,90,0.26));
+  --glass-2:var(--sky-card,rgba(10,40,90,0.20));
+  --glass-3:var(--sky-card-3,rgba(10,40,90,0.14));
+  --glass-stroke:rgba(255,255,255,0.26);
+  --glass-stroke-dim:rgba(255,255,255,0.16);
+  --glass-inner:inset 0 1px 0 rgba(255,255,255,0.18);
+  --ink:#FFFFFF; --ink-2:rgba(255,255,255,0.94);
+  --ink-3:rgba(255,255,255,0.90);
+  --ink-4:rgba(255,255,255,0.74);
+  --ink-5:rgba(255,255,255,0.30);
+  --text:var(--ink); --text2:var(--ink-3); --text3:var(--ink-4);
+  --field-bg:rgba(255,255,255,0.14);
+  --field-stroke:rgba(255,255,255,0.24);
+  --accent:#FFFFFF;
+  /* transparent so the fixed ::before sky gradient is not covered by the
+     body's own background box (html carries the fallback colour) */
+  background:transparent;
+}
+body.dark.sky::before{
+  inset:0; filter:none;
+  background:linear-gradient(180deg, var(--sky-top,#1B4F8F) 0%, var(--sky-mid,#3274B8) 55%, var(--sky-bottom,#5B9AD4) 100%);
+}
+body.dark.sky::after{ opacity:0; }
+/* Frosted cards: sky-tinted translucent glass (beats the readability-fix
+   !important rules through higher specificity). */
+body.dark.sky .card,
+body.dark.sky .emp-card,
+body.dark.sky .team-card,
+body.dark.sky .summary-card,
+body.dark.sky .streak-card,
+body.dark.sky .punct-card,
+body.dark.sky .announce-card,
+body.dark.sky .poll-card,
+body.dark.sky .report-card,
+body.dark.sky .home-a-card,
+body.dark.sky .hw-card,
+body.dark.sky .clock-hero,
+body.dark.sky .stat-box,
+body.dark.sky .ha-chip{
+  background:var(--sky-card,rgba(10,40,90,0.20)) !important;
+  border-color:rgba(255,255,255,0.20) !important;
+  -webkit-backdrop-filter:blur(24px) saturate(140%);
+  backdrop-filter:blur(24px) saturate(140%);
+  box-shadow:0 8px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.14) !important;
+}
+body.dark.sky .card::before{ opacity:0.05; }
+body.dark.sky .ha-greet-name .accent{ color:#FFFFFF; -webkit-text-fill-color:#FFFFFF; }
+body.dark.sky .logo-text span{ color:rgba(255,255,255,0.85); }
+/* sys-blue text/bars would vanish on a blue sky */
+body.dark.sky .hi-net{ color:#CFE8FF; }
+body.dark.sky .mini-bar, body.dark.sky .hist-bar{ background:linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.35)); }
+body.dark.sky .topbar{
+  background:var(--sky-card-3,rgba(10,40,90,0.14)) !important;
+  border-bottom-color:rgba(255,255,255,0.14) !important;
+}
+body.dark.sky .nav{
+  background:var(--sky-card-2,rgba(10,40,90,0.26)) !important;
+  border-color:rgba(255,255,255,0.24) !important;
+}
+body.dark.sky .modal{
+  background:var(--sky-sheet,rgba(20,45,85,0.92)) !important;
+}
+/* Text on a bright sky needs a soft shadow to stay readable. */
+body.dark.sky .page, body.dark.sky .topbar, body.dark.sky .nav{ text-shadow:0 1px 2px rgba(0,0,0,0.18); }
+/* Sky mode replaces the manual light/dark switch. */
+body.sky #dark-btn, body.sky #theme-btn{ display:none !important; }
+</style>
+<script>
+// PHASE H — SKY THEME (v256). Sandboxed: any failure leaves the normal theme.
+(function(){
+  'use strict';
+  try {
+    var LAT = 30.5597, LON = 35.1811;           // Tsofar, Israel
+    var WX_KEY = 'tt_sky_wx', WX_TTL = 30*60*1000;
+    // [top, mid, bottom, card, card-strong, card-light, sheet]
+    var PALETTE = {
+      dawn:  ['#34396F','#7E6394','#D8987E','rgba(40,30,70,0.28)','rgba(40,30,70,0.34)','rgba(40,30,70,0.18)','rgba(58,42,88,0.95)'],
+      day:   ['#1B4F8F','#3274B8','#5B9AD4','rgba(8,30,70,0.26)','rgba(8,30,70,0.32)','rgba(8,30,70,0.16)','rgba(22,58,105,0.95)'],
+      dusk:  ['#2A2A5C','#6E4A7E','#C77A56','rgba(40,20,50,0.30)','rgba(40,20,50,0.36)','rgba(40,20,50,0.20)','rgba(55,32,70,0.95)'],
+      night: ['#070B1C','#121A3A','#23305E','rgba(255,255,255,0.08)','rgba(255,255,255,0.12)','rgba(255,255,255,0.05)','rgba(18,26,56,0.95)']
+    };
+    function skyOn(){ try { return localStorage.getItem('tt_sky') !== '0'; } catch(e){ return true; } }
+    function israelNow(){
+      try {
+        var parts = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+        var o = {}; parts.forEach(function(p){ o[p.type] = p.value; });
+        return { date:o.year+'-'+o.month+'-'+o.day, min:(parseInt(o.hour,10)%24)*60 + parseInt(o.minute,10) };
+      } catch(e){ var d = new Date(); return { date:'', min:d.getHours()*60+d.getMinutes() }; }
+    }
+    function hhmmToMin(iso){ var m = /T(\d\d):(\d\d)/.exec(iso||''); return m ? parseInt(m[1],10)*60+parseInt(m[2],10) : null; }
+    function readWx(){ try { return JSON.parse(localStorage.getItem(WX_KEY)||'null'); } catch(e){ return null; } }
+    function sunTimes(){
+      var wx = readWx(), rise = 6*60, set = 18*60+30;   // fallback when never fetched
+      if(wx && wx.sunrise != null && wx.sunset != null){ rise = wx.sunrise; set = wx.sunset; }
+      return { rise:rise, set:set };
+    }
+    function phaseAt(min, sun){
+      if(min >= sun.rise - 60 && min < sun.rise + 45) return 'dawn';
+      if(min >= sun.rise + 45 && min < sun.set - 60) return 'day';
+      if(min >= sun.set - 60 && min < sun.set + 60) return 'dusk';
+      return 'night';
+    }
+    function paint(){
+      var b = document.body; if(!b) return;
+      var ph = (window.__skyForcePhase) || phaseAt(israelNow().min, sunTimes());
+      var c = PALETTE[ph] || PALETTE.day;
+      var names = ['--sky-top','--sky-mid','--sky-bottom','--sky-card','--sky-card-2','--sky-card-3','--sky-sheet'];
+      var root = document.documentElement;
+      names.forEach(function(n,i){ root.style.setProperty(n, c[i]); });
+      b.setAttribute('data-sky', ph);
+    }
+    function updateBtn(){
+      var btn = document.getElementById('sky-btn');
+      if(btn) btn.textContent = skyOn() ? '🌤 ธีมท้องฟ้า: เปิด' : '🌤 ธีมท้องฟ้า: ปิด';
+    }
+    function apply(){
+      var b = document.body; if(!b) return;
+      if(skyOn()){
+        b.classList.add('sky'); b.classList.add('dark');
+        paint();
+      } else if(b.classList.contains('sky')){
+        b.classList.remove('sky');
+        ['--sky-top','--sky-mid','--sky-bottom','--sky-card','--sky-card-2','--sky-card-3','--sky-sheet'].forEach(function(n){ document.documentElement.style.removeProperty(n); });
+        b.removeAttribute('data-sky');
+        // restore the user's own light/dark choice
+        if(typeof window._skyOrigInitDark === 'function') window._skyOrigInitDark();
+      }
+      updateBtn();
+    }
+    function fetchWx(force){
+      var wx = readWx(), today = israelNow().date;
+      if(!force && wx && wx.date === today && (Date.now() - wx.ts) < WX_TTL) return;
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude='+LAT+'&longitude='+LON+
+        '&current=weather_code,is_day,cloud_cover&daily=sunrise,sunset&timezone=Asia%2FJerusalem&forecast_days=1';
+      fetch(url, { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+        if(!j || !j.daily) return;
+        var rec = {
+          ts: Date.now(),
+          date: (j.daily.time && j.daily.time[0]) || today,
+          sunrise: hhmmToMin(j.daily.sunrise && j.daily.sunrise[0]),
+          sunset: hhmmToMin(j.daily.sunset && j.daily.sunset[0]),
+          code: j.current ? j.current.weather_code : null,
+          isDay: j.current ? j.current.is_day : null,
+          cloud: j.current ? j.current.cloud_cover : null
+        };
+        try { localStorage.setItem(WX_KEY, JSON.stringify(rec)); } catch(e){}
+        if(skyOn()) paint();
+      }).catch(function(){ /* offline: keep last cached / fallback times */ });
+    }
+    window.toggleSky = function(){
+      try { localStorage.setItem('tt_sky', skyOn() ? '0' : '1'); } catch(e){}
+      apply();
+      if(skyOn()) fetchWx(false);
+      try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+    };
+    window.skyApply = apply;
+    // initDark (called from initApp) would reset .dark from tt_dark — re-apply sky after it.
+    if(typeof window.initDark === 'function' && !window._skyOrigInitDark){
+      window._skyOrigInitDark = window.initDark;
+      window.initDark = function(){ window._skyOrigInitDark.apply(this, arguments); apply(); };
+    }
+    // Cloud sync of tt_dark toggles .dark directly — keep it on in sky mode.
+    window.addEventListener('cloudKeyChanged', function(){ if(skyOn()) apply(); });
+    apply();
+    fetchWx(false);
+    setInterval(function(){ if(skyOn()){ paint(); fetchWx(false); } }, 60*1000);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden && skyOn()){ paint(); fetchWx(false); } });
+  } catch(e){ try { console.error('[SKY] init error (sandboxed):', e); } catch(_){} }
 })();
 </script>
 </body>

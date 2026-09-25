@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v255
-// Cache: rudy-static-v255, firebase-v255
-// Build: 2026-09-25 · v255 — hours+minutes (Xช YYน) everywhere incl. exports, charts, AI, countdowns
+// RUDY · Service Worker v256
+// Cache: rudy-static-v256, firebase-v256
+// Build: 2026-09-25 · v256 — Sky theme (weather-app style, sky follows the sun at Tsofar)
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v255';
-const FIREBASE_CACHE = 'firebase-v255';
-const RUNTIME_CACHE = 'rudy-runtime-v255';
+const STATIC_CACHE  = 'rudy-static-v256';
+const FIREBASE_CACHE = 'firebase-v256';
+const RUNTIME_CACHE = 'rudy-runtime-v256';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -14,7 +14,7 @@ const PRECACHE_URLS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
-  // NOTE: splash.mp4 intentionally NOT precached (v255). iOS Safari needs
+  // NOTE: splash.mp4 intentionally NOT precached (v256). iOS Safari needs
   // 206 Range responses to play video; a cached full-200 body breaks it.
   // The video is fetched from network so the browser negotiates ranges.
 ];
@@ -37,14 +37,15 @@ const BYPASS_HOSTS = [
   'securetoken.googleapis.com',
   'www.googleapis.com',
   'googletagmanager.com',
-  'google-analytics.com'
+  'google-analytics.com',
+  'api.open-meteo.com'                   // v256 sky theme: sunrise/sunset + weather
 ];
 
 function shouldBypass(url) {
   try {
     const u = new URL(url);
     for (const host of BYPASS_HOSTS) {
-      // v255: exact or subdomain match only. The old `.includes(host)` substring
+      // v256: exact or subdomain match only. The old `.includes(host)` substring
       // clause could bypass unrelated hosts that merely embed the string.
       if (u.hostname === host || u.hostname.endsWith('.' + host)) {
         return true;
@@ -60,12 +61,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v255] Installing...');
+  console.log('[SW v256] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v255] Precache partial fail (ok):', err);
+          console.warn('[SW v256] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -76,7 +77,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v255] Activating...');
+  console.log('[SW v256] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -84,7 +85,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v255] Deleting old cache:', name);
+              console.log('[SW v256] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -117,7 +118,7 @@ self.addEventListener('fetch', (event) => {
 
   const reqUrl = new URL(url);
 
-  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v255 iOS splash fix).
+  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v256 iOS splash fix).
   // iOS Safari plays <video> only when the server answers its
   // `Range:` request with a 206 Partial Content + Content-Range.
   // A Service Worker that serves a cached FULL 200 body (which a
@@ -245,7 +246,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v255' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v256' });
     return;
   }
 });
@@ -268,7 +269,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v255] Push parse fail:', e);
+    console.warn('[SW v256] Push parse fail:', e);
   }
 });
 
@@ -288,4 +289,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v255] Loaded — AI quota-friendly retry');
+console.log('[SW v256] Loaded — AI quota-friendly retry');
