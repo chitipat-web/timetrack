@@ -4875,6 +4875,11 @@ function calcHours(i,o){
   if(mins<0) return 0;
   return mins/60;
 }
+// v253: minutes → "Xช YYน" (hours + minutes) for display instead of decimal hours.
+function fmtHM(totalMin){
+  const m=Math.max(0,Math.round(totalMin||0));
+  return `${Math.floor(m/60)}<small style="font-size:.55em">ช</small> ${String(m%60).padStart(2,'0')}<small style="font-size:.55em">น</small>`;
+}
 // True when a completed record's checkout is earlier than its check-in.
 function timeReversed(inT,outT){
   if(!inT||!outT) return false;
@@ -7116,8 +7121,8 @@ function renderTeam(){
       </div>
       <div class="team-stats-row">
         <div class="team-stat"><div class="team-stat-val c-blue">${firstIn}</div><div class="team-stat-lbl">เข้างาน</div></div>
-        <div class="team-stat"><div class="team-stat-val c-green">${totalH.toFixed(1)}</div><div class="team-stat-lbl">ชม.ทำงาน</div></div>
-        <div class="team-stat"><div class="team-stat-val c-orange">${(totalOT/60).toFixed(1)}</div><div class="team-stat-lbl">ชม.โอที</div></div>
+        <div class="team-stat"><div class="team-stat-val c-green">${fmtHM(totalH*60)}</div><div class="team-stat-lbl">ชม.ทำงาน</div></div>
+        <div class="team-stat"><div class="team-stat-val c-orange">${fmtHM(totalOT)}</div><div class="team-stat-lbl">ชม.โอที</div></div>
       </div>
       ${canView()?`<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end">
         <button class="btn-edit" onclick="event.stopPropagation();openMemberHistory('${escHtml(emp.email)}')" title="ดูประวัติย้อนหลัง">📋 ประวัติ</button>
@@ -10558,7 +10563,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v252';
+const APP_VERSION = 'v253';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
