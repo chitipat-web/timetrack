@@ -10589,7 +10589,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v257';
+const APP_VERSION = 'v258';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -17903,7 +17903,8 @@ body.dark.sky .modal{
   background:var(--sky-sheet,rgba(20,45,85,0.92)) !important;
 }
 /* Text on a bright sky needs a soft shadow to stay readable. */
-body.dark.sky .page, body.dark.sky .topbar, body.dark.sky .nav{ text-shadow:0 1px 2px rgba(0,0,0,0.18); }
+/* v258: stronger soft shadow so white text stays readable over drifting white clouds */
+body.dark.sky .page, body.dark.sky .topbar, body.dark.sky .nav{ text-shadow:0 1px 3px rgba(0,25,60,0.40), 0 0 12px rgba(0,25,60,0.18); }
 /* Sky mode replaces the manual light/dark switch. */
 body.sky #dark-btn, body.sky #theme-btn{ display:none !important; }
 /* ── v257 sky scenery: stars, moon, sun, clouds, rain, lightning, fog ──
@@ -17933,12 +17934,22 @@ body.sky #sky-scene{ display:block; }
 .sky-glow{ left:-20%; right:-20%; bottom:-120px; height:340px; border-radius:50%;
   background:radial-gradient(ellipse at 50% 60%, rgba(255,190,120,.45), rgba(255,160,110,.18) 45%, transparent 70%);
   transition:opacity 1.2s; }
-.sky-cloud{ width:340px; height:120px; border-radius:50%; filter:blur(14px);
+.sky-cloud{ width:300px; height:140px;
+  /* v258: puffy cumulus — flat base + 4 round lobes, soft edge, faint underside shade */
   background:
-    radial-gradient(ellipse 40% 55% at 30% 60%, var(--cloud,#fff) 0 60%, transparent 62%),
-    radial-gradient(ellipse 35% 70% at 55% 45%, var(--cloud,#fff) 0 60%, transparent 62%),
-    radial-gradient(ellipse 35% 50% at 75% 62%, var(--cloud,#fff) 0 60%, transparent 62%);
+    radial-gradient(circle 38px at 70px 88px, var(--cloud,#fff) 94%, transparent 100%),
+    radial-gradient(circle 56px at 128px 70px, var(--cloud,#fff) 95%, transparent 100%),
+    radial-gradient(circle 46px at 186px 78px, var(--cloud,#fff) 94%, transparent 100%),
+    radial-gradient(circle 32px at 232px 96px, var(--cloud,#fff) 93%, transparent 100%),
+    radial-gradient(ellipse 128px 30px at 150px 110px, var(--cloud,#fff) 95%, transparent 100%);
+  filter:blur(2.5px) drop-shadow(0 10px 14px var(--cloud-shade, rgba(40,60,90,.12)));
   animation:skyDrift linear infinite; transition:opacity 1.2s; }
+.sky-rays{ width:760px; height:760px; top:-350px; right:-330px; border-radius:50%;
+  background:repeating-conic-gradient(from 0deg, rgba(255,246,215,.09) 0deg 5deg, transparent 5deg 15deg);
+  -webkit-mask-image:radial-gradient(circle, #000 8%, rgba(0,0,0,.55) 30%, transparent 62%);
+  mask-image:radial-gradient(circle, #000 8%, rgba(0,0,0,.55) 30%, transparent 62%);
+  animation:skySpin 120s linear infinite; transition:opacity 1.2s; }
+@keyframes skySpin{ to{ transform:rotate(360deg) } }
 @keyframes skyDrift{ from{ transform:translateX(-420px) } to{ transform:translateX(calc(100vw + 60px)) } }
 .sky-fog{ left:-50%; width:200%; height:45%; filter:blur(30px);
   background:radial-gradient(ellipse at 50% 50%, rgba(235,238,242,.55), transparent 65%);
@@ -17952,7 +17963,7 @@ body.sky #sky-scene{ display:block; }
 .sky-flash.on{ animation:skyFlash 9s linear infinite; }
 @keyframes skyFlash{ 0%,88%,91%,93%,100%{opacity:0} 89%{opacity:.55} 92%{opacity:.35} }
 @media (prefers-reduced-motion: reduce){
-  .sky-stars.tw,.sky-cloud,.sky-fog,.sky-drop,.sky-flash.on{ animation:none !important; }
+  .sky-stars.tw,.sky-cloud,.sky-fog,.sky-drop,.sky-flash.on,.sky-rays{ animation:none !important; }
   .sky-drop{ display:none; }
 }
 </style>
@@ -17966,7 +17977,7 @@ body.sky #sky-scene{ display:block; }
     // [top, mid, bottom, card, card-strong, card-light, sheet]
     var PALETTE = {
       dawn:  ['#34396F','#7E6394','#D8987E','rgba(40,30,70,0.28)','rgba(40,30,70,0.34)','rgba(40,30,70,0.18)','rgba(58,42,88,0.95)'],
-      day:   ['#1B4F8F','#3274B8','#5B9AD4','rgba(8,30,70,0.26)','rgba(8,30,70,0.32)','rgba(8,30,70,0.16)','rgba(22,58,105,0.95)'],
+      day:   ['#1B4F8F','#3274B8','#5B9AD4','rgba(8,30,70,0.32)','rgba(8,30,70,0.36)','rgba(8,30,70,0.18)','rgba(22,58,105,0.95)'],
       dusk:  ['#2A2A5C','#6E4A7E','#C77A56','rgba(40,20,50,0.30)','rgba(40,20,50,0.36)','rgba(40,20,50,0.20)','rgba(55,32,70,0.95)'],
       night: ['#070B1C','#121A3A','#23305E','rgba(255,255,255,0.08)','rgba(255,255,255,0.12)','rgba(255,255,255,0.05)','rgba(18,26,56,0.95)']
     };
@@ -18023,14 +18034,14 @@ body.sky #sky-scene{ display:block; }
       if(scene) return;
       scene = document.createElement('div'); scene.id = 'sky-scene'; scene.setAttribute('aria-hidden','true');
       document.body.insertBefore(scene, document.body.firstChild);
-      parts.glow = el('sky-glow'); parts.sun = el('sky-sun');
+      parts.glow = el('sky-glow'); parts.rays = el('sky-rays'); parts.sun = el('sky-sun');
       parts.stars = el('sky-stars'); parts.stars.style.boxShadow = starShadows(90, 7, 1);
       // twinkle animation drives the inner opacity, so fade the wrapper instead
       parts.tw = el('sky-twwrap'); parts.tw.style.cssText = 'inset:0;transition:opacity 1.2s';
       el('sky-stars tw', parts.tw).style.boxShadow = starShadows(28, 99, 1);
       parts.moon = el('sky-moon');
       parts.clouds = [];
-      var cfg = [[8,95,-20],[22,140,-70],[34,115,-40],[14,170,-120]];  // top vh, seconds, start offset
+      var cfg = [[9,95,-35],[27,140,-95],[40,115,-20],[17,170,-140]];  // top vh, seconds, start offset
       cfg.forEach(function(c){ var d = el('sky-cloud'); d.style.top = c[0]+'vh'; d.style.animationDuration = c[1]+'s'; d.style.animationDelay = c[2]+'s'; parts.clouds.push(d); });
       parts.fog1 = el('sky-fog'); parts.fog1.style.top = '30vh';
       parts.fog2 = el('sky-fog'); parts.fog2.style.top = '60vh'; parts.fog2.style.animationDuration = '55s';
@@ -18057,10 +18068,20 @@ body.sky #sky-scene{ display:block; }
       op(parts.stars, night ? clear : (ph === 'dawn' ? clear*.25 : 0));
       op(parts.tw, night ? clear : 0);
       op(parts.moon, night ? Math.max(0, 1 - cloud*1.1) : 0);
-      op(parts.sun, ph === 'day' ? Math.max(0, 1 - cloud*1.2) : 0);
+      // v258 (owner's choice): sun + clouds always shown; rain/storm stay real-weather only
+      var sunAmt = (kind === 'rain' || kind === 'storm') ? 0 : (kind === 'overcast' || kind === 'fog') ? .45 : 1;
+      op(parts.sun, ph === 'day' ? sunAmt : 0);
+      op(parts.rays, ph === 'day' ? (sunAmt === 1 ? 1 : 0) : 0);
       op(parts.glow, low ? Math.max(.25, clear) : 0);
-      var cloudColor = night ? 'rgba(150,160,185,.55)' : (low ? 'rgba(255,215,200,.75)' : 'rgba(255,255,255,.85)');
-      parts.clouds.forEach(function(c, i){ c.style.setProperty('--cloud', cloudColor); op(c, i < Math.ceil(cloud*4) ? (kind === 'few' ? .55 : .8) : 0); });
+      var grey = kind === 'rain' || kind === 'storm' || kind === 'overcast';
+      var cloudColor = night ? 'rgba(150,160,185,.55)' : grey ? 'rgba(196,204,216,.9)' : (low ? 'rgba(255,215,200,.75)' : 'rgba(255,255,255,.85)');
+      var nClouds = Math.max(2, Math.ceil(cloud*4));          // always at least 2 drifting clouds
+      var cloudOp = night ? .45 : (cloud >= .7 ? .85 : .72);
+      parts.clouds.forEach(function(c, i){
+        c.style.setProperty('--cloud', cloudColor);
+        c.style.setProperty('--cloud-shade', night ? 'rgba(0,0,0,.25)' : 'rgba(40,60,90,.14)');
+        op(c, i < nClouds ? cloudOp : 0);
+      });
       var fog = kind === 'fog' ? 1 : 0; op(parts.fog1, fog); op(parts.fog2, fog*.8);
       op(parts.tint, TINT_AMT[kind] || 0);
       parts.rain.style.display = (kind === 'rain' || kind === 'storm') ? 'block' : 'none';
