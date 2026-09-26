@@ -10589,7 +10589,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v260';
+const APP_VERSION = 'v261';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -13936,10 +13936,17 @@ if('serviceWorker' in navigator) {
   // Update greeting strip (date + time + name)
   function updateGreeting(){
     try {
-      const now = new Date();
+      // v261: label says IDT, so use Israel time (same source as check-in via
+      // _ilParts, v240) instead of the device clock.
+      let now = new Date(), hh = pad2(now.getHours()), mm = pad2(now.getMinutes());
+      try {
+        if(typeof _ilParts === 'function'){
+          const il = _ilParts();
+          now = new Date(il.date + 'T12:00:00');   // noon: weekday/date safe in any device zone
+          hh = il.time.slice(0,2); mm = il.time.slice(3,5);
+        }
+      } catch(_){}
       const day = thDay(now);
-      const hh = pad2(now.getHours());
-      const mm = pad2(now.getMinutes());
       const txt = `วันที่${day} ที่ ${now.getDate()} ${thMonth(now.getMonth())} · ${hh}:${mm} IDT`;
       const el = document.getElementById('ha-greet-hi');
       if(el) el.textContent = txt;
@@ -17968,6 +17975,9 @@ body.sky #sky-scene{ display:block; }
 body.sky-gl #sky-gl{ display:block; }
 body.sky-gl .sky-cloud, body.sky-gl .sky-sun, body.sky-gl .sky-rays, body.sky-gl .sky-glow,
 body.sky-gl .sky-stars, body.sky-gl .sky-twwrap, body.sky-gl .sky-moon, body.sky-gl .sky-rainbox{ display:none !important; }
+/* v261: Liquid Glass (Phase D, opt-in) paints a fixed canvas at the same z-index,
+   appended later in the DOM, so it would cover the sky. Sky mode wins. */
+body.sky .lg-canvas{ display:none !important; }
 @media (prefers-reduced-motion: reduce){
   .sky-stars.tw,.sky-cloud,.sky-fog,.sky-drop,.sky-flash.on,.sky-rays{ animation:none !important; }
   .sky-drop{ display:none; }
@@ -18233,9 +18243,11 @@ body.sky-gl .sky-stars, body.sky-gl .sky-twwrap, body.sky-gl .sky-moon, body.sky
       var gl = GL.gl, u = GL.u, st = GL.st; if(!gl || !st) return;
       glResize();
       var W = innerWidth, H = innerHeight, safe = 0;
-      try {   // custom properties don't resolve env(), so measure a probe element
+      try {   // custom properties don't resolve env(), so measure a probe element (once per size)
         if(!GL.probe){ GL.probe = document.createElement('div'); GL.probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;padding-top:env(safe-area-inset-top,0px)'; document.body.appendChild(GL.probe); }
-        safe = parseFloat(getComputedStyle(GL.probe).paddingTop) || 0;
+        var key = W+'x'+H;
+        if(GL.safeKey !== key){ GL.safe = parseFloat(getComputedStyle(GL.probe).paddingTop) || 0; GL.safeKey = key; }
+        safe = GL.safe;
       } catch(_){}
       gl.uniform2f(u.uRes, GL.cvs.width, GL.cvs.height);
       gl.uniform1f(u.uTime, st.still ? 20. : (now - GL.t0)/1000);
@@ -18311,9 +18323,10 @@ body.sky-gl .sky-stars, body.sky-gl .sky-twwrap, body.sky-gl .sky-moon, body.sky
       var b = document.body; if(!b) return;
       if(skyOn()){
         b.classList.add('sky'); b.classList.add('dark');
+        if(GL.ok) b.classList.add('sky-gl');   // v261: restore after an off→on toggle
         paint();
       } else if(b.classList.contains('sky')){
-        b.classList.remove('sky');
+        b.classList.remove('sky'); b.classList.remove('sky-gl');   // v261: no stale GL flag when off
         ['--sky-top','--sky-mid','--sky-bottom','--sky-card','--sky-card-2','--sky-card-3','--sky-sheet'].forEach(function(n){ document.documentElement.style.removeProperty(n); });
         b.removeAttribute('data-sky');
         // restore the user's own light/dark choice
