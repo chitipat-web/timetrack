@@ -10771,7 +10771,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v271';
+const APP_VERSION = 'v272';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -10966,6 +10966,13 @@ async function handleFirebaseUser(fbUser) {
 
 // ===== BACKGROUND SYNC =====
 async function _syncFirebaseInBackground(fbUser) {
+  // v272: attach the realtime listeners FIRST. Their records callback is what
+  // marks data ready (_recordsLoadedFromFB → check-in slider unlocks); before,
+  // it ran only after two sequential round trips (profile, then a full
+  // employees+records once()), so the slider waited on ~3 network trips and
+  // records was downloaded twice. The once() reads below are now served from
+  // the listeners' data.
+  try { setupRealtimeListeners(); } catch(e) { console.log('[Sync] listeners failed:', e && e.message); }
   try {
     const snap = await db.ref('employees/' + fbUser.uid).once('value');
     let profile = snap.val();
@@ -11011,7 +11018,6 @@ async function _syncFirebaseInBackground(fbUser) {
       updateTodayStatus();
       if(document.getElementById('page-home').classList.contains('active')) renderHome();
     }
-    setupRealtimeListeners();
   } catch(err) {
     console.log('[Sync] Background sync failed:', err.message);
   }
@@ -13438,6 +13444,11 @@ if('serviceWorker' in navigator) {
       const mo = new MutationObserver(refreshMode);
       mo.observe(btnIn,  { attributes:true, attributeFilter:['disabled'] });
       mo.observe(btnOut, { attributes:true, attributeFilter:['disabled'] });
+      // v272: also react the moment the CKG guard drops body.ckg-not-ready.
+      // The hidden buttons' disabled state often doesn't change at that point
+      // (not checked in → btn-in stays enabled), so the label sat on
+      // "กำลังโหลด..." until the 4s interval below.
+      mo.observe(document.body, { attributes:true, attributeFilter:['class'] });
     }
     // Also re-check after each interval-driven render (cheap belt-and-braces)
     setInterval(refreshMode, 4000);
