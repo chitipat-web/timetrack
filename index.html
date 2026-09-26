@@ -2184,7 +2184,8 @@ body.dark .report-card{
 .mini-chart-wrap{ margin:8px 0; }
 .mini-chart-title{ font-size:11px; font-weight:700; color:var(--ink-3); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em; }
 .mini-chart-bars{ display:flex; align-items:flex-end; gap:3px; height:50px; }
-.mini-bar-wrap{ flex:1; display:flex; flex-direction:column; align-items:center; }
+/* v262: height:100% so the bars' percentage heights resolve (they were stuck at min-height) */
+.mini-bar-wrap{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
 .mini-bar{
   width:100%;
   background:linear-gradient(180deg, var(--sys-blue), rgba(10,132,255,0.4));
@@ -4554,6 +4555,17 @@ function _ilParts(){
     return {date:`${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`, time:`${pad(n.getHours())}:${pad(n.getMinutes())}`};
   }
 }
+// v262: a Date whose LOCAL fields (getHours/getDate/getDay…) read as Israel
+// wall-clock time, for display code (the home clock) written against
+// getHours(). Falls back to the device clock.
+function _ilWall(){
+  const n=new Date();
+  try{
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(n);
+    const g=t=>{const p=parts.find(x=>x.type===t);return p?parseInt(p.value,10):0;};
+    return new Date(g('year'),g('month')-1,g('day'),g('hour')%24,g('minute'),g('second'),n.getMilliseconds());
+  }catch(e){ return n; }
+}
 function todayStr(){return _ilParts().date}
 function nowStr(){return _ilParts().time}
 // v241: record ids used to be bare Date.now() — two devices checking in within
@@ -4937,7 +4949,7 @@ function startClock(){
   const days=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
   const mons=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   function tick(){
-    const n=new Date();
+    const n=_ilWall();   // v262: Israel time, like check-in (was the device clock)
     const cl = document.getElementById('clock-display');
     if(cl) cl.textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
     // v230 analog hands — fractional minute carries hour smoothly
@@ -10589,7 +10601,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v261';
+const APP_VERSION = 'v262';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -11428,7 +11440,7 @@ function renderMiniTrendChart(containerId) {
   if(!curUser) return;
   const el = document.getElementById(containerId);
   if(!el) return;
-  const today = new Date();
+  const today = (typeof _ilWall === 'function') ? _ilWall() : new Date();   // v262: Israel date, matches record dates
   const days = [];
   for(let i=6; i>=0; i--) {
     const d = new Date(today);
@@ -11448,7 +11460,7 @@ function renderMiniTrendChart(containerId) {
           const pct = d.hrs > 0 ? Math.max(8, (d.hrs/maxH)*100) : 0;
           const cls = d.isToday ? 'today-bar' : d.hrs>0 ? 'has-data' : 'empty';
           return `<div class="mini-bar-wrap">
-            <div class="mini-bar ${cls}" style="height:${pct}%;"></div>
+            <div class="mini-bar ${cls}" style="height:${(pct*0.76).toFixed(1)}%;"></div>
             <div class="mini-bar-label">${d.label}</div>
           </div>`;
         }).join('')}
