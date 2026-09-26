@@ -1,0 +1,51 @@
+name: RUDY Monthly Backup Email
+
+# Full Firebase RTDB backup, gzipped, emailed to the admin(s) on the 1st of
+# every month. Email only — nothing is committed (the repo is public).
+#
+# 1st of the month 06:15 IDT (Israel Summer Time) = 03:15 UTC
+# ⚠️ Winter (IST, UTC+2) this runs at 05:15 local — timing isn't critical for a
+#    backup, so no seasonal change is needed. GitHub cron may run hours late;
+#    that's fine for a monthly backup.
+#
+# Manual test: Actions → RUDY Monthly Backup Email → Run workflow (dry_run=true
+# logs node counts and size without sending).
+on:
+  schedule:
+    - cron: '15 3 1 * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (build backup, do not send email)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm ci || npm install
+
+      - name: Build and email backup
+        working-directory: scripts
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          FIREBASE_SERVICE_KEY: ${{ secrets.FIREBASE_SERVICE_KEY }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: node monthly-backup.js

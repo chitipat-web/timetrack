@@ -105,6 +105,7 @@ Run this before assuming the app code is broken:
 | `check-early-reminder.js`  | Early-morning ping before check-in cutoff        | `notify-early.yml`          |
 | `check-birthday.js`        | Push notification for birthday person(s) of day  | *(orphan — `notify-birthday.yml` was deleted)* |
 | `weekly-summary-email.js`  | Weekly summary email                             | `weekly-summary-email.yml`  |
+| `monthly-backup.js`       | Full RTDB backup (gzip JSON) emailed to admin(s) on the 1st | `monthly-backup.yml` (cron `15 3 1 * *` + manual) |
 | `test-email.js`            | Manual email smoke test                          | `test-email.yml`            |
 | `test-push.js`             | Manual push smoke test                           | `test-push.yml`             |
 | `lib/firebase.js`          | Firebase Admin SDK init (shared)                 | *(library, no workflow)*    |
