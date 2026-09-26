@@ -4542,15 +4542,33 @@ const _loadStartTime = performance.now();
 const MIN_LOADING_MS = 3000;
 
 // Hide overlay after enforcing minimum display time
+// v270: the timer alone cut the splash video off — on iPhone the ~1.8MB video
+// only starts after it has loaded, so at 3s it was still mid-play. After the
+// minimum, keep the overlay until the video has actually ended, but only while
+// it is really playing, and never past SPLASH_MAX_MS (no stuck splash if the
+// video stalls, never starts, or iOS ignores the faster playbackRate).
+const SPLASH_MAX_MS = 6000;
+function _waitSplashVideo(done){
+  let fired = false;
+  const finish = () => { if(fired) return; fired = true; done(); };
+  try {
+    const v = document.getElementById('splash-video');
+    const left = SPLASH_MAX_MS - (performance.now() - _loadStartTime);
+    if(!v || v.ended || v.error || left <= 0 || (v.paused && v.currentTime === 0)) return finish();
+    v.addEventListener('ended', finish, { once:true });
+    v.addEventListener('error', finish, { once:true });
+    setTimeout(finish, left);
+  } catch(e){ finish(); }
+}
 function _delayedHideOverlay(callback){
   const elapsed = performance.now() - _loadStartTime;
   const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
-  setTimeout(() => {
+  setTimeout(() => _waitSplashVideo(() => {
     hideInitOverlay();
     if(typeof callback === 'function'){
       try { callback(); } catch(e){ console.log('[delayedHide callback error]', e); }
     }
-  }, remaining);
+  }), remaining);
 }
 
 // Default employees
@@ -10751,7 +10769,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v269';
+const APP_VERSION = 'v270';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
