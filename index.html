@@ -4052,8 +4052,8 @@ body.dark .slide-action{
     </div>
     <div class="card">
       <div class="form-group">
-        <label class="form-label">เงินเดือนที่ได้รับ (บาท)</label>
-        <input type="number" id="sal-input" class="form-inp" placeholder="เช่น 25000" oninput="saveSalInput();renderSalary();updateSalPreview()"/>
+        <label class="form-label">เงินเดือนที่ได้รับ (₪ เชเกล)</label>
+        <input type="number" id="sal-input" class="form-inp" placeholder="เช่น 7148" oninput="saveSalInput();renderSalary();updateSalPreview()"/>
         <label class="form-label" style="margin-top:10px">หักเวลาต่อวัน (เดินทาง + พัก)</label>
         <input type="time" id="sal-deduct" class="form-inp" value="02:30" onchange="saveSalDeduct();renderSalary()"/>
         <!-- Real-time salary preview -->
@@ -7286,20 +7286,20 @@ function renderSalary(){
   el.innerHTML=`
     <div class="sal-hero">
       <div style="font-size:13px;opacity:.85;margin-bottom:6px">ค่าแรงต่อชั่วโมง</div>
-      <div class="sal-rate">฿${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      <div class="sal-rate">₪${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
       <div class="sal-sub">${salary.toLocaleString('th-TH')} ÷ ${fmtHMt(netH*60)} สุทธิ (หักวันละ ${fmtHMt(deductMin)})</div>
     </div>
     ${salPayCard({title:`🧾 การ์ดสรุปรายได้ ${mons[month]} ${year+543}`,st,deductMin,rate:perHour,pay:salary,note:''})}
     <div class="card">
       <div class="section-title">📊 สรุป ${mons[month]} ${year+543}</div>
       <div class="sum-grid">
-        <div class="sum-card"><div class="sum-val c-blue">${salary.toLocaleString('th-TH')}</div><div class="sum-lbl">เงินเดือน (฿)</div></div>
+        <div class="sum-card"><div class="sum-val c-blue">${salary.toLocaleString('th-TH')}</div><div class="sum-lbl">เงินเดือน (₪)</div></div>
         <div class="sum-card"><div class="sum-val c-green">${fmtHM(totalH*60)}</div><div class="sum-lbl">ชม.ทำงานรวม</div></div>
         <div class="sum-card"><div class="sum-val c-orange">${fmtHM(totalOTH*60)}</div><div class="sum-lbl">ชม.โอที</div></div>
         <div class="sum-card"><div class="sum-val c-purple">${days}</div><div class="sum-lbl">วันที่มา</div></div>
       </div>
       <div style="background:var(--surface2);border-radius:10px;padding:14px">
-        ${[['เงินเดือน',`฿${salary.toLocaleString('th-TH')}`],['ชม.ทำงานรวม',fmtHMt(totalH*60)],['ชม.ปกติ',fmtHMt((totalH-totalOTH)*60)],['ชม.โอที',fmtHMt(totalOTH*60)],['ค่าแรง/ชม.',`฿${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`]].map(([k,v],i)=>`<div style="display:flex;justify-content:space-between;padding:8px 0;${i<4?'border-bottom:1px solid var(--border)':''}"><span>${k}</span><span style="font-weight:700;${i===4?'color:var(--accent)':''}">${v}</span></div>`).join('')}
+        ${[['เงินเดือน',`₪${salary.toLocaleString('th-TH')}`],['ชม.ทำงานรวม',fmtHMt(totalH*60)],['ชม.ปกติ',fmtHMt((totalH-totalOTH)*60)],['ชม.โอที',fmtHMt(totalOTH*60)],['ค่าแรง/ชม.',`₪${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`]].map(([k,v],i)=>`<div style="display:flex;justify-content:space-between;padding:8px 0;${i<4?'border-bottom:1px solid var(--border)':''}"><span>${k}</span><span style="font-weight:700;${i===4?'color:var(--accent)':''}">${v}</span></div>`).join('')}
       </div>
     </div>
     <div class="card" style="border-left:3px solid ${lateCount?'var(--red)':'var(--green)'}">
@@ -7312,7 +7312,7 @@ function renderSalary(){
 // v264: shareable monthly pay card (hours, deduction, net hours, OT, rate, pay).
 function salPayCard(o){
   const st=o.st, ded=st.days*o.deductMin;
-  const money=v=>'฿'+v.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const money=v=>'₪'+v.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
   const rows=[['วันทำงาน',`${st.days} วัน`],['ชม.ทำงานรวม',fmtHMt(st.rawH*60)],[`หัก ${st.days} วัน × ${fmtHMt(o.deductMin)}`,'− '+fmtHMt(Math.min(ded,st.rawH*60))],
     ['ชม.สุทธิ',fmtHMt(st.netH*60)],['ชม.โอที (หลัง 16:30)',fmtHMt(st.otMin)],['ค่าแรง/ชม. (สุทธิ)',money(o.rate)],[o.note?'รายได้ (ประมาณ)':'รายได้',money(o.pay)]];
   const text=[o.title.replace(/^\S+\s/,''),(curUser&&curUser.name)||'',...rows.map(r=>r[0]+': '+r[1])].join('\n');
@@ -7341,10 +7341,11 @@ function renderAdminSalary(){
     const sal=parseFloat(localStorage.getItem(salKey))||0;
     const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===emp.id&&y===year&&m===month+1&&r.checkOut});
     const totalH=mr.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
-    const perH=sal>0&&totalH>0?sal/totalH:0;
+    const netH=salMonthStats(emp.id,month,year,getSalDeductMin()).netH;   // v265: same net-hour rule as the pay card
+    const perH=sal>0&&netH>0?sal/netH:0;
     return `<div class="team-stat" style="margin-bottom:8px;text-align:left;padding:12px;border-radius:10px">
       <div style="font-weight:700;margin-bottom:4px">${escHtml(emp.name)}</div>
-      <div style="font-size:12px;color:var(--text2)">${fmtHMt(totalH*60)} · ${sal>0?`฿${perH.toFixed(0)}/ชม.`:'ไม่ได้ตั้งเงินเดือน'}</div>
+      <div style="font-size:12px;color:var(--text2)">${fmtHMt(totalH*60)} · ${sal>0?`₪${perH.toFixed(0)}/ชม.`:'ไม่ได้ตั้งเงินเดือน'}</div>
     </div>`;
   }).join('');
 }
@@ -7440,7 +7441,8 @@ function exportXLSX(){
   data.push(['สรุป','','','รวม', fmtHMt(totalH*60), fmtHMt(totalOT),'','']);
   const sal=getSalInput(month,year);
   if(sal){
-    const ph = totalH > 0 ? parseFloat(sal)/totalH : 0;
+    const _net = salMonthStats(curUser.id,month,year,getSalDeductMin()).netH;   // v265: net hours, same as the pay card
+    const ph = _net > 0 ? parseFloat(sal)/_net : 0;
     data.push(['เงินเดือน','','','', parseFloat(sal),'','','']);
     data.push(['ค่าแรง/ชม.','','','', Number(ph.toFixed(2)),'','','']);
   }
@@ -7492,7 +7494,7 @@ function exportCSV(){
   const totalOT=mr.reduce((s,r)=>s+(r.otMin||0),0);
   csv+=`\nสรุป,,,,${fmtHMt(totalH*60)},${fmtHMt(totalOT)},,\n`;
   const sal=getSalInput(month,year);
-  if(sal){const ph=parseFloat(sal)/totalH;csv+=`เงินเดือน,,,,฿${parseFloat(sal).toLocaleString('th-TH')},,\nค่าแรง/ชม.,,,,฿${ph.toFixed(2)},,\n`}
+  if(sal){const _net=salMonthStats(curUser.id,month,year,getSalDeductMin()).netH;const ph=_net>0?parseFloat(sal)/_net:0;csv+=`เงินเดือน (₪),,,,${parseFloat(sal)},,\nค่าแรง/ชม. (₪),,,,${ph.toFixed(2)},,\n`}   // v265: no thousands comma — it split the CSV cell
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=`RUDY_${curUser.name}_${mons[month]}${year+543}.csv`;a.click();
@@ -7512,7 +7514,8 @@ function exportPDF(){
   const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
   const lateCount=Object.values(byDate).filter(rs=>rs.some(r=>r.isLate)).length;
   const sal=getSalInput(month,year);
-  const perH=sal&&totalH>0?(parseFloat(sal)/totalH).toFixed(2):'-';
+  const _netH=salMonthStats(curUser.id,month,year,getSalDeductMin()).netH;   // v265: net hours
+  const perH=sal&&_netH>0?(parseFloat(sal)/_netH).toFixed(2):'-';
 
   // Build print window
   const rows=Object.keys(byDate).sort().map(date=>{
@@ -7933,8 +7936,8 @@ function exportPDF(){
       <div class="sum-box"><div class="sum-val">${lateCount}</div><div class="sum-lbl">ครั้งสาย</div></div>
     </div>
     ${sal?`<div style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:8px;padding:12px;margin-bottom:20px;display:flex;gap:24px">
-      <div><span style="color:#718096">เงินเดือน:</span> <strong>฿${parseFloat(sal).toLocaleString('th-TH')}</strong></div>
-      <div><span style="color:#718096">ค่าแรง/ชม.:</span> <strong>฿${perH}</strong></div>
+      <div><span style="color:#718096">เงินเดือน:</span> <strong>₪${parseFloat(sal).toLocaleString('th-TH')}</strong></div>
+      <div><span style="color:#718096">ค่าแรง/ชม.:</span> <strong>₪${perH}</strong></div>
     </div>`:''}
     <table>
       <thead><tr><th>วันที่</th><th>วัน</th><th>เข้างาน</th><th>ออกงาน</th><th>ชม.</th><th>โอที</th><th>สถานะ</th></tr></thead>
@@ -10690,7 +10693,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v264';
+const APP_VERSION = 'v265';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -11611,10 +11614,10 @@ function updateSalPreview() {
   preview.classList.add('show');
   preview.innerHTML = `
     <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">💡 ประมาณการ</div>
-    <div class="sal-preview-row"><span class="sal-preview-label">เงินเดือนฐาน</span><span class="sal-preview-val">${salary.toLocaleString()} ฿</span></div>
-    <div class="sal-preview-row"><span class="sal-preview-label">ทำงาน ${workDays} วัน / ${fmtHMt(totalH*60)}</span><span class="sal-preview-val">${(dailyRate*workDays).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>
-    ${totalOT>0?`<div class="sal-preview-row"><span class="sal-preview-label">OT ${fmtHMt(totalOT)} (×1.5)</span><span class="sal-preview-val">+${otPay.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>`:''}
-    <div class="sal-preview-row"><span class="sal-preview-label">รวมทั้งหมด</span><span class="sal-preview-val" style="color:var(--green);font-size:16px">${total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ฿</span></div>`;
+    <div class="sal-preview-row"><span class="sal-preview-label">เงินเดือนฐาน</span><span class="sal-preview-val">${salary.toLocaleString()} ₪</span></div>
+    <div class="sal-preview-row"><span class="sal-preview-label">ทำงาน ${workDays} วัน / ${fmtHMt(totalH*60)}</span><span class="sal-preview-val">${(dailyRate*workDays).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ₪</span></div>
+    ${totalOT>0?`<div class="sal-preview-row"><span class="sal-preview-label">OT ${fmtHMt(totalOT)} (×1.5)</span><span class="sal-preview-val">+${otPay.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ₪</span></div>`:''}
+    <div class="sal-preview-row"><span class="sal-preview-label">รวมทั้งหมด</span><span class="sal-preview-val" style="color:var(--green);font-size:16px">${total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} ₪</span></div>`;
 }
 
 // ===== CALENDAR LONG-PRESS TOOLTIP =====
