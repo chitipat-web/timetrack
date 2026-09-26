@@ -3520,14 +3520,19 @@ body.dark .slide-action{
     <div class="login-sub">ระบบบันทึกเวลาพนักงาน</div>
     <div class="login-err" id="login-err" style="display:none"></div>
 
-    <label class="login-lbl">อีเมล</label>
-    <input class="login-inp" id="login-email" type="email" placeholder="email@company.com" autocomplete="email"/>
-    <label class="login-lbl">รหัสผ่าน</label>
+    <!-- v263: real <form> + username/current-password so iPhone offers to save the
+         password in iCloud Keychain and fills it with Face ID next time. The submit
+         event (not a click handler) is what Safari watches for. -->
+    <form id="login-form" autocomplete="on" onsubmit="event.preventDefault();doLogin();return false;">
+    <label class="login-lbl" for="login-email">อีเมล</label>
+    <input class="login-inp" id="login-email" name="username" type="email" placeholder="email@company.com" autocomplete="username" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('login-pw').focus();}"/>
+    <label class="login-lbl" for="login-pw">รหัสผ่าน</label>
     <div class="pw-wrap">
-      <input class="login-inp" id="login-pw" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:48px"/>
-      <button class="toggle-pw" onclick="togglePw()" tabindex="-1">👁</button>
+      <input class="login-inp" id="login-pw" name="password" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:48px"/>
+      <button type="button" class="toggle-pw" onclick="togglePw()" tabindex="-1">👁</button>
     </div>
-    <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <button type="submit" class="login-btn">เข้าสู่ระบบ</button>
+    </form>
     <button class="btn-forgot" onclick="forgotPassword()">ลืมรหัสผ่าน?</button>
 
     <div style="display:flex;align-items:center;gap:8px;margin:16px 0">
@@ -3555,16 +3560,16 @@ body.dark .slide-action{
     <input class="login-inp" id="reg-name" type="text" placeholder="เช่น สมชาย ใจดี"/>
 
     <label class="login-lbl">อีเมล</label>
-    <input class="login-inp" id="reg-email" type="email" placeholder="email@company.com"/>
+    <input class="login-inp" id="reg-email" type="email" placeholder="email@company.com" autocomplete="username" autocapitalize="off" spellcheck="false"/>
 
     <label class="login-lbl">รหัสผ่าน</label>
     <div class="pw-wrap">
-      <input class="login-inp" id="reg-pw" type="password" placeholder="อย่างน้อย 6 ตัวอักษร" style="padding-right:48px"/>
+      <input class="login-inp" id="reg-pw" type="password" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password" style="padding-right:48px"/>
       <button class="toggle-pw" onclick="toggleRegPw()" tabindex="-1">👁</button>
     </div>
 
     <label class="login-lbl">ยืนยันรหัสผ่าน</label>
-    <input class="login-inp" id="reg-pw2" type="password" placeholder="กรอกรหัสผ่านอีกครั้ง"/>
+    <input class="login-inp" id="reg-pw2" type="password" placeholder="กรอกรหัสผ่านอีกครั้ง" autocomplete="new-password"/>
 
     <label class="login-lbl">แผนก</label>
     <input class="login-inp" id="reg-dept" type="text" placeholder="เช่น การตลาด, IT, บัญชี"/>
@@ -10601,7 +10606,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v262';
+const APP_VERSION = 'v263';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -11353,8 +11358,9 @@ auth.onAuthStateChanged(fbUser => {
 });
 
 // Enter key
-document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-document.getElementById('login-email').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-pw').focus(); });
+// v263: Enter in the password field now submits #login-form (→ doLogin once);
+// the old keydown→doLogin here would have logged in twice. Enter in the email
+// field is handled inline on the input (works even if this block fails early).
 
 </script>
 <!-- SONGKRAN CANVAS -->
