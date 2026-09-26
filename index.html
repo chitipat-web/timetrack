@@ -10589,7 +10589,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v258';
+const APP_VERSION = 'v259';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -17962,6 +17962,12 @@ body.sky #sky-scene{ display:block; }
 .sky-flash{ inset:0; background:#fff; opacity:0; }
 .sky-flash.on{ animation:skyFlash 9s linear infinite; }
 @keyframes skyFlash{ 0%,88%,91%,93%,100%{opacity:0} 89%{opacity:.55} 92%{opacity:.35} }
+/* v259 realistic WebGL sky: when the canvas runs it paints sky, sun, clouds,
+   stars and moon itself; the CSS versions step aside (rain/lightning/fog stay). */
+#sky-gl{ inset:0; width:100%; height:100%; display:none; }
+body.sky-gl #sky-gl{ display:block; }
+body.sky-gl .sky-cloud, body.sky-gl .sky-sun, body.sky-gl .sky-rays, body.sky-gl .sky-glow,
+body.sky-gl .sky-stars, body.sky-gl .sky-twwrap, body.sky-gl .sky-moon{ display:none !important; }
 @media (prefers-reduced-motion: reduce){
   .sky-stars.tw,.sky-cloud,.sky-fog,.sky-drop,.sky-flash.on,.sky-rays{ animation:none !important; }
   .sky-drop{ display:none; }
@@ -18087,7 +18093,151 @@ body.sky #sky-scene{ display:block; }
       parts.rain.style.display = (kind === 'rain' || kind === 'storm') ? 'block' : 'none';
       parts.flash.classList.toggle('on', kind === 'storm');
       document.body.setAttribute('data-sky-wx', kind);
+      if(window.__skyNoGL !== true){ try { glUpdate(ph, kind); } catch(e){ glKill(e && e.message); } }
     }
+
+    // ── v259 realistic sky (WebGL) ───────────────────────────────
+    // Procedural volumetric-looking clouds (domain-warped fbm, lit toward the
+    // sun), sun disc + bloom, stars, and a moon with the real lunar phase.
+    // Half-resolution, ≤30 fps, paused when hidden/off. Any failure or a slow
+    // device falls back to the CSS scenery above (body.sky-gl removed).
+    var GL = { ok:false, dead:false, gl:null, prog:null, u:{}, cvs:null, raf:0, last:0, t0:0, slow:0, frames:0, st:null };
+    var FS = [
+      '#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif',
+      'uniform vec2 uRes; uniform float uTime;',
+      'uniform vec3 uTop,uMid,uBot,uLit,uShade,uSunCol;',
+      'uniform float uCover,uCloudA,uSun,uStars,uMoon,uPhase,uMoonR;',
+      'uniform vec2 uSunPos,uMoonPos;',
+      'float hash(vec2 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*(p.x+p.y));}',
+      'float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);',
+      ' return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}',
+      'float fbm(vec2 p){float v=0.,a=.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);',
+      ' for(int i=0;i<5;i++){v+=a*noise(p);p=m*p;a*=.5;}return v;}',
+      'void main(){',
+      ' vec2 uv=gl_FragCoord.xy/uRes; float asp=uRes.x/uRes.y;',
+      ' vec3 sky = uv.y>.45 ? mix(uMid,uTop,(uv.y-.45)/.55) : mix(uBot,uMid,uv.y/.45);',
+      ' vec2 p=vec2(uv.x*asp,uv.y);',
+      // stars
+      ' vec2 cell=floor(gl_FragCoord.xy/6.); float h=hash(cell+.5);',
+      ' if(h>.965){ vec2 o=vec2(hash(cell+3.1),hash(cell+7.7))*6.; float sd=length(gl_FragCoord.xy-cell*6.-o);',
+      '  float tw=.6+.4*sin(uTime*(1.+h*3.)+h*40.); sky+=vec3(1.)*uStars*1.6*smoothstep(1.8,0.,sd)*tw*min(1.,(h-.965)*60.)*smoothstep(.1,.5,uv.y); }',
+      // moon with phase (0=new, .5=full)
+      ' vec2 mp=vec2(uMoonPos.x*asp,uMoonPos.y); vec2 ml=(p-mp)/uMoonR; float md=length(ml);',
+      ' if(uMoon>0.){',
+      '  sky+=vec3(.75,.8,1.)*uMoon*.22*exp(-(md-1.)*1.2)*step(1.,md);',
+      '  if(md<1.){ float s=sqrt(max(0.,1.-ml.y*ml.y)); float ph=uPhase*6.2831853; float k=cos(ph);',
+      '   float lit = ph<3.1415927 ? smoothstep(k*s-.04,k*s+.04,ml.x) : 1.-smoothstep(-k*s-.04,-k*s+.04,ml.x);',
+      '   float cr=.82+.18*fbm(ml*3.+11.); vec3 mc=vec3(.95,.95,.98)*cr*mix(.07,1.,lit)*(1.-.18*md*md);',
+      '   sky=mix(sky,mc,uMoon*smoothstep(1.,.96,md)); } }',
+      // sun
+      ' vec2 sp=vec2(uSunPos.x*asp,uSunPos.y); float d=length(p-sp);',
+      ' sky+=uSunCol*uSun*(exp(-d*3.6)*.35+exp(-d*16.)*.5+smoothstep(.03,.022,d)*.9);',
+      // clouds: domain-warped fbm, thinner toward the bottom, lit toward the sun
+      ' vec2 q=vec2(p.x*1.5,p.y*2.3); float t=uTime*.018;',
+      ' vec2 w=vec2(fbm(q+vec2(t,0.)),fbm(q+vec2(5.2,1.3)-vec2(t*.6,0.)));',
+      ' vec2 cq=q+1.5*w+vec2(t*2.2,0.); float n=fbm(cq);',
+      ' float th=.62-uCover*.35; float c=smoothstep(th,th+.14,n)*mix(.4,1.,smoothstep(.12,.7,uv.y));',
+      ' vec2 dir=normalize(sp-p+vec2(.0001))*.09; float n2=fbm(cq+dir*2.3);',
+      ' float lit2=clamp(.5+(n-n2)*4.,0.,1.); vec3 cc=mix(uShade,uLit,lit2);',
+      ' cc+=uSunCol*uSun*exp(-d*2.6)*.35;',
+      ' sky=mix(sky,cc,c*uCloudA);',
+      ' gl_FragColor=vec4(sky,1.);',
+      '}'
+    ].join('\n');
+    var VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+    function hex3(h){ h=h.replace('#',''); return [parseInt(h.substr(0,2),16)/255, parseInt(h.substr(2,2),16)/255, parseInt(h.substr(4,2),16)/255]; }
+    function moonPhase(){ // 0 = new, 0.5 = full
+      var syn = 29.530588853, ref = Date.UTC(2000,0,6,18,14);
+      var age = ((Date.now()-ref)/86400000) % syn; if(age < 0) age += syn;
+      return age/syn;
+    }
+    function glInit(){
+      if(GL.ok || GL.dead) return GL.ok;
+      try {
+        var cvs = document.createElement('canvas'); cvs.id = 'sky-gl';
+        scene.insertBefore(cvs, scene.firstChild);
+        var gl = cvs.getContext('webgl', { alpha:false, antialias:false, depth:false, powerPreference:'low-power', preserveDrawingBuffer:false });
+        if(!gl) throw new Error('no webgl');
+        function sh(type, src){ var o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o);
+          if(!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
+        var pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
+        gl.linkProgram(pr); if(!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr));
+        gl.useProgram(pr);
+        var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+        var loc = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+        ['uRes','uTime','uTop','uMid','uBot','uLit','uShade','uSunCol','uCover','uCloudA','uSun','uStars','uMoon','uPhase','uMoonR','uSunPos','uMoonPos']
+          .forEach(function(n){ GL.u[n] = gl.getUniformLocation(pr, n); });
+        cvs.addEventListener('webglcontextlost', function(e){ e.preventDefault(); glKill('context lost'); });
+        GL.gl = gl; GL.cvs = cvs; GL.prog = pr; GL.ok = true; GL.t0 = performance.now();
+        return true;
+      } catch(e){ glKill(e && e.message); return false; }
+    }
+    function glKill(why){
+      GL.dead = true; GL.ok = false; if(GL.raf) cancelAnimationFrame(GL.raf); GL.raf = 0;
+      document.body.classList.remove('sky-gl');
+      try { console.warn('[SKY] WebGL off → CSS scenery:', why); } catch(_){}
+    }
+    function glResize(){
+      var dpr = Math.min(window.devicePixelRatio || 1, 2), sc = .5 * dpr;   // half-res: clouds are soft
+      var w = Math.max(1, Math.round(innerWidth*sc)), h = Math.max(1, Math.round(innerHeight*sc));
+      if(GL.cvs.width !== w || GL.cvs.height !== h){ GL.cvs.width = w; GL.cvs.height = h; GL.gl.viewport(0,0,w,h); }
+    }
+    function glDraw(now){
+      var gl = GL.gl, u = GL.u, st = GL.st; if(!gl || !st) return;
+      glResize();
+      var W = innerWidth, H = innerHeight, safe = 0;
+      try {   // custom properties don't resolve env(), so measure a probe element
+        if(!GL.probe){ GL.probe = document.createElement('div'); GL.probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;padding-top:env(safe-area-inset-top,0px)'; document.body.appendChild(GL.probe); }
+        safe = parseFloat(getComputedStyle(GL.probe).paddingTop) || 0;
+      } catch(_){}
+      gl.uniform2f(u.uRes, GL.cvs.width, GL.cvs.height);
+      gl.uniform1f(u.uTime, st.still ? 20. : (now - GL.t0)/1000);
+      gl.uniform3fv(u.uTop, st.top); gl.uniform3fv(u.uMid, st.mid); gl.uniform3fv(u.uBot, st.bot);
+      gl.uniform3fv(u.uLit, st.lit); gl.uniform3fv(u.uShade, st.shade); gl.uniform3fv(u.uSunCol, st.sunCol);
+      gl.uniform1f(u.uCover, st.cover); gl.uniform1f(u.uCloudA, st.cloudA); gl.uniform1f(u.uSun, st.sun);
+      gl.uniform1f(u.uStars, st.stars); gl.uniform1f(u.uMoon, st.moon); gl.uniform1f(u.uPhase, st.phase);
+      gl.uniform1f(u.uMoonR, 29/H);
+      gl.uniform2f(u.uSunPos, st.sunPos[0], st.sunPos[1]);
+      gl.uniform2f(u.uMoonPos, (W-92-29)/W, 1-(safe+66+29)/H);   // same spot as the CSS moon
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+    function glLoop(now){
+      GL.raf = 0;
+      if(!GL.ok || !document.body.classList.contains('sky') || document.hidden) return;
+      if(now - GL.last >= 33){                         // ≤30 fps
+        var t = performance.now(); glDraw(now); var dt = performance.now() - t;
+        GL.last = now; GL.frames++;
+        // a device that can't keep up (≥ 40 ms per frame, sustained) goes back to CSS
+        if(GL.frames > 10){ GL.slow = dt > 40 ? GL.slow + 1 : Math.max(0, GL.slow - 1); if(GL.slow > 45){ glKill('too slow'); return; } }
+      }
+      if(!GL.st || !GL.st.still) GL.raf = requestAnimationFrame(glLoop);
+    }
+    function glKick(){ if(GL.ok && !GL.raf) GL.raf = requestAnimationFrame(glLoop); }
+    function glUpdate(ph, kind){
+      if(!glInit()) return;
+      var c = PALETTE[ph] || PALETTE.day, night = ph === 'night', low = ph === 'dawn' || ph === 'dusk';
+      var wet = kind === 'rain' || kind === 'storm', grey = wet || kind === 'overcast';
+      // owner's choice: clouds always present (cover ≥ .36), heavier with real weather
+      var COVER = { clear:.36, few:.42, cloudy:.56, overcast:.8, fog:.6, rain:.86, storm:.9 };
+      var lit = night ? [.42,.46,.58] : grey ? [.78,.8,.84] : low ? (ph === 'dusk' ? [1,.78,.62] : [1,.84,.8]) : [1,1,1];
+      var shade = night ? [.12,.14,.22] : grey ? [.42,.45,.52] : low ? [.42,.32,.46] : [.62,.7,.82];
+      var sunAmt = wet ? 0 : (kind === 'overcast' || kind === 'fog') ? .45 : 1;
+      var mq = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      GL.st = {
+        top:hex3(c[0]), mid:hex3(c[1]), bot:hex3(c[2]), lit:lit, shade:shade,
+        sunCol: low ? [1,.72,.45] : [1,.96,.86],
+        cover: COVER[kind] || .36, cloudA: night ? .55 : .92,
+        sun: ph === 'day' ? sunAmt : low ? sunAmt*.8 : 0,
+        sunPos: ph === 'day' ? [.86,.94] : ph === 'dawn' ? [.2,.06] : [.8,.06],
+        stars: night ? Math.max(0, 1 - (COVER[kind]||0)*.6) : 0,
+        moon: night ? (wet || kind === 'overcast' ? 0 : 1) : 0,
+        phase: moonPhase(), still: !!mq
+      };
+      document.body.classList.add('sky-gl');
+      glKick();
+    }
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) glKick(); });
     function paint(){
       var b = document.body; if(!b) return;
       var ph = (window.__skyForcePhase) || phaseAt(israelNow().min, sunTimes());
@@ -18097,6 +18247,7 @@ body.sky #sky-scene{ display:block; }
       names.forEach(function(n,i){ root.style.setProperty(n, c[i]); });
       b.setAttribute('data-sky', ph);
       try { renderScene(ph); } catch(e){ console.warn('[SKY] scene', e); }
+      try { glKick(); } catch(_){}   // restart the GL loop after sky off→on
     }
     function updateBtn(){
       var btn = document.getElementById('sky-btn');
