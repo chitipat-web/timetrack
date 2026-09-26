@@ -6,6 +6,12 @@
 [build]
   functions = "netlify/functions"
   publish = "netlify/empty"
+  # Every production deploy costs 15 of the Free plan's 300 monthly credits,
+  # and this site used to rebuild on EVERY push to main (each app version
+  # bump), hitting 75% in 2 days. Only the function matters here, so skip the
+  # build unless the function code or its dependencies changed. Exit 0 =
+  # skip (canceled builds use no credits), exit 1 = build.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- netlify/ package.json package-lock.json"
 
 [functions]
   node_bundler = "esbuild"
