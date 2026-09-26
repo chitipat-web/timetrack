@@ -23,7 +23,7 @@ const FIREBASE_KEY = process.env.FIREBASE_SERVICE_KEY;
 const DRY_RUN = String(process.env.DRY_RUN || '').toLowerCase() === 'true';
 const FORCE = String(process.env.FORCE || '').toLowerCase() === 'true'; // override idempotency
 const WORK_START_DEFAULT = '08:00'; // ใช้ตรวจ isLate fallback ถ้า record ไม่มี
-const OT_THRESHOLD_HM = '16:30'; // หลัง 16:30 IDT = OT (จาก memory)
+const OT_THRESHOLD_HM = '16:30'; // unused — OT comes from records.otMin (app pay-formula rule since v277)
 
 // Hard caps (safety)
 const MAX_EMPLOYEES = 50;

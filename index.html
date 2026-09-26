@@ -6255,6 +6255,7 @@ function addManual(){
   if(timeReversed(inT,outT)){showToast('เวลาออกน้อยกว่าเวลาเข้า กรุณาตรวจสอบ','error');return}
   const late=isLate(inT);
   records.push({id:genRecId(),empId:curUser.id,date,checkIn:inT,checkInTs:null,checkOut:outT||null,checkOutTs:null,isLate:late,otMin:outT?calcOTMin(outT,inT):0,note});
+  _normLateSessions(records);
   saveRec();
   ['man-in','man-out','man-note'].forEach(id=>document.getElementById(id).value='');
   showToast(`บันทึก ${date} เรียบร้อย`,'success');
@@ -6302,6 +6303,7 @@ function saveEdit(){
     ts:Date.now()
   });
   records[idx]={...records[idx],date,checkIn:inT,checkOut:outT||null,isLate:isLate(inT),otMin:outT?calcOTMin(outT,inT):0,note,lastEditedTs:Date.now()};
+  _otTouch(eid); _normLateSessions(records);
   saveRec();closeModal('edit-modal');
   showToast('แก้ไขเรียบร้อย','success');
   renderHome();renderCalendar();renderStats();renderHistory();
@@ -6316,6 +6318,7 @@ function deleteRec(id,empId){
   }
   showConfirm('🗑 ลบรายการ','ยืนยันลบรายการบันทึกเวลานี้? ไม่สามารถกู้คืนได้',()=>{
     records=records.filter(r=>!(r.id===id&&r.empId===empId));
+    _otTouch(empId);
     saveRec();showToast('ลบแล้ว','success');
     renderHome();renderCalendar();renderStats();renderHistory();
     if(document.getElementById('page-team').classList.contains('active'))renderTeam();
@@ -6595,6 +6598,7 @@ function saveManualForMember(){
     note: note || `[เพิ่มย้อนหลังโดย ${curUser.name}]`
   };
   records.push(newRec);
+  _otTouch(newRec.empId); _normLateSessions(records);
   // Log this admin action
   if(typeof saveEditLog === 'function'){
     saveEditLog({
@@ -7380,6 +7384,10 @@ function _normDayOT(arr,empId){
   }catch(e){ console.warn('[OT] norm:',e); }
   return n;
 }
+// Admin edits to someone else's records: mark that employee so the next
+// saveRec re-normalises their day OT too (own records are always done).
+const _otTouched=new Set();
+function _otTouch(empId){ if(empId) _otTouched.add(empId); }
 function salMonthStats(empId,month,year){
   const c=getPayCfg(), T=c.otAfter;
   const mr=records.filter(r=>{const[y,m]=(r.date||'').split('-').map(Number);return r.empId===empId&&y===year&&m===month+1&&r.checkIn&&r.checkOut});
@@ -8571,7 +8579,7 @@ function aiExecAdd(empId,date,checkIn,checkOut,cmd,conf){
   if(_aiNotReady()) return {ok:false,error:'กำลังโหลดข้อมูล รอสักครู่แล้วลองใหม่'};
   const late=isLate(checkIn);
   const r={id:genRecId(),empId:empId,date:date,checkIn:checkIn,checkInTs:null,checkOut:checkOut||null,checkOutTs:null,isLate:late,otMin:checkOut?calcOTMin(checkOut,checkIn):0,note:'',lastEditedTs:Date.now()};
-  records.push(r);
+  records.push(r); _otTouch(empId); _normLateSessions(records);
   saveEditLog({recId:r.id,empId:empId,editorId:curUser.id,editorName:curUser.name,before:null,after:{date:date,checkIn:checkIn,checkOut:checkOut||null,note:''},ts:Date.now(),via:'ai-add',aiCmd:cmd||'',aiConf:conf});
   saveRec(); _aiReRender();
   return {ok:true};
@@ -8586,6 +8594,7 @@ function aiExecDelete(empId,date,cmd,conf){
   const r=m[0];
   saveEditLog({recId:r.id,empId:empId,editorId:curUser.id,editorName:curUser.name,before:{date:r.date,checkIn:r.checkIn,checkOut:r.checkOut,note:r.note},after:null,ts:Date.now(),via:'ai-delete',aiCmd:cmd||'',aiConf:conf});
   records=records.filter(x=>x.id!==r.id);
+  _otTouch(empId);
   saveRec(); _aiReRender();
   return {ok:true};
 }
@@ -10849,7 +10858,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v277';
+const APP_VERSION = 'v278';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -11322,7 +11331,10 @@ const _origSaveRec = window.saveRec || function(){};
 let _lastSyncedRecordIds = new Set();
 window.saveRec = function() {
   // v277: keep own OT on the pay-formula rule before every save
-  try { if (curUser) _normDayOT(records, curUser.id); } catch(_){}
+  try {
+    if (curUser) _normDayOT(records, curUser.id);
+    if (typeof _otTouched !== 'undefined') { _otTouched.forEach(id => _normDayOT(records, id)); _otTouched.clear(); }
+  } catch(_){}
   // Local first (instant)
   localStorage.setItem('tt_rec', JSON.stringify(records));
 
