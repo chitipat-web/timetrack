@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v268
-// Cache: rudy-static-v268, firebase-v268
-// Build: 2026-09-26 · v268 — Splash minimum shortened 8.5s → 2s
+// RUDY · Service Worker v269
+// Cache: rudy-static-v269, firebase-v269
+// Build: 2026-09-26 · v269 — Splash video sped up (~2.8x) to finish in ~3s; minimum 3s
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v268';
-const FIREBASE_CACHE = 'firebase-v268';
-const RUNTIME_CACHE = 'rudy-runtime-v268';
+const STATIC_CACHE  = 'rudy-static-v269';
+const FIREBASE_CACHE = 'firebase-v269';
+const RUNTIME_CACHE = 'rudy-runtime-v269';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -14,7 +14,7 @@ const PRECACHE_URLS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
-  // NOTE: splash.mp4 intentionally NOT precached (v268). iOS Safari needs
+  // NOTE: splash.mp4 intentionally NOT precached (v269). iOS Safari needs
   // 206 Range responses to play video; a cached full-200 body breaks it.
   // The video is fetched from network so the browser negotiates ranges.
 ];
@@ -45,7 +45,7 @@ function shouldBypass(url) {
   try {
     const u = new URL(url);
     for (const host of BYPASS_HOSTS) {
-      // v268: exact or subdomain match only. The old `.includes(host)` substring
+      // v269: exact or subdomain match only. The old `.includes(host)` substring
       // clause could bypass unrelated hosts that merely embed the string.
       if (u.hostname === host || u.hostname.endsWith('.' + host)) {
         return true;
@@ -61,12 +61,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v268] Installing...');
+  console.log('[SW v269] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v268] Precache partial fail (ok):', err);
+          console.warn('[SW v269] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -77,7 +77,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v268] Activating...');
+  console.log('[SW v269] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -85,7 +85,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v268] Deleting old cache:', name);
+              console.log('[SW v269] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -118,7 +118,7 @@ self.addEventListener('fetch', (event) => {
 
   const reqUrl = new URL(url);
 
-  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v268 iOS splash fix).
+  // STEP 3.4: VIDEO / RANGE REQUESTS → BYPASS (v269 iOS splash fix).
   // iOS Safari plays <video> only when the server answers its
   // `Range:` request with a 206 Partial Content + Content-Range.
   // A Service Worker that serves a cached FULL 200 body (which a
@@ -246,7 +246,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v268' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v269' });
     return;
   }
 });
@@ -269,7 +269,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v268] Push parse fail:', e);
+    console.warn('[SW v269] Push parse fail:', e);
   }
 });
 
@@ -289,4 +289,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v268] Loaded — AI quota-friendly retry');
+console.log('[SW v269] Loaded — AI quota-friendly retry');
