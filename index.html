@@ -2132,12 +2132,13 @@ body.dark .report-card{
 /* Salary preview details */
 .sal-hero{
   font-family:var(--font-display);
-  font-size:36px; font-weight:800;
-  letter-spacing:-0.04em;
-  color:var(--sys-green-2);
+  /* v264: the big number is .sal-rate (was 13px while the label wrapper was 36px) */
+  font-size:13px; color:var(--ink-3);
   font-variant-numeric:tabular-nums;
+  margin:4px 2px 12px;
 }
-.sal-rate{ font-size:13px; color:var(--ink-3); }
+.sal-rate{ font-size:36px; font-weight:800; letter-spacing:-0.03em; color:var(--sys-green-2); line-height:1.1; }
+body.dark .sal-rate{ color:var(--sys-green); }
 .sal-sub{ font-size:12px; color:var(--ink-4); margin-top:4px; }
 .sal-preview-row{
   display:flex; justify-content:space-between; align-items:center;
@@ -4046,15 +4047,20 @@ body.dark .slide-action{
       <button class="seg-tab active" onclick="showPage('salary')">ค่าแรง</button>
     </div>
     <div class="filter-row">
-      <select class="sel" id="sal-month" onchange="renderSalary()"></select>
-      <select class="sel" id="sal-year" onchange="renderSalary()"></select>
+      <select class="sel" id="sal-month" onchange="onSalPeriodChange()"></select>
+      <select class="sel" id="sal-year" onchange="onSalPeriodChange()"></select>
     </div>
     <div class="card">
       <div class="form-group">
         <label class="form-label">เงินเดือนที่ได้รับ (บาท)</label>
         <input type="number" id="sal-input" class="form-inp" placeholder="เช่น 25000" oninput="saveSalInput();renderSalary();updateSalPreview()"/>
+        <label class="form-label" style="margin-top:10px">หักเวลาต่อวัน (เดินทาง + พัก)</label>
+        <input type="time" id="sal-deduct" class="form-inp" value="02:30" onchange="saveSalDeduct();renderSalary()"/>
         <!-- Real-time salary preview -->
-        <div class="sal-preview" id="sal-preview"></div>
+        <!-- v264: hidden — it added OT×1.5 on top of the pay received, contradicting
+             the net-hour pay card below (pay received already includes OT).
+             Element kept: updateSalPreview() still writes into it. -->
+        <div class="sal-preview" id="sal-preview" style="display:none !important"></div>
       </div>
     </div>
     <div id="sal-result"></div>
@@ -4814,7 +4820,8 @@ window.addEventListener('cloudKeyChanged', e => {
       }
     } else if(key.startsWith('tt_sal_')){
       if(typeof renderSalary === 'function' && document.getElementById('page-salary')?.classList.contains('active')){
-        renderSalary();
+        // v264: reload the synced value into the box (renderSalary no longer saves the stale box first)
+        if(typeof onSalPeriodChange === 'function') onSalPeriodChange(); else renderSalary();
       }
     } else if(key === 'tt_work_start' || key === 'tt_ot_start'){
       const inp = document.getElementById(key === 'tt_work_start' ? 'set-work-start' : 'set-ot-start');
@@ -7200,8 +7207,48 @@ function renderTeamSummary(){
 }
 
 // ========== SALARY ==========
+// v264: pay per NET hour. Each worked day loses a fixed deduction (travel +
+// breaks; default 2:30 = 1h travel + 9:00-9:30 + 12:00-13:00). Stored per user
+// under the synced tt_sal_ prefix.
+function getSalDeductMin(){
+  const v=localStorage.getItem(`tt_sal_deduct_${curUser.id}`);
+  const n=v===null?150:parseInt(v,10);
+  return isFinite(n)&&n>=0?n:150;
+}
+function saveSalDeduct(){
+  const el=document.getElementById('sal-deduct'); if(!el||!el.value) return;
+  const [h,m]=el.value.split(':').map(Number);
+  localStorage.setItem(`tt_sal_deduct_${curUser.id}`,String((h||0)*60+(m||0)));
+}
+// Month stats for one employee: worked days, raw hours, net hours after the daily deduction.
+function salMonthStats(empId,month,year,deductMin){
+  const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===empId&&y===year&&m===month+1&&r.checkOut});
+  const byDate={};mr.forEach(r=>{byDate[r.date]=(byDate[r.date]||0)+calcHours(r.checkIn,r.checkOut)});
+  const dayHs=Object.values(byDate).filter(h=>h>0);
+  const rawH=dayHs.reduce((s,h)=>s+h,0);
+  const netH=dayHs.reduce((s,h)=>s+Math.max(0,h-deductMin/60),0);
+  const otMin=mr.reduce((s,r)=>s+(r.otMin||0),0);
+  return {days:dayHs.length,rawH,netH,otMin};
+}
+// Latest month (going back up to 12) that has a salary entered → its net hourly rate.
+function salLatestRate(month,year,deductMin){
+  for(let i=1;i<=12;i++){
+    let m=month-i,y=year; while(m<0){m+=12;y--;}
+    const sal=parseFloat(getSalInput(m,y))||0; if(!sal) continue;
+    const st=salMonthStats(curUser.id,m,y,deductMin);
+    if(st.netH>0) return {rate:sal/st.netH,month:m,year:y};
+  }
+  return null;
+}
+// v264: switching month/year must LOAD that month's pay, not save the box's
+// old value into the newly selected month (it used to copy pay across months).
+function onSalPeriodChange(){
+  const m=parseInt(document.getElementById('sal-month').value), y=parseInt(document.getElementById('sal-year').value);
+  const inp=document.getElementById('sal-input'); if(inp) inp.value=getSalInput(m,y);
+  renderSalary();
+}
 function renderSalary(){
-  saveSalInput();
+  try{ const dEl=document.getElementById('sal-deduct'); if(dEl){ const d=getSalDeductMin(); dEl.value=String(Math.floor(d/60)).padStart(2,'0')+':'+String(d%60).padStart(2,'0'); } }catch(e){}
   const month=parseInt(document.getElementById('sal-month').value);
   const year=parseInt(document.getElementById('sal-year').value);
   const saved=getSalInput(month,year);
@@ -7217,17 +7264,32 @@ function renderSalary(){
   const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
   const totalOTH=totalOT/60;
   const lateCount=Object.values(byDate).filter(rs=>rs.some(r=>r.isLate)).length;
-  const perHour=salary>0&&totalH>0?salary/totalH:0;
+  const deductMin=getSalDeductMin();
+  const st=salMonthStats(curUser.id,month,year,deductMin);
+  const netH=st.netH;
+  const perHour=salary>0&&netH>0?salary/netH:0;   // v264: per NET hour (was salary ÷ raw hours)
   const el=document.getElementById('sal-result');
 
-  if(!salary){el.innerHTML=`<div class="card" style="text-align:center;padding:32px"><div style="font-size:48px;margin-bottom:12px">💰</div><div style="color:var(--text2)">กรอกเงินเดือนที่ได้รับด้านบนเพื่อคำนวณ</div></div>`;return}
+  if(!salary){
+    // v264: no pay entered for this month → estimate from the latest known net hourly rate
+    const lr=salLatestRate(month,year,deductMin);
+    if(lr&&netH>0){
+      el.innerHTML=salPayCard({title:`🧾 ประมาณการรายได้ ${mons[month]} ${year+543}`,st,deductMin,rate:lr.rate,pay:netH*lr.rate,
+        note:`ใช้ค่าแรง/ชม. จากเดือน ${mons[lr.month]} ${lr.year+543} · ถ้าได้เงินจริงแล้ว กรอกด้านบนเพื่อคำนวณใหม่`});
+    } else {
+      el.innerHTML=`<div class="card" style="text-align:center;padding:32px"><div style="font-size:48px;margin-bottom:12px">💰</div><div style="color:var(--text2)">กรอกเงินเดือนที่ได้รับด้านบนเพื่อคำนวณ</div></div>`;
+    }
+    if(isAdmin())renderAdminSalary();
+    return;
+  }
 
   el.innerHTML=`
     <div class="sal-hero">
       <div style="font-size:13px;opacity:.85;margin-bottom:6px">ค่าแรงต่อชั่วโมง</div>
       <div class="sal-rate">฿${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-      <div class="sal-sub">${salary.toLocaleString('th-TH')} ÷ ${fmtHMt(totalH*60)}</div>
+      <div class="sal-sub">${salary.toLocaleString('th-TH')} ÷ ${fmtHMt(netH*60)} สุทธิ (หักวันละ ${fmtHMt(deductMin)})</div>
     </div>
+    ${salPayCard({title:`🧾 การ์ดสรุปรายได้ ${mons[month]} ${year+543}`,st,deductMin,rate:perHour,pay:salary,note:''})}
     <div class="card">
       <div class="section-title">📊 สรุป ${mons[month]} ${year+543}</div>
       <div class="sum-grid">
@@ -7247,6 +7309,28 @@ function renderSalary(){
   if(isAdmin())renderAdminSalary();
 }
 
+// v264: shareable monthly pay card (hours, deduction, net hours, OT, rate, pay).
+function salPayCard(o){
+  const st=o.st, ded=st.days*o.deductMin;
+  const money=v=>'฿'+v.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const rows=[['วันทำงาน',`${st.days} วัน`],['ชม.ทำงานรวม',fmtHMt(st.rawH*60)],[`หัก ${st.days} วัน × ${fmtHMt(o.deductMin)}`,'− '+fmtHMt(Math.min(ded,st.rawH*60))],
+    ['ชม.สุทธิ',fmtHMt(st.netH*60)],['ชม.โอที (หลัง 16:30)',fmtHMt(st.otMin)],['ค่าแรง/ชม. (สุทธิ)',money(o.rate)],[o.note?'รายได้ (ประมาณ)':'รายได้',money(o.pay)]];
+  const text=[o.title.replace(/^\S+\s/,''),(curUser&&curUser.name)||'',...rows.map(r=>r[0]+': '+r[1])].join('\n');
+  window._salShareText=text;
+  return `<div class="card" id="sal-pay-card">
+    <div class="section-title">${o.title}</div>
+    <div style="background:var(--surface2);border-radius:10px;padding:14px">
+      ${rows.map(([k,v],i)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;${i<rows.length-1?'border-bottom:1px solid var(--border)':''}"><span>${k}</span><span style="font-weight:700;${i===rows.length-1?'color:var(--green);font-size:16px':''}">${v}</span></div>`).join('')}
+    </div>
+    ${o.note?`<div style="font-size:11px;color:var(--text3);margin-top:8px">${o.note}</div>`:''}
+    <button class="btn-primary" style="width:100%;margin-top:12px" onclick="shareSalCard()">📤 ส่ง / แชร์การ์ดนี้</button>
+  </div>`;
+}
+function shareSalCard(){
+  const t=window._salShareText||''; if(!t) return;
+  if(navigator.share){ navigator.share({title:'สรุปรายได้ RUDY',text:t}).catch(()=>{}); return; }
+  try{ navigator.clipboard.writeText(t).then(()=>showToast('คัดลอกแล้ว — วางส่งได้เลย','success')); }catch(e){ showToast('แชร์ไม่ได้บนเครื่องนี้','warning'); }
+}
 function renderAdminSalary(){
   const month=parseInt(document.getElementById('sal-month').value);
   const year=parseInt(document.getElementById('sal-year').value);
@@ -10606,7 +10690,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v263';
+const APP_VERSION = 'v264';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
