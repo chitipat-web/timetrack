@@ -3184,11 +3184,12 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
     var v = document.getElementById('splash-video');
     if(!v) return;
     try { v.muted = true; v.defaultMuted = true; } catch(e){}
-    // v268: owner wants the whole splash video in ~3s. The file is ~8.1s, so
-    // play it faster: rate = duration / 2.9s (capped 1..4; 8.1s -> ~2.8x).
+    // v268: owner wants the whole splash video in a set time. The file is ~8.1s,
+    // so play it faster: rate = duration / target (capped 1..4).
+    // v271: target 6.9s (7s splash) -> ~1.17x.
     // Set both default + current rate and re-apply on media events because
     // iOS resets playbackRate on load / play.
-    function speed(){ try { var d = v.duration; var r = (d && isFinite(d)) ? Math.max(1, Math.min(4, d / 2.9)) : 2.8; v.defaultPlaybackRate = r; if (Math.abs(v.playbackRate - r) > 0.01) v.playbackRate = r; } catch(e){} }
+    function speed(){ try { var d = v.duration; var r = (d && isFinite(d)) ? Math.max(1, Math.min(4, d / 6.9)) : 1.17; v.defaultPlaybackRate = r; if (Math.abs(v.playbackRate - r) > 0.01) v.playbackRate = r; } catch(e){} }
     speed();
     v.addEventListener('loadedmetadata', speed);
     v.addEventListener('playing', speed);
@@ -3202,7 +3203,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   </script>
 
   <!-- Status text — overlaid at bottom, fades in last second of video -->
-  <div id="overlay-status" style="position:absolute;left:50%;bottom:12%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.60);letter-spacing:0.20em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.65);transition:opacity 0.3s ease;opacity:0;z-index:2;white-space:nowrap;animation:rudyStatusIn 0.5s ease 2.50s forwards">กำลังเตรียมข้อมูล</div>
+  <div id="overlay-status" style="position:absolute;left:50%;bottom:12%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.60);letter-spacing:0.20em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.65);transition:opacity 0.3s ease;opacity:0;z-index:2;white-space:nowrap;animation:rudyStatusIn 0.5s ease 6.50s forwards">กำลังเตรียมข้อมูล</div>
 
   <!-- Hidden skip button -->
   <div id="overlay-skip" style="display:none"></div>
@@ -3467,7 +3468,7 @@ body.dark .slide-action{
    v221 AI splash video — portrait 720×1280 (9:16, matches phone aspect).
    Original 10s sped 1.25x to 8.08s, audio stripped, H.264 yuv420p main/3.1.
    `object-fit:cover` fills the screen fully (matching aspect → near-zero
-   crop). MIN_LOADING_MS = 3000, video sped up to ~2.9s (v269). File: ./splash.mp4 (~1.8MB). */
+   crop). MIN_LOADING_MS = 7000, video played at ~1.17x to end in ~6.9s (v271). File: ./splash.mp4 (~1.8MB). */
 .splash-video{
   position:absolute; inset:0;
   width:100%; height:100%;
@@ -4539,7 +4540,8 @@ const _loadStartTime = performance.now();
 // splash video play through; the video now just gets cut by the fade). The
 // overlay still stays up longer if Firebase auth restore is slower than 2s.
 // v269: 3000 — the splash video is now sped up to finish in ~2.9s.
-const MIN_LOADING_MS = 3000;
+// v271: owner asked for a 7s splash — video now finishes in ~6.9s.
+const MIN_LOADING_MS = 7000;
 
 // Hide overlay after enforcing minimum display time
 // v270: the timer alone cut the splash video off — on iPhone the ~1.8MB video
@@ -4547,7 +4549,7 @@ const MIN_LOADING_MS = 3000;
 // minimum, keep the overlay until the video has actually ended, but only while
 // it is really playing, and never past SPLASH_MAX_MS (no stuck splash if the
 // video stalls, never starts, or iOS ignores the faster playbackRate).
-const SPLASH_MAX_MS = 6000;
+const SPLASH_MAX_MS = 9000;   // v271: 7s splash + load slack (was 6000)
 function _waitSplashVideo(done){
   let fired = false;
   const finish = () => { if(fired) return; fired = true; done(); };
@@ -10769,7 +10771,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v270';
+const APP_VERSION = 'v271';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
