@@ -10804,7 +10804,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v274';
+const APP_VERSION = 'v275';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -14650,15 +14650,23 @@ if('serviceWorker' in navigator) {
     const nowMin = h * 60 + m;
     const startMin = 6 * 60, endMin = 16 * 60 + 30;
 
-    let checkedIn = false, checkedOut = false;
+    let checkedIn = false, checkedOut = false, todayOT = null;
     try {
       if(typeof curUser !== 'undefined' && curUser && typeof records !== 'undefined'){
         const today = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10);
         const myRec = records.filter(r => r.empId === curUser.id && r.date === today);
         checkedIn = myRec.some(r => r.checkIn);
         checkedOut = myRec.length > 0 && myRec.every(r => r.checkOut);
+        // v275: real OT so far today, same rule as the saved record
+        // (calcOTMin: from the later of check-in and the OT start). The widget
+        // used to show now − 16:30 whatever the check-in time, so checking in
+        // at 21:06 read "OT แล้ว 4ช 40น".
+        if(typeof calcOTMin === 'function'){
+          const nowHM = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+          todayOT = myRec.reduce((s, r) => s + (r.checkOut ? (r.otMin || 0) : calcOTMin(nowHM, r.checkIn)), 0);
+        }
       }
-    } catch(_){}
+    } catch(_){ todayOT = null; }
 
     let title, time, sub, progress, klass = '';
     if(checkedOut){
@@ -14673,8 +14681,7 @@ if('serviceWorker' in navigator) {
       sub = 'ก่อนเลิกงาน 16:30';
       progress = Math.min(100, Math.max(0, ((nowMin - startMin) / (endMin - startMin)) * 100));
     } else {
-      const otMin = nowMin - endMin;
-      const otH = Math.floor(otMin / 60), otM = otMin % 60;
+      const otMin = todayOT != null ? todayOT : nowMin - endMin;
       title = '🔥 OT แล้ว';
       time = fmtHMt(otMin);
       sub = 'อย่าลืมกดออกงานเมื่อเสร็จ';
