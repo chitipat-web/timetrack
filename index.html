@@ -4054,8 +4054,19 @@ body.dark .slide-action{
       <div class="form-group">
         <label class="form-label">เงินเดือนที่ได้รับ (₪ เชเกล)</label>
         <input type="number" id="sal-input" class="form-inp" placeholder="เช่น 7148" oninput="saveSalInput();renderSalary();updateSalPreview()"/>
-        <label class="form-label" style="margin-top:10px">หักเวลาต่อวัน (เดินทาง + พัก)</label>
-        <input type="time" id="sal-deduct" class="form-inp" value="02:30" onchange="saveSalDeduct();renderSalary()"/>
+        <!-- v266: employer's pay formula (fitted to real Aug + May 2026 pay sheets). Editable. -->
+        <details id="sal-cfg" style="margin-top:12px">
+          <summary style="cursor:pointer;font-weight:700;color:var(--text2)">⚙️ สูตรคิดเงิน (แก้ได้)</summary>
+          <div class="modal-grid" style="margin-top:10px">
+            <div class="form-group"><label class="form-label">ค่าแรง/ชม. (₪)</label><input type="number" step="0.01" id="cfg-rate" class="form-inp" onchange="savePayCfg()"/></div>
+            <div class="form-group"><label class="form-label">โอทีเมื่อเกิน (ชม./วัน)</label><input type="number" step="0.1" id="cfg-ot" class="form-inp" onchange="savePayCfg()"/></div>
+            <div class="form-group"><label class="form-label">หักวันปกติ (ชม.)</label><input type="number" step="0.25" min="0" id="cfg-dn" class="form-inp" onchange="savePayCfg()"/></div>
+            <div class="form-group"><label class="form-label">หักวันสั้น (ชม.) ศุกร์/เลิกก่อน 14:00</label><input type="number" step="0.25" min="0" id="cfg-df" class="form-inp" onchange="savePayCfg()"/></div>
+          </div>
+          <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text2)"><input type="checkbox" id="cfg-start" onchange="savePayCfg()"/> เริ่มนับจากชั่วโมงเต็มถัดไป (เข้า 05:46 → นับ 06:00)</label>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">ชม.ที่เกินเกณฑ์: 2 ชม.แรก ×125% · ที่เหลือ ×150% · สูตรนี้ประมาณจากใบเวลา+ใบเงินเดือน ส.ค./พ.ค. 2569 (คลาด ±₪15)</div>
+          <button class="btn-secondary" style="margin-top:8px;font-size:12px" onclick="resetPayCfg()">↺ ค่าเริ่มต้น</button>
+        </details>
         <!-- Real-time salary preview -->
         <!-- v264: hidden — it added OT×1.5 on top of the pay received, contradicting
              the net-hour pay card below (pay received already includes OT).
@@ -7207,38 +7218,54 @@ function renderTeamSummary(){
 }
 
 // ========== SALARY ==========
-// v264: pay per NET hour. Each worked day loses a fixed deduction (travel +
-// breaks; default 2:30 = 1h travel + 9:00-9:30 + 12:00-13:00). Stored per user
-// under the synced tt_sal_ prefix.
-function getSalDeductMin(){
-  const v=localStorage.getItem(`tt_sal_deduct_${curUser.id}`);
-  const n=v===null?150:parseInt(v,10);
-  return isFinite(n)&&n>=0?n:150;
+// v266: employer's pay formula, fitted to the real Aug + May 2026 time sheets and
+// pay sheets (card 25; Aug 7,162 vs 7,148 paid, May 7,684 vs 7,699): hours count
+// from the next full hour after clock-in (05:46 -> 06:00, 04:52 -> 05:00), minus a
+// daily deduction (3:00 on normal days, 0 on short days = Friday or out by 14:00),
+// base rate up to 8.6h, then 2h at 125% and the rest at 150%. All values editable,
+// stored per user under the synced tt_sal_ prefix.
+const PAY_DEFAULT={rate:35.40,dN:180,dF:0,otAfter:8.6,fromStart:true};
+function getPayCfg(){
+  let c={};
+  try{ c=JSON.parse(localStorage.getItem(`tt_sal_cfg_${curUser.id}`)||'{}')||{}; }catch(e){ c={}; }
+  const o=Object.assign({},PAY_DEFAULT,c);
+  ['rate','dN','dF','otAfter'].forEach(k=>{ const v=Number(o[k]); o[k]=isFinite(v)&&v>=0?v:PAY_DEFAULT[k]; });
+  o.fromStart=o.fromStart!==false;
+  return o;
 }
-function saveSalDeduct(){
-  const el=document.getElementById('sal-deduct'); if(!el||!el.value) return;
-  const [h,m]=el.value.split(':').map(Number);
-  localStorage.setItem(`tt_sal_deduct_${curUser.id}`,String((h||0)*60+(m||0)));
+function _tm(v){ if(!v) return 0; const [h,m]=String(v).split(':').map(Number); return (h||0)*60+(m||0); }
+function savePayCfg(){
+  const g=id=>document.getElementById(id);
+  const c={rate:parseFloat(g('cfg-rate').value),otAfter:parseFloat(g('cfg-ot').value),dN:Math.round((parseFloat(g('cfg-dn').value)||0)*60),dF:Math.round((parseFloat(g('cfg-df').value)||0)*60),fromStart:!!g('cfg-start').checked};
+  localStorage.setItem(`tt_sal_cfg_${curUser.id}`,JSON.stringify(c));
+  renderSalary();
 }
-// Month stats for one employee: worked days, raw hours, net hours after the daily deduction.
-function salMonthStats(empId,month,year,deductMin){
-  const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===empId&&y===year&&m===month+1&&r.checkOut});
-  const byDate={};mr.forEach(r=>{byDate[r.date]=(byDate[r.date]||0)+calcHours(r.checkIn,r.checkOut)});
-  const dayHs=Object.values(byDate).filter(h=>h>0);
-  const rawH=dayHs.reduce((s,h)=>s+h,0);
-  const netH=dayHs.reduce((s,h)=>s+Math.max(0,h-deductMin/60),0);
+function resetPayCfg(){ localStorage.removeItem(`tt_sal_cfg_${curUser.id}`); renderSalary(); }
+function fillPayCfgUI(){
+  const c=getPayCfg(), g=id=>document.getElementById(id); if(!g('cfg-rate')) return;
+  g('cfg-rate').value=c.rate.toFixed(2); g('cfg-ot').value=c.otAfter; g('cfg-dn').value=+(c.dN/60).toFixed(2); g('cfg-df').value=+(c.dF/60).toFixed(2);
+  g('cfg-start').checked=c.fromStart;
+}
+// Month pay for one employee under the formula. netH (= paid hours) kept for older callers.
+function salMonthStats(empId,month,year){
+  const c=getPayCfg(), T=c.otAfter, SHORT_OUT=14*60;
+  const mr=records.filter(r=>{const[y,m]=(r.date||'').split('-').map(Number);return r.empId===empId&&y===year&&m===month+1&&r.checkIn&&r.checkOut});
+  const byDate={};
+  mr.forEach(r=>{ const d=byDate[r.date]||(byDate[r.date]={in:r.checkIn,out:r.checkOut}); if(r.checkIn<d.in)d.in=r.checkIn; if(r.checkOut>d.out)d.out=r.checkOut; });
+  let days=0,fridays=0,rawH=0,paidH=0,regH=0,o125H=0,o150H=0;
+  Object.keys(byDate).forEach(date=>{
+    const d=byDate[date], inM=_tm(d.in), outM=_tm(d.out); if(outM<=inM) return;
+    const fri=new Date(date+'T12:00:00').getDay()===5;
+    days++; if(fri) fridays++;
+    rawH+=(outM-inM)/60;
+    const startM=c.fromStart?Math.ceil(inM/60)*60:inM;   // next full hour
+    const short=fri||outM<=SHORT_OUT;                     // Friday / half day
+    const h=Math.max(0,outM-startM-(short?c.dF:c.dN))/60;
+    paidH+=h; regH+=Math.min(h,T); o125H+=Math.min(Math.max(h-T,0),2); o150H+=Math.max(h-T-2,0);
+  });
+  const pay=c.rate*(regH+1.25*o125H+1.5*o150H);
   const otMin=mr.reduce((s,r)=>s+(r.otMin||0),0);
-  return {days:dayHs.length,rawH,netH,otMin};
-}
-// Latest month (going back up to 12) that has a salary entered → its net hourly rate.
-function salLatestRate(month,year,deductMin){
-  for(let i=1;i<=12;i++){
-    let m=month-i,y=year; while(m<0){m+=12;y--;}
-    const sal=parseFloat(getSalInput(m,y))||0; if(!sal) continue;
-    const st=salMonthStats(curUser.id,m,y,deductMin);
-    if(st.netH>0) return {rate:sal/st.netH,month:m,year:y};
-  }
-  return null;
+  return {days,fridays,rawH,paidH,netH:paidH,regH,o125H,o150H,pay,rate:c.rate,otMin};
 }
 // v264: switching month/year must LOAD that month's pay, not save the box's
 // old value into the newly selected month (it used to copy pay across months).
@@ -7248,7 +7275,7 @@ function onSalPeriodChange(){
   renderSalary();
 }
 function renderSalary(){
-  try{ const dEl=document.getElementById('sal-deduct'); if(dEl){ const d=getSalDeductMin(); dEl.value=String(Math.floor(d/60)).padStart(2,'0')+':'+String(d%60).padStart(2,'0'); } }catch(e){}
+  try{ fillPayCfgUI(); }catch(e){}
   const month=parseInt(document.getElementById('sal-month').value);
   const year=parseInt(document.getElementById('sal-year').value);
   const saved=getSalInput(month,year);
@@ -7264,18 +7291,15 @@ function renderSalary(){
   const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
   const totalOTH=totalOT/60;
   const lateCount=Object.values(byDate).filter(rs=>rs.some(r=>r.isLate)).length;
-  const deductMin=getSalDeductMin();
-  const st=salMonthStats(curUser.id,month,year,deductMin);
-  const netH=st.netH;
-  const perHour=salary>0&&netH>0?salary/netH:0;   // v264: per NET hour (was salary ÷ raw hours)
+  const st=salMonthStats(curUser.id,month,year);
+  const perHour=st.rate;   // v266: base rate from the pay formula
   const el=document.getElementById('sal-result');
 
   if(!salary){
-    // v264: no pay entered for this month → estimate from the latest known net hourly rate
-    const lr=salLatestRate(month,year,deductMin);
-    if(lr&&netH>0){
-      el.innerHTML=salPayCard({title:`🧾 ประมาณการรายได้ ${mons[month]} ${year+543}`,st,deductMin,rate:lr.rate,pay:netH*lr.rate,
-        note:`ใช้ค่าแรง/ชม. จากเดือน ${mons[lr.month]} ${lr.year+543} · ถ้าได้เงินจริงแล้ว กรอกด้านบนเพื่อคำนวณใหม่`});
+    // v266: no pay entered for this month → estimate with the pay formula
+    if(st.days>0){
+      el.innerHTML=salPayCard({title:`🧾 ประมาณการรายได้ ${mons[month]} ${year+543}`,st,actual:0,
+        note:'ประมาณจากสูตรคิดเงินด้านบน · ถ้าได้เงินจริงแล้ว กรอกด้านบนเพื่อเทียบ'});
     } else {
       el.innerHTML=`<div class="card" style="text-align:center;padding:32px"><div style="font-size:48px;margin-bottom:12px">💰</div><div style="color:var(--text2)">กรอกเงินเดือนที่ได้รับด้านบนเพื่อคำนวณ</div></div>`;
     }
@@ -7285,11 +7309,11 @@ function renderSalary(){
 
   el.innerHTML=`
     <div class="sal-hero">
-      <div style="font-size:13px;opacity:.85;margin-bottom:6px">ค่าแรงต่อชั่วโมง</div>
-      <div class="sal-rate">₪${perHour.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-      <div class="sal-sub">${salary.toLocaleString('th-TH')} ÷ ${fmtHMt(netH*60)} สุทธิ (หักวันละ ${fmtHMt(deductMin)})</div>
+      <div style="font-size:13px;opacity:.85;margin-bottom:6px">ได้จริง เทียบกับสูตร</div>
+      <div class="sal-rate">₪${salary.toLocaleString('th-TH')}</div>
+      <div class="sal-sub">สูตรคิดได้ ₪${Math.round(st.pay).toLocaleString('th-TH')} · ${salary-st.pay>=0?'มากกว่า':'น้อยกว่า'}สูตร ₪${Math.abs(Math.round(salary-st.pay)).toLocaleString('th-TH')}</div>
     </div>
-    ${salPayCard({title:`🧾 การ์ดสรุปรายได้ ${mons[month]} ${year+543}`,st,deductMin,rate:perHour,pay:salary,note:''})}
+    ${salPayCard({title:`🧾 การ์ดสรุปรายได้ ${mons[month]} ${year+543}`,st,actual:salary,note:''})}
     <div class="card">
       <div class="section-title">📊 สรุป ${mons[month]} ${year+543}</div>
       <div class="sum-grid">
@@ -7309,18 +7333,22 @@ function renderSalary(){
   if(isAdmin())renderAdminSalary();
 }
 
-// v264: shareable monthly pay card (hours, deduction, net hours, OT, rate, pay).
+// v266: shareable monthly pay card under the employer pay formula.
 function salPayCard(o){
-  const st=o.st, ded=st.days*o.deductMin;
+  const st=o.st, c=getPayCfg();
   const money=v=>'₪'+v.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const rows=[['วันทำงาน',`${st.days} วัน`],['ชม.ทำงานรวม',fmtHMt(st.rawH*60)],[`หัก ${st.days} วัน × ${fmtHMt(o.deductMin)}`,'− '+fmtHMt(Math.min(ded,st.rawH*60))],
-    ['ชม.สุทธิ',fmtHMt(st.netH*60)],['ชม.โอที (หลัง 16:30)',fmtHMt(st.otMin)],['ค่าแรง/ชม. (สุทธิ)',money(o.rate)],[o.note?'รายได้ (ประมาณ)':'รายได้',money(o.pay)]];
+  const rows=[['วันทำงาน',`${st.days} วัน (ศุกร์ ${st.fridays})`],['ชม.ตามบัตร',fmtHMt(st.rawH*60)],
+    ['ชม.ที่คิดเงิน (หลังหัก)',fmtHMt(st.paidH*60)],[`ชม.ปกติ ×100%`,fmtHMt(st.regH*60)],
+    ['ล่วงเวลา ×125%',fmtHMt(st.o125H*60)],['ล่วงเวลา ×150%',fmtHMt(st.o150H*60)],
+    ['ค่าแรง/ชม.',money(c.rate)],[o.actual?'เงินตามสูตร':'รายได้ (ประมาณ)',money(st.pay)]];
+  if(o.actual){ rows.push(['ได้จริง',money(o.actual)]); rows.push(['ต่าง',(o.actual-st.pay>=0?'+':'−')+money(Math.abs(o.actual-st.pay))]); }
   const text=[o.title.replace(/^\S+\s/,''),(curUser&&curUser.name)||'',...rows.map(r=>r[0]+': '+r[1])].join('\n');
   window._salShareText=text;
+  const hi=o.actual?rows.length-2:rows.length-1;
   return `<div class="card" id="sal-pay-card">
     <div class="section-title">${o.title}</div>
     <div style="background:var(--surface2);border-radius:10px;padding:14px">
-      ${rows.map(([k,v],i)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;${i<rows.length-1?'border-bottom:1px solid var(--border)':''}"><span>${k}</span><span style="font-weight:700;${i===rows.length-1?'color:var(--green);font-size:16px':''}">${v}</span></div>`).join('')}
+      ${rows.map(([k,v],i)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;${i<rows.length-1?'border-bottom:1px solid var(--border)':''}"><span>${k}</span><span style="font-weight:700;${i===hi?'color:var(--green);font-size:16px':''}">${v}</span></div>`).join('')}
     </div>
     ${o.note?`<div style="font-size:11px;color:var(--text3);margin-top:8px">${o.note}</div>`:''}
     <button class="btn-primary" style="width:100%;margin-top:12px" onclick="shareSalCard()">📤 ส่ง / แชร์การ์ดนี้</button>
@@ -7341,11 +7369,10 @@ function renderAdminSalary(){
     const sal=parseFloat(localStorage.getItem(salKey))||0;
     const mr=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===emp.id&&y===year&&m===month+1&&r.checkOut});
     const totalH=mr.reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
-    const netH=salMonthStats(emp.id,month,year,getSalDeductMin()).netH;   // v265: same net-hour rule as the pay card
-    const perH=sal>0&&netH>0?sal/netH:0;
+    const st=salMonthStats(emp.id,month,year);   // v266: employer pay formula
     return `<div class="team-stat" style="margin-bottom:8px;text-align:left;padding:12px;border-radius:10px">
       <div style="font-weight:700;margin-bottom:4px">${escHtml(emp.name)}</div>
-      <div style="font-size:12px;color:var(--text2)">${fmtHMt(totalH*60)} · ${sal>0?`₪${perH.toFixed(0)}/ชม.`:'ไม่ได้ตั้งเงินเดือน'}</div>
+      <div style="font-size:12px;color:var(--text2)">${fmtHMt(totalH*60)} · สูตร ≈ ₪${Math.round(st.pay).toLocaleString('th-TH')}${sal>0?` · ได้จริง ₪${sal.toLocaleString('th-TH')}`:''}</div>
     </div>`;
   }).join('');
 }
@@ -7441,8 +7468,7 @@ function exportXLSX(){
   data.push(['สรุป','','','รวม', fmtHMt(totalH*60), fmtHMt(totalOT),'','']);
   const sal=getSalInput(month,year);
   if(sal){
-    const _net = salMonthStats(curUser.id,month,year,getSalDeductMin()).netH;   // v265: net hours, same as the pay card
-    const ph = _net > 0 ? parseFloat(sal)/_net : 0;
+    const ph = getPayCfg().rate;   // v266: base rate of the pay formula
     data.push(['เงินเดือน','','','', parseFloat(sal),'','','']);
     data.push(['ค่าแรง/ชม.','','','', Number(ph.toFixed(2)),'','','']);
   }
@@ -7494,7 +7520,7 @@ function exportCSV(){
   const totalOT=mr.reduce((s,r)=>s+(r.otMin||0),0);
   csv+=`\nสรุป,,,,${fmtHMt(totalH*60)},${fmtHMt(totalOT)},,\n`;
   const sal=getSalInput(month,year);
-  if(sal){const _net=salMonthStats(curUser.id,month,year,getSalDeductMin()).netH;const ph=_net>0?parseFloat(sal)/_net:0;csv+=`เงินเดือน (₪),,,,${parseFloat(sal)},,\nค่าแรง/ชม. (₪),,,,${ph.toFixed(2)},,\n`}   // v265: no thousands comma — it split the CSV cell
+  if(sal){const ph=getPayCfg().rate;csv+=`เงินเดือน (₪),,,,${parseFloat(sal)},,\nค่าแรง/ชม. (₪),,,,${ph.toFixed(2)},,\n`}   // v265: no thousands comma — it split the CSV cell
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=`RUDY_${curUser.name}_${mons[month]}${year+543}.csv`;a.click();
@@ -7514,8 +7540,7 @@ function exportPDF(){
   const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
   const lateCount=Object.values(byDate).filter(rs=>rs.some(r=>r.isLate)).length;
   const sal=getSalInput(month,year);
-  const _netH=salMonthStats(curUser.id,month,year,getSalDeductMin()).netH;   // v265: net hours
-  const perH=sal&&_netH>0?(parseFloat(sal)/_netH).toFixed(2):'-';
+  const perH=getPayCfg().rate.toFixed(2);   // v266: base rate of the pay formula
 
   // Build print window
   const rows=Object.keys(byDate).sort().map(date=>{
@@ -10693,7 +10718,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v265';
+const APP_VERSION = 'v266';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
