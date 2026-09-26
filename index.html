@@ -3165,7 +3165,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 
   <!-- v213 AI-generated splash video (Gemini Veo, 9:16 portrait, 2x sped from 10s→5s,
        audio stripped, H.264 yuv420p main/3.1 iOS-compat, ~1.9MB).
-       MIN_LOADING_MS = 8500 to let it play through.
+       MIN_LOADING_MS = 8500 to let it play through (v268: 2000 — video is cut by the fade).
        v236: the SW now bypasses this .mp4 / Range requests so iOS gets a
        proper 206 and the video renders (a cached full-200 left it black). -->
   <video id="splash-video" class="splash-video" autoplay muted playsinline webkit-playsinline preload="auto" disableRemotePlayback>
@@ -3459,7 +3459,7 @@ body.dark .slide-action{
    v221 AI splash video — portrait 720×1280 (9:16, matches phone aspect).
    Original 10s sped 1.25x to 8.08s, audio stripped, H.264 yuv420p main/3.1.
    `object-fit:cover` fills the screen fully (matching aspect → near-zero
-   crop). MIN_LOADING_MS = 8500. File: ./splash.mp4 (~1.8MB). */
+   crop). MIN_LOADING_MS = 2000 (v268). File: ./splash.mp4 (~1.8MB). */
 .splash-video{
   position:absolute; inset:0;
   width:100%; height:100%;
@@ -4527,7 +4527,10 @@ const _loadStartTime = performance.now();
 // "settled wordmark" beat before the 500ms fade begins, so the user
 // always sees the full reveal play out before the app appears.
 // Total splash visible time: 3.5s hold + 0.5s fade = 4.0s.
-const MIN_LOADING_MS = 8500;
+// v268: owner asked for a faster start — 2s minimum (was 8500 to let the 5s
+// splash video play through; the video now just gets cut by the fade). The
+// overlay still stays up longer if Firebase auth restore is slower than 2s.
+const MIN_LOADING_MS = 2000;
 
 // Hide overlay after enforcing minimum display time
 function _delayedHideOverlay(callback){
@@ -10739,7 +10742,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v267';
+const APP_VERSION = 'v268';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
