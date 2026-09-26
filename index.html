@@ -3187,9 +3187,10 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
     // v268: owner wants the whole splash video in a set time. The file is ~8.1s,
     // so play it faster: rate = duration / target (capped 1..4).
     // v271: target 6.9s (7s splash) -> ~1.17x.
+    // v273: target 3.9s (4s splash) -> ~2.07x.
     // Set both default + current rate and re-apply on media events because
     // iOS resets playbackRate on load / play.
-    function speed(){ try { var d = v.duration; var r = (d && isFinite(d)) ? Math.max(1, Math.min(4, d / 6.9)) : 1.17; v.defaultPlaybackRate = r; if (Math.abs(v.playbackRate - r) > 0.01) v.playbackRate = r; } catch(e){} }
+    function speed(){ try { var d = v.duration; var r = (d && isFinite(d)) ? Math.max(1, Math.min(4, d / 3.9)) : 2.07; v.defaultPlaybackRate = r; if (Math.abs(v.playbackRate - r) > 0.01) v.playbackRate = r; } catch(e){} }
     speed();
     v.addEventListener('loadedmetadata', speed);
     v.addEventListener('playing', speed);
@@ -3203,7 +3204,7 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
   </script>
 
   <!-- Status text — overlaid at bottom, fades in last second of video -->
-  <div id="overlay-status" style="position:absolute;left:50%;bottom:12%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.60);letter-spacing:0.20em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.65);transition:opacity 0.3s ease;opacity:0;z-index:2;white-space:nowrap;animation:rudyStatusIn 0.5s ease 6.50s forwards">กำลังเตรียมข้อมูล</div>
+  <div id="overlay-status" style="position:absolute;left:50%;bottom:12%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.60);letter-spacing:0.20em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.65);transition:opacity 0.3s ease;opacity:0;z-index:2;white-space:nowrap;animation:rudyStatusIn 0.5s ease 3.50s forwards">กำลังเตรียมข้อมูล</div>
 
   <!-- Hidden skip button -->
   <div id="overlay-skip" style="display:none"></div>
@@ -3468,7 +3469,7 @@ body.dark .slide-action{
    v221 AI splash video — portrait 720×1280 (9:16, matches phone aspect).
    Original 10s sped 1.25x to 8.08s, audio stripped, H.264 yuv420p main/3.1.
    `object-fit:cover` fills the screen fully (matching aspect → near-zero
-   crop). MIN_LOADING_MS = 7000, video played at ~1.17x to end in ~6.9s (v271). File: ./splash.mp4 (~1.8MB). */
+   crop). MIN_LOADING_MS = 4000, video played at ~2.07x to end in ~3.9s (v273). File: ./splash.mp4 (~1.8MB). */
 .splash-video{
   position:absolute; inset:0;
   width:100%; height:100%;
@@ -4541,7 +4542,8 @@ const _loadStartTime = performance.now();
 // overlay still stays up longer if Firebase auth restore is slower than 2s.
 // v269: 3000 — the splash video is now sped up to finish in ~2.9s.
 // v271: owner asked for a 7s splash — video now finishes in ~6.9s.
-const MIN_LOADING_MS = 7000;
+// v273: 4s splash — video now finishes in ~3.9s.
+const MIN_LOADING_MS = 4000;
 
 // Hide overlay after enforcing minimum display time
 // v270: the timer alone cut the splash video off — on iPhone the ~1.8MB video
@@ -4549,7 +4551,7 @@ const MIN_LOADING_MS = 7000;
 // minimum, keep the overlay until the video has actually ended, but only while
 // it is really playing, and never past SPLASH_MAX_MS (no stuck splash if the
 // video stalls, never starts, or iOS ignores the faster playbackRate).
-const SPLASH_MAX_MS = 9000;   // v271: 7s splash + load slack (was 6000)
+const SPLASH_MAX_MS = 6000;   // v273: 4s splash + load slack
 function _waitSplashVideo(done){
   let fired = false;
   const finish = () => { if(fired) return; fired = true; done(); };
@@ -10771,7 +10773,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v272';
+const APP_VERSION = 'v273';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -13345,9 +13347,31 @@ if('serviceWorker' in navigator) {
     // even for a user who is actually checked in. Show a neutral loading
     // state until ready so a slide isn't mislabelled.
     if(document.body.classList.contains('ckg-not-ready')){
-      action.dataset.mode = 'idle';
-      if(label) label.textContent = 'กำลังโหลด...';
-      if(thumb) thumb.setAttribute('aria-label','กำลังโหลด');
+      // v273: owner wants to check in the moment the app opens. While records
+      // load, pick the mode from the locally cached records (same rule as
+      // renderHome: open record today → out, else in) and let the slide go
+      // through: the CKG capture handler stores it as an intent and runs
+      // doCheckIn/doCheckOut once fresh data is ready — and those re-check
+      // the open record against that fresh data, so a stale cache can't
+      // create a double entry.
+      let pend = null;
+      try { pend = typeof window.rudyCkgPending === 'function' ? window.rudyCkgPending() : null; } catch(_){}
+      if(pend){
+        action.dataset.mode = 'idle';
+        if(label) label.textContent = pend === 'in' ? '⏳ กำลังบันทึกเข้างาน...' : '⏳ กำลังบันทึกออกงาน...';
+        if(thumb) thumb.setAttribute('aria-label', label ? label.textContent : '');
+        return;
+      }
+      let m = 'idle';
+      try {
+        if(typeof curUser !== 'undefined' && curUser && curUser.id && Array.isArray(records)){
+          const t = todayStr();
+          m = records.some(r => r && r.empId === curUser.id && r.date === t && !r.checkOut) ? 'out' : 'in';
+        }
+      } catch(_){ m = 'idle'; }
+      action.dataset.mode = m;
+      if(label) label.textContent = m === 'in' ? 'เลื่อนเพื่อเข้างาน' : m === 'out' ? 'เลื่อนเพื่อออกงาน' : 'กำลังโหลด...';
+      if(thumb) thumb.setAttribute('aria-label', label ? label.textContent : '');
       return;
     }
     let mode = 'idle';
@@ -17206,6 +17230,9 @@ body.dark [class*="tab"] .label{
       }, 150);
     });
   }
+
+  // v273: read-only view of the pending intent for the slide-to-act label.
+  window.rudyCkgPending = function(){ return ckgPendingIntent; };
 
   // ── Capture taps on check-in/out buttons (capture phase) ────────
   // If data not ready, store intent + prevent the original handler
