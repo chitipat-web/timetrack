@@ -5490,7 +5490,7 @@ function calcStreak(empId){
       // Skip weekends/holidays — only break if it's a working day
       const dow = cursor.getDay();
       const holidays = getHolidays();
-      const isHoliday = (dow===0 || dow===6 || holidays[k]);
+      const isHoliday = (dow===6 || holidays[k]);   // v279: Israel — only Saturday off (was Sat+Sun)
       if(isHoliday){
         cursor.setDate(cursor.getDate()-1);
         if(current === 0 && cursor < new Date('2020-01-01')) break;
@@ -5516,7 +5516,7 @@ function calcStreak(empId){
           const gk = `${g.getFullYear()}-${pad(g.getMonth()+1)}-${pad(g.getDate())}`;
           const dow = g.getDay();
           const holidays = getHolidays();
-          if(!(dow===0 || dow===6 || holidays[gk])){ gapAllSkip = false; break; }
+          if(!(dow===6 || holidays[gk])){ gapAllSkip = false; break; }   // v279: Sat only
         }
         if(gapAllSkip) run++;
         else { best = Math.max(best, run); run = 1; }
@@ -5555,9 +5555,11 @@ function calcPunctuality(empId, year, month){
   } else {
     recs = records.filter(r => r.empId===empId && r.checkIn);
   }
-  const total = recs.length;
+  // v279: per DAY — split packing-house days have two records
+  const _days = {}; recs.forEach(r => { _days[r.date] = (_days[r.date] || false) || !!r.isLate; });
+  const total = Object.keys(_days).length;
   if(total === 0) return {score:100, total:0, late:0};
-  const late = recs.filter(r => r.isLate).length;
+  const late = Object.values(_days).filter(Boolean).length;
   const score = Math.round(((total - late) / total) * 100);
   return {score, total, late};
 }
@@ -5677,12 +5679,11 @@ const BADGES = [
       const recs = records.filter(r => r.empId===empId && r.checkIn);
       return recs.length >= 10 && !recs.some(r => r.isLate);
     }},
-  {id:'weekend_warrior',icon:'🏋️',name:'ทำงานวันหยุด',desc:'เข้างานวันเสาร์/อาทิตย์ 5 ครั้ง',
-    check:(empId) => records.filter(r => {
+  {id:'weekend_warrior',icon:'🏋️',name:'ทำงานวันหยุด',desc:'เข้างานวันเสาร์ 5 วัน',
+    check:(empId) => new Set(records.filter(r => {
       if(r.empId!==empId || !r.checkIn) return false;
-      const dow = new Date(r.date).getDay();
-      return dow===0 || dow===6;
-    }).length >= 5},
+      return new Date(r.date+'T12:00:00').getDay()===6;   // v279: Israel day off = Saturday; count days
+    }).map(r => r.date)).size >= 5},
   {id:'night_owl',  icon:'🦉', name:'นกเค้าแมว',     desc:'ออกหลัง 22:00 5 ครั้ง',
     check:(empId) => records.filter(r => r.empId===empId && r.checkOut && r.checkOut > '22:00').length >= 5},
 ];
@@ -5718,8 +5719,9 @@ function renderStatusPieChart(empId, year, month){
     return r.empId===empId && y===year && m===month+1 && r.checkIn;
   });
   if(!recs.length) return '';
-  const onTime = recs.filter(r => !r.isLate).length;
-  const late = recs.filter(r => r.isLate).length;
+  const _pd = {}; recs.forEach(r => { _pd[r.date] = (_pd[r.date] || false) || !!r.isLate; });   // v279: per day
+  const onTime = Object.values(_pd).filter(v => !v).length;
+  const late = Object.values(_pd).filter(Boolean).length;
   const ot = recs.filter(r => (r.otMin||0) > 0).length;
   const total = recs.length;
 
@@ -6007,7 +6009,7 @@ function renderAbsenceCalendar(empId, year, month){
     const dow = date.getDay();
     let cls;
     if(holidays[dateStr]){ cls = 'holiday'; }
-    else if(dow === 0 || dow === 6){ cls = 'weekend'; }
+    else if(dow === 6){ cls = 'weekend'; }   // v279: Saturday only
     else if(isThisMonth && d > todayDate){ cls = 'future'; }
     else if(myDates.has(dateStr)){ cls = 'present'; present++; }
     else{ cls = 'absent'; absent++; }
@@ -6025,7 +6027,7 @@ function renderAbsenceCalendar(empId, year, month){
       <div class="absence-legend-item"><div class="absence-legend-dot" style="background:rgba(0,255,157,.3)"></div>มา</div>
       <div class="absence-legend-item"><div class="absence-legend-dot" style="background:rgba(255,45,85,.3)"></div>ขาด</div>
       <div class="absence-legend-item"><div class="absence-legend-dot" style="background:rgba(0,200,255,.2)"></div>หยุด</div>
-      <div class="absence-legend-item"><div class="absence-legend-dot" style="background:rgba(255,255,255,.1)"></div>เสาร์-อาทิตย์</div>
+      <div class="absence-legend-item"><div class="absence-legend-dot" style="background:rgba(255,255,255,.1)"></div>วันเสาร์</div>
     </div>
   </div>`;
 }
@@ -6303,6 +6305,9 @@ function saveEdit(){
     ts:Date.now()
   });
   records[idx]={...records[idx],date,checkIn:inT,checkOut:outT||null,isLate:isLate(inT),otMin:outT?calcOTMin(outT,inT):0,note,lastEditedTs:Date.now()};
+  // v279: a hand-edited time invalidates the tap timestamp that went with it
+  if(old.checkIn!==inT||old.date!==date) records[idx].checkInTs=null;
+  if((old.checkOut||null)!==(outT||null)||old.date!==date) records[idx].checkOutTs=null;
   _otTouch(eid); _normLateSessions(records);
   saveRec();closeModal('edit-modal');
   showToast('แก้ไขเรียบร้อย','success');
@@ -6988,15 +6993,15 @@ function renderDashboard() {
       <div style="display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px">
           <span style="font-size:24px">🥇</span>
-          <div><div style="font-size:12px;color:var(--text3)">มาทำงานสม่ำเสมอที่สุด</div><div style="font-weight:700">${bestAttend?.emp.name||'-'} <span style="color:var(--green);font-size:12px">(${bestAttend?.attendPct||0}%)</span></div></div>
+          <div><div style="font-size:12px;color:var(--text3)">มาทำงานสม่ำเสมอที่สุด</div><div style="font-weight:700">${escHtml(bestAttend?.emp.name||'-')} <span style="color:var(--green);font-size:12px">(${bestAttend?.attendPct||0}%)</span></div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px">
           <span style="font-size:24px">⚡</span>
-          <div><div style="font-size:12px;color:var(--text3)">ทำโอทีมากที่สุด</div><div style="font-weight:700">${mostOT?.emp.name||'-'} <span style="color:var(--yellow);font-size:12px">(${fmtHMt(mostOT?.totalOT||0)})</span></div></div>
+          <div><div style="font-size:12px;color:var(--text3)">ทำโอทีมากที่สุด</div><div style="font-weight:700">${escHtml(mostOT?.emp.name||'-')} <span style="color:var(--yellow);font-size:12px">(${fmtHMt(mostOT?.totalOT||0)})</span></div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px">
           <span style="font-size:24px">✅</span>
-          <div><div style="font-size:12px;color:var(--text3)">มาตรงเวลาที่สุด</div><div style="font-weight:700">${leastLate?.emp.name||'-'} <span style="color:var(--accent);font-size:12px">(สาย ${leastLate?.lateCount||0} ครั้ง)</span></div></div>
+          <div><div style="font-size:12px;color:var(--text3)">มาตรงเวลาที่สุด</div><div style="font-weight:700">${escHtml(leastLate?.emp.name||'-')} <span style="color:var(--accent);font-size:12px">(สาย ${leastLate?.lateCount||0} ครั้ง)</span></div></div>
         </div>
       </div>
     </div>
@@ -7129,14 +7134,17 @@ function renderStatus() {
   const today = todayStr();
   let inCount = 0;
   const allCards = employees.map(emp => {
-    const dr = records.filter(r => r.empId === emp.id && r.date === today);
+    // v279: order by time (Firebase order isn't guaranteed) and time the
+    // open shift from the saved HH:MM (timestamps are null on manual entries
+    // and stale after an edit)
+    const dr = records.filter(r => r.empId === emp.id && r.date === today).sort((a,b) => (a.checkIn||'').localeCompare(b.checkIn||''));
     const last = dr.length ? dr[dr.length-1] : null;
     const isIn = last && !last.checkOut && last.checkIn;
     if(isIn) inCount++;
     const firstIn = dr.length ? (dr[0].checkIn || '--:--') : '—';
     let durText = '';
-    if(isIn && last.checkInTs) {
-      const mins = Math.round((Date.now()-last.checkInTs)/60000);
+    if(isIn) {
+      const mins = Math.max(0, _tm(nowStr()) - _tm(last.checkIn));
       durText = fmtHMt(mins);
     }
     const photo = getPhoto(emp.email);
@@ -7284,7 +7292,7 @@ function renderTeamSummary(){
   el.innerHTML=`<div class="card" style="overflow:auto"><table class="ts-table">
     <thead><tr><th>พนักงาน</th><th>วันที่มา</th><th>ชม.รวม</th><th>ชม.โอที</th><th>ครั้งสาย</th></tr></thead>
     <tbody>${results.map(r=>`<tr>
-      <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:${avatarGrad(r.emp.name)};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${avatarLetter(r.emp.name)}</div>${r.emp.name}</div></td>
+      <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:${avatarGrad(r.emp.name)};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${escHtml(avatarLetter(r.emp.name))}</div>${escHtml(r.emp.name)}</div></td>
       <td style="color:var(--accent);font-weight:600">${r.days}</td>
       <td style="color:var(--green);font-weight:600">${fmtHMt(r.totalH*60)}</td>
       <td style="color:var(--yellow)">${fmtHMt(r.totalOT)}</td>
@@ -7651,7 +7659,7 @@ function exportCSV(){
     rs.forEach(r=>{
       const rawH=r.checkOut?calcHours(r.checkIn,r.checkOut):0;
       const otH=(r.otMin||0)/60;
-      csv+=`${dateStr},${dayNames[d.getDay()]},${r.checkIn},${r.checkOut||''},${fmtHMt(rawH*60)},${fmtHMt(otH*60)},${r.isLate?'สาย':'ตรงเวลา'},${r.note||''}\n`;
+      csv+=`${dateStr},${dayNames[d.getDay()]},${r.checkIn},${r.checkOut||''},${fmtHMt(rawH*60)},${fmtHMt(otH*60)},${r.isLate?'สาย':'ตรงเวลา'},"${String(r.note||'').replace(/"/g,'""').replace(/[\r\n]+/g,' ')}"\n`;
     });
   });
   const totalH=mr.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
@@ -7701,7 +7709,7 @@ function exportPDF(){
 
   const html=`<!DOCTYPE html><html><head>
     <meta charset="UTF-8">
-    <title>รายงาน ${curUser.name} ${mons[month]} ${year+543}</title>
+    <title>รายงาน ${escHtml(curUser.name)} ${mons[month]} ${year+543}</title>
     <style>
       body{font-family:'Sarabun',sans-serif;font-size:13px;color:#1a202c;padding:24px;max-width:800px;margin:0 auto}
       h1{font-size:20px;font-weight:700;color:#2b6cb0;margin-bottom:4px}
@@ -8091,7 +8099,7 @@ function exportPDF(){
     <!-- Sarabun loaded in head -->
   </head><body>
     <h1>📊 รายงานเวลาทำงาน</h1>
-    <h2>👤 ${curUser.name} &nbsp;|&nbsp; ${curUser.dept} &nbsp;|&nbsp; ${mons[month]} ${year+543}</h2>
+    <h2>👤 ${escHtml(curUser.name)} &nbsp;|&nbsp; ${escHtml(curUser.dept||'')} &nbsp;|&nbsp; ${mons[month]} ${year+543}</h2>
     <div class="summary">
       <div class="sum-box"><div class="sum-val">${days}</div><div class="sum-lbl">วันที่มา</div></div>
       <div class="sum-box"><div class="sum-val">${fmtHMt(totalH*60)}</div><div class="sum-lbl">ชม.รวม</div></div>
@@ -8565,8 +8573,8 @@ function aiExecEdit(empId,date,field,value,cmd,conf){
   if(m.length>1) return {ok:false,error:'วันนั้นมี '+m.length+' รายการ แก้ผ่าน AI ไม่ได้ กรุณาแก้ในหน้าประวัติ'};
   const r=m[0];
   const before={date:r.date,checkIn:r.checkIn,checkOut:r.checkOut,note:r.note};
-  if(field==='checkIn'){ r.checkIn=value; r.isLate=isLate(value); r.otMin=r.checkOut?calcOTMin(r.checkOut,value):0; }
-  else { r.checkOut=value; r.otMin=calcOTMin(value,r.checkIn); }
+  if(field==='checkIn'){ r.checkIn=value; r.checkInTs=null; r.isLate=isLate(value); r.otMin=r.checkOut?calcOTMin(r.checkOut,value):0; }
+  else { r.checkOut=value; r.checkOutTs=null; r.otMin=calcOTMin(value,r.checkIn); }
   try { _normDayOT(records, r.empId); } catch(_){}   // v277
   r.lastEditedTs=Date.now();
   saveEditLog({recId:r.id,empId:empId,editorId:curUser.id,editorName:curUser.name,before:before,after:{date:r.date,checkIn:r.checkIn,checkOut:r.checkOut,note:r.note},ts:Date.now(),via:'ai',aiCmd:cmd||'',aiConf:conf});
@@ -10858,7 +10866,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v278';
+const APP_VERSION = 'v279';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -12663,11 +12671,11 @@ function predictMonthlyHours(empId, year, month){
   const avgPerDay = totalH / daysWorked;
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const todayDate = today.getDate();
-  // Estimate remaining work days (excluding weekends)
+  // Estimate remaining work days (Israel: Sun–Fri, Saturday off — v279)
   let remaining = 0;
   for(let d=todayDate+1; d<=daysInMonth; d++){
     const dow = new Date(year, month, d).getDay();
-    if(dow !== 0 && dow !== 6) remaining++;
+    if(dow !== 6) remaining++;
   }
   const predicted = totalH + (avgPerDay * remaining);
   return {
@@ -14418,7 +14426,7 @@ if('serviceWorker' in navigator) {
     } catch(e){ console.warn('[HomeA] updateStreak err', e); }
   }
 
-  // Update Week chart (Mon-Sun)
+  // Update Week chart (v279: Sun–Sat, Israeli week; today's column marked)
   function updateWeek(){
     try {
       const u = getUser();
@@ -14426,11 +14434,10 @@ if('serviceWorker' in navigator) {
       if (!u || !allRecs.length) return;
       const now = _ilWall();   // v276: Israel date/time
       const todayDs = _ymdLocal(now);
-      // Find Monday of this week
+      // Week starts Sunday (Israel). `mon` keeps its old name = first day.
       const dow = now.getDay(); // 0=Sun
-      const monOff = dow === 0 ? -6 : 1 - dow;
       const mon = new Date(now);
-      mon.setDate(now.getDate() + monOff);
+      mon.setDate(now.getDate() - dow);
 
       const sun = new Date(mon);
       sun.setDate(mon.getDate() + 6);
@@ -14445,9 +14452,7 @@ if('serviceWorker' in navigator) {
         const dayRecs = allRecs.filter(r => r && r.empId === u.id && r.date === ds);
         let dayHours = 0;
         dayRecs.forEach(r => {
-          if(r.checkInTs && r.checkOutTs){
-            dayHours += (r.checkOutTs - r.checkInTs) / 3600000;
-          } else if(r.checkIn && r.checkOut){
+          if(r.checkIn && r.checkOut){   // v279: saved HH:MM only (timestamps go stale after edits)
             const [ih, im] = r.checkIn.split(':').map(Number);
             const [oh, om] = r.checkOut.split(':').map(Number);
             dayHours += ((oh*60+om) - (ih*60+im)) / 60;
@@ -14463,6 +14468,14 @@ if('serviceWorker' in navigator) {
         totalHours += dayHours;
       }
 
+      // v279: labels Sun..Sat, "วันนี้" on today's column (was fixed on the 7th)
+      const _lbls = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+      document.querySelectorAll('#ha-bars .ha-bar-col').forEach((col, i) => {
+        const isT = i === dow;
+        col.classList.toggle('today', isT);
+        const f = col.querySelector('.ha-bar-fill'); if(f) f.classList.toggle('today', isT);
+        const l = col.querySelector('.ha-bar-lbl'); if(l) l.textContent = isT ? 'วันนี้' : _lbls[i];
+      });
       // Render bars
       const barEls = document.querySelectorAll('#ha-bars .ha-bar-fill');
       bars.forEach((h, i) => {
@@ -15407,15 +15420,13 @@ body.dark [class*="tab"] .label{
     catch(e){ console.warn('[HW-B] LS set fail:', key, e); return false; }
   }
 
-  // ─── IDT week-start (Monday) ──────────────────────────────────
+  // ─── IDT week-start (v279: SUNDAY — Israeli work week Sun–Fri) ──
   function hwbWeekStartIDT(){
     try {
       const idtNow = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem', hour12: false });
       const d = new Date(idtNow);
       d.setHours(0,0,0,0);
-      const day = d.getDay(); // 0=Sun, 1=Mon
-      const diff = (day === 0 ? -6 : 1 - day);
-      d.setDate(d.getDate() + diff);
+      d.setDate(d.getDate() - d.getDay());
       return d;
     } catch(_){
       const d = new Date(); d.setHours(0,0,0,0); return d;
@@ -15423,7 +15434,7 @@ body.dark [class*="tab"] .label{
   }
 
   // ════════════════════════════════════════════════════════════════
-  // WIDGET 4: GOAL TRACKER — วันมาตรงเวลา (จันทร์-ศุกร์)
+  // WIDGET 4: GOAL TRACKER — วันมาตรงเวลา (อาทิตย์-ศุกร์, v279)
   // ════════════════════════════════════════════════════════════════
   function renderGoal(){
     if(!HW_B_ENABLED.goal) return;
@@ -15435,23 +15446,24 @@ body.dark [class*="tab"] .label{
       if(typeof curUser !== 'undefined' && curUser && typeof records !== 'undefined' && Array.isArray(records)){
         const weekStart = hwbWeekStartIDT();
         const uid = curUser.id;
+        const dayLate = {};   // v279: one entry per DAY (split days have 2 records)
         for(let i = 0; i < records.length; i++){
           const r = records[i];
           if(!r || r.empId !== uid || !r.date) continue;
           const rd = new Date(r.date + 'T00:00:00');
           if(isNaN(rd.getTime())) continue;
-          const dow = rd.getDay();
-          if(dow === 0 || dow === 6) continue; // ข้าม เสาร์-อาทิตย์
-          const diffDays = Math.floor((rd - weekStart) / 86400000);
-          if(diffDays < 0 || diffDays >= 5) continue;
+          if(rd.getDay() === 6) continue; // v279: ข้ามวันเสาร์ (อิสราเอลทำงาน อา.–ศ.)
+          const diffDays = Math.round((rd - weekStart) / 86400000);
+          if(diffDays < 0 || diffDays >= 6) continue;
           if(!r.checkIn) continue; // ต้องเช็คอินแล้วเท่านั้น
-          totalDays++;
-          if(r.isLate === false || r.isLate === 0 || r.isLate === undefined || r.isLate === null) onTimeCount++;
+          dayLate[r.date] = (dayLate[r.date] || false) || !!r.isLate;
         }
+        totalDays = Object.keys(dayLate).length;
+        onTimeCount = Object.values(dayLate).filter(v => !v).length;
       }
     } catch(e){ console.warn('[HW-B:goal] count error:', e); }
 
-    const target = 5;
+    const target = 6;   // v279: Sun–Fri
     const pct = Math.min(100, Math.round((onTimeCount / target) * 100));
 
     let msg;
@@ -15816,7 +15828,16 @@ body.dark [class*="tab"] .label{
       for(let i = 0; i < records.length; i++){
         const r = records[i];
         if(!r || r.empId !== uid || r.date !== today) continue;
-        if(r.checkInTs && !r.checkOutTs) return r.checkInTs;
+        // v279: "open" = no checkOut string (checkOutTs is null on edited /
+        // manual records even when they're finished). Start time from the
+        // saved HH:MM so an edited check-in time is respected.
+        if(r.checkIn && !r.checkOut){
+          if(typeof _tm === 'function' && typeof nowStr === 'function'){
+            const mins = _tm(nowStr()) - _tm(r.checkIn);
+            if(mins >= 0) return Date.now() - mins * 60000;
+          }
+          if(r.checkInTs) return r.checkInTs;
+        }
       }
       return null;
     } catch(_){ return null; }
@@ -16144,15 +16165,13 @@ body.dark [class*="tab"] .label{
     return el;
   }
 
-  // ─── IDT week-start (Monday) ──────────────────────────────────
+  // ─── IDT week-start (v279: SUNDAY — Israeli work week Sun–Fri) ──
   function hwcWeekStartIDT(){
     try {
       const idtNow = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem', hour12: false });
       const d = new Date(idtNow);
       d.setHours(0,0,0,0);
-      const day = d.getDay();
-      const diff = (day === 0 ? -6 : 1 - day);
-      d.setDate(d.getDate() + diff);
+      d.setDate(d.getDate() - d.getDay());
       return d;
     } catch(_){
       const d = new Date(); d.setHours(0,0,0,0); return d;
@@ -16175,19 +16194,19 @@ body.dark [class*="tab"] .label{
   function computeOnTime(emps, recs, weekStart){
     const result = [];
     for(const emp of emps){
-      let onTime = 0, total = 0;
+      const dayLate = {};   // v279: per day, Sun–Fri
       for(const r of recs){
         if(!r || r.empId !== emp.id || !r.date) continue;
         const rd = new Date(r.date + 'T00:00:00');
         if(isNaN(rd.getTime())) continue;
-        const dow = rd.getDay();
-        if(dow === 0 || dow === 6) continue;
-        const diffDays = Math.floor((rd - weekStart) / 86400000);
-        if(diffDays < 0 || diffDays >= 5) continue;
+        if(rd.getDay() === 6) continue;
+        const diffDays = Math.round((rd - weekStart) / 86400000);
+        if(diffDays < 0 || diffDays >= 6) continue;
         if(!r.checkIn) continue;
-        total++;
-        if(r.isLate === false || r.isLate === 0 || r.isLate == null) onTime++;
+        dayLate[r.date] = (dayLate[r.date] || false) || !!r.isLate;
       }
+      const total = Object.keys(dayLate).length;
+      const onTime = Object.values(dayLate).filter(v => !v).length;
       result.push({
         uid: emp.id,
         name: emp.name || '-',
@@ -16207,12 +16226,12 @@ body.dark [class*="tab"] .label{
         if(!r || r.empId !== emp.id || !r.date) continue;
         const rd = new Date(r.date + 'T00:00:00');
         if(isNaN(rd.getTime())) continue;
-        const dow = rd.getDay();
-        if(dow === 0 || dow === 6) continue;
-        const diffDays = Math.floor((rd - weekStart) / 86400000);
-        if(diffDays < 0 || diffDays >= 5) continue;
-        if(!r.checkInTs || !r.checkOutTs) continue;
-        const ms = r.checkOutTs - r.checkInTs;
+        const diffDays = Math.round((rd - weekStart) / 86400000);
+        if(diffDays < 0 || diffDays >= 7) continue;   // v279: whole Israeli week (a Saturday shift still counts)
+        if(!r.checkIn || !r.checkOut) continue;
+        // v279: from the saved HH:MM (timestamps go stale after an edit and
+        // are null on manual entries, which used to count as 0h)
+        const ms = (typeof calcHours === 'function' ? calcHours(r.checkIn, r.checkOut) : 0) * 3600000;
         if(ms < 0 || ms > 24*3600000) continue; // sanity
         totalMs += ms;
       }
@@ -16228,10 +16247,10 @@ body.dark [class*="tab"] .label{
   }
 
   function computeStreak(emps, recs){
-    // streak = วันที่เช็คอินติดต่อกัน (ไม่นับเสาร์-อาทิตย์)
+    // streak = วันที่เช็คอินติดต่อกัน (ไม่นับวันเสาร์ — v279)
     const result = [];
     const todayMs = (function(){
-      const d = new Date();
+      const d = typeof _ilWall === 'function' ? _ilWall() : new Date();   // v279: Israel date
       d.setHours(0,0,0,0);
       return d.getTime();
     })();
@@ -16244,13 +16263,13 @@ body.dark [class*="tab"] .label{
         if(!r.checkIn) continue;
         checkedDays.add(r.date);
       }
-      // นับย้อนกลับจากวันนี้ ข้ามเสาร์-อาทิตย์
+      // นับย้อนกลับจากวันนี้ ข้ามวันเสาร์
       let streak = 0;
       const d = new Date(todayMs);
       // cap 60 iterations กัน loop รัน infinite
       for(let i = 0; i < 60; i++){
         const dow = d.getDay();
-        if(dow !== 0 && dow !== 6){
+        if(dow !== 6){   // v279: Saturday only
           const dateStr = d.getFullYear() + '-' +
             String(d.getMonth()+1).padStart(2,'0') + '-' +
             String(d.getDate()).padStart(2,'0');
@@ -16317,7 +16336,7 @@ body.dark [class*="tab"] .label{
         title = '🎯 ตรงเวลาสัปดาห์';
         leaderSuffix = ' วัน';
         const sum = rows.reduce((s, r) => s + r.value, 0);
-        const totalMax = rows.length * 5;
+        const totalMax = rows.length * 6;   // v279: Sun–Fri
         teamSummary = 'ทีมรวม <strong>' + sum + '/' + totalMax + '</strong> วันตรงเวลา';
       }
     } catch(e){

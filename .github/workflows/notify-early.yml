@@ -2,8 +2,13 @@ name: Notify - Early Reminder
 
 on:
   schedule:
-    # 5:45 ICT (Bangkok) = 22:45 UTC (previous day)
-    - cron: '45 22 * * *'
+    # 05:45 Israel time. Both seasons are scheduled so no DST edit is needed:
+    #   02:45 UTC = 05:45 IDT (summer) · 03:45 UTC = 05:45 IST (winter)
+    # check-early-reminder.js sends only in the 45 min before work start
+    # (Israel time), once per day; the off-season run just skips.
+    # (Was '45 22 * * *' = 5:45 Bangkok = 01:45 in Israel.)
+    - cron: '45 2 * * *'
+    - cron: '45 3 * * *'
   workflow_dispatch:
 
 jobs:
@@ -30,4 +35,5 @@ jobs:
           VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' }}
         run: node check-early-reminder.js

@@ -101,8 +101,8 @@ Run this before assuming the app code is broken:
 |---|---|---|
 | `notify-checkin-email.js`  | Smart check-in reminder, Gemini-generated copy   | `notify-checkin-email.yml`  |
 | `notify-checkout-email.js` | Smart check-out reminder, Gemini-generated copy  | `notify-checkout-email.yml` |
-| `check-no-checkout.js`     | Late-evening "did you forget to check out?" push | `notify-checkout.yml`       |
-| `check-early-reminder.js`  | Early-morning ping before check-in cutoff        | `notify-early.yml`          |
+| `check-no-checkout.js`     | 22:00 Israel "did you forget to check out?" push — DST-proof: crons `0 19`+`0 20` UTC, script gates 22:00-24:00 Israel + once/day via `pushlog/no-checkout` (`lib/iltime.js`) | `notify-checkout.yml`       |
+| `check-early-reminder.js`  | Ping in the 45 min before work start (Israel) — DST-proof: crons `45 2`+`45 3` UTC, gated + once/day via `pushlog/early` | `notify-early.yml`          |
 | `check-birthday.js`        | Push notification for birthday person(s) of day  | *(orphan — `notify-birthday.yml` was deleted)* |
 | `weekly-summary-email.js`  | Weekly summary email                             | `weekly-summary-email.yml`  |
 | `monthly-backup.js`       | Full RTDB backup (gzip JSON) emailed to admin(s) on the 1st | `monthly-backup.yml` (cron `15 3 1 * *` + manual) |

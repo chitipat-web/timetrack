@@ -1,27 +1,32 @@
 // scripts/check-no-checkout.js
-// Runs at 22:00 ICT — finds employees who checked in today but didn't check out.
+// 22:00 Israel time — finds employees who checked in today but didn't check out.
+// Was on Bangkok time (15:00 UTC = 18:00 IDT, while people still work OT).
+// The workflow now runs at both candidate UTC times (IDT/IST); this script
+// sends only between 22:00 and 24:00 Israel time, once per Israel day.
+// FORCE=true (manual run) skips the window check.
 
 const { init } = require('./lib/firebase');
 const { sendToUsers } = require('./lib/notify');
-
-// Get today's date in Bangkok (UTC+7) as YYYY-MM-DD
-function todayBangkok() {
-  const now = new Date();
-  // Convert UTC to Bangkok (ICT = UTC+7)
-  const bkk = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-  const y = bkk.getUTCFullYear();
-  const m = String(bkk.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(bkk.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+const { ilNow, inWindow, claimOncePerDay } = require('./lib/iltime');
 
 async function main() {
   console.log('=== check-no-checkout ===');
-  const today = todayBangkok();
-  console.log('Today (Bangkok):', today);
+  const now = ilNow();
+  const today = now.date;
+  const force = String(process.env.FORCE || '').toLowerCase() === 'true';
+  console.log('Israel now:', today, String(now.hour).padStart(2, '0') + ':' + String(now.minute).padStart(2, '0'), force ? '(forced)' : '');
 
   const admin = init();
   const db = admin.database();
+
+  if (!force && !inWindow(now, 22 * 60, 24 * 60)) {
+    console.log('Outside the 22:00-24:00 Israel window — skipping.');
+    process.exit(0);
+  }
+  if (!force && !(await claimOncePerDay(db, 'no-checkout', today))) {
+    console.log('Already sent today — skipping.');
+    process.exit(0);
+  }
 
   const [recSnap, empSnap] = await Promise.all([
     db.ref('records').once('value'),

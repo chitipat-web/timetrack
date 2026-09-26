@@ -1,16 +1,13 @@
 // scripts/check-birthday.js
-// Runs at 8:00 ICT — finds employees whose birthday is today
+// (No workflow schedules this right now.) Finds employees whose birthday is
+// today (Israel date)
 // and notifies EVERYONE (including the birthday person themselves).
 
 const { init } = require('./lib/firebase');
 const { sendToAll } = require('./lib/notify');
 
-function todayMD_Bangkok() {
-  const now = new Date();
-  const bkk = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-  const m = String(bkk.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(bkk.getUTCDate()).padStart(2, '0');
-  return `${m}-${d}`;
+function todayMD_Bangkok() {   // name kept; now the Israel date (team is in Israel)
+  return require('./lib/iltime').ilNow().date.slice(5);
 }
 
 async function main() {

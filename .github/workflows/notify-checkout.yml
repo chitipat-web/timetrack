@@ -2,8 +2,12 @@ name: Notify - No Checkout
 
 on:
   schedule:
-    # 22:00 ICT (Bangkok) = 15:00 UTC
-    - cron: '0 15 * * *'
+    # 22:00 Israel time. Both seasons are scheduled so no DST edit is needed:
+    #   19:00 UTC = 22:00 IDT (summer) · 20:00 UTC = 22:00 IST (winter)
+    # check-no-checkout.js sends only 22:00-24:00 Israel time, once per day.
+    # (Was '0 15 * * *' = 22:00 Bangkok = 18:00 in Israel.)
+    - cron: '0 19 * * *'
+    - cron: '0 20 * * *'
   workflow_dispatch:
 
 jobs:
@@ -30,4 +34,5 @@ jobs:
           VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' }}
         run: node check-no-checkout.js
