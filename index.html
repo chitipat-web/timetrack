@@ -4063,6 +4063,7 @@ body.dark .slide-action{
             <div class="form-group"><label class="form-label">หักวันปกติ (ชม.)</label><input type="number" step="0.25" min="0" id="cfg-dn" class="form-inp" onchange="savePayCfg()"/></div>
             <div class="form-group"><label class="form-label">หักวันสั้น (ชม.) ศุกร์/เลิกก่อน 14:00</label><input type="number" step="0.25" min="0" id="cfg-df" class="form-inp" onchange="savePayCfg()"/></div>
           </div>
+          <div class="form-group"><label class="form-label">เวลาพักโรงแพ็ค (วันที่สแกนออกพักแล้วเข้าใหม่ — ไม่หักเวลาเดินทาง)</label><input type="text" id="cfg-brk" class="form-inp" placeholder="09:00-09:20, 12:20-13:00" onchange="savePayCfg()"/></div>
           <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text2)"><input type="checkbox" id="cfg-start" onchange="savePayCfg()"/> เริ่มนับจากชั่วโมงเต็มถัดไป (เข้า 05:46 → นับ 06:00)</label>
           <div style="font-size:11px;color:var(--text3);margin-top:6px">ชม.ที่เกินเกณฑ์: 2 ชม.แรก ×125% · ที่เหลือ ×150% · สูตรนี้ประมาณจากใบเวลา+ใบเงินเดือน ส.ค./พ.ค. 2569 (คลาด ±₪15)</div>
           <button class="btn-secondary" style="margin-top:8px;font-size:12px" onclick="resetPayCfg()">↺ ค่าเริ่มต้น</button>
@@ -7224,19 +7225,30 @@ function renderTeamSummary(){
 // daily deduction (3:00 on normal days, 0 on short days = Friday or out by 14:00),
 // base rate up to 8.6h, then 2h at 125% and the rest at 150%. All values editable,
 // stored per user under the synced tt_sal_ prefix.
-const PAY_DEFAULT={rate:35.40,dN:180,dF:0,otAfter:8.6,fromStart:true};
+// v267: packing house — a day clocked in two parts (out at lunch, back in at 13:00)
+// is a packing-house day: no travel deduction; only the break windows (brk) that
+// overlap the clocked time are removed. Single-session days keep the field rule.
+const PAY_DEFAULT={rate:35.40,dN:180,dF:0,otAfter:8.6,fromStart:true,brk:'09:00-09:20, 12:20-13:00'};
+function _parseBrk(v){
+  const out=[]; String(v||'').split(',').forEach(p=>{ const m=p.trim().match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/); if(!m) return;
+    const a=+m[1]*60+ +m[2], b=+m[3]*60+ +m[4]; if(b>a&&b<=1440) out.push([a,b]); });
+  return out;
+}
 function getPayCfg(){
   let c={};
   try{ c=JSON.parse(localStorage.getItem(`tt_sal_cfg_${curUser.id}`)||'{}')||{}; }catch(e){ c={}; }
   const o=Object.assign({},PAY_DEFAULT,c);
   ['rate','dN','dF','otAfter'].forEach(k=>{ const v=Number(o[k]); o[k]=isFinite(v)&&v>=0?v:PAY_DEFAULT[k]; });
   o.fromStart=o.fromStart!==false;
+  if(typeof o.brk!=='string') o.brk=PAY_DEFAULT.brk;
+  o.breaks=_parseBrk(o.brk);
   return o;
 }
+function _hm(m){ return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
 function _tm(v){ if(!v) return 0; const [h,m]=String(v).split(':').map(Number); return (h||0)*60+(m||0); }
 function savePayCfg(){
   const g=id=>document.getElementById(id);
-  const c={rate:parseFloat(g('cfg-rate').value),otAfter:parseFloat(g('cfg-ot').value),dN:Math.round((parseFloat(g('cfg-dn').value)||0)*60),dF:Math.round((parseFloat(g('cfg-df').value)||0)*60),fromStart:!!g('cfg-start').checked};
+  const c={rate:parseFloat(g('cfg-rate').value),otAfter:parseFloat(g('cfg-ot').value),dN:Math.round((parseFloat(g('cfg-dn').value)||0)*60),dF:Math.round((parseFloat(g('cfg-df').value)||0)*60),fromStart:!!g('cfg-start').checked,brk:_parseBrk(g('cfg-brk').value).map(([a,b])=>_hm(a)+'-'+_hm(b)).join(', ')};
   localStorage.setItem(`tt_sal_cfg_${curUser.id}`,JSON.stringify(c));
   renderSalary();
 }
@@ -7245,27 +7257,36 @@ function fillPayCfgUI(){
   const c=getPayCfg(), g=id=>document.getElementById(id); if(!g('cfg-rate')) return;
   g('cfg-rate').value=c.rate.toFixed(2); g('cfg-ot').value=c.otAfter; g('cfg-dn').value=+(c.dN/60).toFixed(2); g('cfg-df').value=+(c.dF/60).toFixed(2);
   g('cfg-start').checked=c.fromStart;
+  if(g('cfg-brk')) g('cfg-brk').value=c.brk;
 }
 // Month pay for one employee under the formula. netH (= paid hours) kept for older callers.
 function salMonthStats(empId,month,year){
   const c=getPayCfg(), T=c.otAfter, SHORT_OUT=14*60;
   const mr=records.filter(r=>{const[y,m]=(r.date||'').split('-').map(Number);return r.empId===empId&&y===year&&m===month+1&&r.checkIn&&r.checkOut});
   const byDate={};
-  mr.forEach(r=>{ const d=byDate[r.date]||(byDate[r.date]={in:r.checkIn,out:r.checkOut}); if(r.checkIn<d.in)d.in=r.checkIn; if(r.checkOut>d.out)d.out=r.checkOut; });
-  let days=0,fridays=0,rawH=0,paidH=0,regH=0,o125H=0,o150H=0;
+  mr.forEach(r=>{ (byDate[r.date]=byDate[r.date]||[]).push([_tm(r.checkIn),_tm(r.checkOut)]); });
+  let days=0,fridays=0,packDays=0,rawH=0,paidH=0,regH=0,o125H=0,o150H=0;
   Object.keys(byDate).forEach(date=>{
-    const d=byDate[date], inM=_tm(d.in), outM=_tm(d.out); if(outM<=inM) return;
+    const ss=byDate[date].filter(x=>x[1]>x[0]).sort((a,b)=>a[0]-b[0]); if(!ss.length) return;
+    const seg=[]; ss.forEach(x=>{ const l=seg[seg.length-1]; if(l&&x[0]<=l[1]) l[1]=Math.max(l[1],x[1]); else seg.push([x[0],x[1]]); });
     const fri=new Date(date+'T12:00:00').getDay()===5;
     days++; if(fri) fridays++;
-    rawH+=(outM-inM)/60;
-    const startM=c.fromStart?Math.ceil(inM/60)*60:inM;   // next full hour
-    const short=fri||outM<=SHORT_OUT;                     // Friday / half day
-    const h=Math.max(0,outM-startM-(short?c.dF:c.dN))/60;
+    seg.forEach(x=>{ rawH+=(x[1]-x[0])/60; });
+    if(c.fromStart) seg[0][0]=Math.min(Math.ceil(seg[0][0]/60)*60,seg[0][1]);   // next full hour
+    let min;
+    if(seg.length>1){                                     // packing house (split day)
+      packDays++; min=0;
+      seg.forEach(([a,b])=>{ min+=b-a; c.breaks.forEach(([x,y])=>{ min-=Math.max(0,Math.min(b,y)-Math.max(a,x)); }); });
+    } else {                                              // field
+      const short=fri||seg[0][1]<=SHORT_OUT;              // Friday / half day
+      min=seg[0][1]-seg[0][0]-(short?c.dF:c.dN);
+    }
+    const h=Math.max(0,min)/60;
     paidH+=h; regH+=Math.min(h,T); o125H+=Math.min(Math.max(h-T,0),2); o150H+=Math.max(h-T-2,0);
   });
   const pay=c.rate*(regH+1.25*o125H+1.5*o150H);
   const otMin=mr.reduce((s,r)=>s+(r.otMin||0),0);
-  return {days,fridays,rawH,paidH,netH:paidH,regH,o125H,o150H,pay,rate:c.rate,otMin};
+  return {days,fridays,packDays,rawH,paidH,netH:paidH,regH,o125H,o150H,pay,rate:c.rate,otMin};
 }
 // v264: switching month/year must LOAD that month's pay, not save the box's
 // old value into the newly selected month (it used to copy pay across months).
@@ -7337,7 +7358,7 @@ function renderSalary(){
 function salPayCard(o){
   const st=o.st, c=getPayCfg();
   const money=v=>'₪'+v.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const rows=[['วันทำงาน',`${st.days} วัน (ศุกร์ ${st.fridays})`],['ชม.ตามบัตร',fmtHMt(st.rawH*60)],
+  const rows=[['วันทำงาน',`${st.days} วัน (ศุกร์ ${st.fridays}${st.packDays?` · โรงแพ็ค ${st.packDays}`:''})`],['ชม.ตามบัตร',fmtHMt(st.rawH*60)],
     ['ชม.ที่คิดเงิน (หลังหัก)',fmtHMt(st.paidH*60)],[`ชม.ปกติ ×100%`,fmtHMt(st.regH*60)],
     ['ล่วงเวลา ×125%',fmtHMt(st.o125H*60)],['ล่วงเวลา ×150%',fmtHMt(st.o150H*60)],
     ['ค่าแรง/ชม.',money(c.rate)],[o.actual?'เงินตามสูตร':'รายได้ (ประมาณ)',money(st.pay)]];
@@ -10718,7 +10739,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v266';
+const APP_VERSION = 'v267';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
