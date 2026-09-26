@@ -4624,6 +4624,9 @@ function _ilParts(){
 // v262: a Date whose LOCAL fields (getHours/getDate/getDay…) read as Israel
 // wall-clock time, for display code (the home clock) written against
 // getHours(). Falls back to the device clock.
+// v276: YYYY-MM-DD from a Date's LOCAL fields (pairs with _ilWall();
+// toISOString() is UTC and gives yesterday between 00:00 and 03:00 IDT).
+function _ymdLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function _ilWall(){
   const n=new Date();
   try{
@@ -5172,7 +5175,7 @@ function initApp(){
   // Load all team photos for display
   setTimeout(loadAllPhotosFromFirebase, 1000);
   // Typewriter greeting
-  const greetHour = new Date().getHours();
+  const greetHour = _ilWall().getHours();
   const greet = greetHour<12?'สวัสดีตอนเช้า':greetHour<17?'สวัสดีตอนบ่าย':'สวัสดีตอนเย็น';
   const twEl = document.getElementById('wc-typewriter');
   const twCursor = document.getElementById('tw-cursor');
@@ -6159,7 +6162,8 @@ function doCheckIn(){
   const open=records.find(r=>r.empId===curUser.id&&r.date===today&&!r.checkOut);
   if(open){showToast('มีการเข้างานที่ยังไม่ออก','warning'); clearTimeout(_safetyTimerIn); _reEnableIn(); return;}
   const t=nowStr();
-  const late=isLate(t);
+  // v276: only the day's first check-in can be late (13:00 re-entry after lunch isn't)
+  const late=isLate(t) && !records.some(r=>r.empId===curUser.id&&r.date===today&&r.checkIn);
   records.push({id:genRecId(),empId:curUser.id,date:today,checkIn:t,checkInTs:Date.now(),checkOut:null,checkOutTs:null,isLate:late,otMin:0,note:'',lastEditedTs:Date.now()});
   haptic(late ? 'error' : 'success');
   saveRec();
@@ -8123,7 +8127,7 @@ async function saveNewName(){
   // Update typewriter if on home page
   const twEl = document.getElementById('wc-typewriter');
   if(twEl && twEl.textContent){
-    const greetHour = new Date().getHours();
+    const greetHour = _ilWall().getHours();
     const greet = greetHour<12?'สวัสดีตอนเช้า':greetHour<17?'สวัสดีตอนบ่าย':'สวัสดีตอนเย็น';
     const twCursor = document.getElementById('tw-cursor');
     typewriterText(twEl, twCursor, `${greet} ${newName.split(' ')[0]} 👋`);
@@ -9006,7 +9010,7 @@ function checkEarlyReminder() {
   if(!curUser || !isNotifOn('early')) return;
   const workStart = getWorkStart();
   const [wh, wm] = workStart.split(':').map(Number);
-  const now = new Date();
+  const now = _ilWall();   // v276: Israel time
   const nowMins = now.getHours()*60 + now.getMinutes();
   const workMins = wh*60+wm;
   const diffMins = workMins - nowMins;
@@ -10120,7 +10124,7 @@ async function checkLateEmployees() {
   if(!isAdmin()) return;
   const today = todayStr();
   const workStart = getWorkStart();
-  const now = new Date();
+  const now = _ilWall();   // v276: Israel time
   const nowMins = now.getHours()*60 + now.getMinutes();
   const [wh,wm] = workStart.split(':').map(Number);
   const workMins = wh*60+wm;
@@ -10804,7 +10808,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v275';
+const APP_VERSION = 'v276';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -10938,7 +10942,7 @@ async function handleFirebaseUser(fbUser) {
     // มี cache ครบ → เข้าแอปทันที ไม่รอ Firebase!
     curUser   = cachedUser;
     employees = cachedEmployees;
-    records   = cachedRecords;
+    records   = _normLateSessions(cachedRecords);
     // Use delayed hide to honor minimum loading time (1.5s)
     _delayedHideOverlay(() => {
       document.getElementById('login-screen').style.display = 'none';
@@ -11082,10 +11086,23 @@ setTimeout(function(){
 function sanitizeRecords(obj) {
   try {
     if (!obj) return [];
-    return Object.values(obj).filter(function(r){
+    return _normLateSessions(Object.values(obj).filter(function(r){
       return r && typeof r === 'object' && typeof r.empId === 'string';
-    });
+    }));
   } catch(e) { return []; }
+}
+// v276: "late" belongs to the day, not to every session. On packing-house
+// days the owner clocks out for lunch and back in at 13:00; that second
+// check-in was saved isLate:true, so every split day counted as a late day
+// in stats, summaries, exports and streaks. Only the day's earliest
+// check-in keeps its flag; later sessions are never late.
+function _normLateSessions(arr) {
+  try {
+    const first = {};
+    arr.forEach(function(r){ if(!r || !r.checkIn) return; const k = r.empId + '|' + r.date; if(!first[k] || r.checkIn < first[k].checkIn) first[k] = r; });
+    arr.forEach(function(r){ if(r && r.checkIn && r.isLate && first[r.empId + '|' + r.date] !== r) r.isLate = false; });
+  } catch(e) {}
+  return arr;
 }
 function sanitizeEmployees(obj) {
   try {
@@ -12484,8 +12501,17 @@ function onToggleAmbient(){
 // ===== BATCH 4 — SMART FEATURES =====
 
 // 1. AUTO-DETECT ความสาย (เทียบกับค่าเฉลี่ยตัวเอง)
+// v276: one value per DAY (first check-in / last check-out) — split
+// packing-house days have a 13:00 re-entry and a 12:20 lunch check-out that
+// skewed these averages.
+function _perDay(empId, field, pickLast){
+  const by = {};
+  records.forEach(r => { if(r.empId!==empId || !r[field]) return; const cur = by[r.date];
+    if(!cur || (pickLast ? r[field] > cur[field] : r[field] < cur[field])) by[r.date] = r; });
+  return Object.values(by);
+}
 function getAvgCheckInTime(empId){
-  const recs = records.filter(r => r.empId===empId && r.checkIn);
+  const recs = _perDay(empId, 'checkIn', false);
   if(recs.length < 5) return null;
   const totalMin = recs.reduce((s,r) => {
     const [h,m] = r.checkIn.split(':').map(Number);
@@ -12496,7 +12522,7 @@ function getAvgCheckInTime(empId){
 function getCheckInDeviation(empId){
   const avg = getAvgCheckInTime(empId);
   if(avg === null) return null;
-  const recs = records.filter(r => r.empId===empId && r.checkIn);
+  const recs = _perDay(empId, 'checkIn', false);
   const variance = recs.reduce((s,r) => {
     const [h,m] = r.checkIn.split(':').map(Number);
     const diff = (h*60+m) - avg;
@@ -12523,7 +12549,8 @@ function detectSlowCheckIn(empId, currentTime){
 
 // 2. SMART CHECK-OUT SUGGESTION
 function suggestCheckOutTime(empId){
-  const recs = records.filter(r => r.empId===empId && r.checkOut);
+  const _t = todayStr();
+  const recs = _perDay(empId, 'checkOut', true).filter(r => r.date !== _t);   // today isn't finished yet
   if(recs.length < 5) return null;
   const totalMin = recs.reduce((s,r) => {
     const [h,m] = r.checkOut.split(':').map(Number);
@@ -12540,7 +12567,7 @@ function detectAnomaly(empId){
   if(!todayRec) return null;
   const [h,m] = todayRec.checkIn.split(':').map(Number);
   const start = h*60 + m;
-  const now = new Date();
+  const now = _ilWall();   // v276: Israel time (was the device clock)
   let cur = now.getHours()*60 + now.getMinutes();
   if(cur < start) cur += 24*60; // overnight
   const minutesWorking = cur - start;
@@ -12601,7 +12628,7 @@ function checkSmartCheckoutReminder(){
   if(!todayRec) return;
   const suggestedOut = suggestCheckOutTime(curUser.id);
   if(!suggestedOut) return;
-  const now = new Date();
+  const now = _ilWall();   // v276: Israel time
   const [sh,sm] = suggestedOut.split(':').map(Number);
   const sugMin = sh*60 + sm;
   const curMin = now.getHours()*60 + now.getMinutes();
@@ -14306,13 +14333,13 @@ if('serviceWorker' in navigator) {
       const u = getUser();
       const allRecs = getRecords();
       if (!u || !allRecs.length) return;
-      const today = new Date();
+      const today = _ilWall();   // v276: Israel date
       let done = 0;
       const daysArr = [];
       for(let i = 6; i >= 0; i--){
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const ds = d.toISOString().slice(0,10);
+        const ds = _ymdLocal(d);
         const found = allRecs.some(r => r && r.empId === u.id && r.date === ds && r.checkIn);
         daysArr.push({date:ds, done:found, isToday: i === 0});
         if(found && i > 0) done++;
@@ -14337,7 +14364,8 @@ if('serviceWorker' in navigator) {
       const u = getUser();
       const allRecs = getRecords();
       if (!u || !allRecs.length) return;
-      const now = new Date();
+      const now = _ilWall();   // v276: Israel date/time
+      const todayDs = _ymdLocal(now);
       // Find Monday of this week
       const dow = now.getDay(); // 0=Sun
       const monOff = dow === 0 ? -6 : 1 - dow;
@@ -14353,7 +14381,7 @@ if('serviceWorker' in navigator) {
       for(let i = 0; i < 7; i++){
         const d = new Date(mon);
         d.setDate(mon.getDate() + i);
-        const ds = d.toISOString().slice(0,10);
+        const ds = _ymdLocal(d);
         const dayRecs = allRecs.filter(r => r && r.empId === u.id && r.date === ds);
         let dayHours = 0;
         dayRecs.forEach(r => {
@@ -14363,7 +14391,7 @@ if('serviceWorker' in navigator) {
             const [ih, im] = r.checkIn.split(':').map(Number);
             const [oh, om] = r.checkOut.split(':').map(Number);
             dayHours += ((oh*60+om) - (ih*60+im)) / 60;
-          } else if(r.checkIn && !r.checkOut && i === 6){
+          } else if(r.checkIn && !r.checkOut && ds === todayDs){   // v276: was i===6 (Sunday only)
             // Today, still working
             const [ih, im] = r.checkIn.split(':').map(Number);
             const nowMin = now.getHours()*60 + now.getMinutes();
@@ -14648,15 +14676,26 @@ if('serviceWorker' in navigator) {
     const idtDate = new Date(idtStr);
     const h = idtDate.getHours(), m = idtDate.getMinutes();
     const nowMin = h * 60 + m;
-    const startMin = 6 * 60, endMin = 16 * 60 + 30;
+    // v276: follow the work-start / OT-start settings (were fixed 06:00 / 16:30)
+    const _hm2 = v => { const q = String(v || '').split(':').map(Number); return (q[0] || 0) * 60 + (q[1] || 0); };
+    const startMin = typeof getWorkStart === 'function' ? _hm2(getWorkStart()) : 6 * 60;
+    const endMin   = typeof getOTStart   === 'function' ? _hm2(getOTStart())   : 16 * 60 + 30;
+    const endLbl   = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
 
-    let checkedIn = false, checkedOut = false, todayOT = null;
+    let checkedIn = false, checkedOut = false, todayOT = null, onBreak = false;
     try {
       if(typeof curUser !== 'undefined' && curUser && typeof records !== 'undefined'){
         const today = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10);
         const myRec = records.filter(r => r.empId === curUser.id && r.date === today);
         checkedIn = myRec.some(r => r.checkIn);
         checkedOut = myRec.length > 0 && myRec.every(r => r.checkOut);
+        // v276: packing-house lunch — clocked out inside a break window and
+        // it's still before that window ends + 30 min → on break, not done.
+        if(checkedOut && typeof getPayCfg === 'function'){
+          const lastOut = myRec.reduce((a, r) => r.checkOut > a ? r.checkOut : a, '');
+          const lo = _hm2(lastOut);
+          onBreak = (getPayCfg().breaks || []).some(([a, b]) => lo >= a - 10 && lo <= b && nowMin < b + 30);
+        }
         // v275: real OT so far today, same rule as the saved record
         // (calcOTMin: from the later of check-in and the OT start). The widget
         // used to show now − 16:30 whatever the check-in time, so checking in
@@ -14669,7 +14708,9 @@ if('serviceWorker' in navigator) {
     } catch(_){ todayOT = null; }
 
     let title, time, sub, progress, klass = '';
-    if(checkedOut){
+    if(checkedOut && onBreak){
+      title = '☕ พักอยู่'; time = 'อย่าลืมเข้างานต่อ'; sub = 'เลื่อนเข้างานเมื่อกลับจากพัก'; progress = Math.min(100, Math.max(0, ((nowMin - startMin) / (endMin - startMin)) * 100));
+    } else if(checkedOut){
       title = '✅ จบวันแล้ว'; time = 'พักผ่อนได้'; sub = 'ทำงานดีมากวันนี้ 🎉'; progress = 100; klass = 'done';
     } else if(!checkedIn){
       title = '⏰ ยังไม่เข้างาน'; time = 'รอเช็คอิน'; sub = 'อย่าลืมกดปุ่ม "เข้างาน" นะ'; progress = 0;
@@ -14678,7 +14719,7 @@ if('serviceWorker' in navigator) {
       const remainH = Math.floor(remainMin / 60), remainM = remainMin % 60;
       title = '⏳ เหลืออีก';
       time = fmtHMt(remainMin);
-      sub = 'ก่อนเลิกงาน 16:30';
+      sub = 'ก่อนเลิกงาน ' + endLbl;
       progress = Math.min(100, Math.max(0, ((nowMin - startMin) / (endMin - startMin)) * 100));
     } else {
       const otMin = todayOT != null ? todayOT : nowMin - endMin;
@@ -14779,7 +14820,7 @@ if('serviceWorker' in navigator) {
         const myPast = myAll.filter(r => r.date !== today && r.checkIn);
 
         if(myToday.length > 0 && myToday[0].checkIn){
-          todayCheckin = myToday[0].checkIn;
+          todayCheckin = myToday.reduce((a, r) => (r.checkIn && (!a || r.checkIn < a)) ? r.checkIn : a, null);   // v276: earliest
           if(typeof calcHours === 'function'){
             myToday.forEach(r => {
               if(r.checkOut) todayHours += calcHours(r.checkIn, r.checkOut);
@@ -14790,7 +14831,17 @@ if('serviceWorker' in navigator) {
         }
 
         if(myPast.length > 0){
-          const last14 = myPast.slice(-14);
+          // v276: average over the last 14 DAYS (first check-in, total hours
+          // per day). It averaged records, so split packing-house days (two
+          // sessions) pulled the check-in average later and halved the hours.
+          const _byD = {};
+          myPast.forEach(r => { (_byD[r.date] = _byD[r.date] || []).push(r); });
+          const last14 = Object.keys(_byD).sort().slice(-14).map(d => {
+            const rs = _byD[d];
+            const first = rs.reduce((a, r) => (!a || r.checkIn < a.checkIn) ? r : a, null);
+            const done = rs.every(r => r.checkOut);
+            return { checkIn: first.checkIn, hours: done && typeof calcHours === 'function' ? rs.reduce((t, r) => t + calcHours(r.checkIn, r.checkOut), 0) : null };
+          });
           const checkInsMin = last14.filter(r => r.checkIn).map(r => {
             const parts = r.checkIn.split(':');
             return parseInt(parts[0])*60 + parseInt(parts[1] || 0);
@@ -14801,7 +14852,7 @@ if('serviceWorker' in navigator) {
             avgCheckin = String(ah).padStart(2,'0') + ':' + String(am).padStart(2,'0');
           }
           if(typeof calcHours === 'function'){
-            const hoursArr = last14.filter(r => r.checkIn && r.checkOut).map(r => calcHours(r.checkIn, r.checkOut));
+            const hoursArr = last14.filter(r => r.hours != null).map(r => r.hours);
             if(hoursArr.length > 0) avgHours = hoursArr.reduce((a,b)=>a+b,0) / hoursArr.length;
           }
         }
@@ -14822,8 +14873,8 @@ if('serviceWorker' in navigator) {
       const diff = todayMin - avgMin;
       let tag, tagClass;
       if(Math.abs(diff) < 10){ tag = 'ปกติ'; tagClass = 'neutral'; }
-      else if(diff < 0){ tag = 'เร็ว ' + Math.abs(diff) + 'น'; tagClass = 'good'; }
-      else { tag = 'ช้า ' + diff + 'น'; tagClass = 'warn'; }
+      else if(diff < 0){ tag = 'เร็ว ' + (Math.abs(diff) >= 60 ? fmtHMt(Math.abs(diff)) : Math.abs(diff) + 'น'); tagClass = 'good'; }
+      else { tag = 'ช้า ' + (diff >= 60 ? fmtHMt(diff) : diff + 'น'); tagClass = 'warn'; }
       rows += '<div class="hw-compare-row"><div class="hw-compare-label">⏰ เข้างาน</div><div class="hw-compare-val">'+todayCheckin+'</div><div class="hw-compare-tag '+tagClass+'">'+tag+'</div></div>';
     } else if(todayCheckin){
       rows += '<div class="hw-compare-row"><div class="hw-compare-label">⏰ เข้างาน</div><div class="hw-compare-val">'+todayCheckin+'</div></div>';
