@@ -3647,15 +3647,16 @@ body.dark .slide-action{
   </nav>
 
   <!-- HOME -->
-  <div class="page active home-a" id="page-home">
+  <div class="page active home-a hq" id="page-home">
     <div id="bday-container"></div>
 
     <!-- HOME A · Compact Stack — Greeting -->
-    <div class="ha-greeting">
+    <div class="ha-greeting hq-hero">
       <div class="ha-greet-row">
         <div class="ha-greet-text">
           <div class="ha-greet-hi" id="ha-greet-hi">วันจันทร์ที่ 11 พ.ค. · 15:18 IDT</div>
-          <div class="ha-greet-name">สวัสดี, <span class="accent" id="ha-greet-name">—</span> 👋</div>
+          <div class="ha-greet-name">สวัสดี, <span class="accent" id="ha-greet-name">—</span></div>
+          <div class="hq-status idle" id="hq-status"><span class="hq-dot"></span><span id="hq-status-text">กำลังโหลด…</span></div>
         </div>
         <div class="ha-greet-avatar" id="ha-greet-avatar" onclick="openPhotoUpload()">?</div>
       </div>
@@ -3664,30 +3665,6 @@ body.dark .slide-action{
     <!-- v232 at-a-glance chips moved up: user sees today's facts BEFORE
          the clock+slider so "did I check in already?" is answered without
          scrolling or thinking. -->
-    <div class="ha-section-h"><div class="ha-section-title">📊 วันนี้</div></div>
-    <div class="ha-chips-row">
-      <div class="ha-chip">
-        <div class="ha-chip-icon">🕐</div>
-        <div class="ha-chip-label">เข้าครั้งแรก</div>
-        <div class="ha-chip-value muted" id="s-firstin">--:--</div>
-      </div>
-      <div class="ha-chip green">
-        <div class="ha-chip-icon">⏱</div>
-        <div class="ha-chip-label">ทำงาน</div>
-        <div class="ha-chip-value"><span id="s-hours"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></span><span class="u"></span></div>
-      </div>
-      <div class="ha-chip orange">
-        <div class="ha-chip-icon">⚡</div>
-        <div class="ha-chip-label">โอที</div>
-        <div class="ha-chip-value"><span id="s-ot"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></span><span class="u"></span></div>
-      </div>
-      <div class="ha-chip purple">
-        <div class="ha-chip-icon">🔄</div>
-        <div class="ha-chip-label">รอบ</div>
-        <div class="ha-chip-value" id="s-rounds">0</div>
-      </div>
-    </div>
-
     <!-- ╔═══════════════════════════════════════════════════════╗ -->
     <!-- ║ CLOCK + CHECK IN/OUT BUTTONS (moved to top)          ║ -->
     <!-- ╚═══════════════════════════════════════════════════════╝ -->
@@ -3706,7 +3683,9 @@ body.dark .slide-action{
       <!-- v230 analog clock — SVG hands updated in tick().
            The old digital #clock-display is kept (visually hidden) so
            other code paths that set .textContent still resolve. -->
-      <div class="clock-analog" id="clock-analog" aria-label="นาฬิกาเข็ม">
+      <div class="hq-clock-head"><span class="hq-clock-title">ลงเวลา</span><span class="hq-clock-loc">Tsofar · เวลาอิสราเอล</span><button type="button" class="hq-face-btn" onclick="hqToggleFace()" aria-label="สลับหน้าปัดนาฬิกา">⌚︎ สลับหน้าปัด</button></div>
+      <div class="hq-digital" id="hq-digital" onclick="hqToggleFace()">--:--<small>:--</small></div>
+      <div class="clock-analog" id="clock-analog" aria-label="นาฬิกาเข็ม" onclick="hqToggleFace()">
         <!-- v274 luxury dial (Apple Watch idiom): 60 minute ticks, 5-minute
              numerals round the rim, hour numerals, skeleton hands with a
              thin stem + wide bar, orange sweep seconds. Hand ids unchanged —
@@ -3772,15 +3751,45 @@ body.dark .slide-action{
       </div>
     </div>
 
+    <!-- v281 KPI row (moved below the time clock) -->
+    <div class="ha-chips-row">
+      <div class="ha-chip">
+        <div class="ha-chip-icon">🕐</div>
+        <div class="ha-chip-label">เข้าครั้งแรก</div>
+        <div class="ha-chip-value muted" id="s-firstin">--:--</div>
+      </div>
+      <div class="ha-chip green">
+        <div class="ha-chip-icon">⏱</div>
+        <div class="ha-chip-label">ทำงาน</div>
+        <div class="ha-chip-value"><span id="s-hours"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></span><span class="u"></span></div>
+      </div>
+      <div class="ha-chip orange">
+        <div class="ha-chip-icon">⚡</div>
+        <div class="ha-chip-label">โอที</div>
+        <div class="ha-chip-value"><span id="s-ot"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></span><span class="u"></span></div>
+      </div>
+      <div class="ha-chip purple">
+        <div class="ha-chip-icon">🔄</div>
+        <div class="ha-chip-label">รอบ</div>
+        <div class="ha-chip-value" id="s-rounds">0</div>
+      </div>
+    </div>
     <!-- ╔═══════════════════════════════════════════════════════╗ -->
     <!-- ║ HOME WIDGETS CONTAINER (Phase A/B/C - bulletproof)   ║ -->
     <!-- ║ Each widget is sandboxed - failure doesn't break app ║ -->
     <!-- ╚═══════════════════════════════════════════════════════╝ -->
     <div id="hw-container" style="display:flex;flex-direction:column;gap:10px;margin:14px 0"></div>
+    <div class="card home-a-card">
+      <div class="section-title">บันทึกเวลาวันนี้</div>
+      <div class="live-status-bar" id="live-status-bar" style="display:none"></div>
+      <div id="today-list"></div>
+    </div>
 
     <!-- v232 chips moved up (now between greeting and clock-hero) — id="s-*"
          hooks unchanged, refreshHomeStats() still finds them by id -->
 
+    <!-- v281: timeline + streak kept in DOM (Home-A JS writes to them) but not shown -->
+    <div class="hq-legacy" hidden>
     <!-- 📅 Timeline -->
     <div class="ha-section-h"><div class="ha-section-title">📅 Timeline วันนี้</div></div>
     <div class="ha-timeline" id="ha-timeline">
@@ -3819,9 +3828,9 @@ body.dark .slide-action{
       </div>
       <div class="ha-streak-dots" id="ha-streak-dots"></div>
     </div>
-
+    </div>
     <!-- 📈 Week chart -->
-    <div class="ha-section-h"><div class="ha-section-title">📈 สัปดาห์นี้</div></div>
+    <div class="ha-section-h"><div class="ha-section-title">สัปดาห์นี้</div></div>
     <div class="ha-week">
       <div class="ha-week-head">
         <div>
@@ -3853,10 +3862,6 @@ body.dark .slide-action{
     <!-- Old weekly-card kept for JS that writes into it (hidden but in DOM) -->
     <div class="card" id="weekly-card" style="display:none"></div>
 
-    <div class="card home-a-card">
-      <div class="section-title">📓 บันทึกประจำวัน</div>
-      <textarea class="note-area" id="daily-note" rows="2" placeholder="บันทึกสิ่งที่ทำวันนี้..." oninput="saveDailyNote(todayStr(),this.value)"></textarea>
-    </div>
 
     <div class="section-label">สถานะวันนี้</div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
@@ -3864,23 +3869,15 @@ body.dark .slide-action{
       <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--border)"><span style="font-size:12px;color:var(--text2)">เวลาเช็คเอาท์</span><span style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--red)" id="ts-out">—</span></div>
       <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--border)"><span style="font-size:12px;color:var(--text2)">ชั่วโมงทำงาน</span><span style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent2)" id="ts-dur">—</span></div>
     </div>
-
-    <div class="card home-a-card">
-      <div class="section-title">📝 รายการวันนี้</div>
-      <div class="live-status-bar" id="live-status-bar" style="display:none"></div>
-      <div id="today-list"></div>
-    </div>
-
-    <div class="card home-a-card">
-      <div class="section-title">✏️ บันทึกย้อนหลัง</div>
-      <div class="modal-grid">
-        <div class="form-group"><label class="form-label">วันที่</label><input type="date" id="man-date" class="form-inp"/></div>
-        <div class="form-group"><label class="form-label">หมายเหตุ</label><input type="text" id="man-note" class="form-inp" placeholder="ไม่บังคับ"/></div>
-        <div class="form-group"><label class="form-label">เวลาเข้า</label><input type="time" id="man-in" class="form-inp"/></div>
-        <div class="form-group"><label class="form-label">เวลาออก</label><input type="time" id="man-out" class="form-inp"/></div>
+    <!-- v281 tools drawer: reminders + break timer (moved in by hqLayout) and the daily note -->
+    <details class="card home-a-card hq-tools" id="hq-tools">
+      <summary><span class="hq-tools-title">เครื่องมือเพิ่มเติม</span><span class="hq-tools-sub">เตือนความจำ · เตือนพัก · บันทึกประจำวัน</span></summary>
+      <div id="hq-tools-body">
+        <div class="hq-note"><div class="section-title">บันทึกประจำวัน</div>
+        <textarea class="note-area" id="daily-note" rows="2" placeholder="บันทึกสิ่งที่ทำวันนี้..." oninput="saveDailyNote(todayStr(),this.value)"></textarea>
+        </div>
       </div>
-      <button class="btn-primary" onclick="addManual()">+ เพิ่มรายการ</button>
-    </div>
+    </details>
   </div>
 
   <!-- CALENDAR -->
@@ -3933,6 +3930,7 @@ body.dark .slide-action{
       <button class="btn-export" style="background:linear-gradient(135deg,#107c41,#16a34a);color:#fff" onclick="exportXLSX()" title="Export Excel">📊 Excel</button>
       <button class="btn-export btn-pdf" onclick="exportPDF()" title="Export PDF">📄 PDF</button>
     </div>
+    <div id="stats-widgets" class="hq-stats-widgets"></div>
     <div id="streak-container"></div>
     <div id="punctuality-container"></div>
     <div id="reports-container"></div>
@@ -3957,6 +3955,17 @@ body.dark .slide-action{
       <button class="seg-tab" onclick="showPage('calendar')">ปฏิทิน</button>
       <button class="seg-tab active" onclick="showPage('history')">ประวัติ</button>
     </div>
+    <!-- v281: backfill form moved here from the home page -->
+    <details class="card hq-backfill" id="hq-backfill">
+      <summary class="section-title">＋ เพิ่มรายการย้อนหลัง</summary>
+      <div class="modal-grid">
+        <div class="form-group"><label class="form-label">วันที่</label><input type="date" id="man-date" class="form-inp"/></div>
+        <div class="form-group"><label class="form-label">หมายเหตุ</label><input type="text" id="man-note" class="form-inp" placeholder="ไม่บังคับ"/></div>
+        <div class="form-group"><label class="form-label">เวลาเข้า</label><input type="time" id="man-in" class="form-inp"/></div>
+        <div class="form-group"><label class="form-label">เวลาออก</label><input type="time" id="man-out" class="form-inp"/></div>
+      </div>
+      <button class="btn-primary" onclick="addManual()">+ เพิ่มรายการ</button>
+    </details>
     <div class="filter-row">
       <select class="sel" id="hist-month" onchange="renderHistory(true)"></select>
       <select class="sel" id="hist-year" onchange="renderHistory(true)"></select>
@@ -5022,6 +5031,8 @@ function startClock(){
     const n=_ilWall();   // v262: Israel time, like check-in (was the device clock)
     const cl = document.getElementById('clock-display');
     if(cl) cl.textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+    const dg = document.getElementById('hq-digital');   // v281 digital face
+    if(dg) dg.innerHTML=`${pad(n.getHours())}:${pad(n.getMinutes())}<small>:${pad(n.getSeconds())}</small>`;
     // v230 analog hands — fractional minute carries hour smoothly
     const sec = n.getSeconds() + n.getMilliseconds()/1000;
     const min = n.getMinutes() + sec/60;
@@ -6624,6 +6635,7 @@ function saveManualForMember(){
 
 // ========== RENDER HOME ==========
 function renderHome(){
+  try { if(typeof hqStatus === 'function') setTimeout(hqStatus, 0); } catch(e){}
   // Birthday/anniversary banner
   const bdayC = document.getElementById('bday-container');
   if(bdayC) bdayC.innerHTML = renderBirthdayBanner();
@@ -6802,6 +6814,8 @@ function toggleHoliday(dateStr){
 
 // ========== STATS ==========
 function renderStats(){
+  // v281: goal + leaderboard cards now sit on this page
+  try { if(typeof window.renderHomeWidgets === 'function') setTimeout(window.renderHomeWidgets, 0); } catch(e){}
   const month=parseInt(document.getElementById('stat-month').value);
   const year=parseInt(document.getElementById('stat-year').value);
   const myRec=records.filter(r=>{const[y,m]=r.date.split('-').map(Number);return r.empId===curUser.id&&y===year&&m===month+1});
@@ -10866,7 +10880,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v280';
+const APP_VERSION = 'v281';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -14665,7 +14679,7 @@ if('serviceWorker' in navigator) {
 <script>
 (function(){
   'use strict';
-  const HW_ENABLED = { countdown: true, quote: true, compare: true };
+  const HW_ENABLED = { countdown: true, quote: false, compare: true };   // v281: quote removed from the dashboard
 
   // v166 Number animation helper — roll-up from current displayed value
   // to target using requestAnimationFrame + ease-out cubic. Used by both
@@ -15919,10 +15933,13 @@ body.dark [class*="tab"] .label{
   // MAIN RENDER + HOOK INTO PHASE A
   // ════════════════════════════════════════════════════════════════
   function renderAllB(){
-    // เช็คว่าอยู่หน้า home ก่อน
+    // เช็คว่าอยู่หน้า home ก่อน (v281: หรือหน้าตัวเลข — เป้าหมายย้ายไปอยู่ที่นั่น)
     try {
       const homePage = document.getElementById('page-home');
-      if(!homePage || !homePage.classList.contains('active')) return;
+      const statsPage = document.getElementById('page-stats');
+      const onHome = homePage && homePage.classList.contains('active');
+      const onStats = statsPage && statsPage.classList.contains('active');
+      if(!onHome && !onStats) return;
     } catch(_){ return; }
     hwbSafe('goal', renderGoal);
     hwbSafe('reminders', renderReminders);
@@ -16426,7 +16443,8 @@ body.dark [class*="tab"] .label{
   function renderAllC(){
     try {
       const homePage = document.getElementById('page-home');
-      if(!homePage || !homePage.classList.contains('active')) return;
+      const statsPage = document.getElementById('page-stats');   // v281: leaderboard lives on the Numbers page
+      if(!(homePage && homePage.classList.contains('active')) && !(statsPage && statsPage.classList.contains('active'))) return;
     } catch(_){ return; }
     hwcSafe('lb', renderLeaderboard);
   }
@@ -18393,6 +18411,138 @@ body.sky .lg-canvas{ display:none !important; }
 <!-- ║ body.corp is set whenever the sky is off. Pure CSS overrides — no  ║ -->
 <!-- ║ markup or logic changed, so switching back is lossless.            ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+<!-- ║ v281 HOME DASHBOARD (HR layout) — status pill, clock face toggle, ║ -->
+<!-- ║ and relocation of secondary widgets: goal + leaderboard → Numbers ║ -->
+<!-- ║ page, reminders + break timer → the tools drawer. Widgets are      ║ -->
+<!-- ║ found by id by their own renderers, so moving them is safe.        ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<script>
+(function(){
+  'use strict';
+  function $(id){ return document.getElementById(id); }
+
+  // ── clock face: digital (default) ⇄ analog, remembered per device ──
+  function faceApply(){
+    try {
+      var h = $('clock-hero'); if(!h) return;
+      var f = localStorage.getItem('tt_clock_face') === 'analog' ? 'analog' : 'digital';
+      h.classList.toggle('hq-face-analog', f === 'analog');
+    } catch(e){}
+  }
+  window.hqToggleFace = function(){
+    try {
+      var cur = localStorage.getItem('tt_clock_face') === 'analog' ? 'analog' : 'digital';
+      localStorage.setItem('tt_clock_face', cur === 'analog' ? 'digital' : 'analog');
+    } catch(e){}
+    faceApply();
+    try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+  };
+
+  // ── status pill in the header band ──
+  function hm(v){ var q = String(v||'').split(':'); return (parseInt(q[0],10)||0)*60 + (parseInt(q[1],10)||0); }
+  window.hqStatus = function(){
+    try {
+      var el = $('hq-status'), tx = $('hq-status-text'); if(!el || !tx) return;
+      if(typeof curUser === 'undefined' || !curUser || !Array.isArray(records)) return;
+      var t = todayStr();
+      var rs = records.filter(function(r){ return r && r.empId === curUser.id && r.date === t && r.checkIn; })
+                      .sort(function(a,b){ return a.checkIn < b.checkIn ? -1 : 1; });
+      var cls, text;
+      if(!rs.length){ cls = 'idle'; text = 'ยังไม่เข้างานวันนี้'; }
+      else {
+        var open = rs.filter(function(r){ return !r.checkOut; }).pop();
+        if(open){ cls = 'live'; text = 'กำลังทำงาน · เข้า ' + rs[0].checkIn; }
+        else {
+          var lastOut = rs.reduce(function(a,r){ return r.checkOut > a ? r.checkOut : a; }, '');
+          var lo = hm(lastOut), now = hm(nowStr()), onBreak = false;
+          try { onBreak = (getPayCfg().breaks || []).some(function(w){ return lo >= w[0]-10 && lo <= w[1] && now < w[1]+30; }); } catch(e){}
+          if(onBreak){ cls = 'break'; text = 'พักอยู่ · ออก ' + lastOut; }
+          else { cls = 'done'; text = 'เลิกงานแล้ว · ออก ' + lastOut; }
+        }
+      }
+      el.className = 'hq-status ' + cls;
+      tx.textContent = text;
+    } catch(e){ console.warn('[HQ] status', e); }
+  };
+
+  // ── move secondary widgets out of the home widget stack ──
+  var MOVES = [ ['hwb-goal','stats-widgets'], ['hwc-lb','stats-widgets'], ['hwb-reminders','hq-tools-body'], ['hwb-brk','hq-tools-body'] ];
+  function layout(){
+    try {
+      MOVES.forEach(function(m){
+        var w = $(m[0]), dst = $(m[1]);
+        if(w && dst && w.parentNode !== dst) dst.appendChild(w);
+      });
+      var q = $('hw-quote'); if(q && q.parentNode) q.parentNode.removeChild(q);
+    } catch(e){ console.warn('[HQ] layout', e); }
+  }
+  window.hqLayout = layout;
+
+  function init(){
+    faceApply(); layout();
+    try {
+      var c = $('hw-container');
+      if(c && window.MutationObserver) new MutationObserver(layout).observe(c, { childList:true });
+    } catch(e){}
+    try { window.hqStatus(); } catch(e){}
+    setInterval(function(){ try { window.hqStatus(); } catch(e){} }, 30000);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+<style id="hq-dashboard">
+/* v281 HR dashboard layout for the home page (all themes). */
+#page-home.hq .hq-hero{ margin:-18px -18px 14px; width:calc(100% + 36px); max-width:none !important; box-sizing:border-box; padding:18px 22px 20px; }
+#page-home.hq .ha-greet-hi{ font-size:13px; }
+#page-home.hq .ha-greet-name{ font-size:22px; }
+.hq-status{ display:inline-flex; align-items:center; gap:7px; margin-top:10px; padding:5px 11px 5px 9px; border-radius:999px;
+  font-size:12.5px; font-weight:600; line-height:1.3; background:var(--tint-blue); color:var(--ink); border:1px solid var(--border); }
+.hq-status .hq-dot{ width:8px; height:8px; border-radius:50%; background:var(--ink-4); flex-shrink:0; }
+.hq-status.live .hq-dot{ background:#2ECC71; box-shadow:0 0 0 3px rgba(46,204,113,0.25); }
+.hq-status.break .hq-dot{ background:#F5A623; }
+.hq-status.done .hq-dot{ background:#8FA3BF; }
+.hq-status.idle .hq-dot{ background:transparent; border:1.5px solid currentColor; opacity:.7; }
+
+/* time-clock card */
+.hq-clock-head{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.hq-clock-title{ font-weight:700; font-size:15px; color:var(--ink); }
+.hq-clock-loc{ font-size:12px; color:var(--ink-4); flex:1; }
+.hq-face-btn{ font:inherit; font-size:11.5px; font-weight:600; color:var(--accent); background:transparent; border:1px solid var(--border); border-radius:6px; padding:4px 8px; cursor:pointer; }
+.hq-digital{ font-family:var(--font-display); font-size:58px; font-weight:700; letter-spacing:-0.02em; line-height:1.05; text-align:center;
+  font-variant-numeric:tabular-nums; color:var(--ink); margin:14px 0 4px; cursor:pointer; user-select:none; -webkit-user-select:none; }
+.hq-digital small{ font-size:26px; font-weight:600; color:var(--ink-4); margin-left:2px; }
+#clock-hero .clock-analog{ display:none; }
+#clock-hero.hq-face-analog .clock-analog{ display:block; }
+#clock-hero.hq-face-analog .hq-digital{ display:none; }
+#page-home.hq .clock-date{ text-align:center; margin-bottom:12px; }
+
+/* KPI row: 4 tiles in one row */
+#page-home.hq .ha-chips-row{ grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:6px !important; margin:12px 0 0 !important; padding:0 !important; }
+#page-home.hq .ha-chip{ padding:10px 8px !important; border-radius:10px !important; }
+#page-home.hq .ha-chip-label{ font-size:10px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#page-home.hq .ha-chip-value{ font-size:16.5px !important; white-space:nowrap; }
+#page-home.hq .ha-chip-icon{ display:none !important; }
+
+/* tools drawer + history backfill */
+.hq-tools > summary, .hq-backfill > summary{ cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.hq-tools > summary::-webkit-details-marker, .hq-backfill > summary::-webkit-details-marker{ display:none; }
+.hq-tools > summary::after, .hq-backfill > summary::after{ content:'›'; margin-left:auto; font-size:20px; color:var(--ink-4); transition:transform .2s; }
+.hq-tools[open] > summary::after, .hq-backfill[open] > summary::after{ transform:rotate(90deg); }
+.hq-tools-title{ font-weight:700; color:var(--ink); }
+.hq-tools-sub{ font-size:12px; color:var(--ink-4); width:100%; order:3; }
+#hq-tools-body{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+#hq-tools-body .hq-note .section-title{ margin-bottom:6px; }
+.hq-backfill{ margin-bottom:14px; }
+.hq-backfill > summary{ margin:0 !important; }
+.hq-backfill[open] > summary{ margin-bottom:12px !important; }
+.hq-stats-widgets{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+.hq-stats-widgets:empty{ display:none; }
+#page-home.hq #ha-week-delta{ display:none !important; }   /* repeated the weekly total */
+/* month/year pickers side by side, export buttons in one row */
+.filter-row > .sel{ flex:1 1 40%; min-width:0; }
+.filter-row > .btn-export{ flex:1 1 0; }
+</style>
 <style id="corp-theme">
 body.corp{
   --c-bg:#F3F4F6; --c-surface:#FFFFFF; --c-surface-2:#F7F8FA; --c-border:#E2E5E9; --c-border-2:#CDD2D8;
@@ -18542,6 +18692,13 @@ body.corp .nav-btn.active::before{ content:"" !important; display:block !importa
 body.corp .page{ padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 96px) !important; }
 
 /* ── home ────────────────────────────────────────────────────────── */
+body.corp #page-home.hq .hq-hero{ background:var(--c-bar); color:#fff; border-bottom:1px solid rgba(0,0,0,0.15); }
+body.corp #page-home.hq .hq-hero .ha-greet-hi{ color:rgba(255,255,255,0.72) !important; }
+body.corp #page-home.hq .hq-hero .ha-greet-name{ color:#fff !important; }
+body.corp #page-home.hq .hq-hero .ha-greet-name .accent{ color:#fff !important; }
+body.corp #page-home.hq .hq-hero .ha-greet-avatar{ border:1px solid rgba(255,255,255,0.35) !important; }
+body.corp .hq-status{ background:rgba(255,255,255,0.10); border-color:rgba(255,255,255,0.22); color:#fff; }
+body.corp .hq-face-btn{ color:var(--c-brand); border-color:var(--c-border-2); }
 body.corp .ha-greet-name .accent, body.corp .wc-name-gradient{ color:var(--c-brand) !important; background:none !important; -webkit-text-fill-color:currentColor !important; }
 body.corp .ha-greet-avatar, body.corp .welcome-av{ box-shadow:none !important; border:1px solid var(--c-border) !important; }
 body.corp .ha-chip-label{ color:var(--c-ink-4) !important; font-weight:600 !important; text-transform:uppercase; font-size:11px !important; letter-spacing:0.04em; }
@@ -18555,6 +18712,17 @@ body.corp .slide-label{ color:var(--c-ink-2) !important; text-shadow:none !impor
 body.corp .hw-progress-bar{ background:var(--c-surface-2) !important; border-radius:2px !important; }
 body.corp .hw-progress-fill{ border-radius:2px !important; box-shadow:none !important; }
 body.corp .hw-countdown-time, body.corp .hw-compare-num, body.corp .hwb-goal-num{ text-shadow:none !important; font-variant-numeric:tabular-nums; }
+body.corp .hw-countdown-time{ background:none !important; -webkit-text-fill-color:currentColor !important; color:var(--c-brand) !important; }
+body.corp .hw-countdown-time.ot{ color:var(--c-warn) !important; }
+body.corp .hw-countdown-time.done{ color:var(--c-ok) !important; }
+body.corp .hw-progress-fill{ background:var(--c-brand) !important; }
+body.corp .hw-progress-fill.ot{ background:var(--c-warn) !important; }
+body.corp .hw-progress-fill.done{ background:var(--c-ok) !important; }
+body.corp .hwc-lb-tabs{ background:transparent !important; border-bottom:1px solid var(--c-border) !important; border-radius:0 !important; padding:0 !important; }
+body.corp .hwc-lb-tab{ border-radius:0 !important; border-bottom:2px solid transparent !important; margin-bottom:-1px; }
+body.corp .hwc-lb-tab.active{ background:transparent !important; color:var(--c-brand) !important; border-bottom-color:var(--c-brand) !important; }
+body.corp .hwc-lb-leader{ background:var(--c-surface-2) !important; border:1px solid var(--c-border) !important; border-radius:var(--r) !important; }
+body.corp .hwc-lb-leader-stat{ color:var(--c-brand) !important; }
 
 /* ── remove glass sheens / glows on corp surfaces ──────────────── */
 body.corp .ha-chip::before, body.corp .ha-chip::after, body.corp .hw-card::before, body.corp .hw-card::after,
@@ -18572,6 +18740,9 @@ body.corp .status-filter-btn.active{ background:var(--c-brand-tint) !important; 
 body.corp .mini-bar, body.corp .hist-bar, body.corp .ha-bar-fill{ background:var(--c-brand) !important; background-image:none !important; box-shadow:none !important; }
 body.corp .ha-bar-fill.today{ background:var(--c-bar) !important; }
 body.corp.dark .ha-bar-fill.today{ background:#fff !important; }
+
+/* ── record rows: proportional digits instead of the mono font ─── */
+body.corp .rec-item, body.corp .rec-item *, body.corp .live-status-bar, body.corp .live-status-bar *{ font-family:var(--font) !important; font-variant-numeric:tabular-nums; }
 
 /* ── badges / chips ──────────────────────────────────────────────── */
 body.corp .badge{ border-radius:4px !important; font-weight:600 !important; box-shadow:none !important; }

@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v280
-// Cache: rudy-static-v280, firebase-v280
-// Build: 2026-09-30 · v280 — Corporate (enterprise HR) theme as default; sky theme optional
+// RUDY · Service Worker v281
+// Cache: rudy-static-v281, firebase-v281
+// Build: 2026-09-30 · v281 — Home redesigned as an HR dashboard (status band, time clock, KPI row); widgets relocated
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v280';
-const FIREBASE_CACHE = 'firebase-v280';
-const RUNTIME_CACHE = 'rudy-runtime-v280';
+const STATIC_CACHE  = 'rudy-static-v281';
+const FIREBASE_CACHE = 'firebase-v281';
+const RUNTIME_CACHE = 'rudy-runtime-v281';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -61,12 +61,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v280] Installing...');
+  console.log('[SW v281] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v280] Precache partial fail (ok):', err);
+          console.warn('[SW v281] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -77,7 +77,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v280] Activating...');
+  console.log('[SW v281] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -85,7 +85,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v280] Deleting old cache:', name);
+              console.log('[SW v281] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -246,7 +246,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v280' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v281' });
     return;
   }
 });
@@ -269,7 +269,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v280] Push parse fail:', e);
+    console.warn('[SW v281] Push parse fail:', e);
   }
 });
 
@@ -289,4 +289,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v280] Loaded — AI quota-friendly retry');
+console.log('[SW v281] Loaded — AI quota-friendly retry');
