@@ -4142,7 +4142,7 @@ body.dark .slide-action{
 
     <div class="card">
       <div class="section-title">🌙 ธีม</div>
-      <button class="btn-primary" onclick="toggleSky()" id="sky-btn" style="background:linear-gradient(135deg,#2F6DB5,#7DB7E6);width:100%;margin-bottom:8px">🏢 ธีมองค์กร · เปลี่ยนเป็นท้องฟ้า</button>
+      <button class="btn-primary" onclick="cycleTheme()" id="sky-btn" style="background:linear-gradient(135deg,#2F6DB5,#7DB7E6);width:100%;margin-bottom:8px">🏢 ธีมองค์กร · เปลี่ยนเป็นท้องฟ้า</button>
       <button class="btn-primary" onclick="toggleDark()" id="theme-btn">เปลี่ยนเป็นโหมดสว่าง</button>
     </div>
 
@@ -10880,7 +10880,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v281';
+const APP_VERSION = 'v282';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -13075,7 +13075,7 @@ function launchConfetti(colors) {
   // v280: the neon rain is hidden in the corporate and sky themes — don't
   // burn battery drawing it every frame; check back every 1.5s instead.
   let idleT = 0;
-  function rainOff(){ const b = document.body; return !!b && (b.classList.contains('corp') || b.classList.contains('sky')); }
+  function rainOff(){ const b = document.body; return !!b && (b.classList.contains('corp') || b.classList.contains('sky') || b.classList.contains('lg')); }
 
   function loop(){
     ctx.clearRect(0, 0, W, H);
@@ -18541,7 +18541,7 @@ body.sky .lg-canvas{ display:none !important; }
 #page-home.hq #ha-week-delta{ display:none !important; }   /* repeated the weekly total */
 /* month/year pickers side by side, export buttons in one row */
 .filter-row > .sel{ flex:1 1 40%; min-width:0; }
-.filter-row > .btn-export{ flex:1 1 0; }
+.filter-row > .btn-export{ flex:1 1 28%; }
 </style>
 <style id="corp-theme">
 body.corp{
@@ -18760,6 +18760,190 @@ body.corp #ai-fab{ background:var(--c-brand) !important; box-shadow:0 4px 12px r
 /* ── toast ───────────────────────────────────────────────────────── */
 body.corp .toast{ border-radius:var(--r-sm) !important; box-shadow:var(--shadow-lg) !important; }
 </style>
+<!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+<!-- ║ v282 LIQUID GLASS THEME (body.lg) — iOS 26/27 idiom: pastel       ║ -->
+<!-- ║ wallpaper, translucent frosted cards with a specular top edge,    ║ -->
+<!-- ║ big radii, floating capsule tab bar with a glass lozenge, system  ║ -->
+<!-- ║ blue accent. Default look; corporate + sky stay in Settings.      ║ -->
+<!-- ║ CSS-only layer, like the corporate one.                           ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<style id="lg-theme">
+body.lg{
+  --g-bg:#E8EEF8;
+  --g-card:linear-gradient(180deg, rgba(255,255,255,0.66) 0%, rgba(255,255,255,0.40) 100%);
+  --g-card-solid:rgba(255,255,255,0.52);
+  --g-stroke:rgba(255,255,255,0.75); --g-stroke-2:rgba(255,255,255,0.45);
+  --g-hi:inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(255,255,255,0.30);
+  --g-shadow:0 10px 30px rgba(40,60,110,0.12), 0 2px 6px rgba(40,60,110,0.06);
+  --g-blur:blur(24px) saturate(185%);
+  --g-accent:#0A7CFF; --g-accent-2:#0063D6;
+  --ink:#0B1426; --ink-2:#1E2A3F; --ink-3:rgba(11,20,38,0.72); --ink-4:rgba(11,20,38,0.54); --ink-5:rgba(11,20,38,0.14);
+  --glass-1:rgba(255,255,255,0.55); --glass-2:rgba(255,255,255,0.45); --glass-3:rgba(255,255,255,0.32);
+  --glass-stroke:var(--g-stroke); --glass-stroke-dim:var(--g-stroke-2); --glass-inner:var(--g-hi);
+  --sys-gold:var(--g-accent); --sys-gold-2:var(--g-accent-2); --tint-gold:rgba(10,124,255,0.12);
+  --sys-blue:var(--g-accent); --sys-green:#1FA35A; --sys-red:#E5372C; --sys-orange:#E07B00; --sys-purple:#8E4EE6;
+  --r-xs:10px; --r-sm:14px; --r:20px; --r-lg:24px; --r-xl:28px; --r-2xl:34px;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Sarabun','Inter',sans-serif;
+  --font-display:-apple-system,BlinkMacSystemFont,'SF Pro Display','Sarabun','Inter',sans-serif;
+  --neon-glow:none;
+  --field-bg:rgba(255,255,255,0.62); --field-stroke:rgba(255,255,255,0.8);
+  --bg:var(--g-bg); --surface:var(--glass-2); --surface2:var(--glass-3); --surface3:var(--glass-3);
+  --border:var(--g-stroke-2); --border2:var(--g-stroke);
+  --accent:var(--g-accent); --accent2:var(--g-accent-2); --accent-light:rgba(10,124,255,0.12);
+  --green:var(--sys-green); --red:var(--sys-red); --yellow:var(--sys-orange); --purple:var(--sys-purple);
+  --text:var(--ink); --text2:var(--ink-3); --text3:var(--ink-4);
+  --radius:var(--r); --radius-sm:var(--r-sm); --radius-xs:var(--r-xs);
+  --lw-face-a:rgba(255,255,255,0.75); --lw-face-b:rgba(255,255,255,0.35); --lw-core:rgba(255,255,255,0.85);
+}
+body.lg.dark{
+  --g-bg:#070A12;
+  --g-card:linear-gradient(180deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.05) 100%);
+  --g-card-solid:rgba(255,255,255,0.08);
+  --g-stroke:rgba(255,255,255,0.20); --g-stroke-2:rgba(255,255,255,0.12);
+  --g-hi:inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.05);
+  --g-shadow:0 12px 34px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3);
+  --g-accent:#3D9BFF; --g-accent-2:#1F84FF;
+  --ink:#F4F6FA; --ink-2:#E3E8F0; --ink-3:rgba(244,246,250,0.80); --ink-4:rgba(244,246,250,0.60); --ink-5:rgba(244,246,250,0.16);
+  --glass-1:rgba(255,255,255,0.12); --glass-2:rgba(255,255,255,0.09); --glass-3:rgba(255,255,255,0.06);
+  --tint-gold:rgba(61,155,255,0.16); --accent-light:rgba(61,155,255,0.16);
+  --sys-green:#34D173; --sys-red:#FF6159; --sys-orange:#FFA53D; --sys-purple:#B78CFF;
+  --field-bg:rgba(255,255,255,0.08); --field-stroke:rgba(255,255,255,0.18);
+  --lw-face-a:rgba(255,255,255,0.12); --lw-face-b:rgba(255,255,255,0.03); --lw-core:rgba(0,0,0,0.45);
+}
+
+/* ── wallpaper (fixed layer behind everything) ───────────────────── */
+html:has(body.lg){ background:var(--g-bg, #E8EEF8); }
+body.lg, body.lg #app-shell{ background:transparent !important; background-image:none !important; font-family:var(--font) !important; color:var(--ink); }
+body.lg #app-shell::before, body.lg #app-shell::after, body.lg::after{ display:none !important; }
+body.lg::before{
+  content:"" !important; display:block !important; position:fixed !important; inset:0 !important; z-index:-1 !important;
+  pointer-events:none !important; opacity:1 !important; filter:none !important; transform:none !important; animation:none !important;
+  background:
+    radial-gradient(60% 45% at 12% 8%,  rgba(120,170,255,0.55) 0%, transparent 70%),
+    radial-gradient(55% 40% at 92% 22%, rgba(196,160,255,0.50) 0%, transparent 70%),
+    radial-gradient(60% 45% at 30% 78%, rgba(120,225,210,0.42) 0%, transparent 70%),
+    radial-gradient(50% 40% at 88% 92%, rgba(255,190,150,0.40) 0%, transparent 70%),
+    var(--g-bg) !important;
+}
+body.lg.dark::before{
+  background:
+    radial-gradient(60% 45% at 12% 8%,  rgba(40,90,220,0.45) 0%, transparent 70%),
+    radial-gradient(55% 40% at 92% 22%, rgba(120,60,200,0.40) 0%, transparent 70%),
+    radial-gradient(60% 45% at 30% 80%, rgba(0,140,150,0.32) 0%, transparent 70%),
+    radial-gradient(50% 40% at 88% 94%, rgba(200,80,90,0.26) 0%, transparent 70%),
+    var(--g-bg) !important;
+}
+body.lg .lg-canvas, body.lg .float-dot, body.lg #dm-bubbles, body.lg #dm-sparkles, body.lg #songkran-canvas{ display:none !important; }
+body.lg .tilt-card{ transform:none !important; }
+body.lg .hologram::before, body.lg .hologram::after, body.lg .clock-hero::before, body.lg .clock-hero::after{ display:none !important; }
+
+/* ── glass surfaces ──────────────────────────────────────────────── */
+body.lg .card, body.lg .hw-card, body.lg .clock-hero, body.lg .ha-chip, body.lg .sum-card, body.lg .stat-box,
+body.lg .emp-card, body.lg .team-card, body.lg .announce-card, body.lg .poll-card, body.lg .report-card,
+body.lg .ha-week, body.lg .sal-preview, body.lg .streak-card, body.lg .punct-card, body.lg .chart-card, body.lg .login-box{
+  background:var(--g-card) !important;
+  -webkit-backdrop-filter:var(--g-blur) !important; backdrop-filter:var(--g-blur) !important;
+  border:1px solid var(--g-stroke) !important; border-radius:var(--r-lg) !important;
+  box-shadow:var(--g-shadow), var(--g-hi) !important; color:var(--ink);
+}
+body.lg .card::before, body.lg .card::after, body.lg .hw-card::before, body.lg .hw-card::after,
+body.lg .ha-chip::before, body.lg .ha-chip::after, body.lg .login-box::before, body.lg .login-box::after{ display:none !important; }
+/* nested cards inside a card: lighter glass, no second blur */
+body.lg .card .card, body.lg .hq-tools .hw-card, body.lg .card .rec-item{ -webkit-backdrop-filter:none !important; backdrop-filter:none !important; background:rgba(255,255,255,0.35) !important; box-shadow:var(--g-hi) !important; border-radius:var(--r) !important; }
+body.lg.dark .card .card, body.lg.dark .hq-tools .hw-card, body.lg.dark .card .rec-item{ background:rgba(255,255,255,0.05) !important; }
+body.lg .sal-hero{ background:linear-gradient(135deg, rgba(10,124,255,0.85), rgba(120,90,255,0.80)) !important; border-radius:var(--r-lg) !important; box-shadow:0 12px 30px rgba(10,124,255,0.30), inset 0 1px 0 rgba(255,255,255,0.45) !important; }
+body.lg .clock-svg{ filter:drop-shadow(0 8px 20px rgba(40,60,110,0.18)) !important; }
+
+/* ── top bar: clear glass ─────────────────────────────────────────── */
+body.lg .topbar{ background:rgba(255,255,255,0.28) !important; -webkit-backdrop-filter:blur(30px) saturate(190%) !important; backdrop-filter:blur(30px) saturate(190%) !important; border-bottom:1px solid rgba(255,255,255,0.55) !important; box-shadow:none !important; }
+body.lg.dark .topbar{ background:rgba(10,14,24,0.35) !important; border-bottom-color:rgba(255,255,255,0.10) !important; }
+body.lg .topbar .logo-text span{ color:var(--g-accent) !important; -webkit-text-fill-color:var(--g-accent) !important; }
+body.lg .topbar .live-badge, body.lg .topbar .admin-badge, body.lg .topbar .icon-btn, body.lg .topbar .user-chip, body.lg .topbar .logout-btn{
+  background:rgba(255,255,255,0.40) !important; border:1px solid rgba(255,255,255,0.70) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.9) !important; }
+body.lg.dark .topbar .live-badge, body.lg.dark .topbar .admin-badge, body.lg.dark .topbar .icon-btn, body.lg.dark .topbar .user-chip, body.lg.dark .topbar .logout-btn{
+  background:rgba(255,255,255,0.10) !important; border-color:rgba(255,255,255,0.18) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.18) !important; }
+
+/* ── headings ─────────────────────────────────────────────────────── */
+body.lg .page-title{ font-size:32px !important; font-weight:800 !important; letter-spacing:-0.03em !important; background:none !important; -webkit-text-fill-color:currentColor !important; color:var(--ink) !important; text-shadow:none !important; }
+body.lg .hw-icon, body.lg .ha-chip-icon{ display:none !important; }
+
+/* ── floating capsule tab bar with a glass lozenge ────────────────── */
+body.lg .nav{
+  background:rgba(255,255,255,0.38) !important; background-image:none !important;
+  -webkit-backdrop-filter:blur(28px) saturate(200%) !important; backdrop-filter:blur(28px) saturate(200%) !important;
+  border:1px solid rgba(255,255,255,0.75) !important; border-radius:999px !important;
+  box-shadow:0 14px 36px rgba(40,60,110,0.20), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(255,255,255,0.35) !important;
+}
+body.lg.dark .nav{ background:rgba(20,26,40,0.45) !important; border-color:rgba(255,255,255,0.16) !important; box-shadow:0 14px 36px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.22) !important; }
+body.lg .nav-btn{ color:var(--ink-3) !important; }
+body.lg .nav-btn.active{
+  background:rgba(255,255,255,0.72) !important; color:var(--g-accent) !important;
+  box-shadow:0 4px 12px rgba(40,60,110,0.14), inset 0 1px 0 rgba(255,255,255,1), inset 0 0 0 1px rgba(255,255,255,0.8) !important;
+}
+body.lg.dark .nav-btn.active{ background:rgba(255,255,255,0.16) !important; box-shadow:0 4px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.30) !important; }
+body.lg .nav-btn.active::before{ display:none !important; }
+
+/* ── segmented controls (iOS) ─────────────────────────────────────── */
+body.lg .seg-control, body.lg .team-subtabs, body.lg .hwc-lb-tabs{
+  background:rgba(255,255,255,0.35) !important; border:1px solid rgba(255,255,255,0.7) !important; border-radius:999px !important;
+  -webkit-backdrop-filter:var(--g-blur) !important; backdrop-filter:var(--g-blur) !important; box-shadow:var(--g-hi) !important; padding:3px !important;
+}
+body.lg.dark .seg-control, body.lg.dark .team-subtabs, body.lg.dark .hwc-lb-tabs{ background:rgba(255,255,255,0.07) !important; border-color:rgba(255,255,255,0.14) !important; }
+body.lg .seg-tab, body.lg .team-subtab, body.lg .hwc-lb-tab{ border-radius:999px !important; color:var(--ink-3) !important; background:transparent !important; box-shadow:none !important; }
+body.lg .seg-tab.active, body.lg .team-subtab.active, body.lg .hwc-lb-tab.active{
+  background:rgba(255,255,255,0.88) !important; color:var(--ink) !important;
+  box-shadow:0 3px 10px rgba(40,60,110,0.14), inset 0 1px 0 #fff !important; }
+body.lg.dark .seg-tab.active, body.lg.dark .team-subtab.active, body.lg.dark .hwc-lb-tab.active{ background:rgba(255,255,255,0.20) !important; color:#fff !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.3) !important; }
+
+/* ── buttons ──────────────────────────────────────────────────────── */
+body.lg .btn-primary, body.lg .login-btn{
+  background:linear-gradient(180deg, #3A97FF 0%, #0A7CFF 100%) !important; color:#fff !important; border:1px solid rgba(255,255,255,0.35) !important;
+  border-radius:var(--r-sm) !important; box-shadow:0 8px 20px rgba(10,124,255,0.30), inset 0 1px 0 rgba(255,255,255,0.45) !important; text-shadow:none !important; }
+body.lg .btn-primary::before, body.lg .btn-primary::after, body.lg .login-btn::before, body.lg .login-btn::after{ display:none !important; }
+body.lg .btn-secondary, body.lg .btn-forgot, body.lg .btn-register, body.lg .btn-export, body.lg .status-filter-btn, body.lg .hq-face-btn{
+  background:rgba(255,255,255,0.45) !important; border:1px solid rgba(255,255,255,0.8) !important; color:var(--ink) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.95) !important; border-radius:var(--r-sm) !important; }
+body.lg.dark .btn-secondary, body.lg.dark .btn-forgot, body.lg.dark .btn-register, body.lg.dark .btn-export, body.lg.dark .status-filter-btn, body.lg.dark .hq-face-btn{
+  background:rgba(255,255,255,0.08) !important; border-color:rgba(255,255,255,0.16) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.18) !important; }
+body.lg .status-filter-btn.active{ background:rgba(10,124,255,0.16) !important; color:var(--g-accent) !important; border-color:rgba(10,124,255,0.35) !important; }
+
+/* ── inputs ───────────────────────────────────────────────────────── */
+body.lg .sel, body.lg .form-inp, body.lg .login-inp, body.lg .modal-inp, body.lg textarea{
+  background:var(--field-bg) !important; border:1px solid var(--field-stroke) !important; border-radius:var(--r-sm) !important;
+  box-shadow:inset 0 1px 2px rgba(40,60,110,0.06) !important; color:var(--ink) !important; }
+
+/* ── home dashboard ───────────────────────────────────────────────── */
+body.lg #page-home.hq .hq-hero{ background:transparent !important; }
+body.lg .hq-status{ background:rgba(255,255,255,0.50); border:1px solid rgba(255,255,255,0.8); box-shadow:inset 0 1px 0 #fff; color:var(--ink); -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur); }
+body.lg.dark .hq-status{ background:rgba(255,255,255,0.10); border-color:rgba(255,255,255,0.18); box-shadow:inset 0 1px 0 rgba(255,255,255,0.2); }
+body.lg .ha-greet-name .accent{ color:var(--g-accent) !important; -webkit-text-fill-color:var(--g-accent) !important; }
+body.lg .ha-chip{ border-radius:var(--r) !important; }
+body.lg .ha-chip-value{ text-shadow:none !important; }
+body.lg .slide-action{ background:rgba(255,255,255,0.40) !important; border:1px solid rgba(255,255,255,0.75) !important; box-shadow:inset 0 1px 2px rgba(40,60,110,0.08) !important; }
+body.lg.dark .slide-action{ background:rgba(255,255,255,0.07) !important; border-color:rgba(255,255,255,0.14) !important; }
+body.lg .slide-thumb{ box-shadow:0 6px 16px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.5) !important; }
+body.lg .hw-countdown-time{ background:none !important; -webkit-text-fill-color:currentColor !important; color:var(--g-accent) !important; }
+body.lg .hw-countdown-time.ot{ color:var(--sys-orange) !important; }
+body.lg .hw-countdown-time.done{ color:var(--sys-green) !important; }
+body.lg .hw-progress-bar{ background:rgba(120,140,180,0.18) !important; }
+body.lg .hw-progress-fill{ background:linear-gradient(90deg, #5AB0FF, #0A7CFF) !important; }
+body.lg .mini-bar, body.lg .ha-bar-fill{ background:linear-gradient(180deg, #5AB0FF, #0A7CFF) !important; border-radius:6px 6px 3px 3px !important; }
+body.lg .hwc-lb-leader{ background:rgba(255,255,255,0.35) !important; border:1px solid rgba(255,255,255,0.7) !important; }
+body.lg.dark .hwc-lb-leader{ background:rgba(255,255,255,0.06) !important; border-color:rgba(255,255,255,0.14) !important; }
+body.lg .streak-num{ text-shadow:none !important; }
+body.lg .punct-ring, body.lg .punct-ring svg{ filter:none !important; background:none !important; }
+body.lg .rec-item, body.lg .rec-item *, body.lg .live-status-bar, body.lg .live-status-bar *{ font-family:var(--font) !important; font-variant-numeric:tabular-nums; }
+
+/* ── AI button: glass orb ─────────────────────────────────────────── */
+body.lg #ai-fab{ background:linear-gradient(180deg, rgba(90,150,255,0.95), rgba(120,80,255,0.95)) !important;
+  box-shadow:0 10px 26px rgba(80,90,255,0.40), inset 0 1px 0 rgba(255,255,255,0.55) !important; border:1px solid rgba(255,255,255,0.5) !important; }
+body.lg .modal, body.lg .modal-sheet, body.lg .modal-content, body.lg .sheet{
+  background:rgba(255,255,255,0.78) !important; -webkit-backdrop-filter:blur(30px) saturate(190%) !important; backdrop-filter:blur(30px) saturate(190%) !important;
+  border:1px solid rgba(255,255,255,0.8) !important; border-radius:var(--r-xl) !important; }
+body.lg.dark .modal, body.lg.dark .modal-sheet, body.lg.dark .modal-content, body.lg.dark .sheet{ background:rgba(24,28,40,0.82) !important; border-color:rgba(255,255,255,0.14) !important; }
+body.lg .login-logo-mark{ background:linear-gradient(180deg, #3A97FF, #0A7CFF) !important; box-shadow:0 8px 20px rgba(10,124,255,0.30), inset 0 1px 0 rgba(255,255,255,0.5) !important; }
+</style>
+
 
 <script>
 // PHASE H — SKY THEME (v256). Sandboxed: any failure leaves the normal theme.
@@ -19094,16 +19278,34 @@ body.corp .toast{ border-radius:var(--r-sm) !important; box-shadow:var(--shadow-
       try { renderScene(ph); } catch(e){ console.warn('[SKY] scene', e); }
       try { glKick(); } catch(_){}   // restart the GL loop after sky off→on
     }
+    // v282: three looks — Liquid Glass (default), corporate, weather sky.
+    function uiTheme(){ try { return localStorage.getItem('tt_ui') === 'corp' ? 'corp' : 'glass'; } catch(e){ return 'glass'; } }
     function updateBtn(){
       var btn = document.getElementById('sky-btn');
-      if(btn) btn.textContent = skyOn() ? '🌤 ธีมท้องฟ้า · เปลี่ยนเป็นองค์กร' : '🏢 ธีมองค์กร · เปลี่ยนเป็นท้องฟ้า';
+      var cur = skyOn() ? 'sky' : uiTheme();
+      var name = { glass:'💎 Liquid Glass', corp:'🏢 องค์กร', sky:'🌤 ท้องฟ้า' };
+      var next = { glass:'corp', corp:'sky', sky:'glass' };
+      if(btn) btn.textContent = 'ธีม: ' + name[cur] + ' · แตะเพื่อเปลี่ยนเป็น ' + name[next[cur]];
     }
+    window.cycleTheme = function(){
+      var cur = skyOn() ? 'sky' : uiTheme();
+      try {
+        if(cur === 'glass'){ localStorage.setItem('tt_ui','corp'); localStorage.setItem('tt_sky','0'); }
+        else if(cur === 'corp'){ localStorage.setItem('tt_sky','1'); }
+        else { localStorage.setItem('tt_sky','0'); localStorage.setItem('tt_ui','glass'); }
+      } catch(e){}
+      apply();
+      if(skyOn()) fetchWx(false);
+      try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+    };
     // v280: corporate theme = whenever the sky is off. Page titles drop their
     // leading emoji (kept in data-orig and restored for the sky theme), and
     // the iOS status-bar colour follows the navy app bar.
     function corpApply(on){
       var b = document.body; if(!b) return;
-      b.classList.toggle('corp', !!on);
+      var glass = !!on && uiTheme() === 'glass';
+      b.classList.toggle('corp', !!on && !glass);
+      b.classList.toggle('lg', glass);
       try {
         document.querySelectorAll('.page-title').forEach(function(t){
           if(on){
@@ -19116,7 +19318,8 @@ body.corp .toast{ border-radius:var(--r-sm) !important; box-shadow:var(--shadow-
       } catch(e){}
       try {
         var m = document.querySelector('meta[name="theme-color"]');
-        if(m){ if(m.dataset.orig == null) m.dataset.orig = m.getAttribute('content'); m.setAttribute('content', on ? (b.classList.contains('dark') ? '#0B1D33' : '#0B2545') : m.dataset.orig); }
+        var dk = b.classList.contains('dark');
+        if(m){ if(m.dataset.orig == null) m.dataset.orig = m.getAttribute('content'); m.setAttribute('content', !on ? m.dataset.orig : glass ? (dk ? '#070A12' : '#E8EEF8') : (dk ? '#0B1D33' : '#0B2545')); }
       } catch(e){}
     }
     function apply(){
