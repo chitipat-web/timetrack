@@ -4133,7 +4133,7 @@ body.dark .slide-action{
 
     <div class="card">
       <div class="section-title">🌙 ธีม</div>
-      <button class="btn-primary" onclick="toggleSky()" id="sky-btn" style="background:linear-gradient(135deg,#2F6DB5,#7DB7E6);width:100%;margin-bottom:8px">🌤 ธีมท้องฟ้า: เปิด</button>
+      <button class="btn-primary" onclick="toggleSky()" id="sky-btn" style="background:linear-gradient(135deg,#2F6DB5,#7DB7E6);width:100%;margin-bottom:8px">🏢 ธีมองค์กร · เปลี่ยนเป็นท้องฟ้า</button>
       <button class="btn-primary" onclick="toggleDark()" id="theme-btn">เปลี่ยนเป็นโหมดสว่าง</button>
     </div>
 
@@ -10866,7 +10866,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v279';
+const APP_VERSION = 'v280';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -13058,9 +13058,14 @@ function launchConfetti(colors) {
   for(let i=0; i<NUM_DROPS; i++) drops.push(new NeonDrop());
   let glitches = [];
   let frameCount = 0;
+  // v280: the neon rain is hidden in the corporate and sky themes — don't
+  // burn battery drawing it every frame; check back every 1.5s instead.
+  let idleT = 0;
+  function rainOff(){ const b = document.body; return !!b && (b.classList.contains('corp') || b.classList.contains('sky')); }
 
   function loop(){
     ctx.clearRect(0, 0, W, H);
+    if(rainOff()){ clearTimeout(idleT); idleT = setTimeout(loop, 1500); return; }
     frameCount++;
 
     // Spawn glitch lines randomly
@@ -13073,8 +13078,8 @@ function launchConfetti(colors) {
   }
 
   document.addEventListener('visibilitychange',()=>{
-    if(document.hidden){ cancelAnimationFrame(animId); }
-    else { loop(); }
+    cancelAnimationFrame(animId); clearTimeout(idleT);
+    if(!document.hidden){ loop(); }
   });
   loop();
 })();
@@ -18380,6 +18385,211 @@ body.sky .lg-canvas{ display:none !important; }
   .sky-drop{ display:none; }
 }
 </style>
+<!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+<!-- ║ v280 CORPORATE THEME (body.corp) — enterprise HR look (Microsoft / ║ -->
+<!-- ║ SAP / Workday idiom): navy app bar, flat white cards with thin     ║ -->
+<!-- ║ borders, underline tabs, full-width bottom bar, solid brand blue.  ║ -->
+<!-- ║ Default theme; the weather sky stays available (Settings → ธีม),   ║ -->
+<!-- ║ body.corp is set whenever the sky is off. Pure CSS overrides — no  ║ -->
+<!-- ║ markup or logic changed, so switching back is lossless.            ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+<style id="corp-theme">
+body.corp{
+  --c-bg:#F3F4F6; --c-surface:#FFFFFF; --c-surface-2:#F7F8FA; --c-border:#E2E5E9; --c-border-2:#CDD2D8;
+  --c-ink:#1B1F24; --c-ink-2:#2F3742; --c-ink-3:#545E6B; --c-ink-4:#737D8A;
+  --c-brand:#0F5FB8; --c-brand-2:#0B4A91; --c-brand-tint:#E7F0FA;
+  --c-bar:#0B2545; --c-bar-2:#12345F; --c-bar-ink:#FFFFFF;
+  --c-ok:#107C41; --c-bad:#C42B1C; --c-warn:#B45309; --c-violet:#5B4BB7;
+  /* map the app's tokens onto the corporate palette */
+  --bg-base:var(--c-bg); --bg-mesh-1:var(--c-bg); --bg-mesh-2:var(--c-bg); --bg-mesh-3:var(--c-bg); --bg-mesh-4:var(--c-bg);
+  --glass-1:var(--c-surface); --glass-2:var(--c-surface); --glass-3:var(--c-surface-2);
+  --glass-stroke:var(--c-border); --glass-stroke-dim:var(--c-border); --glass-inner:none;
+  --blur-chrome:none; --blur-card:none; --blur-light:none;
+  --ink:var(--c-ink); --ink-2:var(--c-ink-2); --ink-3:var(--c-ink-3); --ink-4:var(--c-ink-4); --ink-5:rgba(27,31,36,0.14);
+  --sys-gold:var(--c-brand); --sys-gold-2:var(--c-brand-2); --tint-gold:var(--c-brand-tint);
+  --sys-blue:var(--c-brand); --sys-blue-2:var(--c-brand-2);
+  --sys-green:var(--c-ok); --sys-red:var(--c-bad); --sys-orange:var(--c-warn); --sys-purple:var(--c-violet); --sys-indigo:var(--c-brand);
+  --tint-blue:var(--c-brand-tint); --tint-green:rgba(16,124,65,0.10); --tint-red:rgba(196,43,28,0.10); --tint-orange:rgba(180,83,9,0.10); --tint-purple:rgba(91,75,183,0.10);
+  --shadow-sm:0 1px 2px rgba(16,24,40,0.05); --shadow:0 1px 3px rgba(16,24,40,0.08), 0 1px 2px rgba(16,24,40,0.04);
+  --shadow-lg:0 4px 12px rgba(16,24,40,0.10); --shadow-xl:0 12px 32px rgba(16,24,40,0.16);
+  --r-xs:4px; --r-sm:6px; --r:8px; --r-lg:10px; --r-xl:12px; --r-2xl:14px;
+  --font:'Inter','Sarabun',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-display:'Inter','Sarabun',-apple-system,BlinkMacSystemFont,sans-serif;
+  --neon-glow:none;
+  --field-bg:#FFFFFF; --field-stroke:var(--c-border-2);
+  /* re-alias (custom properties resolve at their declaring scope) */
+  --bg:var(--bg-base); --surface:var(--c-surface); --surface2:var(--c-surface-2); --surface3:var(--c-surface-2);
+  --border:var(--c-border); --border2:var(--c-border-2);
+  --accent:var(--c-brand); --accent2:var(--c-brand-2); --accent-light:var(--c-brand-tint);
+  --green:var(--c-ok); --green-light:var(--tint-green); --red:var(--c-bad); --red-light:var(--tint-red);
+  --yellow:var(--c-warn); --yellow-light:var(--tint-orange); --purple:var(--c-violet); --purple-light:var(--tint-purple);
+  --text:var(--ink); --text2:var(--ink-3); --text3:var(--ink-4);
+  --radius:var(--r); --radius-sm:var(--r-sm); --radius-xs:var(--r-xs);
+  --lw-face-a:#FFFFFF; --lw-face-b:#F4F6F8; --lw-core:rgba(255,255,255,0.85);
+}
+body.corp.dark{
+  --c-bg:#0F1216; --c-surface:#181C21; --c-surface-2:#1F242A; --c-border:#2A3037; --c-border-2:#39414A;
+  --c-ink:#E6E9ED; --c-ink-2:#D2D7DD; --c-ink-3:#A9B1BB; --c-ink-4:#8A939E;
+  --c-brand:#4C9AFF; --c-brand-2:#2F7FE6; --c-brand-tint:rgba(76,154,255,0.14);
+  --c-bar:#0B1D33; --c-bar-2:#10294A;
+  --c-ok:#4CC38A; --c-bad:#FF6B5E; --c-warn:#F0A04B; --c-violet:#A493FF;
+  --ink-5:rgba(230,233,237,0.14);
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.4); --shadow:0 1px 3px rgba(0,0,0,0.45);
+  --shadow-lg:0 6px 16px rgba(0,0,0,0.5); --shadow-xl:0 16px 40px rgba(0,0,0,0.6);
+  --field-bg:var(--c-surface-2);
+  --lw-face-a:#1F242A; --lw-face-b:#15191D; --lw-core:rgba(0,0,0,0.5);
+}
+
+/* ── canvas: flat, no mesh / glass / ambient effects ─────────────── */
+html:has(body.corp){ background:var(--c-bg); }
+body.corp, body.corp #app-shell{ background:var(--c-bg) !important; background-image:none !important; font-family:var(--font) !important; color:var(--c-ink); }
+body.corp::before, body.corp::after, body.corp #app-shell::before, body.corp #app-shell::after{ display:none !important; }
+body.corp .lg-canvas, body.corp .float-dot, body.corp #dm-bubbles, body.corp #dm-sparkles, body.corp #songkran-canvas{ display:none !important; }
+body.corp .tilt-card{ transform:none !important; }
+body.corp .card:active, body.corp .stat-box:active, body.corp .emp-card:active, body.corp .team-card:active, body.corp .announce-card:active, body.corp .poll-card:active, body.corp .report-card:active{ transform:none !important; }
+body.corp .punct-ring::before, body.corp .punct-ring::after{ display:none !important; }
+body.corp .hologram::before, body.corp .hologram::after,
+body.corp .clock-hero::before, body.corp .clock-hero::after,
+body.corp .card::before, body.corp .card::after{ display:none !important; }
+body.corp *{ -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
+
+/* ── app bar: solid navy, white text ─────────────────────────────── */
+body.corp .topbar{
+  background:var(--c-bar) !important; border-bottom:1px solid rgba(0,0,0,0.18) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,0.04) inset, 0 2px 6px rgba(11,37,69,0.18) !important;
+  color:var(--c-bar-ink) !important;
+}
+body.corp .topbar .logo-text, body.corp .topbar .logo-text span{ color:#fff !important; -webkit-text-fill-color:#fff !important; background:none !important; letter-spacing:0.06em; font-weight:800; }
+body.corp .topbar .logo-mark{ box-shadow:none !important; }
+body.corp .topbar .live-badge{ background:rgba(255,255,255,0.10) !important; border:1px solid rgba(255,255,255,0.22) !important; box-shadow:none !important; }
+body.corp .topbar .live-text{ color:#fff !important; }
+body.corp .topbar .admin-badge{ background:rgba(255,255,255,0.10) !important; border-color:rgba(255,255,255,0.22) !important; }
+body.corp .topbar .icon-btn, body.corp .topbar .logout-btn, body.corp .topbar .user-chip{
+  background:rgba(255,255,255,0.08) !important; border:1px solid rgba(255,255,255,0.20) !important;
+  color:#fff !important; box-shadow:none !important;
+}
+body.corp .topbar .user-chip-name, body.corp .topbar .logout-text{ color:#fff !important; }
+
+/* ── page headings ───────────────────────────────────────────────── */
+body.corp .page-title{ font-size:24px !important; font-weight:700 !important; letter-spacing:-0.01em !important; color:var(--c-ink) !important; background:none !important; -webkit-text-fill-color:currentColor !important; text-shadow:none !important; }
+body.corp .page-subtitle{ font-size:13px !important; color:var(--c-ink-4) !important; }
+body.corp .section-title, body.corp .section-label, body.corp .ha-section-title, body.corp .hw-title{ color:var(--c-ink-2) !important; font-weight:700 !important; letter-spacing:0 !important; text-transform:none; }
+body.corp .section-label{ font-size:12px !important; text-transform:uppercase; letter-spacing:0.06em !important; color:var(--c-ink-4) !important; }
+body.corp .hw-icon, body.corp .ha-chip-icon{ display:none !important; }
+
+/* ── surfaces: flat white cards, thin border ─────────────────────── */
+body.corp .card, body.corp .hw-card, body.corp .clock-hero, body.corp .ha-chip, body.corp .sum-card,
+body.corp .stat-box, body.corp .emp-card, body.corp .team-card, body.corp .announce-card, body.corp .poll-card,
+body.corp .report-card, body.corp .ha-week, body.corp .ha-streak, body.corp .ha-card, body.corp .sal-preview,
+body.corp .streak-card, body.corp .punct-card{
+  background:var(--c-surface) !important; background-image:none !important;
+  border:1px solid var(--c-border) !important; border-radius:var(--r-lg) !important;
+  box-shadow:var(--shadow-sm) !important; color:var(--c-ink);
+  animation:none !important;
+}
+body.corp .sal-hero{ background:var(--c-bar) !important; background-image:none !important; border-radius:var(--r-lg) !important; box-shadow:none !important; color:#fff !important; }
+body.corp .sal-hero *{ color:#fff !important; }
+body.corp .clock-hero{ padding:16px !important; }
+body.corp .clock-svg{ filter:none !important; }
+body.corp .punct-ring, body.corp .punct-ring svg{ filter:none !important; box-shadow:none !important; background:none !important; }
+body.corp .streak-num{ color:var(--c-warn) !important; background:none !important; -webkit-text-fill-color:currentColor !important; text-shadow:none !important; }
+body.corp .streak-flame{ filter:none !important; animation:none !important; }
+body.corp .modal, body.corp .modal-sheet, body.corp .modal-content, body.corp .sheet{
+  background:var(--c-surface) !important; background-image:none !important; border:1px solid var(--c-border) !important; box-shadow:var(--shadow-xl) !important;
+}
+
+/* ── inputs / selects ────────────────────────────────────────────── */
+body.corp .sel, body.corp .form-inp, body.corp .login-inp, body.corp .modal-inp, body.corp select, body.corp input[type=text], body.corp input[type=number], body.corp input[type=time], body.corp input[type=date], body.corp textarea{
+  background:var(--field-bg) !important; border:1px solid var(--field-stroke) !important; border-radius:var(--r-sm) !important;
+  box-shadow:none !important; color:var(--c-ink) !important; font-family:var(--font) !important;
+}
+body.corp .sel:focus, body.corp .form-inp:focus, body.corp input:focus, body.corp select:focus, body.corp textarea:focus{ outline:2px solid var(--c-brand) !important; outline-offset:0; border-color:var(--c-brand) !important; }
+
+/* ── buttons ─────────────────────────────────────────────────────── */
+body.corp .btn-primary{
+  background:var(--c-brand) !important; background-image:none !important; color:#fff !important;
+  border:1px solid var(--c-brand) !important; border-radius:var(--r-sm) !important; box-shadow:none !important;
+  font-weight:600 !important; text-shadow:none !important;
+}
+body.corp .btn-primary:active{ background:var(--c-brand-2) !important; }
+body.corp .btn-secondary, body.corp .btn-ghost, body.corp .btn-outline{
+  background:var(--c-surface) !important; background-image:none !important; color:var(--c-brand) !important;
+  border:1px solid var(--c-border-2) !important; border-radius:var(--r-sm) !important; box-shadow:none !important; font-weight:600 !important;
+}
+
+/* ── tabs: underline style ───────────────────────────────────────── */
+body.corp .seg-control{ background:transparent !important; border:none !important; border-bottom:1px solid var(--c-border) !important; border-radius:0 !important; padding:0 !important; gap:0 !important; }
+body.corp .seg-tab{ border-radius:0 !important; color:var(--c-ink-3) !important; padding:10px 8px !important; border-bottom:2px solid transparent !important; margin-bottom:-1px; }
+body.corp .seg-tab.active{ background:transparent !important; color:var(--c-brand) !important; border-bottom-color:var(--c-brand) !important; box-shadow:none !important; }
+
+/* ── list rows (More / settings) ─────────────────────────────────── */
+body.corp .more-row{ border-bottom:1px solid var(--c-border) !important; color:var(--c-ink) !important; }
+body.corp .more-row-lbl{ font-weight:600; }
+body.corp .more-row-chev{ color:var(--c-ink-4) !important; }
+
+/* ── bottom navigation: full-width bar ───────────────────────────── */
+body.corp .nav{
+  left:0 !important; right:0 !important; bottom:0 !important; transform:none !important;
+  width:100% !important; max-width:none !important; justify-content:space-around !important;
+  border-radius:0 !important; border:none !important; border-top:1px solid var(--c-border) !important;
+  background:var(--c-surface) !important; background-image:none !important;
+  box-shadow:0 -1px 3px rgba(16,24,40,0.05) !important;
+  padding:4px 4px calc(env(safe-area-inset-bottom, 0px) + 4px) !important; gap:0 !important;
+}
+body.corp .nav-btn{ flex:1 1 0 !important; border-radius:0 !important; color:var(--c-ink-4) !important; padding:8px 4px 6px !important; background:transparent !important; box-shadow:none !important; transform:none !important; position:relative; }
+body.corp .nav-btn.active{ background:transparent !important; color:var(--c-brand) !important; box-shadow:none !important; }
+body.corp .nav-btn.active::before{ content:"" !important; display:block !important; position:absolute !important; top:-4px !important; left:28% !important; right:28% !important; height:3px !important; background:var(--c-brand) !important; border-radius:0 0 3px 3px !important; }
+body.corp .page{ padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 96px) !important; }
+
+/* ── home ────────────────────────────────────────────────────────── */
+body.corp .ha-greet-name .accent, body.corp .wc-name-gradient{ color:var(--c-brand) !important; background:none !important; -webkit-text-fill-color:currentColor !important; }
+body.corp .ha-greet-avatar, body.corp .welcome-av{ box-shadow:none !important; border:1px solid var(--c-border) !important; }
+body.corp .ha-chip-label{ color:var(--c-ink-4) !important; font-weight:600 !important; text-transform:uppercase; font-size:11px !important; letter-spacing:0.04em; }
+body.corp .ha-chip-value{ color:var(--c-ink) !important; font-variant-numeric:tabular-nums; text-shadow:none !important; }
+body.corp .ha-chip.green .ha-chip-value{ color:var(--c-ok) !important; }
+body.corp .ha-chip.orange .ha-chip-value{ color:var(--c-warn) !important; }
+body.corp .ha-chip.purple .ha-chip-value{ color:var(--c-violet) !important; }
+body.corp .slide-action{ background:var(--c-surface-2) !important; border:1px solid var(--c-border) !important; box-shadow:none !important; border-radius:var(--r-lg) !important; }
+body.corp .slide-thumb{ border-radius:var(--r-sm) !important; box-shadow:none !important; }
+body.corp .slide-label{ color:var(--c-ink-2) !important; text-shadow:none !important; }
+body.corp .hw-progress-bar{ background:var(--c-surface-2) !important; border-radius:2px !important; }
+body.corp .hw-progress-fill{ border-radius:2px !important; box-shadow:none !important; }
+body.corp .hw-countdown-time, body.corp .hw-compare-num, body.corp .hwb-goal-num{ text-shadow:none !important; font-variant-numeric:tabular-nums; }
+
+/* ── remove glass sheens / glows on corp surfaces ──────────────── */
+body.corp .ha-chip::before, body.corp .ha-chip::after, body.corp .hw-card::before, body.corp .hw-card::after,
+body.corp .sum-card::before, body.corp .sum-card::after, body.corp .btn-primary::before, body.corp .btn-primary::after,
+body.corp .login-btn::before, body.corp .login-btn::after{ display:none !important; }
+
+/* ── team page: underline sub-tabs, flat filter chips ────────────── */
+body.corp .team-subtabs{ background:var(--c-bg) !important; border:none !important; border-bottom:1px solid var(--c-border) !important; border-radius:0 !important; padding:0 !important; gap:0 !important; top:0 !important; }
+body.corp .team-subtab{ border-radius:0 !important; color:var(--c-ink-3) !important; border-bottom:2px solid transparent !important; margin-bottom:-1px; }
+body.corp .team-subtab.active{ background:transparent !important; color:var(--c-brand) !important; border-bottom-color:var(--c-brand) !important; box-shadow:none !important; }
+body.corp .status-filter-btn{ background:var(--c-surface) !important; border:1px solid var(--c-border-2) !important; border-radius:var(--r-sm) !important; color:var(--c-ink-2) !important; box-shadow:none !important; }
+body.corp .status-filter-btn.active{ background:var(--c-brand-tint) !important; border-color:var(--c-brand) !important; color:var(--c-brand) !important; }
+
+/* ── charts: flat bars ───────────────────────────────────────────── */
+body.corp .mini-bar, body.corp .hist-bar, body.corp .ha-bar-fill{ background:var(--c-brand) !important; background-image:none !important; box-shadow:none !important; }
+body.corp .ha-bar-fill.today{ background:var(--c-bar) !important; }
+body.corp.dark .ha-bar-fill.today{ background:#fff !important; }
+
+/* ── badges / chips ──────────────────────────────────────────────── */
+body.corp .badge{ border-radius:4px !important; font-weight:600 !important; box-shadow:none !important; }
+
+/* ── login ───────────────────────────────────────────────────────── */
+body.corp .login-box{ background:var(--c-surface) !important; background-image:none !important; border:1px solid var(--c-border) !important; border-radius:var(--r-xl) !important; box-shadow:var(--shadow-lg) !important; }
+body.corp .login-box::before, body.corp .login-box::after{ display:none !important; }
+body.corp .login-logo-mark{ background:var(--c-bar) !important; background-image:none !important; box-shadow:none !important; border-radius:var(--r) !important; }
+body.corp .login-btn{ background:var(--c-brand) !important; background-image:none !important; color:#fff !important; border:1px solid var(--c-brand) !important; border-radius:var(--r-sm) !important; box-shadow:none !important; text-shadow:none !important; }
+body.corp .btn-forgot, body.corp .btn-register{ background:var(--c-surface) !important; background-image:none !important; color:var(--c-brand) !important; border:1px solid var(--c-border-2) !important; border-radius:var(--r-sm) !important; box-shadow:none !important; }
+
+/* ── AI button: brand, calmer ────────────────────────────────────── */
+body.corp #ai-fab{ background:var(--c-brand) !important; box-shadow:0 4px 12px rgba(15,95,184,0.35) !important; width:52px !important; height:52px !important; font-size:24px !important; bottom:calc(env(safe-area-inset-bottom,0px) + 76px) !important; }
+
+/* ── toast ───────────────────────────────────────────────────────── */
+body.corp .toast{ border-radius:var(--r-sm) !important; box-shadow:var(--shadow-lg) !important; }
+</style>
+
 <script>
 // PHASE H — SKY THEME (v256). Sandboxed: any failure leaves the normal theme.
 (function(){
@@ -18394,7 +18604,8 @@ body.sky .lg-canvas{ display:none !important; }
       dusk:  ['#2A2A5C','#6E4A7E','#C77A56','rgba(40,20,50,0.30)','rgba(40,20,50,0.36)','rgba(40,20,50,0.20)','rgba(55,32,70,0.95)'],
       night: ['#070B1C','#121A3A','#23305E','rgba(255,255,255,0.08)','rgba(255,255,255,0.12)','rgba(255,255,255,0.05)','rgba(18,26,56,0.95)']
     };
-    function skyOn(){ try { return localStorage.getItem('tt_sky') !== '0'; } catch(e){ return true; } }
+    // v280: the corporate theme is the default; the sky is opt-in (tt_sky='1')
+    function skyOn(){ try { return localStorage.getItem('tt_sky') === '1'; } catch(e){ return false; } }
     function israelNow(){
       try {
         var parts = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
@@ -18714,7 +18925,28 @@ body.sky .lg-canvas{ display:none !important; }
     }
     function updateBtn(){
       var btn = document.getElementById('sky-btn');
-      if(btn) btn.textContent = skyOn() ? '🌤 ธีมท้องฟ้า: เปิด' : '🌤 ธีมท้องฟ้า: ปิด';
+      if(btn) btn.textContent = skyOn() ? '🌤 ธีมท้องฟ้า · เปลี่ยนเป็นองค์กร' : '🏢 ธีมองค์กร · เปลี่ยนเป็นท้องฟ้า';
+    }
+    // v280: corporate theme = whenever the sky is off. Page titles drop their
+    // leading emoji (kept in data-orig and restored for the sky theme), and
+    // the iOS status-bar colour follows the navy app bar.
+    function corpApply(on){
+      var b = document.body; if(!b) return;
+      b.classList.toggle('corp', !!on);
+      try {
+        document.querySelectorAll('.page-title').forEach(function(t){
+          if(on){
+            if(t.dataset.orig == null) t.dataset.orig = t.textContent;
+            t.textContent = t.dataset.orig.replace(/^[^\p{L}\p{N}]+/u, '');
+          } else if(t.dataset.orig != null){
+            t.textContent = t.dataset.orig;
+          }
+        });
+      } catch(e){}
+      try {
+        var m = document.querySelector('meta[name="theme-color"]');
+        if(m){ if(m.dataset.orig == null) m.dataset.orig = m.getAttribute('content'); m.setAttribute('content', on ? (b.classList.contains('dark') ? '#0B1D33' : '#0B2545') : m.dataset.orig); }
+      } catch(e){}
     }
     function apply(){
       var b = document.body; if(!b) return;
@@ -18729,6 +18961,7 @@ body.sky .lg-canvas{ display:none !important; }
         // restore the user's own light/dark choice
         if(typeof window._skyOrigInitDark === 'function') window._skyOrigInitDark();
       }
+      corpApply(!skyOn());   // v280: after the light/dark restore, so the status-bar colour matches
       updateBtn();
     }
     function fetchWx(force){
@@ -18758,6 +18991,11 @@ body.sky .lg-canvas{ display:none !important; }
       try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
     };
     window.skyApply = apply;
+    // v280: keep the corporate status-bar colour in step with light/dark
+    if(typeof window.toggleDark === 'function' && !window._corpOrigToggleDark){
+      window._corpOrigToggleDark = window.toggleDark;
+      window.toggleDark = function(){ window._corpOrigToggleDark.apply(this, arguments); if(!skyOn()) corpApply(true); };
+    }
     // initDark (called from initApp) would reset .dark from tt_dark — re-apply sky after it.
     if(typeof window.initDark === 'function' && !window._skyOrigInitDark){
       window._skyOrigInitDark = window.initDark;
