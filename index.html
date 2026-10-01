@@ -10948,7 +10948,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v288';
+const APP_VERSION = 'v289';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19119,7 +19119,34 @@ body:not(.lg) .lg-level{ opacity:.45; }
 #ai-modal .ai-send:active{ transform:scale(0.92); }
 /* v287 role-aware chips/subtitle */
 body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:none !important; }
-@media (prefers-reduced-motion: reduce){ #ai-modal .ai-glow, #ai-modal .ai-orb, #ai-modal .ai-thinking span{ animation:none !important; } }
+/* v289: playful "ดุ๊กดิ๊ก" motion — FAB floats, wiggles every few seconds, sparkle twinkles */
+#ai-fab#ai-fab{ animation:aiFabBob 6s ease-in-out infinite; transform-origin:50% 80%; will-change:transform; -webkit-tap-highlight-color:transparent; }
+#ai-fab#ai-fab:active{ animation:none; transform:scale(.88); transition:transform .12s; }
+#ai-fab svg{ animation:aiTwinkle 3s ease-in-out infinite; transform-origin:50% 50%; }
+@keyframes aiFabBob{
+  0%,100%{ transform:translateY(0) rotate(0) scale(1); }
+  20%{ transform:translateY(-4px) rotate(0) scale(1); }
+  40%{ transform:translateY(0) rotate(0) scale(1); }
+  46%{ transform:translateY(0) rotate(-14deg) scale(1.08,.94); }
+  52%{ transform:translateY(-3px) rotate(12deg) scale(.95,1.06); }
+  58%{ transform:translateY(0) rotate(-8deg) scale(1.04,.97); }
+  64%{ transform:translateY(0) rotate(5deg) scale(1); }
+  70%{ transform:translateY(0) rotate(0) scale(1); }
+  85%{ transform:translateY(-4px) rotate(0) scale(1); }
+}
+@keyframes aiTwinkle{ 0%,100%{ transform:scale(1) rotate(0); } 50%{ transform:scale(1.12) rotate(18deg); } }
+#ai-modal .ai-orb{ animation:aiOrbWiggle 4s ease-in-out infinite; }
+#ai-modal .ai-orb svg{ animation:aiTwinkle 2.6s ease-in-out infinite; }
+@keyframes aiOrbWiggle{
+  0%,60%,100%{ transform:rotate(0) scale(1); }
+  66%{ transform:rotate(-12deg) scale(1.06,.95); }
+  72%{ transform:rotate(10deg) scale(.96,1.05); }
+  78%{ transform:rotate(-6deg) scale(1.03); }
+  84%{ transform:rotate(0) scale(1); }
+}
+#ai-modal.ai-busy .ai-orb{ animation:aiPulse 1s ease-in-out infinite, aiOrbWiggle 1.2s ease-in-out infinite; }
+#ai-modal.ai-busy .ai-orb svg{ animation-duration:.8s; }
+@media (prefers-reduced-motion: reduce){ #ai-modal .ai-glow, #ai-modal .ai-orb, #ai-modal .ai-orb svg, #ai-modal .ai-thinking span, #ai-fab#ai-fab, #ai-fab svg{ animation:none !important; } }
 /* floating sparkle button (double id beats the theme layers) */
 #ai-fab#ai-fab{ background:radial-gradient(circle at 30% 25%, #A78BFA, #6366F1 45%, #EC4899 90%) !important;
   box-shadow:0 10px 26px rgba(139,92,246,0.45), inset 0 1px 0 rgba(255,255,255,0.5) !important; border:0.5px solid rgba(255,255,255,0.45) !important; }
