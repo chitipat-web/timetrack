@@ -4470,6 +4470,9 @@ body.dark .slide-action{
       <button class="more-row" onclick="showPage('salary',document.querySelector('.nav-btn[data-page=stats]'))">
         <span class="more-row-ic">💰</span><span class="more-row-lbl">ค่าแรง</span><span class="more-row-chev">›</span>
       </button>
+      <button class="more-row more-admin" onclick="fillOpen()">
+        <span class="more-row-ic">🧩</span><span class="more-row-lbl">เติมวันที่ลืมกดเข้างาน</span><span class="more-row-chev">›</span>
+      </button>
       <button class="more-row" onclick="openAIModal()">
         <span class="more-row-ic">✨</span><span class="more-row-lbl">ผู้ช่วย AI</span><span class="more-row-chev">›</span>
       </button>
@@ -4546,6 +4549,21 @@ body.dark .slide-action{
       <button class="btn-primary" style="width:100%;margin-top:14px" onclick="submitPoll()">สร้างโพล</button>
     </div>
   </div>
+<!-- v296: admin tool — fill days someone forgot to clock, copying a co-worker's sessions -->
+<div class="modal-overlay" id="fill-modal">
+  <div class="modal">
+    <div class="modal-title">🧩 เติมวันที่ลืมกดเข้างาน<button class="modal-close" onclick="closeModal('fill-modal')">✕</button></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">หาวันที่ <b>คนที่ลืมกด</b> ไม่มีบันทึกเลย แต่ <b>คนที่ใช้เวลาเดียวกัน</b> มาทำงาน แล้วคัดลอกเวลาเข้า-ออก (ทุกรอบ รวมพักโรงแพ็ค) มาให้ — ตรวจรายการก่อนยืนยันได้</div>
+    <label class="modal-label">เดือน</label>
+    <input class="modal-inp" type="month" id="fill-month" onchange="fillScan()"/>
+    <label class="modal-label">คนที่ลืมกด (จะเพิ่มให้คนนี้)</label>
+    <select class="modal-inp" id="fill-target" onchange="fillScan()"></select>
+    <label class="modal-label">คัดลอกเวลาจาก</label>
+    <select class="modal-inp" id="fill-source" onchange="fillScan()"></select>
+    <div id="fill-list" style="margin-top:12px"></div>
+    <button class="btn-primary" id="fill-go" style="width:100%;margin-top:12px" onclick="fillApply()" disabled>เพิ่มรายการ</button>
+  </div>
+</div>
 <div class="modal-overlay" id="log-modal">
   <div class="modal">
     <div class="modal-title">📋 ประวัติการแก้ไข<button class="modal-close" onclick="closeModal('log-modal')">✕</button></div>
@@ -10983,7 +11001,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v295';
+const APP_VERSION = 'v296';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19897,6 +19915,116 @@ body.sky #more-dark-row{ display:none !important; }
     if(synth && 'onvoiceschanged' in synth) synth.onvoiceschanged = function(){};
     if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paint); else paint();
   } catch(e){ console.warn('[v293] tts init', e); }
+})();
+</script>
+
+<style id="fill-v296">
+body:not(.role-admin) .more-admin{ display:none !important; }
+.fill-row{ display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--border); font-size:14px; color:var(--ink); }
+.fill-row input{ width:18px; height:18px; flex-shrink:0; }
+.fill-row .d{ font-weight:700; min-width:92px; }
+.fill-row .t{ flex:1; color:var(--text2); font-variant-numeric:tabular-nums; }
+.fill-note{ font-size:12px; color:var(--text3); margin-top:8px; }
+</style>
+<script>
+// v296: admin "fill forgotten days" tool. Sandboxed; writes only after confirm.
+(function(){
+  'use strict';
+  try {
+    var WD = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+    var plan = [];
+    function $(id){ return document.getElementById(id); }
+    function nm(e){ return (e && (e.name || e.email)) || '?'; }
+    function notReady(){ try { return typeof _aiNotReady === 'function' && _aiNotReady(); } catch(e){ return false; } }
+    function opts(sel, val){
+      sel.innerHTML = employees.map(function(e){ return '<option value="' + escHtml(e.id) + '">' + escHtml(nm(e)) + '</option>'; }).join('');
+      if(val) sel.value = val;
+    }
+    window.fillOpen = function(){
+      if(!isAdmin()){ showToast('เฉพาะ Admin', 'warning'); return; }
+      var t = todayStr().split('-').map(Number), y = t[0], m = t[1] - 1;
+      if(m < 1){ m = 12; y--; }                         // default: last month
+      $('fill-month').value = y + '-' + String(m).padStart(2, '0');
+      opts($('fill-target'), curUser.id);
+      var src = employees.find(function(e){ return e.id !== curUser.id && /สมพง/.test(e.name || ''); })
+             || employees.find(function(e){ return e.id !== curUser.id; });
+      opts($('fill-source'), src ? src.id : '');
+      $('fill-modal').classList.add('open');
+      fillScan();
+    };
+    window.fillScan = function(){
+      var list = $('fill-list'), go = $('fill-go');
+      plan = []; go.disabled = true;
+      var ym = $('fill-month').value, tg = $('fill-target').value, sc = $('fill-source').value;
+      if(!ym || !tg || !sc){ list.innerHTML = ''; return; }
+      if(tg === sc){ list.innerHTML = '<div style="color:var(--yellow)">เลือกคนละคนกัน</div>'; return; }
+      if(notReady()){ list.innerHTML = '<div style="color:var(--yellow)">กำลังโหลดข้อมูล รอสักครู่แล้วเปิดใหม่</div>'; return; }
+      var today = todayStr();
+      var tDays = {}, sDays = {}, partial = [];
+      records.forEach(function(r){
+        if(!r || !r.date || r.date.slice(0, 7) !== ym || r.date > today) return;
+        if(r.empId === tg) tDays[r.date] = true;
+        if(r.empId === sc && r.checkIn && r.checkOut) (sDays[r.date] = sDays[r.date] || []).push(r);
+      });
+      Object.keys(tDays).forEach(function(d){
+        if(records.some(function(r){ return r && r.empId === tg && r.date === d && r.checkIn && !r.checkOut; }) && d < today) partial.push(d);
+      });
+      plan = Object.keys(sDays).filter(function(d){ return !tDays[d]; }).sort().map(function(d){
+        return { date:d, sessions: sDays[d].slice().sort(function(a,b){ return a.checkIn < b.checkIn ? -1 : 1; }).map(function(r){ return [r.checkIn, r.checkOut]; }), on:true };
+      });
+      var srcName = escHtml(nm(employees.find(function(e){ return e.id === sc; })));
+      var html = '';
+      if(!plan.length){
+        html = '<div style="color:var(--green);font-weight:700">✅ ไม่มีวันที่ขาด — ทุกวันที่ ' + srcName + ' มาทำงาน มีบันทึกครบแล้ว</div>';
+      } else {
+        html = '<div style="font-weight:700;margin-bottom:4px">พบ ' + plan.length + ' วันที่ไม่มีบันทึก (เวลาของ ' + srcName + ')</div>' +
+          plan.map(function(p, i){
+            var dt = new Date(p.date + 'T12:00:00');
+            return '<label class="fill-row"><input type="checkbox" checked onchange="fillTick(' + i + ',this.checked)">' +
+              '<span class="d">' + WD[dt.getDay()] + ' ' + dt.getDate() + '</span>' +
+              '<span class="t">' + p.sessions.map(function(s){ return s[0] + '–' + s[1]; }).join(' · ') + '</span></label>';
+          }).join('');
+      }
+      if(partial.length) html += '<div class="fill-note">⚠️ มีเข้างานแต่ไม่มีเวลาออก: ' + partial.sort().map(function(d){ return +d.slice(8); }).join(', ') + ' — แก้ในหน้าประวัติ (เครื่องมือนี้ไม่แตะวันเหล่านี้)</div>';
+      html += '<div class="fill-note">วันที่ ' + srcName + ' ไม่ได้มาทำงาน จะไม่ถูกเพิ่ม</div>';
+      list.innerHTML = html;
+      fillCount();
+    };
+    window.fillTick = function(i, on){ if(plan[i]) plan[i].on = on; fillCount(); };
+    function fillCount(){
+      var n = plan.filter(function(p){ return p.on; }).length, go = $('fill-go');
+      go.disabled = !n; go.textContent = n ? ('เพิ่ม ' + n + ' วัน') : 'เพิ่มรายการ';
+    }
+    window.fillApply = function(){
+      var pick = plan.filter(function(p){ return p.on; });
+      if(!pick.length) return;
+      var tg = $('fill-target').value, sc = $('fill-source').value;
+      var tName = nm(employees.find(function(e){ return e.id === tg; })), sName = nm(employees.find(function(e){ return e.id === sc; }));
+      showConfirm('🧩 ยืนยันเติมวัน', 'เพิ่ม ' + pick.length + ' วันให้ ' + tName + '\nใช้เวลาเดียวกับ ' + sName + '\nวันที่: ' + pick.map(function(p){ return +p.date.slice(8); }).join(', '), function(){
+        if(!isAdmin()) return;
+        if(notReady()){ showToast('กำลังโหลดข้อมูล ลองใหม่', 'warning'); return; }
+        var added = 0, now = Date.now();
+        pick.forEach(function(p){
+          // re-check right before writing — never duplicate a day that now has a record
+          if(records.some(function(r){ return r && r.empId === tg && r.date === p.date; })) return;
+          p.sessions.forEach(function(s){
+            var rec = { id:genRecId(), empId:tg, date:p.date, checkIn:s[0], checkInTs:null, checkOut:s[1], checkOutTs:null,
+                        isLate:isLate(s[0]), otMin:calcOTMin(s[1], s[0]), note:'เติมย้อนหลัง (เวลาเดียวกับ ' + sName + ')', lastEditedTs:now };
+            records.push(rec);
+            saveEditLog({ recId:rec.id, empId:tg, editorId:curUser.id, editorName:curUser.name, before:null,
+                          after:{ date:p.date, checkIn:s[0], checkOut:s[1], note:rec.note }, ts:now, via:'fill-copy' });
+          });
+          added++;
+        });
+        if(typeof _otTouch === 'function') _otTouch(tg);
+        if(typeof _normLateSessions === 'function') _normLateSessions(records);
+        saveRec();
+        try { if(typeof _aiReRender === 'function') _aiReRender(); } catch(e){}
+        showToast('✅ เพิ่มแล้ว ' + added + ' วัน', 'success');
+        fillScan();
+      }, 'เพิ่ม', 'confirm-ok');
+    };
+  } catch(e){ console.warn('[v296] fill init', e); }
 })();
 </script>
 </body>
