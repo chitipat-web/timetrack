@@ -3729,9 +3729,15 @@ body.dark .slide-action{
 
       <!-- v298: today's workplace — โรงแพ็ค days get the packing-house pay
            formula (breaks deducted) without a lunch scan -->
-      <div class="seg-control place-switch" id="place-switch" role="radiogroup" aria-label="ที่ทำงานวันนี้" style="display:none">
-        <button type="button" class="seg-tab" data-place="field" role="radio" onclick="placeSet('field')">🌱 สวน</button>
-        <button type="button" class="seg-tab" data-place="pack" role="radio" onclick="placeSet('pack')">📦 โรงแพ็ค</button>
+      <div class="place-switch" id="place-switch" role="radiogroup" aria-label="ที่ทำงานวันนี้" style="display:none">
+        <button type="button" class="place-opt field" data-place="field" role="radio" onclick="placeSet('field')">
+          <span class="place-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8.5"/><path d="M12 12.5c0-4.4 3-7.5 8.5-7.5 0 5.4-3.3 8.4-8.5 7.5z"/><path d="M12 15c0-3.3-2.6-6-7.5-6 0 4.3 2.7 6.9 7.5 6z"/><path d="M7.5 21h9"/></svg></span>
+          <span class="place-lbl">สวน</span>
+        </button>
+        <button type="button" class="place-opt pack" data-place="pack" role="radio" onclick="placeSet('pack')">
+          <span class="place-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7.8 12 3 3 7.8v8.4L12 21l9-4.8z"/><path d="M3 7.8 12 12.6l9-4.8"/><path d="M12 12.6V21"/><path d="m7.5 5.4 9 4.8"/></svg></span>
+          <span class="place-lbl">โรงแพ็ค</span>
+        </button>
       </div>
       <div class="place-hint" id="place-hint" style="display:none">หักเวลาพักให้อัตโนมัติ — ไม่ต้องสแกนออก-เข้าตอนพัก</div>
       <!-- v230 slide-to-act control. The two original buttons are kept
@@ -11031,7 +11037,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v299';
+const APP_VERSION = 'v300';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20153,8 +20159,21 @@ body:not(.role-admin) .more-admin{ display:none !important; }
 </script>
 
 <style id="place-v298">
-#place-switch.place-switch{ margin:12px 0 6px !important; }
-#place-switch .seg-tab{ padding:7px 10px; font-size:13.5px; }
+/* v300: bigger, colour-coded workplace switch (own classes — no theme tab overrides) */
+#place-switch.place-switch{ display:flex; gap:10px; margin:14px 0 6px; }
+#place-switch .place-opt{ flex:1; display:flex; align-items:center; justify-content:center; gap:8px; height:48px; border-radius:16px; cursor:pointer;
+  font:inherit; font-size:15.5px; font-weight:700; letter-spacing:-.01em; -webkit-tap-highlight-color:transparent;
+  color:var(--ink-3, var(--text2)); background:var(--glass-2, rgba(128,128,128,0.10)); border:1px solid var(--glass-stroke-dim, rgba(128,128,128,0.25));
+  transition:background .2s, color .2s, transform .12s, box-shadow .2s; }
+#place-switch .place-opt:active{ transform:scale(.96); }
+#place-switch .place-ic{ width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(128,128,128,0.16); }
+#place-switch .place-opt.field .place-ic{ color:#30B45A; } #place-switch .place-opt.pack .place-ic{ color:#F08A00; }
+#place-switch .place-opt.active{ color:#fff; border-color:transparent; }
+#place-switch .place-opt.active .place-ic{ background:rgba(255,255,255,0.25); color:#fff; }
+#place-switch .place-opt.field.active{ background:linear-gradient(135deg,#3DD06C,#1E9E4F); box-shadow:0 6px 18px rgba(30,158,79,0.40), inset 0 1px 0 rgba(255,255,255,0.35); }
+#place-switch .place-opt.pack.active{ background:linear-gradient(135deg,#FFB547,#F07F00); box-shadow:0 6px 18px rgba(240,127,0,0.40), inset 0 1px 0 rgba(255,255,255,0.35); }
+body.corp:not(.dark) #place-switch .place-opt:not(.active){ background:#fff; border-color:var(--c-border, #D9DEE7); color:var(--c-ink-3, #4A5568); }
+body.corp.dark #place-switch .place-opt:not(.active){ background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.14); color:rgba(235,240,248,0.75); }
 .place-hint{ font-size:11.5px; color:var(--ink-3, var(--text2)); text-align:center; margin:0 0 10px; }
 </style>
 <script>
