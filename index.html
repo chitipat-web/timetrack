@@ -4557,6 +4557,19 @@ body.dark .slide-action{
       <button class="btn-primary" style="width:100%;margin-top:14px" onclick="submitPoll()">สร้างโพล</button>
     </div>
   </div>
+<!-- v299: self-service fix for a forgotten clock-out (own records, past days) -->
+<div class="modal-overlay" id="fixout-modal">
+  <div class="modal">
+    <div class="modal-title">⏰ ลืมกดออกงาน<button class="modal-close" onclick="fixoutLater()">✕</button></div>
+    <div id="fixout-body" style="font-size:14px;color:var(--ink);margin-bottom:12px"></div>
+    <label class="modal-label">เลิกงานกี่โมง</label>
+    <div class="fixout-chips" id="fixout-chips"></div>
+    <input class="modal-inp" type="time" id="fixout-time" oninput="fixoutPick(this.value,true)"/>
+    <div id="fixout-err" style="color:var(--red);font-size:13px;min-height:18px;margin-top:6px"></div>
+    <button class="btn-primary" style="width:100%;margin-top:6px" onclick="fixoutSave()">บันทึกเวลาออก</button>
+    <button class="btn-secondary" style="width:100%;margin-top:8px" onclick="fixoutLater()">ไว้ทีหลัง</button>
+  </div>
+</div>
 <!-- v296: admin tool — fill days someone forgot to clock, copying a co-worker's sessions -->
 <div class="modal-overlay" id="fill-modal">
   <div class="modal">
@@ -11018,7 +11031,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v298';
+const APP_VERSION = 'v299';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20209,6 +20222,148 @@ body:not(.role-admin) .more-admin{ display:none !important; }
     function boot(){ render(); setInterval(render, 5000); }
     if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   } catch(e){ console.warn('[v298] place init', e); }
+})();
+</script>
+
+<style id="fixout-v299">
+.fixout-chips{ display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 10px; }
+.fixout-chip{ border:1px solid var(--border, rgba(128,128,128,0.3)); background:var(--surface2, rgba(128,128,128,0.08)); color:var(--ink);
+  border-radius:999px; padding:8px 12px; font:inherit; font-size:13.5px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.fixout-chip b{ font-variant-numeric:tabular-nums; }
+.fixout-chip.on{ background:#0A84FF; border-color:#0A84FF; color:#fff; }   /* solid: lg-sky accent is too pale for white text */
+</style>
+<script>
+// v299: forgot to clock out? After data loads, look for this user's own
+// sessions from the last 14 days that have a check-in but no check-out, and
+// ask for the end time (suggesting a co-worker's clock-out that day, or the
+// normal end time). Saves on the user's own record with a note + edit log so
+// the admin can see it. "ไว้ทีหลัง" asks again in 2 hours. Sandboxed.
+(function(){
+  'use strict';
+  try {
+    var DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+    var MONS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    var TAG = 'ลืมกดออก — แก้เองย้อนหลัง';
+    var cur = null, snoozeUntil = 0, busy = false;
+    function $(id){ return document.getElementById(id); }
+    function me(){ return (typeof curUser !== 'undefined' && curUser && curUser.id) ? curUser.id : ''; }
+    function notReady(){ try { return typeof _recordsLoadedFromFB !== 'undefined' && !_recordsLoadedFromFB; } catch(e){ return false; } }
+    function hm(v){ return /^\d{1,2}:\d{2}$/.test(String(v || '')) ? String(v).padStart(5, '0') : ''; }
+    function label(d){ var dt = new Date(d + 'T12:00:00'); return 'วัน' + DAYS[dt.getDay()] + ' ' + dt.getDate() + ' ' + MONS[dt.getMonth()]; }
+    function minDate(){ var t = new Date(todayStr() + 'T12:00:00'); t.setDate(t.getDate() - 14); return t.toISOString().slice(0, 10); }
+    function pending(){
+      var u = me(); if(!u) return [];
+      var today = todayStr(), from = minDate();
+      return records.filter(function(r){ return r && r.empId === u && r.checkIn && !r.checkOut && r.date < today && r.date >= from; })
+        .sort(function(a, b){ return a.date === b.date ? (a.checkIn < b.checkIn ? 1 : -1) : (a.date < b.date ? 1 : -1); });
+    }
+    function nameOf(id){ var e = employees.find(function(x){ return x.id === id; }); return e ? String(e.name || e.email || '').split(' ')[0] : ''; }
+    function nextIn(r){
+      var later = records.filter(function(x){ return x && x.empId === r.empId && x.date === r.date && x.checkIn > r.checkIn; })
+        .sort(function(a, b){ return a.checkIn < b.checkIn ? -1 : 1; });
+      return later.length ? later[0].checkIn : '';
+    }
+    function suggestions(r){
+      var by = {}, out = [], cap = nextIn(r);
+      // a later session that day → this one ended at a break: suggest the break start(s)
+      if(cap){
+        try {
+          (getPayCfg().breaks || []).slice().sort(function(x, y){ return y[0] - x[0]; }).forEach(function(w){   // latest break first (lunch)
+            var t = String(Math.floor(w[0] / 60)).padStart(2, '0') + ':' + String(w[0] % 60).padStart(2, '0');
+            if(t > r.checkIn && t <= cap) out.push({ t:t, why:'เริ่มพัก' });
+          });
+        } catch(e){}
+      }
+      records.forEach(function(x){
+        if(!x || x.empId === r.empId || x.date !== r.date || !x.checkIn) return;
+        (by[x.empId] = by[x.empId] || []).push(x);
+      });
+      var times = {}, same = {};
+      Object.keys(by).forEach(function(id){
+        var rs = by[id]; if(rs.some(function(x){ return !x.checkOut; })) return;      // their day must be complete
+        var last = rs.reduce(function(a, x){ return x.checkOut > a ? x.checkOut : a; }, '');
+        if(!last || last <= r.checkIn) return;
+        (times[last] = times[last] || []).push(nameOf(id));
+        if(r.place && rs.some(function(x){ return x.place === r.place; })) same[last] = 1;   // worked the same place
+      });
+      Object.keys(times).sort(function(a, b){ return times[b].length - times[a].length || (same[b] || 0) - (same[a] || 0) || (a < b ? -1 : 1); }).slice(0, 2).forEach(function(t){
+        out.push({ t:t, why:'เวลาเดียวกับ ' + times[t].filter(Boolean).join(', ') });
+      });
+      var end = hm(typeof getOTStart === 'function' ? getOTStart() : '16:30');
+      if(end && end > r.checkIn && !out.some(function(o){ return o.t === end; })) out.push({ t:end, why:'เวลาเลิกงานปกติ' });
+      return out.filter(function(o){ return !cap || o.t <= cap; });   // never past the next session's check-in
+    }
+    window.fixoutPick = function(t, typed){
+      t = hm(t); if(!t) return;
+      if(!typed){ var i = $('fixout-time'); if(i) i.value = t; }
+      document.querySelectorAll('#fixout-chips .fixout-chip').forEach(function(c){ c.classList.toggle('on', c.getAttribute('data-t') === t); });
+      var e = $('fixout-err'); if(e) e.textContent = '';
+    };
+    function show(r, n){
+      cur = r;
+      var cap = nextIn(r);
+      $('fixout-body').innerHTML = '<b>' + escHtml(label(r.date)) + '</b> — เข้างาน <b>' + escHtml(r.checkIn) + '</b> แต่ยังไม่ได้กดออก' +
+        (n > 1 ? '<div style="font-size:12px;color:var(--text3);margin-top:4px">มีอีก ' + (n - 1) + ' วันที่ลืมกดออก</div>' : '') +
+        (cap ? '<div style="font-size:12px;color:var(--text3);margin-top:4px">รอบนี้ต้องออกก่อน ' + escHtml(cap) + ' (เวลาเข้ารอบถัดไป)</div>' : '');
+      var sg = suggestions(r);
+      $('fixout-chips').innerHTML = sg.map(function(o){
+        return '<button type="button" class="fixout-chip" data-t="' + o.t + '" onclick="fixoutPick(\'' + o.t + '\')"><b>' + o.t + '</b> · ' + escHtml(o.why) + '</button>';
+      }).join('');
+      $('fixout-time').value = '';
+      $('fixout-err').textContent = '';
+      if(sg.length) window.fixoutPick(sg[0].t);
+      $('fixout-modal').classList.add('open');
+    }
+    function next(){
+      var list = pending().filter(function(x){ return !cur || x.id !== cur.id; });
+      cur = null;
+      if(list.length) show(list[0], list.length); else $('fixout-modal').classList.remove('open');
+    }
+    window.fixoutLater = function(){
+      snoozeUntil = Date.now() + 2 * 3600 * 1000; cur = null;
+      $('fixout-modal').classList.remove('open');
+    };
+    window.fixoutSave = function(){
+      var err = $('fixout-err');
+      if(!cur){ $('fixout-modal').classList.remove('open'); return; }
+      if(notReady()){ err.textContent = 'กำลังโหลดข้อมูล รอสักครู่แล้วกดใหม่'; return; }
+      var t = hm($('fixout-time').value);
+      if(!t){ err.textContent = 'เลือกหรือใส่เวลาออกก่อน'; return; }
+      var r = records.find(function(x){ return x && x.id === cur.id; });
+      if(!r || r.checkOut){ showToast('รายการนี้มีเวลาออกแล้ว', 'warning'); next(); return; }   // fixed elsewhere meanwhile
+      if(t <= r.checkIn){ err.textContent = 'เวลาออกต้องหลังเวลาเข้า (' + r.checkIn + ')'; return; }
+      var cap = nextIn(r);
+      if(cap && t > cap){ err.textContent = 'ต้องไม่เกิน ' + cap + ' (เวลาเข้ารอบถัดไป)'; return; }
+      var before = { date:r.date, checkIn:r.checkIn, checkOut:null, note:r.note || '' };
+      r.checkOut = t; r.checkOutTs = null; r.otMin = calcOTMin(t, r.checkIn); r.lastEditedTs = Date.now();
+      r.note = r.note ? (r.note.indexOf(TAG) >= 0 ? r.note : r.note + ' · ' + TAG) : TAG;
+      try {
+        saveEditLog({ recId:r.id, empId:r.empId, editorId:curUser.id, editorName:curUser.name, before:before,
+                      after:{ date:r.date, checkIn:r.checkIn, checkOut:t, note:r.note }, ts:Date.now(), via:'self-fix' });
+      } catch(e){}
+      saveRec();
+      try { if(typeof renderHome === 'function') renderHome(); } catch(e){}
+      try { if(typeof renderHistory === 'function') renderHistory(); } catch(e){}
+      try { if(typeof hqPayRender === 'function') hqPayRender(); } catch(e){}
+      showToast('✅ บันทึกเวลาออก ' + t + ' — ' + label(r.date), 'success');
+      next();
+    };
+    function blocked(){
+      if($('init-overlay') || $('cinema-splash')) return true;               // splash still up
+      if(document.querySelector('.modal-overlay.open')) return true;        // another sheet is open
+      var ls = $('login-screen'); if(ls && getComputedStyle(ls).display !== 'none') return true;
+      return false;
+    }
+    function tick(){
+      if(busy || Date.now() < snoozeUntil || !me() || notReady() || blocked()) return;
+      busy = true;
+      try { var list = pending(); if(list.length) show(list[0], list.length); } catch(e){ console.warn('[v299] fixout', e); }
+      busy = false;
+    }
+    window.fixoutCheck = tick;
+    setInterval(tick, 4000);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) setTimeout(tick, 1500); });
+  } catch(e){ console.warn('[v299] fixout init', e); }
 })();
 </script>
 </body>
