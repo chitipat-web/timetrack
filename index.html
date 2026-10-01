@@ -11040,7 +11040,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v304';
+const APP_VERSION = 'v305';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -13714,7 +13714,7 @@ if('serviceWorker' in navigator) {
     } catch(_){}
     if(fill){
       if(!_trackW && action) _trackW = action.getBoundingClientRect().width;
-      fill.style.transform = `translateX(${dx + 32 - _trackW}px)`;   // v304: ends under the thumb's centre — no square edge peeking out
+      fill.style.transform = `translateX(${dx + 64 - _trackW}px)`;   // v305: rounded cap wraps the thumb (cap centre = thumb centre)
     }
   }
 
@@ -20512,7 +20512,8 @@ body.corp.dark #place-switch .place-opt:not(.active){ background:rgba(255,255,25
 .slide-action.is-ready .slide-thumb::after{ animation-duration:.6s; }
 @keyframes thumbRing{ 0%{ box-shadow:0 0 0 0 rgba(48,209,88,0.55); } 100%{ box-shadow:0 0 0 14px rgba(48,209,88,0); } }
 @keyframes thumbRingRed{ 0%{ box-shadow:0 0 0 0 rgba(255,69,58,0.55); } 100%{ box-shadow:0 0 0 14px rgba(255,69,58,0); } }
-.slide-fill{ overflow:hidden; }
+.slide-fill{ overflow:hidden; border-radius:0 999px 999px 0; }   /* v305: round end hugging the thumb, not a straight cut */
+body.corp .slide-fill{ border-radius:0 calc(var(--r-sm, 12px) + 4px) calc(var(--r-sm, 12px) + 4px) 0; }   /* concentric with the rounded-square thumb */
 .slide-fill::after{ content:''; position:absolute; top:0; bottom:0; left:0; width:60%; pointer-events:none;
   background:linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%);
   transform:translateX(-120%); opacity:0; }
