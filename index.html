@@ -4471,7 +4471,7 @@ body.dark .slide-action{
         <span class="more-row-ic">💰</span><span class="more-row-lbl">ค่าแรง</span><span class="more-row-chev">›</span>
       </button>
       <button class="more-row more-admin" onclick="fillOpen()">
-        <span class="more-row-ic">🧩</span><span class="more-row-lbl">เติมวันที่ลืมกดเข้างาน</span><span class="more-row-chev">›</span>
+        <span class="more-row-ic">🧩</span><span class="more-row-lbl">เติมวันที่ลืมกด (เข้า / ออก / พัก)</span><span class="more-row-chev">›</span>
       </button>
       <button class="more-row" onclick="openAIModal()">
         <span class="more-row-ic">✨</span><span class="more-row-lbl">ผู้ช่วย AI</span><span class="more-row-chev">›</span>
@@ -4552,8 +4552,8 @@ body.dark .slide-action{
 <!-- v296: admin tool — fill days someone forgot to clock, copying a co-worker's sessions -->
 <div class="modal-overlay" id="fill-modal">
   <div class="modal">
-    <div class="modal-title">🧩 เติมวันที่ลืมกดเข้างาน<button class="modal-close" onclick="closeModal('fill-modal')">✕</button></div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">หาวันที่ <b>คนที่ลืมกด</b> ไม่มีบันทึกเลย แต่ <b>คนที่ใช้เวลาเดียวกัน</b> มาทำงาน แล้วคัดลอกเวลาเข้า-ออก (ทุกรอบ รวมพักโรงแพ็ค) มาให้ — ตรวจรายการก่อนยืนยันได้</div>
+    <div class="modal-title">🧩 เติมวันที่ลืมกด<button class="modal-close" onclick="closeModal('fill-modal')">✕</button></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">เทียบกับ <b>คนที่ทำงานเวลาเดียวกัน</b> แล้วเติมให้ 3 แบบ: <b>ลืมกดทั้งวัน</b> · <b>ลืมกดออก</b> · <b>ลืมสแกนพักโรงแพ็ค</b> (ออก-เข้าตอนเที่ยง) — ตรวจรายการก่อนยืนยันได้</div>
     <label class="modal-label">เดือน</label>
     <input class="modal-inp" type="month" id="fill-month" onchange="fillScan()"/>
     <label class="modal-label">คนที่ลืมกด (จะเพิ่มให้คนนี้)</label>
@@ -11001,7 +11001,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v296';
+const APP_VERSION = 'v297';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19927,18 +19927,58 @@ body:not(.role-admin) .more-admin{ display:none !important; }
 .fill-note{ font-size:12px; color:var(--text3); margin-top:8px; }
 </style>
 <script>
-// v296: admin "fill forgotten days" tool. Sandboxed; writes only after confirm.
+// v296/v297: admin "fill forgotten days" tool. Three fixes, all copied from a
+// co-worker who worked the same hours: whole day missing, forgot to clock out,
+// forgot the packing-house lunch scan (out ~12:20 / in ~13:00). Sandboxed;
+// writes only after confirm, re-checks before writing.
 (function(){
   'use strict';
   try {
     var WD = ['อา','จ','อ','พ','พฤ','ศ','ส'];
-    var plan = [];
+    var plan = [], warn = [];
     function $(id){ return document.getElementById(id); }
     function nm(e){ return (e && (e.name || e.email)) || '?'; }
     function notReady(){ try { return typeof _aiNotReady === 'function' && _aiNotReady(); } catch(e){ return false; } }
+    function tm(v){ var p = String(v || '').split(':').map(Number); return (p[0] || 0) * 60 + (p[1] || 0); }
+    function hm(m){ return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+    function day(d){ var dt = new Date(d + 'T12:00:00'); return WD[dt.getDay()] + ' ' + dt.getDate(); }
+    function fmt(ss){ return ss.map(function(x){ return x[0] + '–' + (x[1] || '…'); }).join(' · '); }
     function opts(sel, val){
       sel.innerHTML = employees.map(function(e){ return '<option value="' + escHtml(e.id) + '">' + escHtml(nm(e)) + '</option>'; }).join('');
       if(val) sel.value = val;
+    }
+    // lunch-type gaps only: must overlap a configured break (pay formula), else 11:00–14:00
+    function breakWin(){
+      try { var c = getPayCfg(); if(c && c.breaks && c.breaks.length) return c.breaks; } catch(e){}
+      return [[660, 840]];
+    }
+    function isBreakGap(a, b){ return breakWin().some(function(w){ return Math.min(b, w[1]) - Math.max(a, w[0]) > 0; }); }
+    function recsOf(emp, d){
+      return records.filter(function(r){ return r && r.empId === emp && r.date === d && r.checkIn; })
+        .sort(function(x, y){ return x.checkIn < y.checkIn ? -1 : 1; });
+    }
+    // target's corrected sessions for a day, or null when nothing to fix
+    function fixDay(T, S){
+      if(T.slice(0, -1).some(function(r){ return !r.checkOut; })) return { manual:'มีรอบกลางวันที่ไม่มีเวลาออก' };
+      var start = tm(T[0].checkIn);
+      var last = T[T.length - 1];
+      var end = last.checkOut ? tm(last.checkOut) : tm(S[S.length - 1].checkOut);
+      if(end <= start) return { manual:'เวลาออกของเพื่อนก่อนเวลาเข้าของคุณ' };
+      var gaps = [];
+      for(var i = 0; i < T.length - 1; i++) gaps.push([tm(T[i].checkOut), tm(T[i + 1].checkIn)]);
+      for(var j = 0; j < S.length - 1; j++){
+        var g = [tm(S[j].checkOut), tm(S[j + 1].checkIn)];
+        if(g[1] <= g[0] || g[0] <= start || g[1] >= end || !isBreakGap(g[0], g[1])) continue;
+        if(gaps.some(function(x){ return Math.min(x[1], g[1]) - Math.max(x[0], g[0]) > -1; })) continue;   // already scanned (or overlaps own scan)
+        gaps.push(g);
+      }
+      gaps.sort(function(x, y){ return x[0] - y[0]; });
+      var out = [], cur = start;
+      gaps.forEach(function(g){ out.push([hm(cur), hm(g[0])]); cur = g[1]; });
+      out.push([hm(cur), hm(end)]);
+      var before = T.map(function(r){ return [r.checkIn, r.checkOut || null]; });
+      if(JSON.stringify(out) === JSON.stringify(before)) return null;
+      return { sessions: out, before: before, missingOut: !last.checkOut, split: out.length > T.length };
     }
     window.fillOpen = function(){
       if(!isAdmin()){ showToast('เฉพาะ Admin', 'warning'); return; }
@@ -19953,78 +19993,113 @@ body:not(.role-admin) .more-admin{ display:none !important; }
       fillScan();
     };
     window.fillScan = function(){
-      var list = $('fill-list'), go = $('fill-go');
-      plan = []; go.disabled = true;
+      var list = $('fill-list');
+      plan = []; warn = []; fillCount();
       var ym = $('fill-month').value, tg = $('fill-target').value, sc = $('fill-source').value;
       if(!ym || !tg || !sc){ list.innerHTML = ''; return; }
       if(tg === sc){ list.innerHTML = '<div style="color:var(--yellow)">เลือกคนละคนกัน</div>'; return; }
       if(notReady()){ list.innerHTML = '<div style="color:var(--yellow)">กำลังโหลดข้อมูล รอสักครู่แล้วเปิดใหม่</div>'; return; }
-      var today = todayStr();
-      var tDays = {}, sDays = {}, partial = [];
-      records.forEach(function(r){
-        if(!r || !r.date || r.date.slice(0, 7) !== ym || r.date > today) return;
-        if(r.empId === tg) tDays[r.date] = true;
-        if(r.empId === sc && r.checkIn && r.checkOut) (sDays[r.date] = sDays[r.date] || []).push(r);
-      });
-      Object.keys(tDays).forEach(function(d){
-        if(records.some(function(r){ return r && r.empId === tg && r.date === d && r.checkIn && !r.checkOut; }) && d < today) partial.push(d);
-      });
-      plan = Object.keys(sDays).filter(function(d){ return !tDays[d]; }).sort().map(function(d){
-        return { date:d, sessions: sDays[d].slice().sort(function(a,b){ return a.checkIn < b.checkIn ? -1 : 1; }).map(function(r){ return [r.checkIn, r.checkOut]; }), on:true };
+      var today = todayStr(), dates = {};
+      records.forEach(function(r){ if(r && r.date && r.date.slice(0, 7) === ym && r.date < today && (r.empId === tg || r.empId === sc)) dates[r.date] = 1; });
+      Object.keys(dates).sort().forEach(function(d){
+        var T = recsOf(tg, d), Sall = recsOf(sc, d);
+        var S = Sall.every(function(r){ return r.checkOut; }) ? Sall : [];   // only a complete reference day
+        if(!T.length){
+          if(S.length) plan.push({ kind:'add', date:d, sessions:S.map(function(r){ return [r.checkIn, r.checkOut]; }), on:true });
+          return;
+        }
+        if(!S.length){
+          if(T.some(function(r){ return !r.checkOut; })) warn.push(day(d) + ' (ไม่มีเวลาออก และเพื่อนไม่มีเวลาให้เทียบ)');
+          return;
+        }
+        var f = fixDay(T, S);
+        if(!f) return;
+        if(f.manual){ warn.push(day(d) + ' (' + f.manual + ')'); return; }
+        plan.push({ kind:'fix', date:d, sessions:f.sessions, before:f.before, missingOut:f.missingOut, split:f.split, on:true });
       });
       var srcName = escHtml(nm(employees.find(function(e){ return e.id === sc; })));
       var html = '';
-      if(!plan.length){
-        html = '<div style="color:var(--green);font-weight:700">✅ ไม่มีวันที่ขาด — ทุกวันที่ ' + srcName + ' มาทำงาน มีบันทึกครบแล้ว</div>';
-      } else {
-        html = '<div style="font-weight:700;margin-bottom:4px">พบ ' + plan.length + ' วันที่ไม่มีบันทึก (เวลาของ ' + srcName + ')</div>' +
-          plan.map(function(p, i){
-            var dt = new Date(p.date + 'T12:00:00');
-            return '<label class="fill-row"><input type="checkbox" checked onchange="fillTick(' + i + ',this.checked)">' +
-              '<span class="d">' + WD[dt.getDay()] + ' ' + dt.getDate() + '</span>' +
-              '<span class="t">' + p.sessions.map(function(s){ return s[0] + '–' + s[1]; }).join(' · ') + '</span></label>';
-          }).join('');
-      }
-      if(partial.length) html += '<div class="fill-note">⚠️ มีเข้างานแต่ไม่มีเวลาออก: ' + partial.sort().map(function(d){ return +d.slice(8); }).join(', ') + ' — แก้ในหน้าประวัติ (เครื่องมือนี้ไม่แตะวันเหล่านี้)</div>';
-      html += '<div class="fill-note">วันที่ ' + srcName + ' ไม่ได้มาทำงาน จะไม่ถูกเพิ่ม</div>';
+      if(!plan.length) html = '<div style="color:var(--green);font-weight:700">✅ ไม่มีอะไรต้องเติม — เทียบกับ ' + srcName + ' แล้วครบทุกวัน</div>';
+      var sec = function(title, kindTest){
+        var rows = plan.map(function(p, i){ return [p, i]; }).filter(function(x){ return kindTest(x[0]); });
+        if(!rows.length) return '';
+        return '<div style="font-weight:700;margin:10px 0 2px">' + title + ' (' + rows.length + ')</div>' + rows.map(function(x){
+          var p = x[0], i = x[1];
+          var tag = p.kind === 'add' ? '' : (p.missingOut && p.split ? 'ลืมออก + พัก' : p.missingOut ? 'ลืมออก' : 'ลืมสแกนพัก');
+          return '<label class="fill-row"><input type="checkbox" checked onchange="fillTick(' + i + ',this.checked)">' +
+            '<span class="d">' + day(p.date) + '</span><span class="t">' +
+            (p.kind === 'add' ? fmt(p.sessions) : '<s style="opacity:.6">' + fmt(p.before) + '</s><br>→ ' + fmt(p.sessions) + ' <small style="color:var(--yellow)">' + tag + '</small>') +
+            '</span></label>';
+        }).join('');
+      };
+      html += sec('ลืมกดทั้งวัน — เพิ่มเวลาของ ' + srcName, function(p){ return p.kind === 'add'; });
+      html += sec('ลืมกดออก / ลืมสแกนพักโรงแพ็ค — แก้ตาม ' + srcName, function(p){ return p.kind === 'fix'; });
+      if(warn.length) html += '<div class="fill-note">⚠️ แก้เองในหน้าประวัติ: ' + warn.map(escHtml).join(', ') + '</div>';
+      html += '<div class="fill-note">เวลาเข้าจริงของคุณจะไม่ถูกเปลี่ยน · เติมเฉพาะช่วงพักที่ตรงกับเวลาพักในสูตรคิดเงิน</div>';
       list.innerHTML = html;
       fillCount();
     };
     window.fillTick = function(i, on){ if(plan[i]) plan[i].on = on; fillCount(); };
     function fillCount(){
       var n = plan.filter(function(p){ return p.on; }).length, go = $('fill-go');
-      go.disabled = !n; go.textContent = n ? ('เพิ่ม ' + n + ' วัน') : 'เพิ่มรายการ';
+      if(!go) return;
+      go.disabled = !n; go.textContent = n ? ('บันทึก ' + n + ' วัน') : 'เพิ่มรายการ';
     }
     window.fillApply = function(){
       var pick = plan.filter(function(p){ return p.on; });
       if(!pick.length) return;
       var tg = $('fill-target').value, sc = $('fill-source').value;
       var tName = nm(employees.find(function(e){ return e.id === tg; })), sName = nm(employees.find(function(e){ return e.id === sc; }));
-      showConfirm('🧩 ยืนยันเติมวัน', 'เพิ่ม ' + pick.length + ' วันให้ ' + tName + '\nใช้เวลาเดียวกับ ' + sName + '\nวันที่: ' + pick.map(function(p){ return +p.date.slice(8); }).join(', '), function(){
+      var nAdd = pick.filter(function(p){ return p.kind === 'add'; }).length, nFix = pick.length - nAdd;
+      showConfirm('🧩 ยืนยันเติมวัน', tName + ' — เทียบเวลากับ ' + sName + '\n' +
+        (nAdd ? 'เพิ่มทั้งวัน: ' + pick.filter(function(p){ return p.kind === 'add'; }).map(function(p){ return +p.date.slice(8); }).join(', ') + '\n' : '') +
+        (nFix ? 'แก้ออก/พัก: ' + pick.filter(function(p){ return p.kind === 'fix'; }).map(function(p){ return +p.date.slice(8); }).join(', ') : ''), function(){
         if(!isAdmin()) return;
         if(notReady()){ showToast('กำลังโหลดข้อมูล ลองใหม่', 'warning'); return; }
-        var added = 0, now = Date.now();
+        var done = 0, now = Date.now(), note = 'เติมย้อนหลัง (เวลาเดียวกับ ' + sName + ')';
+        function log(rec, before){
+          saveEditLog({ recId:rec.id, empId:tg, editorId:curUser.id, editorName:curUser.name, before:before,
+                        after:{ date:rec.date, checkIn:rec.checkIn, checkOut:rec.checkOut, note:rec.note || '' }, ts:now, via:'fill-copy' });
+        }
+        function mk(d, a, b){ return { id:genRecId(), empId:tg, date:d, checkIn:a, checkInTs:null, checkOut:b, checkOutTs:null,
+                                       isLate:isLate(a), otMin:calcOTMin(b, a), note:note, lastEditedTs:now }; }
         pick.forEach(function(p){
-          // re-check right before writing — never duplicate a day that now has a record
-          if(records.some(function(r){ return r && r.empId === tg && r.date === p.date; })) return;
-          p.sessions.forEach(function(s){
-            var rec = { id:genRecId(), empId:tg, date:p.date, checkIn:s[0], checkInTs:null, checkOut:s[1], checkOutTs:null,
-                        isLate:isLate(s[0]), otMin:calcOTMin(s[1], s[0]), note:'เติมย้อนหลัง (เวลาเดียวกับ ' + sName + ')', lastEditedTs:now };
-            records.push(rec);
-            saveEditLog({ recId:rec.id, empId:tg, editorId:curUser.id, editorName:curUser.name, before:null,
-                          after:{ date:p.date, checkIn:s[0], checkOut:s[1], note:rec.note }, ts:now, via:'fill-copy' });
+          var T = recsOf(tg, p.date);
+          if(p.kind === 'add'){
+            if(T.length) return;                                        // a record appeared meanwhile
+            p.sessions.forEach(function(x){ var r = mk(p.date, x[0], x[1]); records.push(r); log(r, null); });
+            done++; return;
+          }
+          // fix: only if the day is still exactly what was previewed
+          if(JSON.stringify(T.map(function(r){ return [r.checkIn, r.checkOut || null]; })) !== JSON.stringify(p.before)) return;
+          var lastOutTs = T[T.length - 1].checkOutTs || null, lastOut = T[T.length - 1].checkOut || null;
+          p.sessions.forEach(function(x, i){
+            var r = T[i];
+            if(r){
+              var before = { date:r.date, checkIn:r.checkIn, checkOut:r.checkOut || null, note:r.note || '' };
+              if(r.checkIn === x[0] && r.checkOut === x[1]) return;
+              r.checkIn = x[0]; r.checkOut = x[1];
+              r.checkOutTs = (i === p.sessions.length - 1 && x[1] === lastOut) ? lastOutTs : null;
+              r.otMin = calcOTMin(x[1], x[0]); r.lastEditedTs = now;
+              r.note = r.note ? (r.note.indexOf(note) >= 0 ? r.note : r.note + ' · ' + note) : note;
+              log(r, before);
+            } else {
+              var n = mk(p.date, x[0], x[1]);
+              if(i === p.sessions.length - 1 && x[1] === lastOut) n.checkOutTs = lastOutTs;
+              records.push(n); log(n, null);
+            }
           });
-          added++;
+          done++;
         });
         if(typeof _otTouch === 'function') _otTouch(tg);
         if(typeof _normLateSessions === 'function') _normLateSessions(records);
         saveRec();
         try { if(typeof _aiReRender === 'function') _aiReRender(); } catch(e){}
-        showToast('✅ เพิ่มแล้ว ' + added + ' วัน', 'success');
+        showToast('✅ บันทึกแล้ว ' + done + ' วัน', 'success');
         fillScan();
-      }, 'เพิ่ม', 'confirm-ok');
+      }, 'บันทึก', 'confirm-ok');
     };
-  } catch(e){ console.warn('[v296] fill init', e); }
+  } catch(e){ console.warn('[v297] fill init', e); }
 })();
 </script>
 </body>
