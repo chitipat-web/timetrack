@@ -4265,6 +4265,7 @@ body.dark .slide-action{
     <div class="ai-head">
       <div class="ai-orb" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#fff" d="M12 2.5c.4 3.9 1.9 6.4 4.4 7.6 1.1.5 2.3.8 3.6.9-1.3.1-2.5.4-3.6.9-2.5 1.2-4 3.7-4.4 7.6-.4-3.9-1.9-6.4-4.4-7.6-1.1-.5-2.3-.8-3.6-.9 1.3-.1 2.5-.4 3.6-.9C10.1 8.9 11.6 6.4 12 2.5z"/><path fill="#fff" opacity=".85" d="M19 15.5c.15 1.5.75 2.45 1.7 2.9.42.2.88.3 1.3.35-.42.04-.88.15-1.3.35-.95.45-1.55 1.4-1.7 2.9-.15-1.5-.75-2.45-1.7-2.9-.42-.2-.88-.3-1.3-.35.42-.05.88-.15 1.3-.35.95-.45 1.55-1.4 1.7-2.9z"/></svg></div>
       <div class="ai-title"><div class="ai-name">ผู้ช่วย AI</div><div class="ai-sub"><span class="adm">สั่งงานเป็นภาษาพูด · แก้เวลา เพิ่มวัน ถามสถิติ</span><span class="emp">ถามเรื่องเวลาทำงาน โอที และสถิติของคุณ</span></div></div>
+      <button class="ai-icon-btn ai-tts-btn" id="ai-tts-btn" type="button" onclick="aiTtsToggle()" aria-label="อ่านคำตอบออกเสียง"><svg class="on" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg><svg class="off" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></svg></button>
       <button class="ai-icon-btn adm" onclick="openAISettings()" title="ตั้งค่า Gemini API Key" aria-label="ตั้งค่า API Key"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15 19 4"/><path d="m18 5 2 2"/><path d="m15 8 2 2"/></svg></button>
       <button class="ai-icon-btn" onclick="closeModal('ai-modal')" aria-label="ปิด"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
@@ -10982,7 +10983,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v292';
+const APP_VERSION = 'v293';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19809,6 +19810,93 @@ body.sky #more-dark-row{ display:none !important; }
       window.closeModal = function(id){ try { if(id === 'ai-modal' && st.rec) stop(true); } catch(e){} return _close.apply(this, arguments); };
     }
   } catch(e){ console.warn('[v292] voice init', e); }
+})();
+</script>
+
+<style id="ai-tts-v293">
+#ai-modal .ai-tts-btn .off{ display:none; }
+#ai-modal .ai-tts-btn.muted .on{ display:none; } #ai-modal .ai-tts-btn.muted .off{ display:block; }
+#ai-modal .ai-tts-btn:not(.muted){ color:#C4B5FD; border-color:rgba(167,139,250,0.6) !important; }
+#ai-modal .ai-tts-btn.speaking{ animation:aiMicPulse 1.1s ease-in-out infinite; }
+</style>
+<script>
+// v293: spoken replies — the phone's own Thai voice (speechSynthesis), no
+// extra Gemini quota. Toggle 🔊 in the AI sheet header (saved per device).
+(function(){
+  'use strict';
+  try {
+    var synth = window.speechSynthesis;
+    var KEY = 'tt_ai_tts';
+    function on(){ try { return localStorage.getItem(KEY) !== '0'; } catch(e){ return true; } }
+    function btn(){ return document.getElementById('ai-tts-btn'); }
+    function paint(){ var b = btn(); if(b){ b.classList.toggle('muted', !on() || !synth); b.title = on() ? 'กำลังเปิดเสียงตอบ — แตะเพื่อปิด' : 'ปิดเสียงตอบอยู่ — แตะเพื่อเปิด'; } }
+    function thVoice(){
+      try { var vs = synth.getVoices() || [];
+        return vs.find(function(v){ return /^th(-|_|$)/i.test(v.lang) && /premium|enhanced/i.test(v.name); })
+            || vs.find(function(v){ return /^th(-|_|$)/i.test(v.lang); }) || null;
+      } catch(e){ return null; }
+    }
+    function clean(t){
+      return String(t || '')
+        .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, ' ')
+        .replace(/(\d+)\s*ช\s*(\d+)\s*น/g, '$1 ชั่วโมง $2 นาที')
+        .replace(/₪\s*([\d,.]+)/g, '$1 เชเกล')
+        .replace(/\s+/g, ' ').trim().slice(0, 600);
+    }
+    function stop(){ try { if(synth) synth.cancel(); } catch(e){} var b = btn(); if(b) b.classList.remove('speaking'); }
+    function speak(text){
+      if(!synth || !on()) return;
+      var t = clean(text); if(!t) return;
+      stop();
+      var u = new SpeechSynthesisUtterance(t);
+      u.lang = 'th-TH'; try { var v = thVoice(); if(v) u.voice = v; } catch(e){} u.rate = 1; u.pitch = 1;
+      var b = btn();
+      u.onstart = function(){ if(b) b.classList.add('speaking'); };
+      u.onend = u.onerror = function(){ if(b) b.classList.remove('speaking'); };
+      try { synth.speak(u); } catch(e){}
+    }
+    // iOS only lets speech start from a user gesture — prime it on any tap in the sheet
+    var primed = false;
+    function prime(){
+      if(primed || !synth) return; primed = true;
+      try { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); } catch(e){}
+    }
+    document.addEventListener('pointerdown', function(e){ try { if(e.target && e.target.closest && e.target.closest('#ai-modal')) prime(); } catch(_){} }, true);
+
+    window.aiTtsToggle = function(){
+      if(!synth){ try { showToast('เครื่องนี้อ่านออกเสียงไม่ได้', 'warning'); } catch(e){} return; }
+      var next = !on();
+      try { localStorage.setItem(KEY, next ? '1' : '0'); } catch(e){}
+      paint();
+      if(next) speak('เปิดเสียงตอบแล้ว'); else stop();
+    };
+    window.aiSpeak = speak;
+
+    // speak each finished answer; ignore loading placeholders
+    var _submit = window.aiCommandSubmit;
+    if(typeof _submit === 'function'){
+      window.aiCommandSubmit = async function(){
+        stop();
+        var r = await _submit.apply(this, arguments);
+        try {
+          var el = document.getElementById('ai-cmd-result');
+          if(el && !el.querySelector('.ai-thinking')){
+            var txt = el.innerText || '';
+            if(txt && !/กำลังค้นข้อมูล|กำลังคิด|กำลังฟัง/.test(txt)) speak(txt);
+          }
+        } catch(e){}
+        return r;
+      };
+    }
+    var _close = window.closeModal;
+    if(typeof _close === 'function'){
+      window.closeModal = function(id){ if(id === 'ai-modal') stop(); return _close.apply(this, arguments); };
+    }
+    var _mic = window.aiVoiceToggle;
+    if(typeof _mic === 'function'){ window.aiVoiceToggle = function(){ stop(); return _mic.apply(this, arguments); }; }
+    if(synth && 'onvoiceschanged' in synth) synth.onvoiceschanged = function(){};
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paint); else paint();
+  } catch(e){ console.warn('[v293] tts init', e); }
 })();
 </script>
 </body>
