@@ -4143,6 +4143,11 @@ body.dark .slide-action{
     <div class="card">
       <div class="section-title">🌙 ธีม</div>
       <button class="btn-primary" onclick="cycleTheme()" id="sky-btn" style="background:linear-gradient(135deg,#2F6DB5,#7DB7E6);width:100%;margin-bottom:8px">🏢 ธีมองค์กร · เปลี่ยนเป็นท้องฟ้า</button>
+      <div class="lg-level" id="lg-level-wrap">
+        <label for="lg-level">ความใสของกระจก (Liquid Glass)</label>
+        <input type="range" id="lg-level" min="0" max="100" step="1" value="35" oninput="lgSetLevel(this.value)" onchange="lgSetLevel(this.value, true)">
+        <div class="lg-level-ends"><span>ใสสุด</span><span>ทึบ / ย้อมสี</span></div>
+      </div>
       <button class="btn-primary" onclick="toggleDark()" id="theme-btn">เปลี่ยนเป็นโหมดสว่าง</button>
     </div>
 
@@ -10880,7 +10885,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v283';
+const APP_VERSION = 'v284';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18479,6 +18484,26 @@ body.sky .lg-canvas{ display:none !important; }
   }
   window.hqLayout = layout;
 
+  // ── v284 iOS 27 transparency slider: 0 = ultra clear … 100 = fully tinted ──
+  function lgApplyLevel(v){
+    var t = Math.max(0, Math.min(100, Number(v))) / 100;
+    if(!isFinite(t)) t = 0.35;
+    var r = document.documentElement.style;
+    r.setProperty('--g-tint-light', 'rgba(255,255,255,' + (0.02 + 0.90 * t).toFixed(3) + ')');
+    r.setProperty('--g-tint-dark',  'rgba(28,30,44,'   + (0.02 + 0.92 * t).toFixed(3) + ')');
+    r.setProperty('--g-blur-lvl', Math.round(4 + 28 * t) + 'px');
+  }
+  window.lgSetLevel = function(v, save){
+    lgApplyLevel(v);
+    if(save){ try { localStorage.setItem('tt_glass_level', String(Math.round(Number(v)))); } catch(e){} }
+  };
+  (function(){
+    var v = 35; try { var x = localStorage.getItem('tt_glass_level'); if(x != null && x !== '') v = Number(x); } catch(e){}
+    if(!isFinite(v)) v = 35;
+    lgApplyLevel(v);
+    var el = document.getElementById('lg-level'); if(el) el.value = String(v);
+  })();
+
   function init(){
     faceApply(); layout();
     try {
@@ -18773,12 +18798,18 @@ body.lg{
   /* v283: clearer material — thin white tint + specular sheen, rim light
      on all edges (bright top-left, softer bottom-right) and an inner glow,
      like iOS 26 Liquid Glass */
-  --g-card:linear-gradient(135deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.20) 38%, rgba(255,255,255,0.14) 62%, rgba(255,255,255,0.28) 100%);
-  --g-card-solid:rgba(255,255,255,0.30);
-  --g-stroke:rgba(255,255,255,0.55); --g-stroke-2:rgba(255,255,255,0.35);
-  --g-hi:inset 1.5px 1.5px 0 rgba(255,255,255,0.95), inset -1px -1px 0 rgba(255,255,255,0.45), inset 0 0 18px rgba(255,255,255,0.28), inset 0 -10px 24px rgba(255,255,255,0.10);
-  --g-shadow:0 16px 40px rgba(30,40,110,0.18), 0 3px 8px rgba(30,40,110,0.08);
-  --g-blur:blur(16px) saturate(210%) brightness(1.06);
+  /* v284 (iOS 27): tint + blur follow the transparency slider (lgSetLevel
+     sets --g-tint-light/-dark and --g-blur-lvl); darkened outer edge and a
+     brighter specular rim as in iOS 27. */
+  --g-tint:var(--g-tint-light, rgba(255,255,255,0.36)); --g-blur-px:var(--g-blur-lvl, 18px);
+  --g-sheen:linear-gradient(135deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0) 36%, rgba(255,255,255,0) 64%, rgba(255,255,255,0.18) 100%);
+  --g-card:var(--g-sheen), linear-gradient(var(--g-tint), var(--g-tint));
+  --g-card-solid:var(--g-tint);
+  --g-stroke:rgba(255,255,255,0.60); --g-stroke-2:rgba(255,255,255,0.38);
+  --g-hi:inset 1.5px 1.5px 0 #fff, inset -1px -1px 0 rgba(255,255,255,0.60), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 0 18px rgba(255,255,255,0.30);
+  --g-edge:0 0 0 1px rgba(20,28,60,0.13);
+  --g-shadow:var(--g-edge), 0 16px 40px rgba(30,40,110,0.18), 0 3px 8px rgba(30,40,110,0.06);
+  --g-blur:blur(var(--g-blur-px)) saturate(210%) brightness(1.05);
   --g-accent:#0A7CFF; --g-accent-2:#0063D6;
   --ink:#0B1426; --ink-2:#1E2A3F; --ink-3:rgba(11,20,38,0.72); --ink-4:rgba(11,20,38,0.54); --ink-5:rgba(11,20,38,0.14);
   --glass-1:rgba(255,255,255,0.55); --glass-2:rgba(255,255,255,0.45); --glass-3:rgba(255,255,255,0.32);
@@ -18800,12 +18831,15 @@ body.lg{
 }
 body.lg.dark{
   --g-bg:#070A12;
-  --g-card:linear-gradient(135deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 40%, rgba(255,255,255,0.03) 62%, rgba(255,255,255,0.09) 100%);
-  --g-card-solid:rgba(255,255,255,0.07);
-  --g-stroke:rgba(255,255,255,0.22); --g-stroke-2:rgba(255,255,255,0.12);
-  --g-hi:inset 1.5px 1.5px 0 rgba(255,255,255,0.40), inset -1px -1px 0 rgba(255,255,255,0.14), inset 0 0 18px rgba(255,255,255,0.06);
-  --g-shadow:0 16px 40px rgba(0,0,0,0.50), 0 3px 8px rgba(0,0,0,0.3);
-  --g-blur:blur(16px) saturate(190%) brightness(1.10);
+  --g-tint:var(--g-tint-dark, rgba(30,32,46,0.34));
+  --g-sheen:linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 38%, rgba(255,255,255,0) 64%, rgba(255,255,255,0.08) 100%);
+  --g-card:var(--g-sheen), linear-gradient(var(--g-tint), var(--g-tint));
+  --g-card-solid:var(--g-tint);
+  --g-stroke:rgba(255,255,255,0.24); --g-stroke-2:rgba(255,255,255,0.13);
+  --g-hi:inset 1.5px 1.5px 0 rgba(255,255,255,0.55), inset -1px -1px 0 rgba(255,255,255,0.18), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 0 18px rgba(255,255,255,0.07);
+  --g-edge:0 0 0 1px rgba(0,0,0,0.60);
+  --g-shadow:var(--g-edge), 0 16px 40px rgba(0,0,0,0.50), 0 3px 8px rgba(0,0,0,0.3);
+  --g-blur:blur(var(--g-blur-px)) saturate(190%) brightness(1.08);
   --g-accent:#3D9BFF; --g-accent-2:#1F84FF;
   --ink:#F4F6FA; --ink-2:#E3E8F0; --ink-3:rgba(244,246,250,0.80); --ink-4:rgba(244,246,250,0.60); --ink-5:rgba(244,246,250,0.16);
   --glass-1:rgba(255,255,255,0.12); --glass-2:rgba(255,255,255,0.09); --glass-3:rgba(255,255,255,0.06);
@@ -18875,12 +18909,12 @@ body.lg .hw-icon, body.lg .ha-chip-icon{ display:none !important; }
 
 /* ── floating capsule tab bar with a glass lozenge ────────────────── */
 body.lg .nav{
-  background:linear-gradient(135deg, rgba(255,255,255,0.42), rgba(255,255,255,0.16) 45%, rgba(255,255,255,0.26)) !important;
-  -webkit-backdrop-filter:blur(14px) saturate(220%) brightness(1.08) !important; backdrop-filter:blur(14px) saturate(220%) brightness(1.08) !important;
+  background:var(--g-card) !important;
+  -webkit-backdrop-filter:var(--g-blur) !important; backdrop-filter:var(--g-blur) !important;
   border:0.5px solid rgba(255,255,255,0.6) !important; border-radius:999px !important;
-  box-shadow:0 18px 40px rgba(30,40,110,0.24), inset 1.5px 1.5px 0 rgba(255,255,255,0.95), inset -1px -1px 0 rgba(255,255,255,0.45), inset 0 0 16px rgba(255,255,255,0.25) !important;
+  box-shadow:var(--g-edge), 0 18px 40px rgba(30,40,110,0.24), var(--g-hi) !important;
 }
-body.lg.dark .nav{ background:rgba(20,26,40,0.45) !important; border-color:rgba(255,255,255,0.16) !important; box-shadow:0 14px 36px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.22) !important; }
+body.lg.dark .nav{ border-color:rgba(255,255,255,0.18) !important; box-shadow:var(--g-edge), 0 14px 36px rgba(0,0,0,0.55), var(--g-hi) !important; }
 body.lg .nav-btn{ color:var(--ink-3) !important; }
 body.lg .nav-btn.active{
   background:radial-gradient(120% 140% at 30% 20%, rgba(255,255,255,0.75), rgba(255,255,255,0.30) 60%, rgba(255,255,255,0.45)) !important; color:var(--g-accent) !important;
@@ -18891,10 +18925,10 @@ body.lg .nav-btn.active::before{ display:none !important; }
 
 /* ── segmented controls (iOS) ─────────────────────────────────────── */
 body.lg .seg-control, body.lg .team-subtabs, body.lg .hwc-lb-tabs{
-  background:linear-gradient(135deg, rgba(255,255,255,0.34), rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.22)) !important; border:0.5px solid rgba(255,255,255,0.55) !important; border-radius:999px !important;
-  -webkit-backdrop-filter:var(--g-blur) !important; backdrop-filter:var(--g-blur) !important; box-shadow:var(--g-hi) !important; padding:3px !important;
+  background:var(--g-card) !important; border:0.5px solid rgba(255,255,255,0.55) !important; border-radius:999px !important;
+  -webkit-backdrop-filter:var(--g-blur) !important; backdrop-filter:var(--g-blur) !important; box-shadow:var(--g-edge), var(--g-hi) !important; padding:3px !important;
 }
-body.lg.dark .seg-control, body.lg.dark .team-subtabs, body.lg.dark .hwc-lb-tabs{ background:rgba(255,255,255,0.07) !important; border-color:rgba(255,255,255,0.14) !important; }
+body.lg.dark .seg-control, body.lg.dark .team-subtabs, body.lg.dark .hwc-lb-tabs{ border-color:rgba(255,255,255,0.16) !important; }
 body.lg .seg-tab, body.lg .team-subtab, body.lg .hwc-lb-tab{ border-radius:999px !important; color:var(--ink-3) !important; background:transparent !important; box-shadow:none !important; }
 body.lg .seg-tab.active, body.lg .team-subtab.active, body.lg .hwc-lb-tab.active{
   background:radial-gradient(120% 140% at 30% 20%, rgba(255,255,255,0.95), rgba(255,255,255,0.55) 65%, rgba(255,255,255,0.7)) !important; color:var(--ink) !important;
@@ -18905,11 +18939,11 @@ body.lg.dark .seg-tab.active, body.lg.dark .team-subtab.active, body.lg.dark .hw
 body.lg .btn-primary, body.lg .login-btn{
   background:linear-gradient(135deg, rgba(70,160,255,0.92) 0%, rgba(10,124,255,0.82) 55%, rgba(60,140,255,0.90) 100%) !important; color:#fff !important; border:0.5px solid rgba(255,255,255,0.55) !important;
   -webkit-backdrop-filter:blur(10px) saturate(180%) !important; backdrop-filter:blur(10px) saturate(180%) !important;
-  border-radius:999px !important; box-shadow:0 10px 24px rgba(10,124,255,0.32), inset 1.5px 1.5px 0 rgba(255,255,255,0.65), inset -1px -1px 0 rgba(255,255,255,0.25), inset 0 0 14px rgba(255,255,255,0.20) !important; text-shadow:0 1px 1px rgba(0,40,120,0.25) !important; }
+  border-radius:999px !important; box-shadow:0 0 0 1px rgba(0,50,140,0.28), 0 10px 24px rgba(10,124,255,0.32), inset 1.5px 1.5px 0 rgba(255,255,255,0.8), inset -1px -1px 0 rgba(255,255,255,0.3), inset 0 0 14px rgba(255,255,255,0.22) !important; text-shadow:0 1px 1px rgba(0,40,120,0.25) !important; }
 body.lg .btn-primary::before, body.lg .btn-primary::after, body.lg .login-btn::before, body.lg .login-btn::after{ display:none !important; }
 body.lg .btn-secondary, body.lg .btn-forgot, body.lg .btn-register, body.lg .btn-export, body.lg .status-filter-btn, body.lg .hq-face-btn{
   background:linear-gradient(135deg, rgba(255,255,255,0.50), rgba(255,255,255,0.18) 55%, rgba(255,255,255,0.30)) !important; border:0.5px solid rgba(255,255,255,0.6) !important; color:var(--ink) !important;
-  box-shadow:0 4px 12px rgba(30,40,110,0.10), inset 1.5px 1.5px 0 rgba(255,255,255,0.95), inset -1px -1px 0 rgba(255,255,255,0.4) !important; border-radius:999px !important; }
+  box-shadow:var(--g-edge), 0 4px 12px rgba(30,40,110,0.10), inset 1.5px 1.5px 0 #fff, inset -1px -1px 0 rgba(255,255,255,0.5) !important; border-radius:999px !important; }
 body.lg.dark .btn-secondary, body.lg.dark .btn-forgot, body.lg.dark .btn-register, body.lg.dark .btn-export, body.lg.dark .status-filter-btn, body.lg.dark .hq-face-btn{
   background:rgba(255,255,255,0.08) !important; border-color:rgba(255,255,255,0.16) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.18) !important; }
 body.lg .status-filter-btn.active{ background:rgba(10,124,255,0.16) !important; color:var(--g-accent) !important; border-color:rgba(10,124,255,0.35) !important; }
@@ -18921,8 +18955,8 @@ body.lg .sel, body.lg .form-inp, body.lg .login-inp, body.lg .modal-inp, body.lg
 
 /* ── home dashboard ───────────────────────────────────────────────── */
 body.lg #page-home.hq .hq-hero{ background:transparent !important; }
-body.lg .hq-status{ background:rgba(255,255,255,0.50); border:1px solid rgba(255,255,255,0.8); box-shadow:inset 0 1px 0 #fff; color:var(--ink); -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur); }
-body.lg.dark .hq-status{ background:rgba(255,255,255,0.10); border-color:rgba(255,255,255,0.18); box-shadow:inset 0 1px 0 rgba(255,255,255,0.2); }
+body.lg .hq-status{ background:var(--g-card); border:0.5px solid rgba(255,255,255,0.7); box-shadow:var(--g-edge), var(--g-hi); color:var(--ink); -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur); }
+body.lg.dark .hq-status{ border-color:rgba(255,255,255,0.18); }
 body.lg .ha-greet-name .accent{ color:var(--g-accent) !important; -webkit-text-fill-color:var(--g-accent) !important; }
 body.lg .ha-chip{ border-radius:var(--r) !important; }
 body.lg .ha-chip-value{ text-shadow:none !important; }
@@ -18950,6 +18984,13 @@ body.lg .modal, body.lg .modal-sheet, body.lg .modal-content, body.lg .sheet{
   border:1px solid rgba(255,255,255,0.8) !important; border-radius:var(--r-xl) !important; }
 body.lg.dark .modal, body.lg.dark .modal-sheet, body.lg.dark .modal-content, body.lg.dark .sheet{ background:rgba(24,28,40,0.82) !important; border-color:rgba(255,255,255,0.14) !important; }
 body.lg .login-logo-mark{ background:linear-gradient(180deg, #3A97FF, #0A7CFF) !important; box-shadow:0 8px 20px rgba(10,124,255,0.30), inset 0 1px 0 rgba(255,255,255,0.5) !important; }
+
+/* v284 transparency slider (Settings) */
+.lg-level{ margin:4px 0 12px; }
+.lg-level label{ display:block; font-size:13px; font-weight:600; color:var(--ink-2); margin-bottom:8px; }
+.lg-level input[type=range]{ width:100%; accent-color:var(--accent); }
+.lg-level .lg-level-ends{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-4); margin-top:4px; }
+body:not(.lg) .lg-level{ opacity:.45; }
 </style>
 
 
