@@ -4249,20 +4249,31 @@ body.dark .slide-action{
 
 <!-- EDIT MODAL -->
 <!-- v246: floating AI assistant (admin-only) — body-level so it shows on every page -->
-<button id="ai-fab" onclick="openAIModal()" title="ผู้ช่วย AI" style="display:none;position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);z-index:45;width:56px;height:56px;border-radius:50%;border:none;align-items:center;justify-content:center;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:26px;box-shadow:0 8px 24px rgba(99,102,241,.45);cursor:pointer">🤖</button>
+<button id="ai-fab" onclick="openAIModal()" title="ผู้ช่วย AI" style="display:none;position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);z-index:45;width:56px;height:56px;border-radius:50%;border:none;align-items:center;justify-content:center;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:26px;box-shadow:0 8px 24px rgba(99,102,241,.45);cursor:pointer"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="#fff" d="M12 2.5c.4 3.9 1.9 6.4 4.4 7.6 1.1.5 2.3.8 3.6.9-1.3.1-2.5.4-3.6.9-2.5 1.2-4 3.7-4.4 7.6-.4-3.9-1.9-6.4-4.4-7.6-1.1-.5-2.3-.8-3.6-.9 1.3-.1 2.5-.4 3.6-.9C10.1 8.9 11.6 6.4 12 2.5z"/><path fill="#fff" opacity=".85" d="M19 15.5c.15 1.5.75 2.45 1.7 2.9.42.2.88.3 1.3.35-.42.04-.88.15-1.3.35-.95.45-1.55 1.4-1.7 2.9-.15-1.5-.75-2.45-1.7-2.9-.42-.2-.88-.3-1.3-.35.42-.05.88-.15 1.3-.35.95-.45 1.55-1.4 1.7-2.9z"/></svg></button>
 
 <div class="modal-overlay" id="ai-modal">
-  <div class="modal">
-    <div class="modal-title">🤖 ผู้ช่วย AI<span style="display:flex;gap:2px"><button class="modal-close" onclick="openAISettings()" title="เปลี่ยน Gemini API Key">🔑</button><button class="modal-close" onclick="closeModal('ai-modal')">✕</button></span></div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.6">
-      พิมพ์คำสั่งเป็นภาษาคน เช่น<br>
-      • "แก้เวลาออกของ Leng เมื่อวานเป็น 17:00"<br>
-      • "เพิ่มวันที่ 25 ให้ Mu เข้า 6:00 ออก 16:30"<br>
-      • "เดือนนี้ใคร OT เยอะสุด"
+  <!-- v286 AI sheet (Apple Intelligence idiom): glowing edge, suggestion
+       chips, chat composer. Ids ai-cmd-input / ai-cmd-result unchanged. -->
+  <div class="modal ai-sheet">
+    <div class="ai-glow" aria-hidden="true"></div>
+    <div class="ai-head">
+      <div class="ai-orb" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#fff" d="M12 2.5c.4 3.9 1.9 6.4 4.4 7.6 1.1.5 2.3.8 3.6.9-1.3.1-2.5.4-3.6.9-2.5 1.2-4 3.7-4.4 7.6-.4-3.9-1.9-6.4-4.4-7.6-1.1-.5-2.3-.8-3.6-.9 1.3-.1 2.5-.4 3.6-.9C10.1 8.9 11.6 6.4 12 2.5z"/><path fill="#fff" opacity=".85" d="M19 15.5c.15 1.5.75 2.45 1.7 2.9.42.2.88.3 1.3.35-.42.04-.88.15-1.3.35-.95.45-1.55 1.4-1.7 2.9-.15-1.5-.75-2.45-1.7-2.9-.42-.2-.88-.3-1.3-.35.42-.05.88-.15 1.3-.35.95-.45 1.55-1.4 1.7-2.9z"/></svg></div>
+      <div class="ai-title"><div class="ai-name">ผู้ช่วย AI</div><div class="ai-sub">สั่งงานเป็นภาษาพูด · แก้เวลา เพิ่มวัน ถามสถิติ</div></div>
+      <button class="ai-icon-btn" onclick="openAISettings()" title="ตั้งค่า Gemini API Key" aria-label="ตั้งค่า API Key"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15 19 4"/><path d="m18 5 2 2"/><path d="m15 8 2 2"/></svg></button>
+      <button class="ai-icon-btn" onclick="closeModal('ai-modal')" aria-label="ปิด"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
-    <textarea class="note-area" id="ai-cmd-input" rows="2" placeholder="พิมพ์คำสั่ง..." style="width:100%"></textarea>
-    <button class="btn-primary" style="margin-top:8px;width:100%" onclick="aiCommandSubmit()">▶ สั่งงาน AI</button>
-    <div id="ai-cmd-result" style="margin-top:10px;font-size:13px;line-height:1.5"></div>
+    <div class="ai-chips">
+      <button class="ai-chip" onclick="aiUseChip(this)">เดือนนี้ใคร OT เยอะสุด</button>
+      <button class="ai-chip" onclick="aiUseChip(this)">ใครยังไม่ออกงานวันนี้</button>
+      <button class="ai-chip" onclick="aiUseChip(this)">สรุปชั่วโมงทำงานสัปดาห์นี้</button>
+      <button class="ai-chip" onclick="aiUseChip(this, true)">แก้เวลาออกของ … เมื่อวานเป็น 17:00</button>
+      <button class="ai-chip" onclick="aiUseChip(this, true)">เพิ่มวันที่ … ให้ … เข้า 6:00 ออก 16:30</button>
+    </div>
+    <div id="ai-cmd-result" class="ai-result"></div>
+    <div class="ai-composer">
+      <textarea id="ai-cmd-input" rows="1" placeholder="ถามหรือสั่งงาน AI…" oninput="aiAutoGrow(this)"></textarea>
+      <button class="ai-send" onclick="aiCommandSubmit()" aria-label="ส่ง"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
+    </div>
   </div>
 </div>
 
@@ -8437,13 +8448,24 @@ async function aiCommandSubmit(auto){
   const resultEl = document.getElementById('ai-cmd-result');
   if(!resultEl) return;
   if(!cmd){ resultEl.innerHTML=''; return; }
-  resultEl.innerHTML = '<div style="color:var(--text3)">⏳ AI กำลังคิด...</div>';
+  resultEl.innerHTML = '<div class="ai-thinking"><span></span><span></span><span></span> AI กำลังคิด…</div>';
+  const _m = document.getElementById('ai-modal'); if(_m) _m.classList.add('ai-busy');   // v286 glow while thinking
   try{
     const p = await aiParseCommand(cmd);
     await aiHandleIntent(p, cmd, resultEl);
   }catch(e){
     _aiShowError(e, resultEl, !!auto);
+  } finally {
+    if(_m) _m.classList.remove('ai-busy');
   }
+}
+// v286 AI sheet helpers
+function aiAutoGrow(t){ try{ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight, 140)+'px'; }catch(e){} }
+function aiUseChip(b, editOnly){
+  const i=document.getElementById('ai-cmd-input'); if(!i) return;
+  i.value=b.textContent.trim(); aiAutoGrow(i);
+  if(editOnly){ try{ i.focus(); const k=i.value.indexOf('…'); if(k>=0) i.setSelectionRange(k,k+1); }catch(e){} return; }
+  aiCommandSubmit();
 }
 // v247: Gemini free tier is ~20 req/min shared across the app's AI widgets.
 // On a 429/quota error, show a Thai message with a live countdown and
@@ -10885,7 +10907,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v285';
+const APP_VERSION = 'v286';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18997,6 +19019,69 @@ body.lg.lg.lg .login-logo-mark{ background:linear-gradient(180deg, #3A97FF, #0A7
 .lg-level .lg-level-ends{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-4); margin-top:4px; }
 body:not(.lg) .lg-level{ opacity:.45; }
 </style>
+<style id="ai-sheet-style">
+/* v286 AI assistant sheet — Apple Intelligence idiom, same in every theme */
+#ai-modal .modal.ai-sheet{
+  position:relative; overflow:visible;
+  background:linear-gradient(180deg, rgba(30,32,48,0.92), rgba(18,20,32,0.95)) !important;
+  -webkit-backdrop-filter:blur(30px) saturate(180%) !important; backdrop-filter:blur(30px) saturate(180%) !important;
+  border:0.5px solid rgba(255,255,255,0.18) !important; border-radius:30px 30px 0 0 !important;
+  box-shadow:0 -10px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+  color:#F4F6FA !important; padding:18px 18px calc(env(safe-area-inset-bottom,0px) + 16px) !important;
+}
+#ai-modal .ai-glow{ position:absolute; inset:-2px; border-radius:32px 32px 0 0; padding:2px; pointer-events:none; z-index:0;
+  background:conic-gradient(from var(--ai-a,0deg), #3B82F6, #8B5CF6, #EC4899, #F97316, #FACC15, #22D3EE, #3B82F6);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude;
+  opacity:.85; filter:blur(0.5px); }
+#ai-modal .ai-glow::after{ content:""; position:absolute; inset:-14px; border-radius:40px 40px 0 0; z-index:-1;
+  background:conic-gradient(from var(--ai-a,0deg), #3B82F6, #8B5CF6, #EC4899, #F97316, #FACC15, #22D3EE, #3B82F6); filter:blur(22px); opacity:.35; }
+@property --ai-a{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
+#ai-modal.open .ai-glow{ animation:aiSpin 6s linear infinite; }
+#ai-modal.ai-busy .ai-glow{ animation-duration:1.4s; opacity:1; }
+#ai-modal.ai-busy .ai-glow::after{ opacity:.6; }
+@keyframes aiSpin{ to{ --ai-a:360deg; } }
+#ai-modal .ai-sheet > *:not(.ai-glow){ position:relative; z-index:1; }
+#ai-modal .ai-head{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+#ai-modal .ai-orb{ width:42px; height:42px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 30% 25%, #A78BFA, #6366F1 45%, #EC4899 85%); box-shadow:0 6px 18px rgba(139,92,246,0.45), inset 0 1px 0 rgba(255,255,255,0.5); }
+#ai-modal.ai-busy .ai-orb{ animation:aiPulse 1s ease-in-out infinite; }
+@keyframes aiPulse{ 50%{ transform:scale(1.08); box-shadow:0 6px 26px rgba(236,72,153,0.6), inset 0 1px 0 rgba(255,255,255,0.5); } }
+#ai-modal .ai-title{ flex:1; min-width:0; }
+#ai-modal .ai-name{ font-size:19px; font-weight:800; letter-spacing:-0.01em;
+  background:linear-gradient(90deg, #93C5FD, #C4B5FD, #F9A8D4); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+#ai-modal .ai-sub{ font-size:12px; color:rgba(244,246,250,0.6); margin-top:2px; }
+#ai-modal .ai-icon-btn{ width:34px; height:34px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  color:#E5E7EB; background:rgba(255,255,255,0.10); border:0.5px solid rgba(255,255,255,0.18); box-shadow:inset 0 1px 0 rgba(255,255,255,0.15); }
+#ai-modal .ai-chips{ display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; margin:0 -18px 12px; padding:2px 18px; }
+#ai-modal .ai-chips::-webkit-scrollbar{ display:none; }
+#ai-modal .ai-chip{ flex-shrink:0; font:inherit; font-size:13px; font-weight:600; color:#E9EAF5; cursor:pointer; white-space:nowrap;
+  padding:8px 13px; border-radius:999px; background:rgba(255,255,255,0.08); border:0.5px solid rgba(255,255,255,0.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.14); }
+#ai-modal .ai-chip:active{ background:rgba(139,92,246,0.30); }
+#ai-modal .ai-result{ font-size:14px; line-height:1.6; color:#F4F6FA; max-height:42vh; overflow-y:auto; }
+#ai-modal .ai-result:not(:empty){ margin-bottom:12px; padding:12px 14px; border-radius:18px 18px 18px 6px;
+  background:rgba(255,255,255,0.07); border:0.5px solid rgba(255,255,255,0.14); }
+#ai-modal .ai-result *{ color:inherit; }
+#ai-modal .ai-result button{ color:#fff; }
+#ai-modal .ai-thinking{ display:flex; align-items:center; gap:5px; color:rgba(244,246,250,0.75); }
+#ai-modal .ai-thinking span{ width:7px; height:7px; border-radius:50%; background:linear-gradient(135deg,#93C5FD,#F9A8D4); animation:aiDot 1s ease-in-out infinite; }
+#ai-modal .ai-thinking span:nth-child(2){ animation-delay:.15s; } #ai-modal .ai-thinking span:nth-child(3){ animation-delay:.3s; margin-right:4px; }
+@keyframes aiDot{ 50%{ transform:translateY(-4px); opacity:.5; } }
+#ai-modal .ai-composer{ display:flex; align-items:flex-end; gap:8px; padding:6px 6px 6px 16px; border-radius:26px;
+  background:rgba(255,255,255,0.08); border:0.5px solid rgba(255,255,255,0.22); box-shadow:inset 0 1px 0 rgba(255,255,255,0.12); }
+#ai-modal .ai-composer:focus-within{ border-color:rgba(167,139,250,0.7); box-shadow:0 0 0 3px rgba(139,92,246,0.25), inset 0 1px 0 rgba(255,255,255,0.12); }
+#ai-modal #ai-cmd-input{ flex:1; min-width:0; resize:none; border:none !important; outline:none !important; background:transparent !important; box-shadow:none !important;
+  color:#F4F6FA !important; font:inherit; font-size:16px; line-height:1.4; padding:9px 0 !important; max-height:140px; }
+#ai-modal #ai-cmd-input::placeholder{ color:rgba(244,246,250,0.45); }
+#ai-modal .ai-send{ width:40px; height:40px; border-radius:50%; flex-shrink:0; border:none; cursor:pointer; color:#fff; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, #6366F1, #A855F7 55%, #EC4899); box-shadow:0 4px 14px rgba(139,92,246,0.45), inset 0 1px 0 rgba(255,255,255,0.4); }
+#ai-modal .ai-send:active{ transform:scale(0.92); }
+@media (prefers-reduced-motion: reduce){ #ai-modal .ai-glow, #ai-modal .ai-orb, #ai-modal .ai-thinking span{ animation:none !important; } }
+/* floating sparkle button (double id beats the theme layers) */
+#ai-fab#ai-fab{ background:radial-gradient(circle at 30% 25%, #A78BFA, #6366F1 45%, #EC4899 90%) !important;
+  box-shadow:0 10px 26px rgba(139,92,246,0.45), inset 0 1px 0 rgba(255,255,255,0.5) !important; border:0.5px solid rgba(255,255,255,0.45) !important; }
+</style>
+
 
 
 <script>
