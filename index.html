@@ -10983,7 +10983,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v294';
+const APP_VERSION = 'v295';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19849,7 +19849,7 @@ body.sky #more-dark-row{ display:none !important; }
       var t = clean(text); if(!t) return;
       stop();
       var u = new SpeechSynthesisUtterance(t);
-      u.lang = 'th-TH'; try { var v = thVoice(); if(v) u.voice = v; } catch(e){} u.rate = 1.2; u.pitch = 1;   // v294: a bit faster (owner request)
+      u.lang = 'th-TH'; try { var v = thVoice(); if(v) u.voice = v; } catch(e){} u.rate = 1.1; u.pitch = 1;   // v295: 1.2 was a little too fast (owner)
       var b = btn();
       u.onstart = function(){ if(b) b.classList.add('speaking'); };
       u.onend = u.onerror = function(){ if(b) b.classList.remove('speaking'); };
