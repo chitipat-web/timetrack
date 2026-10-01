@@ -3727,6 +3727,13 @@ body.dark .slide-action{
       <div class="clock-time" id="clock-display" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">00:00:00</div>
       <div class="clock-date" id="clock-date">—</div>
 
+      <!-- v298: today's workplace — โรงแพ็ค days get the packing-house pay
+           formula (breaks deducted) without a lunch scan -->
+      <div class="seg-control place-switch" id="place-switch" role="radiogroup" aria-label="ที่ทำงานวันนี้" style="display:none">
+        <button type="button" class="seg-tab" data-place="field" role="radio" onclick="placeSet('field')">🌱 สวน</button>
+        <button type="button" class="seg-tab" data-place="pack" role="radio" onclick="placeSet('pack')">📦 โรงแพ็ค</button>
+      </div>
+      <div class="place-hint" id="place-hint" style="display:none">หักเวลาพักให้อัตโนมัติ — ไม่ต้องสแกนออก-เข้าตอนพัก</div>
       <!-- v230 slide-to-act control. The two original buttons are kept
            in DOM (sr-only) because renderHome()/CKG guard/etc. set their
            .disabled to drive state. Slider reads from those and, on
@@ -3969,6 +3976,7 @@ body.dark .slide-action{
         <div class="form-group"><label class="form-label">หมายเหตุ</label><input type="text" id="man-note" class="form-inp" placeholder="ไม่บังคับ"/></div>
         <div class="form-group"><label class="form-label">เวลาเข้า</label><input type="time" id="man-in" class="form-inp"/></div>
         <div class="form-group"><label class="form-label">เวลาออก</label><input type="time" id="man-out" class="form-inp"/></div>
+        <div class="form-group"><label class="form-label">ที่ทำงาน</label><select id="man-place" class="form-inp" onchange="this.dataset.touched='1'"><option value="field">🌱 สวน</option><option value="pack">📦 โรงแพ็ค</option></select></div>
       </div>
       <button class="btn-primary" onclick="addManual()">+ เพิ่มรายการ</button>
     </details>
@@ -6253,7 +6261,10 @@ function doCheckIn(){
   const t=nowStr();
   // v276: only the day's first check-in can be late (13:00 re-entry after lunch isn't)
   const late=isLate(t) && !records.some(r=>r.empId===curUser.id&&r.date===today&&r.checkIn);
-  records.push({id:genRecId(),empId:curUser.id,date:today,checkIn:t,checkInTs:Date.now(),checkOut:null,checkOutTs:null,isLate:late,otMin:0,note:'',lastEditedTs:Date.now()});
+  const _newRec={id:genRecId(),empId:curUser.id,date:today,checkIn:t,checkInTs:Date.now(),checkOut:null,checkOutTs:null,isLate:late,otMin:0,note:'',lastEditedTs:Date.now()};
+  // v298: today's workplace (สวน / โรงแพ็ค) — drives the pay formula
+  try{ const _pl=typeof _placePick==='function'?_placePick():''; if(_pl==='pack'||_pl==='field') _newRec.place=_pl; }catch(_){}
+  records.push(_newRec);
   haptic(late ? 'error' : 'success');
   saveRec();
   document.getElementById('btn-out').disabled=false;
@@ -6342,7 +6353,10 @@ function addManual(){
   if(!date||!inT){showToast('กรุณาระบุวันที่และเวลาเข้า','error');return}
   if(timeReversed(inT,outT)){showToast('เวลาออกน้อยกว่าเวลาเข้า กรุณาตรวจสอบ','error');return}
   const late=isLate(inT);
-  records.push({id:genRecId(),empId:curUser.id,date,checkIn:inT,checkInTs:null,checkOut:outT||null,checkOutTs:null,isLate:late,otMin:outT?calcOTMin(outT,inT):0,note});
+  const _mr={id:genRecId(),empId:curUser.id,date,checkIn:inT,checkInTs:null,checkOut:outT||null,checkOutTs:null,isLate:late,otMin:outT?calcOTMin(outT,inT):0,note};
+  // v298: workplace of the backfilled day
+  try{ const _mp=(document.getElementById('man-place')||{}).value; if(_mp==='pack'||_mp==='field') _mr.place=_mp; }catch(_){}
+  records.push(_mr);
   _normLateSessions(records);
   saveRec();
   ['man-in','man-out','man-note'].forEach(id=>document.getElementById(id).value='');
@@ -7006,7 +7020,7 @@ function renderHistory(resetPage){
     const holiday=isHoliday(date);
     return `<div class="history-item">
       <div class="hi-header">
-        <div><div class="hi-date-lbl">${parseInt(dd)} ${mons[parseInt(m)-1]}</div><div class="hi-day-lbl">วัน${dayNames[d.getDay()]} ${holiday?'🏖 '+getHolidays()[date]:''}</div></div>
+        <div><div class="hi-date-lbl">${parseInt(dd)} ${mons[parseInt(m)-1]}</div><div class="hi-day-lbl">วัน${dayNames[d.getDay()]} ${holiday?'🏖 '+getHolidays()[date]:''}${rs.some(r=>r.place==='pack')?' · 📦 โรงแพ็ค':''}</div></div>
         <div style="text-align:right">
           <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--green)">${fmtHMt(totalH*60)}</div>
           ${totalOT>0?`<div style="font-size:11px;color:var(--yellow)">⚡ OT ${fmtHMt(totalOT)}</div>`:''}
@@ -7434,14 +7448,14 @@ function fillPayCfgUI(){
 // Month pay for one employee under the formula. netH (= paid hours) kept for older callers.
 // One day under the pay formula. ss = [[inMin,outMin],...] clocked sessions.
 // Returns paid minutes (after next-full-hour start + deductions) or null.
-function _dayPaidMin(date,ss,c){
+function _dayPaidMin(date,ss,c,forcePack){
   ss=ss.filter(x=>x[1]>x[0]).sort((a,b)=>a[0]-b[0]); if(!ss.length) return null;
   const seg=[]; ss.forEach(x=>{ const l=seg[seg.length-1]; if(l&&x[0]<=l[1]) l[1]=Math.max(l[1],x[1]); else seg.push([x[0],x[1]]); });
   const fri=new Date(date+'T12:00:00').getDay()===5;
   let raw=0; seg.forEach(x=>{ raw+=x[1]-x[0]; });
   if(c.fromStart) seg[0][0]=Math.min(Math.ceil(seg[0][0]/60)*60,seg[0][1]);   // next full hour
   let min;
-  const pack=seg.length>1;
+  const pack=seg.length>1||!!forcePack;                // v298: or the day is marked โรงแพ็ค
   if(pack){                                             // packing house (split day)
     min=0;
     seg.forEach(([a,b])=>{ min+=b-a; c.breaks.forEach(([x,y])=>{ min-=Math.max(0,Math.min(b,y)-Math.max(a,x)); }); });
@@ -7451,6 +7465,9 @@ function _dayPaidMin(date,ss,c){
   }
   return {min:Math.max(0,min),raw,fri,pack};
 }
+// v298: a day marked โรงแพ็ค (record.place==='pack', chosen on the home card)
+// uses the packing-house formula — breaks deducted — even with no lunch scan.
+function _isPackDay(empId,date,arr){ return (arr||records).some(r=>r&&r.empId===empId&&r.date===date&&r.place==='pack'); }
 // v277: ONE OT rule app-wide = the pay formula (owner's choice): OT is paid
 // time above otAfter hours in a day, not clock time after 16:30.
 // dayOTMin: OT minutes for a day; nowHM closes an open session at "now".
@@ -7458,7 +7475,7 @@ function dayOTMin(empId,date,nowHM){
   const c=getPayCfg();
   const ss=records.filter(r=>r&&r.empId===empId&&r.date===date&&r.checkIn&&(r.checkOut||nowHM))
     .map(r=>[_tm(r.checkIn),_tm(r.checkOut||nowHM)]);
-  const d=_dayPaidMin(date,ss,c);
+  const d=_dayPaidMin(date,ss,c,_isPackDay(empId,date));
   return d?Math.max(0,Math.round(d.min-c.otAfter*60)):0;
 }
 // Store each day's OT on its last completed session (others 0) so every
@@ -7473,7 +7490,7 @@ function _normDayOT(arr,empId){
     const c=getPayCfg();
     Object.keys(byD).forEach(date=>{
       const rs=byD[date];
-      const d=_dayPaidMin(date,rs.map(r=>[_tm(r.checkIn),_tm(r.checkOut)]),c);
+      const d=_dayPaidMin(date,rs.map(r=>[_tm(r.checkIn),_tm(r.checkOut)]),c,_isPackDay(empId,date,arr));
       const ot=d?Math.max(0,Math.round(d.min-c.otAfter*60)):0;
       const last=rs.reduce((a,r)=>(!a||r.checkOut>a.checkOut)?r:a,null);
       rs.forEach(r=>{ const want=r===last?ot:0; if(r.otMin!==want){ r.otMin=want; n++; } });
@@ -7492,7 +7509,7 @@ function salMonthStats(empId,month,year){
   mr.forEach(r=>{ (byDate[r.date]=byDate[r.date]||[]).push([_tm(r.checkIn),_tm(r.checkOut)]); });
   let days=0,fridays=0,packDays=0,rawH=0,paidH=0,regH=0,o125H=0,o150H=0;
   Object.keys(byDate).forEach(date=>{
-    const d=_dayPaidMin(date,byDate[date],c); if(!d) return;
+    const d=_dayPaidMin(date,byDate[date],c,_isPackDay(empId,date)); if(!d) return;
     days++; if(d.fri) fridays++; if(d.pack) packDays++;
     rawH+=d.raw/60;
     const h=d.min/60;
@@ -11001,7 +11018,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v297';
+const APP_VERSION = 'v298';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -14916,7 +14933,7 @@ if('serviceWorker' in navigator) {
           todayOT = typeof dayOTMin === 'function' ? dayOTMin(curUser.id, today, nowHM) : null;   // v277: pay-formula rule
           if(todayOT === 0 && typeof _dayPaidMin === 'function'){
             const c = getPayCfg();
-            const d = _dayPaidMin(today, myRec.filter(r => r.checkIn).map(r => [_tm(r.checkIn), _tm(r.checkOut || nowHM)]), c);
+            const d = _dayPaidMin(today, myRec.filter(r => r.checkIn).map(r => [_tm(r.checkIn), _tm(r.checkOut || nowHM)]), c, typeof _isPackDay === 'function' && _isPackDay(curUser.id, today));
             untilOT = d ? Math.max(0, Math.round(c.otAfter * 60 - d.min)) : null;
           }
         }
@@ -20004,8 +20021,9 @@ body:not(.role-admin) .more-admin{ display:none !important; }
       Object.keys(dates).sort().forEach(function(d){
         var T = recsOf(tg, d), Sall = recsOf(sc, d);
         var S = Sall.every(function(r){ return r.checkOut; }) ? Sall : [];   // only a complete reference day
+        var srcPlace = (Sall.find(function(r){ return r.place === 'pack' || r.place === 'field'; }) || {}).place || '';   // v298
         if(!T.length){
-          if(S.length) plan.push({ kind:'add', date:d, sessions:S.map(function(r){ return [r.checkIn, r.checkOut]; }), on:true });
+          if(S.length) plan.push({ kind:'add', date:d, sessions:S.map(function(r){ return [r.checkIn, r.checkOut]; }), place:srcPlace, on:true });
           return;
         }
         if(!S.length){
@@ -20013,9 +20031,12 @@ body:not(.role-admin) .more-admin{ display:none !important; }
           return;
         }
         var f = fixDay(T, S);
-        if(!f) return;
-        if(f.manual){ warn.push(day(d) + ' (' + f.manual + ')'); return; }
-        plan.push({ kind:'fix', date:d, sessions:f.sessions, before:f.before, missingOut:f.missingOut, split:f.split, on:true });
+        // v298: co-worker's day is marked โรงแพ็ค but this person's isn't
+        var setPack = srcPlace === 'pack' && !T.some(function(r){ return r.place === 'pack'; });
+        if(f && f.manual){ warn.push(day(d) + ' (' + f.manual + ')'); return; }
+        if(!f && !setPack) return;
+        if(!f){ var same = T.map(function(r){ return [r.checkIn, r.checkOut || null]; }); f = { sessions:same, before:same, missingOut:false, split:false }; }
+        plan.push({ kind:'fix', date:d, sessions:f.sessions, before:f.before, missingOut:f.missingOut, split:f.split, setPack:setPack, on:true });
       });
       var srcName = escHtml(nm(employees.find(function(e){ return e.id === sc; })));
       var html = '';
@@ -20025,10 +20046,15 @@ body:not(.role-admin) .more-admin{ display:none !important; }
         if(!rows.length) return '';
         return '<div style="font-weight:700;margin:10px 0 2px">' + title + ' (' + rows.length + ')</div>' + rows.map(function(x){
           var p = x[0], i = x[1];
-          var tag = p.kind === 'add' ? '' : (p.missingOut && p.split ? 'ลืมออก + พัก' : p.missingOut ? 'ลืมออก' : 'ลืมสแกนพัก');
+          var tags = [];
+          if(p.missingOut) tags.push('ลืมออก'); if(p.split) tags.push('ลืมสแกนพัก'); if(p.setPack) tags.push('📦 วันโรงแพ็ค');
+          var tag = tags.join(' + ');
+          var sameSess = p.kind === 'fix' && JSON.stringify(p.sessions) === JSON.stringify(p.before);
           return '<label class="fill-row"><input type="checkbox" checked onchange="fillTick(' + i + ',this.checked)">' +
             '<span class="d">' + day(p.date) + '</span><span class="t">' +
-            (p.kind === 'add' ? fmt(p.sessions) : '<s style="opacity:.6">' + fmt(p.before) + '</s><br>→ ' + fmt(p.sessions) + ' <small style="color:var(--yellow)">' + tag + '</small>') +
+            (p.kind === 'add' ? fmt(p.sessions) + (p.place === 'pack' ? ' <small>📦 โรงแพ็ค</small>' : '')
+              : sameSess ? fmt(p.sessions) + ' <small style="color:var(--yellow)">→ ' + tag + '</small>'
+              : '<s style="opacity:.6">' + fmt(p.before) + '</s><br>→ ' + fmt(p.sessions) + ' <small style="color:var(--yellow)">' + tag + '</small>') +
             '</span></label>';
         }).join('');
       };
@@ -20059,7 +20085,7 @@ body:not(.role-admin) .more-admin{ display:none !important; }
         var done = 0, now = Date.now(), note = 'เติมย้อนหลัง (เวลาเดียวกับ ' + sName + ')';
         function log(rec, before){
           saveEditLog({ recId:rec.id, empId:tg, editorId:curUser.id, editorName:curUser.name, before:before,
-                        after:{ date:rec.date, checkIn:rec.checkIn, checkOut:rec.checkOut, note:rec.note || '' }, ts:now, via:'fill-copy' });
+                        after:{ date:rec.date, checkIn:rec.checkIn, checkOut:rec.checkOut, note:rec.note || '', place:rec.place || '' }, ts:now, via:'fill-copy' });
         }
         function mk(d, a, b){ return { id:genRecId(), empId:tg, date:d, checkIn:a, checkInTs:null, checkOut:b, checkOutTs:null,
                                        isLate:isLate(a), otMin:calcOTMin(b, a), note:note, lastEditedTs:now }; }
@@ -20067,7 +20093,7 @@ body:not(.role-admin) .more-admin{ display:none !important; }
           var T = recsOf(tg, p.date);
           if(p.kind === 'add'){
             if(T.length) return;                                        // a record appeared meanwhile
-            p.sessions.forEach(function(x){ var r = mk(p.date, x[0], x[1]); records.push(r); log(r, null); });
+            p.sessions.forEach(function(x){ var r = mk(p.date, x[0], x[1]); if(p.place === 'pack' || p.place === 'field') r.place = p.place; records.push(r); log(r, null); });
             done++; return;
           }
           // fix: only if the day is still exactly what was previewed
@@ -20085,10 +20111,20 @@ body:not(.role-admin) .more-admin{ display:none !important; }
               log(r, before);
             } else {
               var n = mk(p.date, x[0], x[1]);
+              if(T[0].place === 'pack' || T[0].place === 'field') n.place = T[0].place;
               if(i === p.sessions.length - 1 && x[1] === lastOut) n.checkOutTs = lastOutTs;
               records.push(n); log(n, null);
             }
           });
+          if(p.setPack){                                                   // v298
+            recsOf(tg, p.date).forEach(function(r){
+              if(r.place === 'pack') return;
+              var b4 = { date:r.date, checkIn:r.checkIn, checkOut:r.checkOut || null, note:r.note || '', place:r.place || '' };
+              r.place = 'pack'; r.lastEditedTs = now;
+              r.note = r.note ? (r.note.indexOf(note) >= 0 ? r.note : r.note + ' · ' + note) : note;
+              log(r, b4);
+            });
+          }
           done++;
         });
         if(typeof _otTouch === 'function') _otTouch(tg);
@@ -20100,6 +20136,79 @@ body:not(.role-admin) .more-admin{ display:none !important; }
       }, 'บันทึก', 'confirm-ok');
     };
   } catch(e){ console.warn('[v297] fill init', e); }
+})();
+</script>
+
+<style id="place-v298">
+#place-switch.place-switch{ margin:12px 0 6px !important; }
+#place-switch .seg-tab{ padding:7px 10px; font-size:13.5px; }
+.place-hint{ font-size:11.5px; color:var(--ink-3, var(--text2)); text-align:center; margin:0 0 10px; }
+</style>
+<script>
+// v298: today's workplace switch (สวน / โรงแพ็ค) on the check-in card.
+// Default = the last place this person used, so during the packing season
+// nobody has to tap it every day. Sandboxed.
+(function(){
+  'use strict';
+  try {
+    var KEY = 'tt_place_pick';                       // local only: a pick made before today's first check-in
+    function $(id){ return document.getElementById(id); }
+    function me(){ return (typeof curUser !== 'undefined' && curUser && curUser.id) ? curUser.id : ''; }
+    function notReady(){ try { return typeof _recordsLoadedFromFB !== 'undefined' && !_recordsLoadedFromFB; } catch(e){ return false; } }
+    function ok(p){ return p === 'pack' || p === 'field'; }
+    function lastPlace(){
+      var u = me(), best = null;
+      if(!u) return 'field';
+      records.forEach(function(r){
+        if(!r || r.empId !== u || !ok(r.place)) return;
+        if(!best || r.date > best.date || (r.date === best.date && (r.checkIn || '') > (best.checkIn || ''))) best = r;
+      });
+      return best ? best.place : 'field';
+    }
+    window._placePick = function(){
+      var u = me(); if(!u) return '';
+      var t = todayStr();
+      var tr = records.find(function(r){ return r && r.empId === u && r.date === t && ok(r.place); });
+      if(tr) return tr.place;
+      try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if(s && s.u === u && s.d === t && ok(s.p)) return s.p; } catch(e){}
+      return lastPlace();
+    };
+    function brkText(){ try { return String(getPayCfg().brk || '').replace(/\s*,\s*/g, ' · '); } catch(e){ return ''; } }
+    function render(){
+      var w = $('place-switch'), h = $('place-hint');
+      if(!w) return;
+      if(!me()){ w.style.display = 'none'; if(h) h.style.display = 'none'; return; }
+      w.style.display = '';
+      var p = window._placePick();
+      w.querySelectorAll('[data-place]').forEach(function(b){
+        var on = b.getAttribute('data-place') === p;
+        b.classList.toggle('active', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+      if(h) h.style.display = p === 'pack' ? '' : 'none';
+      var mp = $('man-place'); if(mp && !mp.dataset.touched) mp.value = p;
+    }
+    window.placeRender = render;
+    window.placeSet = function(p){
+      if(!ok(p)) return;
+      var u = me(); if(!u) return;
+      if(notReady()){ showToast('กำลังโหลดข้อมูล... รอสักครู่', 'warning'); return; }
+      var t = todayStr(), now = Date.now(), ch = 0;
+      try { localStorage.setItem(KEY, JSON.stringify({ u:u, d:t, p:p })); } catch(e){}
+      records.forEach(function(r){ if(r && r.empId === u && r.date === t && r.place !== p){ r.place = p; r.lastEditedTs = now; ch++; } });
+      if(ch) saveRec();
+      render();
+      try { if(typeof renderHome === 'function') renderHome(); } catch(e){}
+      try { if(typeof hqPayRender === 'function') hqPayRender(); } catch(e){}
+      try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+      showToast(p === 'pack' ? ('📦 วันนี้: โรงแพ็ค — หักพัก ' + brkText() + ' ให้อัตโนมัติ') : '🌱 วันนี้: สวน', 'success');
+    };
+    var _rh = window.renderHome;
+    if(typeof _rh === 'function'){
+      window.renderHome = function(){ var r = _rh.apply(this, arguments); try { render(); } catch(e){} return r; };
+    }
+    function boot(){ render(); setInterval(render, 5000); }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  } catch(e){ console.warn('[v298] place init', e); }
 })();
 </script>
 </body>
