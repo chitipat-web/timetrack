@@ -3755,7 +3755,8 @@ body.dark .slide-action{
           <span class="slide-arrows" aria-hidden="true">›››</span>
         </div>
         <div class="slide-thumb" id="slide-thumb" role="button" aria-label="เลื่อนเพื่อเข้างาน">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+          <svg class="thumb-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+          <svg class="thumb-check" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 12.5 10 17.5 19 7"/></svg>
         </div>
       </div>
       <div class="clock-btns sr-only-btns" aria-hidden="true">
@@ -11039,7 +11040,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v303';
+const APP_VERSION = 'v304';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -13695,20 +13696,35 @@ if('serviceWorker' in navigator) {
   // v303: smoother drag — fill moves by transform (no layout), and finger
   // moves are applied once per frame.
   let _raf = 0, _pendX = 0, _trackW = 0;
+  let _ready = false, _trackEl = null;
   function setX(x){
     dx = Math.max(0, Math.min(maxX, x));
     if(thumb) thumb.style.transform = `translateX(${dx}px)`;
+    // v304: label fades as you drag; at the end the arrow becomes ✓ with a tick
+    try {
+      const prog = maxX > 0 ? dx / maxX : 0;
+      if(!_trackEl && action) _trackEl = action.querySelector('.slide-track');
+      if(_trackEl) _trackEl.style.opacity = String(Math.max(0, 1 - prog * 1.4));
+      const ready = dx >= maxX - 4;
+      if(ready !== _ready){
+        _ready = ready;
+        if(action) action.classList.toggle('is-ready', ready);
+        if(ready && typeof haptic === 'function') haptic('light');
+      }
+    } catch(_){}
     if(fill){
       if(!_trackW && action) _trackW = action.getBoundingClientRect().width;
-      fill.style.transform = `translateX(${dx + 56 - _trackW}px)`;
+      fill.style.transform = `translateX(${dx + 32 - _trackW}px)`;   // v304: ends under the thumb's centre — no square edge peeking out
     }
   }
 
   function snapBack(){
     if(_raf){ cancelAnimationFrame(_raf); _raf = 0; }
-    if(action) action.classList.remove('is-dragging');
+    if(action) action.classList.remove('is-dragging', 'is-ready');
     if(thumb)  thumb.style.transform = '';
     if(fill)   fill.style.transform = '';
+    if(_trackEl) _trackEl.style.opacity = '';
+    _ready = false;
     dx = 0;
   }
 
@@ -20437,8 +20453,8 @@ body.corp.dark #place-switch .place-opt:not(.active){ background:rgba(255,255,25
 .nav-btn svg{ transform-origin:50% 100%; }
 .nav-btn.active svg{ animation:wgHop 2.6s ease-in-out infinite; }
 /* slide-to-check-in: the arrow nudges right (thumb itself is dragged via transform — untouched) */
-#slide-thumb svg{ animation:wgNudge 1.3s ease-in-out infinite; }
-.slide-action.is-dragging #slide-thumb svg{ animation:none; }   /* v303: still while dragging */
+#slide-thumb .thumb-arrow{ animation:wgNudge 1.3s ease-in-out infinite; }
+.slide-action.is-dragging #slide-thumb .thumb-arrow{ animation:none; }   /* v303: still while dragging */
 /* More page icons take turns wiggling */
 .more-row-ic{ display:inline-block; transform-origin:50% 70%; animation:wgTurn 6s ease-in-out infinite; }
 .more-row:nth-child(2) .more-row-ic{ animation-delay:1.2s; } .more-row:nth-child(3) .more-row-ic{ animation-delay:2.4s; }
@@ -20479,5 +20495,31 @@ body.corp.dark #place-switch .place-opt:not(.active){ background:rgba(255,255,25
   } catch(e){ console.warn('[v302] wiggle', e); }
 })();
 </script>
+
+<style id="slide-v304">
+/* v304: prettier drag — glow ring on the thumb, sheen sweeping the fill,
+   label fades with progress, ✓ at the end. All compositor-friendly. */
+.slide-track{ transition:opacity .25s ease; }
+.slide-action.is-dragging .slide-track{ transition:none; }
+.slide-thumb .thumb-check{ position:absolute; opacity:0; transform:scale(.4) rotate(-30deg); transition:opacity .18s, transform .3s cubic-bezier(.3,1.7,.5,1); }
+.slide-thumb .thumb-arrow{ transition:opacity .15s, transform .2s; }
+.slide-action.is-ready .slide-thumb .thumb-arrow{ opacity:0; transform:scale(.4); }
+.slide-action.is-ready .slide-thumb .thumb-check{ opacity:1; transform:scale(1) rotate(0); }
+.slide-thumb::after{ content:''; position:absolute; inset:-6px; border-radius:inherit; pointer-events:none;
+  box-shadow:0 0 0 0 rgba(48,209,88,0.0); opacity:0; transition:opacity .2s; }
+.slide-action.is-dragging .slide-thumb::after{ opacity:1; animation:thumbRing 1s ease-out infinite; }
+.slide-action[data-mode="out"].is-dragging .slide-thumb::after{ animation-name:thumbRingRed; }
+.slide-action.is-ready .slide-thumb::after{ animation-duration:.6s; }
+@keyframes thumbRing{ 0%{ box-shadow:0 0 0 0 rgba(48,209,88,0.55); } 100%{ box-shadow:0 0 0 14px rgba(48,209,88,0); } }
+@keyframes thumbRingRed{ 0%{ box-shadow:0 0 0 0 rgba(255,69,58,0.55); } 100%{ box-shadow:0 0 0 14px rgba(255,69,58,0); } }
+.slide-fill{ overflow:hidden; }
+.slide-fill::after{ content:''; position:absolute; top:0; bottom:0; left:0; width:60%; pointer-events:none;
+  background:linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%);
+  transform:translateX(-120%); opacity:0; }
+.slide-action.is-dragging .slide-fill::after{ opacity:1; animation:fillSheen 1.1s linear infinite; }
+@keyframes fillSheen{ from{ transform:translateX(-120%); } to{ transform:translateX(220%); } }
+.slide-action.is-ready .slide-fill{ filter:saturate(1.3) brightness(1.08); }
+@media (prefers-reduced-motion: reduce){ .slide-thumb::after, .slide-fill::after{ animation:none !important; } }
+</style>
 </body>
 </html>
