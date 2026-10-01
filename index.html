@@ -10885,7 +10885,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v284';
+const APP_VERSION = 'v285';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18793,7 +18793,7 @@ body.corp .toast{ border-radius:var(--r-sm) !important; box-shadow:var(--shadow-
 <!-- ║ CSS-only layer, like the corporate one.                           ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════╝ -->
 <style id="lg-theme">
-body.lg{
+body.lg.lg.lg{
   --g-bg:#E8EEF8;
   /* v283: clearer material — thin white tint + specular sheen, rim light
      on all edges (bright top-left, softer bottom-right) and an inner glow,
@@ -18829,7 +18829,7 @@ body.lg{
   --radius:var(--r); --radius-sm:var(--r-sm); --radius-xs:var(--r-xs);
   --lw-face-a:rgba(255,255,255,0.75); --lw-face-b:rgba(255,255,255,0.35); --lw-core:rgba(255,255,255,0.85);
 }
-body.lg.dark{
+body.lg.lg.lg.dark{
   --g-bg:#070A12;
   --g-tint:var(--g-tint-dark, rgba(30,32,46,0.34));
   --g-sheen:linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 38%, rgba(255,255,255,0) 64%, rgba(255,255,255,0.08) 100%);
@@ -18849,11 +18849,16 @@ body.lg.dark{
   --lw-face-a:rgba(255,255,255,0.12); --lw-face-b:rgba(255,255,255,0.03); --lw-core:rgba(0,0,0,0.45);
 }
 
+/* v285: glass over the live weather sky — lighter accent so blue text and
+   the active tab stay readable on blue / dawn / dusk skies */
+body.lg.lg.lg.sky{ --g-accent:#A9D5FF; --g-accent-2:#7FBFFF; }
+body.lg.lg.lg.sky .hw-countdown-time{ color:#BFE0FF !important; }
+
 /* ── wallpaper (fixed layer behind everything) ───────────────────── */
-html:has(body.lg){ background:var(--g-bg, #E8EEF8); }
-body.lg, body.lg #app-shell{ background:transparent !important; background-image:none !important; font-family:var(--font) !important; color:var(--ink); }
-body.lg #app-shell::before, body.lg #app-shell::after, body.lg::after{ display:none !important; }
-body.lg::before{
+html:has(body.lg.lg.lg:not(.sky)){ background:var(--g-bg, #E8EEF8); }
+body.lg.lg.lg, body.lg.lg.lg #app-shell{ background:transparent !important; background-image:none !important; font-family:var(--font) !important; color:var(--ink); }
+body.lg.lg.lg #app-shell::before, body.lg.lg.lg #app-shell::after, body.lg.lg.lg::after{ display:none !important; }
+body.lg.lg.lg:not(.sky)::before{
   content:"" !important; display:block !important; position:fixed !important; inset:0 !important; z-index:-1 !important;
   pointer-events:none !important; opacity:1 !important; filter:none !important; transform:none !important; animation:none !important;
   background:
@@ -18864,7 +18869,7 @@ body.lg::before{
     radial-gradient(60% 36% at 96% 92%, rgba(255,150,60,0.62) 0%, transparent 70%),
     linear-gradient(180deg, #D9E4FF 0%, #F1E6FF 50%, #FFE9DC 100%) !important;
 }
-body.lg.dark::before{
+body.lg.lg.lg.dark:not(.sky)::before{
   background:
     radial-gradient(70% 38% at 8% 4%,   rgba(30,80,255,0.70) 0%, transparent 70%),
     radial-gradient(60% 34% at 96% 16%, rgba(150,40,230,0.60) 0%, transparent 70%),
@@ -18873,117 +18878,117 @@ body.lg.dark::before{
     radial-gradient(60% 36% at 96% 94%, rgba(240,110,30,0.45) 0%, transparent 70%),
     linear-gradient(180deg, #060A1C 0%, #0C0620 55%, #140A10 100%) !important;
 }
-body.lg .lg-canvas, body.lg .float-dot, body.lg #dm-bubbles, body.lg #dm-sparkles, body.lg #songkran-canvas{ display:none !important; }
-body.lg .tilt-card{ transform:none !important; }
-body.lg .hologram::before, body.lg .hologram::after, body.lg .clock-hero::before, body.lg .clock-hero::after{ display:none !important; }
+body.lg.lg.lg .lg-canvas, body.lg.lg.lg .float-dot, body.lg.lg.lg #dm-bubbles, body.lg.lg.lg #dm-sparkles, body.lg.lg.lg #songkran-canvas{ display:none !important; }
+body.lg.lg.lg .tilt-card{ transform:none !important; }
+body.lg.lg.lg .hologram::before, body.lg.lg.lg .hologram::after, body.lg.lg.lg .clock-hero::before, body.lg.lg.lg .clock-hero::after{ display:none !important; }
 
 /* ── glass surfaces ──────────────────────────────────────────────── */
-body.lg .card, body.lg .hw-card, body.lg .clock-hero, body.lg .ha-chip, body.lg .sum-card, body.lg .stat-box,
-body.lg .emp-card, body.lg .team-card, body.lg .announce-card, body.lg .poll-card, body.lg .report-card,
-body.lg .ha-week, body.lg .sal-preview, body.lg .streak-card, body.lg .punct-card, body.lg .chart-card, body.lg .login-box{
+body.lg.lg.lg .card, body.lg.lg.lg .hw-card, body.lg.lg.lg .clock-hero, body.lg.lg.lg .ha-chip, body.lg.lg.lg .sum-card, body.lg.lg.lg .stat-box,
+body.lg.lg.lg .emp-card, body.lg.lg.lg .team-card, body.lg.lg.lg .announce-card, body.lg.lg.lg .poll-card, body.lg.lg.lg .report-card,
+body.lg.lg.lg .ha-week, body.lg.lg.lg .sal-preview, body.lg.lg.lg .streak-card, body.lg.lg.lg .punct-card, body.lg.lg.lg .chart-card, body.lg.lg.lg .login-box{
   background:var(--g-card) !important;
   -webkit-backdrop-filter:var(--g-blur) !important; backdrop-filter:var(--g-blur) !important;
   border:1px solid var(--g-stroke) !important; border-radius:var(--r-lg) !important;
   box-shadow:var(--g-shadow), var(--g-hi) !important; color:var(--ink);
 }
-body.lg .card::before, body.lg .card::after, body.lg .hw-card::before, body.lg .hw-card::after,
-body.lg .ha-chip::before, body.lg .ha-chip::after, body.lg .login-box::before, body.lg .login-box::after{ display:none !important; }
+body.lg.lg.lg .card::before, body.lg.lg.lg .card::after, body.lg.lg.lg .hw-card::before, body.lg.lg.lg .hw-card::after,
+body.lg.lg.lg .ha-chip::before, body.lg.lg.lg .ha-chip::after, body.lg.lg.lg .login-box::before, body.lg.lg.lg .login-box::after{ display:none !important; }
 /* nested cards inside a card: lighter glass, no second blur */
-body.lg .card .card, body.lg .hq-tools .hw-card, body.lg .card .rec-item{ -webkit-backdrop-filter:none !important; backdrop-filter:none !important; background:rgba(255,255,255,0.20) !important; box-shadow:inset 1px 1px 0 rgba(255,255,255,0.8), inset -1px -1px 0 rgba(255,255,255,0.3) !important; border:0.5px solid rgba(255,255,255,0.5) !important; border-radius:var(--r) !important; }
-body.lg.dark .card .card, body.lg.dark .hq-tools .hw-card, body.lg.dark .card .rec-item{ background:rgba(255,255,255,0.05) !important; }
-body.lg .sal-hero{ background:linear-gradient(135deg, rgba(10,124,255,0.85), rgba(120,90,255,0.80)) !important; border-radius:var(--r-lg) !important; box-shadow:0 12px 30px rgba(10,124,255,0.30), inset 0 1px 0 rgba(255,255,255,0.45) !important; }
-body.lg .clock-svg{ filter:drop-shadow(0 8px 20px rgba(40,60,110,0.18)) !important; }
+body.lg.lg.lg .card .card, body.lg.lg.lg .hq-tools .hw-card, body.lg.lg.lg .card .rec-item{ -webkit-backdrop-filter:none !important; backdrop-filter:none !important; background:rgba(255,255,255,0.20) !important; box-shadow:inset 1px 1px 0 rgba(255,255,255,0.8), inset -1px -1px 0 rgba(255,255,255,0.3) !important; border:0.5px solid rgba(255,255,255,0.5) !important; border-radius:var(--r) !important; }
+body.lg.lg.lg.dark .card .card, body.lg.lg.lg.dark .hq-tools .hw-card, body.lg.lg.lg.dark .card .rec-item{ background:rgba(255,255,255,0.05) !important; }
+body.lg.lg.lg .sal-hero{ background:linear-gradient(135deg, rgba(10,124,255,0.85), rgba(120,90,255,0.80)) !important; border-radius:var(--r-lg) !important; box-shadow:0 12px 30px rgba(10,124,255,0.30), inset 0 1px 0 rgba(255,255,255,0.45) !important; }
+body.lg.lg.lg .clock-svg{ filter:drop-shadow(0 8px 20px rgba(40,60,110,0.18)) !important; }
 
 /* ── top bar: clear glass ─────────────────────────────────────────── */
-body.lg .topbar{ background:linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.10) 100%) !important; -webkit-backdrop-filter:blur(20px) saturate(200%) !important; backdrop-filter:blur(20px) saturate(200%) !important; border-bottom:0.5px solid rgba(255,255,255,0.45) !important; box-shadow:none !important; }
-body.lg.dark .topbar{ background:linear-gradient(180deg, rgba(8,10,24,0.55) 0%, rgba(8,10,24,0.20) 100%) !important; border-bottom-color:rgba(255,255,255,0.10) !important; }
-body.lg .topbar .logo-text span{ color:var(--g-accent) !important; -webkit-text-fill-color:var(--g-accent) !important; }
-body.lg .topbar .live-badge, body.lg .topbar .admin-badge, body.lg .topbar .icon-btn, body.lg .topbar .user-chip, body.lg .topbar .logout-btn{
+body.lg.lg.lg .topbar{ background:linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.10) 100%) !important; -webkit-backdrop-filter:blur(20px) saturate(200%) !important; backdrop-filter:blur(20px) saturate(200%) !important; border-bottom:0.5px solid rgba(255,255,255,0.45) !important; box-shadow:none !important; }
+body.lg.lg.lg.dark .topbar{ background:linear-gradient(180deg, rgba(8,10,24,0.55) 0%, rgba(8,10,24,0.20) 100%) !important; border-bottom-color:rgba(255,255,255,0.10) !important; }
+body.lg.lg.lg .topbar .logo-text span{ color:var(--g-accent) !important; -webkit-text-fill-color:var(--g-accent) !important; }
+body.lg.lg.lg .topbar .live-badge, body.lg.lg.lg .topbar .admin-badge, body.lg.lg.lg .topbar .icon-btn, body.lg.lg.lg .topbar .user-chip, body.lg.lg.lg .topbar .logout-btn{
   background:rgba(255,255,255,0.40) !important; border:1px solid rgba(255,255,255,0.70) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.9) !important; }
-body.lg.dark .topbar .live-badge, body.lg.dark .topbar .admin-badge, body.lg.dark .topbar .icon-btn, body.lg.dark .topbar .user-chip, body.lg.dark .topbar .logout-btn{
+body.lg.lg.lg.dark .topbar .live-badge, body.lg.lg.lg.dark .topbar .admin-badge, body.lg.lg.lg.dark .topbar .icon-btn, body.lg.lg.lg.dark .topbar .user-chip, body.lg.lg.lg.dark .topbar .logout-btn{
   background:rgba(255,255,255,0.10) !important; border-color:rgba(255,255,255,0.18) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.18) !important; }
 
 /* ── headings ─────────────────────────────────────────────────────── */
-body.lg .page-title{ font-size:32px !important; font-weight:800 !important; letter-spacing:-0.03em !important; background:none !important; -webkit-text-fill-color:currentColor !important; color:var(--ink) !important; text-shadow:none !important; }
-body.lg .hw-icon, body.lg .ha-chip-icon{ display:none !important; }
+body.lg.lg.lg .page-title{ font-size:32px !important; font-weight:800 !important; letter-spacing:-0.03em !important; background:none !important; -webkit-text-fill-color:currentColor !important; color:var(--ink) !important; text-shadow:none !important; }
+body.lg.lg.lg .hw-icon, body.lg.lg.lg .ha-chip-icon{ display:none !important; }
 
 /* ── floating capsule tab bar with a glass lozenge ────────────────── */
-body.lg .nav{
+body.lg.lg.lg .nav{
   background:var(--g-card) !important;
   -webkit-backdrop-filter:var(--g-blur) !important; backdrop-filter:var(--g-blur) !important;
   border:0.5px solid rgba(255,255,255,0.6) !important; border-radius:999px !important;
   box-shadow:var(--g-edge), 0 18px 40px rgba(30,40,110,0.24), var(--g-hi) !important;
 }
-body.lg.dark .nav{ border-color:rgba(255,255,255,0.18) !important; box-shadow:var(--g-edge), 0 14px 36px rgba(0,0,0,0.55), var(--g-hi) !important; }
-body.lg .nav-btn{ color:var(--ink-3) !important; }
-body.lg .nav-btn.active{
+body.lg.lg.lg.dark .nav{ border-color:rgba(255,255,255,0.18) !important; box-shadow:var(--g-edge), 0 14px 36px rgba(0,0,0,0.55), var(--g-hi) !important; }
+body.lg.lg.lg .nav-btn{ color:var(--ink-3) !important; }
+body.lg.lg.lg .nav-btn.active{
   background:radial-gradient(120% 140% at 30% 20%, rgba(255,255,255,0.75), rgba(255,255,255,0.30) 60%, rgba(255,255,255,0.45)) !important; color:var(--g-accent) !important;
   box-shadow:0 6px 16px rgba(30,40,110,0.18), inset 1.5px 1.5px 0 #fff, inset -1px -1px 0 rgba(255,255,255,0.6), inset 0 0 10px rgba(255,255,255,0.5) !important;
 }
-body.lg.dark .nav-btn.active{ background:rgba(255,255,255,0.16) !important; box-shadow:0 4px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.30) !important; }
-body.lg .nav-btn.active::before{ display:none !important; }
+body.lg.lg.lg.dark .nav-btn.active{ background:rgba(255,255,255,0.16) !important; box-shadow:0 4px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.30) !important; }
+body.lg.lg.lg .nav-btn.active::before{ display:none !important; }
 
 /* ── segmented controls (iOS) ─────────────────────────────────────── */
-body.lg .seg-control, body.lg .team-subtabs, body.lg .hwc-lb-tabs{
+body.lg.lg.lg .seg-control, body.lg.lg.lg .team-subtabs, body.lg.lg.lg .hwc-lb-tabs{
   background:var(--g-card) !important; border:0.5px solid rgba(255,255,255,0.55) !important; border-radius:999px !important;
   -webkit-backdrop-filter:var(--g-blur) !important; backdrop-filter:var(--g-blur) !important; box-shadow:var(--g-edge), var(--g-hi) !important; padding:3px !important;
 }
-body.lg.dark .seg-control, body.lg.dark .team-subtabs, body.lg.dark .hwc-lb-tabs{ border-color:rgba(255,255,255,0.16) !important; }
-body.lg .seg-tab, body.lg .team-subtab, body.lg .hwc-lb-tab{ border-radius:999px !important; color:var(--ink-3) !important; background:transparent !important; box-shadow:none !important; }
-body.lg .seg-tab.active, body.lg .team-subtab.active, body.lg .hwc-lb-tab.active{
+body.lg.lg.lg.dark .seg-control, body.lg.lg.lg.dark .team-subtabs, body.lg.lg.lg.dark .hwc-lb-tabs{ border-color:rgba(255,255,255,0.16) !important; }
+body.lg.lg.lg .seg-tab, body.lg.lg.lg .team-subtab, body.lg.lg.lg .hwc-lb-tab{ border-radius:999px !important; color:var(--ink-3) !important; background:transparent !important; box-shadow:none !important; }
+body.lg.lg.lg .seg-tab.active, body.lg.lg.lg .team-subtab.active, body.lg.lg.lg .hwc-lb-tab.active{
   background:radial-gradient(120% 140% at 30% 20%, rgba(255,255,255,0.95), rgba(255,255,255,0.55) 65%, rgba(255,255,255,0.7)) !important; color:var(--ink) !important;
   box-shadow:0 4px 12px rgba(30,40,110,0.16), inset 1.5px 1.5px 0 #fff, inset -1px -1px 0 rgba(255,255,255,0.6) !important; }
-body.lg.dark .seg-tab.active, body.lg.dark .team-subtab.active, body.lg.dark .hwc-lb-tab.active{ background:rgba(255,255,255,0.20) !important; color:#fff !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.3) !important; }
+body.lg.lg.lg.dark .seg-tab.active, body.lg.lg.lg.dark .team-subtab.active, body.lg.lg.lg.dark .hwc-lb-tab.active{ background:rgba(255,255,255,0.20) !important; color:#fff !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.3) !important; }
 
 /* ── buttons ──────────────────────────────────────────────────────── */
-body.lg .btn-primary, body.lg .login-btn{
+body.lg.lg.lg .btn-primary, body.lg.lg.lg .login-btn{
   background:linear-gradient(135deg, rgba(70,160,255,0.92) 0%, rgba(10,124,255,0.82) 55%, rgba(60,140,255,0.90) 100%) !important; color:#fff !important; border:0.5px solid rgba(255,255,255,0.55) !important;
   -webkit-backdrop-filter:blur(10px) saturate(180%) !important; backdrop-filter:blur(10px) saturate(180%) !important;
   border-radius:999px !important; box-shadow:0 0 0 1px rgba(0,50,140,0.28), 0 10px 24px rgba(10,124,255,0.32), inset 1.5px 1.5px 0 rgba(255,255,255,0.8), inset -1px -1px 0 rgba(255,255,255,0.3), inset 0 0 14px rgba(255,255,255,0.22) !important; text-shadow:0 1px 1px rgba(0,40,120,0.25) !important; }
-body.lg .btn-primary::before, body.lg .btn-primary::after, body.lg .login-btn::before, body.lg .login-btn::after{ display:none !important; }
-body.lg .btn-secondary, body.lg .btn-forgot, body.lg .btn-register, body.lg .btn-export, body.lg .status-filter-btn, body.lg .hq-face-btn{
+body.lg.lg.lg .btn-primary::before, body.lg.lg.lg .btn-primary::after, body.lg.lg.lg .login-btn::before, body.lg.lg.lg .login-btn::after{ display:none !important; }
+body.lg.lg.lg .btn-secondary, body.lg.lg.lg .btn-forgot, body.lg.lg.lg .btn-register, body.lg.lg.lg .btn-export, body.lg.lg.lg .status-filter-btn, body.lg.lg.lg .hq-face-btn{
   background:linear-gradient(135deg, rgba(255,255,255,0.50), rgba(255,255,255,0.18) 55%, rgba(255,255,255,0.30)) !important; border:0.5px solid rgba(255,255,255,0.6) !important; color:var(--ink) !important;
   box-shadow:var(--g-edge), 0 4px 12px rgba(30,40,110,0.10), inset 1.5px 1.5px 0 #fff, inset -1px -1px 0 rgba(255,255,255,0.5) !important; border-radius:999px !important; }
-body.lg.dark .btn-secondary, body.lg.dark .btn-forgot, body.lg.dark .btn-register, body.lg.dark .btn-export, body.lg.dark .status-filter-btn, body.lg.dark .hq-face-btn{
+body.lg.lg.lg.dark .btn-secondary, body.lg.lg.lg.dark .btn-forgot, body.lg.lg.lg.dark .btn-register, body.lg.lg.lg.dark .btn-export, body.lg.lg.lg.dark .status-filter-btn, body.lg.lg.lg.dark .hq-face-btn{
   background:rgba(255,255,255,0.08) !important; border-color:rgba(255,255,255,0.16) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.18) !important; }
-body.lg .status-filter-btn.active{ background:rgba(10,124,255,0.16) !important; color:var(--g-accent) !important; border-color:rgba(10,124,255,0.35) !important; }
+body.lg.lg.lg .status-filter-btn.active{ background:rgba(10,124,255,0.16) !important; color:var(--g-accent) !important; border-color:rgba(10,124,255,0.35) !important; }
 
 /* ── inputs ───────────────────────────────────────────────────────── */
-body.lg .sel, body.lg .form-inp, body.lg .login-inp, body.lg .modal-inp, body.lg textarea{
+body.lg.lg.lg .sel, body.lg.lg.lg .form-inp, body.lg.lg.lg .login-inp, body.lg.lg.lg .modal-inp, body.lg.lg.lg textarea{
   background:var(--field-bg) !important; border:1px solid var(--field-stroke) !important; border-radius:var(--r-sm) !important;
   box-shadow:inset 0 1px 2px rgba(40,60,110,0.06) !important; color:var(--ink) !important; }
 
 /* ── home dashboard ───────────────────────────────────────────────── */
-body.lg #page-home.hq .hq-hero{ background:transparent !important; }
-body.lg .hq-status{ background:var(--g-card); border:0.5px solid rgba(255,255,255,0.7); box-shadow:var(--g-edge), var(--g-hi); color:var(--ink); -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur); }
-body.lg.dark .hq-status{ border-color:rgba(255,255,255,0.18); }
-body.lg .ha-greet-name .accent{ color:var(--g-accent) !important; -webkit-text-fill-color:var(--g-accent) !important; }
-body.lg .ha-chip{ border-radius:var(--r) !important; }
-body.lg .ha-chip-value{ text-shadow:none !important; }
-body.lg .slide-action{ background:rgba(255,255,255,0.40) !important; border:1px solid rgba(255,255,255,0.75) !important; box-shadow:inset 0 1px 2px rgba(40,60,110,0.08) !important; }
-body.lg.dark .slide-action{ background:rgba(255,255,255,0.07) !important; border-color:rgba(255,255,255,0.14) !important; }
-body.lg .slide-thumb{ box-shadow:0 6px 16px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.5) !important; }
-body.lg .hw-countdown-time{ background:none !important; -webkit-text-fill-color:currentColor !important; color:var(--g-accent) !important; }
-body.lg .hw-countdown-time.ot{ color:var(--sys-orange) !important; }
-body.lg .hw-countdown-time.done{ color:var(--sys-green) !important; }
-body.lg .hw-progress-bar{ background:rgba(120,140,180,0.18) !important; }
-body.lg .hw-progress-fill{ background:linear-gradient(90deg, #5AB0FF, #0A7CFF) !important; }
-body.lg .mini-bar, body.lg .ha-bar-fill{ background:linear-gradient(180deg, #5AB0FF, #0A7CFF) !important; border-radius:6px 6px 3px 3px !important; }
-body.lg .hwc-lb-leader{ background:rgba(255,255,255,0.35) !important; border:1px solid rgba(255,255,255,0.7) !important; }
-body.lg.dark .hwc-lb-leader{ background:rgba(255,255,255,0.06) !important; border-color:rgba(255,255,255,0.14) !important; }
-body.lg .streak-num{ text-shadow:none !important; }
-body.lg .punct-ring, body.lg .punct-ring svg{ filter:none !important; background:none !important; }
-body.lg .rec-item, body.lg .rec-item *, body.lg .live-status-bar, body.lg .live-status-bar *{ font-family:var(--font) !important; font-variant-numeric:tabular-nums; }
+body.lg.lg.lg #page-home.hq .hq-hero{ background:transparent !important; }
+body.lg.lg.lg .hq-status{ background:var(--g-card); border:0.5px solid rgba(255,255,255,0.7); box-shadow:var(--g-edge), var(--g-hi); color:var(--ink); -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur); }
+body.lg.lg.lg.dark .hq-status{ border-color:rgba(255,255,255,0.18); }
+body.lg.lg.lg .ha-greet-name .accent{ color:var(--g-accent) !important; -webkit-text-fill-color:var(--g-accent) !important; }
+body.lg.lg.lg .ha-chip{ border-radius:var(--r) !important; }
+body.lg.lg.lg .ha-chip-value{ text-shadow:none !important; }
+body.lg.lg.lg .slide-action{ background:rgba(255,255,255,0.40) !important; border:1px solid rgba(255,255,255,0.75) !important; box-shadow:inset 0 1px 2px rgba(40,60,110,0.08) !important; }
+body.lg.lg.lg.dark .slide-action{ background:rgba(255,255,255,0.07) !important; border-color:rgba(255,255,255,0.14) !important; }
+body.lg.lg.lg .slide-thumb{ box-shadow:0 6px 16px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.5) !important; }
+body.lg.lg.lg .hw-countdown-time{ background:none !important; -webkit-text-fill-color:currentColor !important; color:var(--g-accent) !important; }
+body.lg.lg.lg .hw-countdown-time.ot{ color:var(--sys-orange) !important; }
+body.lg.lg.lg .hw-countdown-time.done{ color:var(--sys-green) !important; }
+body.lg.lg.lg .hw-progress-bar{ background:rgba(120,140,180,0.18) !important; }
+body.lg.lg.lg .hw-progress-fill{ background:linear-gradient(90deg, #5AB0FF, #0A7CFF) !important; }
+body.lg.lg.lg .mini-bar, body.lg.lg.lg .ha-bar-fill{ background:linear-gradient(180deg, #5AB0FF, #0A7CFF) !important; border-radius:6px 6px 3px 3px !important; }
+body.lg.lg.lg .hwc-lb-leader{ background:rgba(255,255,255,0.35) !important; border:1px solid rgba(255,255,255,0.7) !important; }
+body.lg.lg.lg.dark .hwc-lb-leader{ background:rgba(255,255,255,0.06) !important; border-color:rgba(255,255,255,0.14) !important; }
+body.lg.lg.lg .streak-num{ text-shadow:none !important; }
+body.lg.lg.lg .punct-ring, body.lg.lg.lg .punct-ring svg{ filter:none !important; background:none !important; }
+body.lg.lg.lg .rec-item, body.lg.lg.lg .rec-item *, body.lg.lg.lg .live-status-bar, body.lg.lg.lg .live-status-bar *{ font-family:var(--font) !important; font-variant-numeric:tabular-nums; }
 
 /* ── AI button: glass orb ─────────────────────────────────────────── */
-body.lg #ai-fab{ background:radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.55), rgba(130,120,255,0.55) 55%, rgba(80,100,255,0.75)) !important;
+body.lg.lg.lg #ai-fab{ background:radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.55), rgba(130,120,255,0.55) 55%, rgba(80,100,255,0.75)) !important;
   -webkit-backdrop-filter:blur(12px) saturate(200%) !important; backdrop-filter:blur(12px) saturate(200%) !important;
   box-shadow:0 12px 28px rgba(70,80,220,0.35), inset 1.5px 1.5px 0 rgba(255,255,255,0.9), inset -1px -1px 0 rgba(255,255,255,0.4), inset 0 0 14px rgba(255,255,255,0.35) !important; border:0.5px solid rgba(255,255,255,0.6) !important; }
-body.lg .modal, body.lg .modal-sheet, body.lg .modal-content, body.lg .sheet{
+body.lg.lg.lg .modal, body.lg.lg.lg .modal-sheet, body.lg.lg.lg .modal-content, body.lg.lg.lg .sheet{
   background:rgba(255,255,255,0.78) !important; -webkit-backdrop-filter:blur(30px) saturate(190%) !important; backdrop-filter:blur(30px) saturate(190%) !important;
   border:1px solid rgba(255,255,255,0.8) !important; border-radius:var(--r-xl) !important; }
-body.lg.dark .modal, body.lg.dark .modal-sheet, body.lg.dark .modal-content, body.lg.dark .sheet{ background:rgba(24,28,40,0.82) !important; border-color:rgba(255,255,255,0.14) !important; }
-body.lg .login-logo-mark{ background:linear-gradient(180deg, #3A97FF, #0A7CFF) !important; box-shadow:0 8px 20px rgba(10,124,255,0.30), inset 0 1px 0 rgba(255,255,255,0.5) !important; }
+body.lg.lg.lg.dark .modal, body.lg.lg.lg.dark .modal-sheet, body.lg.lg.lg.dark .modal-content, body.lg.lg.lg.dark .sheet{ background:rgba(24,28,40,0.82) !important; border-color:rgba(255,255,255,0.14) !important; }
+body.lg.lg.lg .login-logo-mark{ background:linear-gradient(180deg, #3A97FF, #0A7CFF) !important; box-shadow:0 8px 20px rgba(10,124,255,0.30), inset 0 1px 0 rgba(255,255,255,0.5) !important; }
 
 /* v284 transparency slider (Settings) */
 .lg-level{ margin:4px 0 12px; }
@@ -19010,6 +19015,8 @@ body:not(.lg) .lg-level{ opacity:.45; }
     };
     // v280: the corporate theme is the default; the sky is opt-in (tt_sky='1')
     function skyOn(){ try { return localStorage.getItem('tt_sky') === '1'; } catch(e){ return false; } }
+    // v285: the weather sky is also the wallpaper of the Liquid Glass theme
+    function skyBg(){ return skyOn() || uiTheme() === 'glass'; }
     function israelNow(){
       try {
         var parts = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
@@ -19332,7 +19339,7 @@ body:not(.lg) .lg-level{ opacity:.45; }
     function updateBtn(){
       var btn = document.getElementById('sky-btn');
       var cur = skyOn() ? 'sky' : uiTheme();
-      var name = { glass:'💎 Liquid Glass', corp:'🏢 องค์กร', sky:'🌤 ท้องฟ้า' };
+      var name = { glass:'💎 Liquid Glass + ท้องฟ้า', corp:'🏢 องค์กร', sky:'🌤 ท้องฟ้าแบบเดิม' };
       var next = { glass:'corp', corp:'sky', sky:'glass' };
       if(btn) btn.textContent = 'ธีม: ' + name[cur] + ' · แตะเพื่อเปลี่ยนเป็น ' + name[next[cur]];
     }
@@ -19344,7 +19351,7 @@ body:not(.lg) .lg-level{ opacity:.45; }
         else { localStorage.setItem('tt_sky','0'); localStorage.setItem('tt_ui','glass'); }
       } catch(e){}
       apply();
-      if(skyOn()) fetchWx(false);
+      if(skyBg()) fetchWx(false);
       try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
     };
     // v280: corporate theme = whenever the sky is off. Page titles drop their
@@ -19368,12 +19375,12 @@ body:not(.lg) .lg-level{ opacity:.45; }
       try {
         var m = document.querySelector('meta[name="theme-color"]');
         var dk = b.classList.contains('dark');
-        if(m){ if(m.dataset.orig == null) m.dataset.orig = m.getAttribute('content'); m.setAttribute('content', !on ? m.dataset.orig : glass ? (dk ? '#070A12' : '#E8EEF8') : (dk ? '#0B1D33' : '#0B2545')); }
+        if(m){ if(m.dataset.orig == null) m.dataset.orig = m.getAttribute('content'); m.setAttribute('content', (!on || glass) ? m.dataset.orig : (dk ? '#0B1D33' : '#0B2545')); }
       } catch(e){}
     }
     function apply(){
       var b = document.body; if(!b) return;
-      if(skyOn()){
+      if(skyBg()){
         b.classList.add('sky'); b.classList.add('dark');
         if(GL.ok) b.classList.add('sky-gl');   // v261: restore after an off→on toggle
         paint();
@@ -19404,13 +19411,13 @@ body:not(.lg) .lg-level{ opacity:.45; }
           cloud: j.current ? j.current.cloud_cover : null
         };
         try { localStorage.setItem(WX_KEY, JSON.stringify(rec)); } catch(e){}
-        if(skyOn()) paint();
+        if(skyBg()) paint();
       }).catch(function(){ /* offline: keep last cached / fallback times */ });
     }
     window.toggleSky = function(){
       try { localStorage.setItem('tt_sky', skyOn() ? '0' : '1'); } catch(e){}
       apply();
-      if(skyOn()) fetchWx(false);
+      if(skyBg()) fetchWx(false);
       try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
     };
     window.skyApply = apply;
@@ -19425,11 +19432,11 @@ body:not(.lg) .lg-level{ opacity:.45; }
       window.initDark = function(){ window._skyOrigInitDark.apply(this, arguments); apply(); };
     }
     // Cloud sync of tt_dark toggles .dark directly — keep it on in sky mode.
-    window.addEventListener('cloudKeyChanged', function(){ if(skyOn()) apply(); });
+    window.addEventListener('cloudKeyChanged', function(){ if(skyBg()) apply(); });
     apply();
     fetchWx(false);
-    setInterval(function(){ if(skyOn()){ paint(); fetchWx(false); } }, 60*1000);
-    document.addEventListener('visibilitychange', function(){ if(!document.hidden && skyOn()){ paint(); fetchWx(false); } });
+    setInterval(function(){ if(skyBg()){ paint(); fetchWx(false); } }, 60*1000);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden && skyBg()){ paint(); fetchWx(false); } });
   } catch(e){ try { console.error('[SKY] init error (sandboxed):', e); } catch(_){} }
 })();
 </script>
