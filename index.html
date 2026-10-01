@@ -3393,9 +3393,11 @@ body.dark .slide-action{
 }
 .slide-fill{
   position:absolute; inset:0 auto 0 0;
-  width:0;
+  /* v303: full width + translateX instead of animating width — compositor-only,
+     no layout or backdrop-blur repaint on every finger move */
+  width:100%; transform:translateX(-100%); will-change:transform;
   background:linear-gradient(90deg, rgba(48,209,88,0.50), rgba(48,209,88,0.85));
-  transition:width 0.25s var(--ease-spring);
+  transition:transform 0.25s var(--ease-spring);
   pointer-events:none;
 }
 .slide-action[data-mode="out"] .slide-fill{
@@ -11037,7 +11039,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v302';
+const APP_VERSION = 'v303';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -13690,16 +13692,23 @@ if('serviceWorker' in navigator) {
     }
   }
 
+  // v303: smoother drag — fill moves by transform (no layout), and finger
+  // moves are applied once per frame.
+  let _raf = 0, _pendX = 0, _trackW = 0;
   function setX(x){
     dx = Math.max(0, Math.min(maxX, x));
     if(thumb) thumb.style.transform = `translateX(${dx}px)`;
-    if(fill)  fill.style.width      = `${dx + 56}px`;
+    if(fill){
+      if(!_trackW && action) _trackW = action.getBoundingClientRect().width;
+      fill.style.transform = `translateX(${dx + 56 - _trackW}px)`;
+    }
   }
 
   function snapBack(){
+    if(_raf){ cancelAnimationFrame(_raf); _raf = 0; }
     if(action) action.classList.remove('is-dragging');
     if(thumb)  thumb.style.transform = '';
-    if(fill)   fill.style.width = '';
+    if(fill)   fill.style.transform = '';
     dx = 0;
   }
 
@@ -13723,6 +13732,7 @@ if('serviceWorker' in navigator) {
     startX = (e.touches ? e.touches[0].clientX : e.clientX);
     const trackRect = action.getBoundingClientRect();
     maxX = trackRect.width - 56 - 8; // 56 thumb, 8 padding (4 each side)
+    _trackW = trackRect.width;
     if(thumb && thumb.setPointerCapture && e.pointerId != null){
       try { thumb.setPointerCapture(e.pointerId); } catch(_){}
     }
@@ -13730,12 +13740,14 @@ if('serviceWorker' in navigator) {
   function onMove(e){
     if(!dragging) return;
     const x = (e.touches ? e.touches[0].clientX : e.clientX);
-    setX(x - startX);
+    _pendX = x - startX;
+    if(!_raf) _raf = requestAnimationFrame(() => { _raf = 0; setX(_pendX); });
     if(e.cancelable) e.preventDefault();
   }
   function onUp(){
     if(!dragging) return;
     dragging = false;
+    if(_raf){ cancelAnimationFrame(_raf); _raf = 0; setX(_pendX); }   // apply the last move before deciding
     if(dx >= maxX - 4) fire();
     else snapBack();
   }
@@ -13748,6 +13760,9 @@ if('serviceWorker' in navigator) {
     label = el('slide-label');
     if(!thumb) return;
 
+    // v303: keep the page-wide touch effects (cinematic trail, card spotlight,
+    // pull-to-refresh) out of the drag — they did DOM/layout work on every move.
+    thumb.addEventListener('touchmove', e => { if(dragging) e.stopPropagation(); }, { passive:true });
     // Prefer Pointer Events (one path covers mouse, touch, pen)
     if(window.PointerEvent){
       thumb.addEventListener('pointerdown', onDown, { passive:true });
@@ -20423,6 +20438,7 @@ body.corp.dark #place-switch .place-opt:not(.active){ background:rgba(255,255,25
 .nav-btn.active svg{ animation:wgHop 2.6s ease-in-out infinite; }
 /* slide-to-check-in: the arrow nudges right (thumb itself is dragged via transform — untouched) */
 #slide-thumb svg{ animation:wgNudge 1.3s ease-in-out infinite; }
+.slide-action.is-dragging #slide-thumb svg{ animation:none; }   /* v303: still while dragging */
 /* More page icons take turns wiggling */
 .more-row-ic{ display:inline-block; transform-origin:50% 70%; animation:wgTurn 6s ease-in-out infinite; }
 .more-row:nth-child(2) .more-row-ic{ animation-delay:1.2s; } .more-row:nth-child(3) .more-row-ic{ animation-delay:2.4s; }
