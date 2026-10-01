@@ -29,3 +29,19 @@ jobs:
           FIREBASE_SERVICE_KEY: ${{ secrets.FIREBASE_SERVICE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: node notify-checkin-email.js
+
+      # Push reminder piggybacks on this on-time trigger: GitHub's own cron for
+      # notify-early runs hours late and always fell outside the Israel-time
+      # window (logs: "Outside ... window — skipping"). The script still checks
+      # the window itself and sends at most once per Israel day (pushlog lock).
+      - name: Send push reminder (early)
+        if: always()
+        continue-on-error: true
+        working-directory: scripts
+        env:
+          FIREBASE_SERVICE_KEY: ${{ secrets.FIREBASE_SERVICE_KEY }}
+          VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          FORCE: 'false'
+        run: node check-early-reminder.js
