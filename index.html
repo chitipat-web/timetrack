@@ -4145,7 +4145,7 @@ body.dark .slide-action{
       <button class="btn-primary" onclick="cycleTheme()" id="sky-btn" style="background:linear-gradient(135deg,#2F6DB5,#7DB7E6);width:100%;margin-bottom:8px">🏢 ธีมองค์กร · เปลี่ยนเป็นท้องฟ้า</button>
       <div class="lg-level" id="lg-level-wrap">
         <label for="lg-level">ความใสของกระจก (Liquid Glass)</label>
-        <input type="range" id="lg-level" min="0" max="100" step="1" value="35" oninput="lgSetLevel(this.value)" onchange="lgSetLevel(this.value, true)">
+        <input type="range" id="lg-level" min="0" max="100" step="1" value="15" oninput="lgSetLevel(this.value)" onchange="lgSetLevel(this.value, true)">
         <div class="lg-level-ends"><span>ใสสุด</span><span>ทึบ / ย้อมสี</span></div>
       </div>
       <button class="btn-primary" onclick="toggleDark()" id="theme-btn">เปลี่ยนเป็นโหมดสว่าง</button>
@@ -10948,7 +10948,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v289';
+const APP_VERSION = 'v290';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18550,19 +18550,20 @@ body.sky .lg-canvas{ display:none !important; }
   // ── v284 iOS 27 transparency slider: 0 = ultra clear … 100 = fully tinted ──
   function lgApplyLevel(v){
     var t = Math.max(0, Math.min(100, Number(v))) / 100;
-    if(!isFinite(t)) t = 0.35;
+    if(!isFinite(t)) t = 0.15;
     var r = document.documentElement.style;
-    r.setProperty('--g-tint-light', 'rgba(255,255,255,' + (0.02 + 0.90 * t).toFixed(3) + ')');
-    r.setProperty('--g-tint-dark',  'rgba(28,30,44,'   + (0.02 + 0.92 * t).toFixed(3) + ')');
-    r.setProperty('--g-blur-lvl', Math.round(4 + 28 * t) + 'px');
+    // v290: clearer curve so the weather sky shows through the cards
+    r.setProperty('--g-tint-light', 'rgba(255,255,255,' + (0.02 + 0.80 * t).toFixed(3) + ')');
+    r.setProperty('--g-tint-dark',  'rgba(28,30,44,'   + (0.02 + 0.85 * t).toFixed(3) + ')');
+    r.setProperty('--g-blur-lvl', Math.round(2 + 24 * t) + 'px');
   }
   window.lgSetLevel = function(v, save){
     lgApplyLevel(v);
     if(save){ try { localStorage.setItem('tt_glass_level', String(Math.round(Number(v)))); } catch(e){} }
   };
   (function(){
-    var v = 35; try { var x = localStorage.getItem('tt_glass_level'); if(x != null && x !== '') v = Number(x); } catch(e){}
-    if(!isFinite(v)) v = 35;
+    var v = 15; try { var x = localStorage.getItem('tt_glass_level'); if(x != null && x !== '') v = Number(x); } catch(e){}
+    if(!isFinite(v)) v = 15;
     lgApplyLevel(v);
     var el = document.getElementById('lg-level'); if(el) el.value = String(v);
   })();
@@ -18872,7 +18873,7 @@ body.lg.lg.lg{
   --g-hi:inset 1.5px 1.5px 0 #fff, inset -1px -1px 0 rgba(255,255,255,0.60), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 0 18px rgba(255,255,255,0.30);
   --g-edge:0 0 0 1px rgba(20,28,60,0.13);
   --g-shadow:var(--g-edge), 0 16px 40px rgba(30,40,110,0.18), 0 3px 8px rgba(30,40,110,0.06);
-  --g-blur:blur(var(--g-blur-px)) saturate(210%) brightness(1.05);
+  --g-blur:blur(var(--g-blur-px)) saturate(140%) brightness(1.04);
   --g-accent:#0A7CFF; --g-accent-2:#0063D6;
   --ink:#0B1426; --ink-2:#1E2A3F; --ink-3:rgba(11,20,38,0.72); --ink-4:rgba(11,20,38,0.54); --ink-5:rgba(11,20,38,0.14);
   --glass-1:rgba(255,255,255,0.55); --glass-2:rgba(255,255,255,0.45); --glass-3:rgba(255,255,255,0.32);
@@ -18902,7 +18903,7 @@ body.lg.lg.lg.dark{
   --g-hi:inset 1.5px 1.5px 0 rgba(255,255,255,0.55), inset -1px -1px 0 rgba(255,255,255,0.18), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 0 18px rgba(255,255,255,0.07);
   --g-edge:0 0 0 1px rgba(0,0,0,0.60);
   --g-shadow:var(--g-edge), 0 16px 40px rgba(0,0,0,0.50), 0 3px 8px rgba(0,0,0,0.3);
-  --g-blur:blur(var(--g-blur-px)) saturate(190%) brightness(1.08);
+  --g-blur:blur(var(--g-blur-px)) saturate(130%) brightness(1.05);
   --g-accent:#3D9BFF; --g-accent-2:#1F84FF;
   --ink:#F4F6FA; --ink-2:#E3E8F0; --ink-3:rgba(244,246,250,0.80); --ink-4:rgba(244,246,250,0.60); --ink-5:rgba(244,246,250,0.16);
   --glass-1:rgba(255,255,255,0.12); --glass-2:rgba(255,255,255,0.09); --glass-3:rgba(255,255,255,0.06);
