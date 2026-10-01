@@ -3778,6 +3778,12 @@ body.dark .slide-action{
     <!-- ║ HOME WIDGETS CONTAINER (Phase A/B/C - bulletproof)   ║ -->
     <!-- ║ Each widget is sandboxed - failure doesn't break app ║ -->
     <!-- ╚═══════════════════════════════════════════════════════╝ -->
+    <!-- v291: this month's estimated pay — tap to open the pay page -->
+    <button class="card home-a-card hq-pay" id="hq-pay" type="button" style="display:none" onclick="showPage('salary',document.querySelector('.nav-btn[data-page=stats]'))">
+      <span class="hq-pay-ic">💰</span>
+      <span class="hq-pay-txt"><span class="hq-pay-lbl" id="hq-pay-lbl">ค่าแรงเดือนนี้ (ประมาณ)</span><span class="hq-pay-amt" id="hq-pay-amt">₪0</span><span class="hq-pay-sub" id="hq-pay-sub">—</span></span>
+      <span class="hq-pay-chev">›</span>
+    </button>
     <div id="hw-container" style="display:flex;flex-direction:column;gap:10px;margin:14px 0"></div>
     <div class="card home-a-card">
       <div class="section-title">บันทึกเวลาวันนี้</div>
@@ -4454,6 +4460,31 @@ body.dark .slide-action{
       </button>
       <button class="more-row" onclick="showPage('settings',document.querySelector('.nav-btn[data-page=more]'))">
         <span class="more-row-ic">⚙️</span><span class="more-row-lbl">ตั้งค่า</span><span class="more-row-chev">›</span>
+      </button>
+    </div>
+    <!-- v291: shortcuts that used to be hard to find -->
+    <div class="more-sec">ทางลัด</div>
+    <div class="card" style="padding:6px 0">
+      <button class="more-row" onclick="showPage('salary',document.querySelector('.nav-btn[data-page=stats]'))">
+        <span class="more-row-ic">💰</span><span class="more-row-lbl">ค่าแรง</span><span class="more-row-chev">›</span>
+      </button>
+      <button class="more-row" onclick="openAIModal()">
+        <span class="more-row-ic">✨</span><span class="more-row-lbl">ผู้ช่วย AI</span><span class="more-row-chev">›</span>
+      </button>
+      <button class="more-row" onclick="cycleTheme()">
+        <span class="more-row-ic">🎨</span><span class="more-row-lbl">เปลี่ยนธีม</span><span class="more-row-chev">›</span>
+      </button>
+      <button class="more-row" id="more-dark-row" onclick="toggleDark()">
+        <span class="more-row-ic">🌙</span><span class="more-row-lbl">สลับโหมดมืด / สว่าง</span><span class="more-row-chev">›</span>
+      </button>
+    </div>
+    <div class="more-sec">เกี่ยวกับ</div>
+    <div class="card" style="padding:6px 0">
+      <div class="more-row" style="cursor:default">
+        <span class="more-row-ic">ℹ️</span><span class="more-row-lbl">RUDY</span><span class="more-row-val" id="more-ver">—</span>
+      </div>
+      <button class="more-row more-logout" onclick="doLogout()">
+        <span class="more-row-ic">🚪</span><span class="more-row-lbl">ออกจากระบบ</span>
       </button>
     </div>
   </div>
@@ -10948,7 +10979,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v290';
+const APP_VERSION = 'v291';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19594,6 +19625,70 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
     setInterval(function(){ if(skyBg()){ paint(); fetchWx(false); } }, 60*1000);
     document.addEventListener('visibilitychange', function(){ if(!document.hidden && skyBg()){ paint(); fetchWx(false); } });
   } catch(e){ try { console.error('[SKY] init error (sandboxed):', e); } catch(_){} }
+})();
+</script>
+
+<style id="nav-v291">
+/* v291 navigation clean-up */
+/* header: logo + avatar only (elements kept — JS still writes to them) */
+#app-shell .topbar .live-badge, #app-shell .topbar #admin-badge, #app-shell .topbar .logout-btn,
+#app-shell .topbar #dark-btn, #app-shell .topbar .user-chip-name{ display:none !important; }
+#app-shell .topbar .user-chip.user-chip{ position:relative; padding:3px !important; gap:0 !important; }
+#app-shell .topbar .user-chip .user-chip-av{ position:relative; }
+#app-shell .topbar .user-chip::after{ content:''; position:absolute; right:1px; bottom:1px; width:10px; height:10px; border-radius:50%;
+  background:#30D158; box-shadow:0 0 0 2px rgba(255,255,255,0.9); pointer-events:none; }
+#app-shell .topbar .user-chip.offline::after{ background:#8E8E93; }
+/* content can always scroll clear of the bottom bar + AI button */
+body:not(.corp) #app-shell{ padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 172px) !important; }
+body.corp .page{ padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 150px) !important; }
+/* More page */
+.more-sec{ font-size:12px; font-weight:700; letter-spacing:.04em; color:var(--text3, var(--ink-4)); margin:18px 6px 8px; text-transform:uppercase; }
+.more-row-val{ color:var(--text3, var(--ink-4)); font-size:14px; font-variant-numeric:tabular-nums; }
+.more-row.more-logout .more-row-lbl, .more-row.more-logout .more-row-ic{ color:#FF453A !important; font-weight:700; }
+body.sky #more-dark-row{ display:none !important; }
+/* home pay card */
+.hq-pay{ display:flex; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer; margin:14px 0 0 !important; padding:14px 16px !important; color:var(--ink); font:inherit; }
+.hq-pay:active{ transform:scale(.985); }
+.hq-pay-ic{ font-size:26px; flex-shrink:0; }
+.hq-pay-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.hq-pay-lbl{ font-size:12px; font-weight:600; color:var(--text2, var(--ink-3)); }
+.hq-pay-amt{ font-size:24px; font-weight:800; letter-spacing:-.01em; color:var(--green, #30D158); font-variant-numeric:tabular-nums; }
+.hq-pay-sub{ font-size:12px; color:var(--text3, var(--ink-4)); }
+.hq-pay-chev{ font-size:24px; color:var(--text3, var(--ink-4)); }
+</style>
+<script>
+// v291: home pay card + online dot + version row. Sandboxed.
+(function(){
+  'use strict';
+  try {
+    function payRender(){
+      try {
+        var card = document.getElementById('hq-pay');
+        if(!card) return;
+        if(typeof curUser === 'undefined' || !curUser || typeof salMonthStats !== 'function' || typeof todayStr !== 'function'){ card.style.display = 'none'; return; }
+        var t = todayStr().split('-').map(Number), y = t[0], m = t[1] - 1;
+        var st = salMonthStats(curUser.id, m, y);
+        if(!st){ card.style.display = 'none'; return; }
+        var actual = 0; try { actual = parseFloat(getSalInput(m, y)) || 0; } catch(e){}
+        var money = function(v){ return '₪' + Math.round(v).toLocaleString('th-TH'); };
+        document.getElementById('hq-pay-lbl').textContent = actual ? 'ค่าแรงเดือนนี้ (ได้จริง)' : 'ค่าแรงเดือนนี้ (ประมาณ)';
+        document.getElementById('hq-pay-amt').textContent = money(actual || st.pay);
+        document.getElementById('hq-pay-sub').textContent = !st.days ? 'ยังไม่มีวันที่ออกงานครบเดือนนี้ · แตะดูรายละเอียด' : st.days + ' วัน · ชม.คิดเงิน ' + (typeof fmtHMt === 'function' ? fmtHMt(st.paidH * 60) : st.paidH.toFixed(1) + ' ชม.') + ' · แตะดูรายละเอียด';
+        card.style.display = '';
+      } catch(e){ console.warn('[v291] pay card', e); }
+    }
+    function netDot(){
+      try { var c = document.querySelector('#app-shell .topbar .user-chip'); if(c) c.classList.toggle('offline', navigator.onLine === false); } catch(e){}
+    }
+    function ver(){
+      try { var v = document.getElementById('more-ver'); if(v && typeof APP_VERSION !== 'undefined') v.textContent = APP_VERSION; } catch(e){}
+    }
+    window.hqPayRender = payRender;
+    window.addEventListener('online', netDot); window.addEventListener('offline', netDot);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) payRender(); });
+    function boot(){ netDot(); ver(); payRender(); setTimeout(ver, 3000); setTimeout(payRender, 3000); setTimeout(payRender, 8000); setInterval(payRender, 20000); }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  } catch(e){ console.warn('[v291] init', e); }
 })();
 </script>
 </body>
