@@ -4272,7 +4272,7 @@ body.dark .slide-action{
 
 <!-- EDIT MODAL -->
 <!-- v246: floating AI assistant (admin-only) — body-level so it shows on every page -->
-<button id="ai-fab" onclick="openAIModal()" title="ผู้ช่วย AI" style="display:none;position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);z-index:45;width:56px;height:56px;border-radius:50%;border:none;align-items:center;justify-content:center;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:26px;box-shadow:0 8px 24px rgba(99,102,241,.45);cursor:pointer"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="#fff" d="M12 2.5c.4 3.9 1.9 6.4 4.4 7.6 1.1.5 2.3.8 3.6.9-1.3.1-2.5.4-3.6.9-2.5 1.2-4 3.7-4.4 7.6-.4-3.9-1.9-6.4-4.4-7.6-1.1-.5-2.3-.8-3.6-.9 1.3-.1 2.5-.4 3.6-.9C10.1 8.9 11.6 6.4 12 2.5z"/><path fill="#fff" opacity=".85" d="M19 15.5c.15 1.5.75 2.45 1.7 2.9.42.2.88.3 1.3.35-.42.04-.88.15-1.3.35-.95.45-1.55 1.4-1.7 2.9-.15-1.5-.75-2.45-1.7-2.9-.42-.2-.88-.3-1.3-.35.42-.05.88-.15 1.3-.35.95-.45 1.55-1.4 1.7-2.9z"/></svg></button>
+<button id="ai-fab" onclick="openAIModal()" title="ผู้ช่วย AI" style="display:none;position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);z-index:45;width:56px;height:56px;border-radius:50%;border:none;align-items:center;justify-content:center;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:26px;box-shadow:0 8px 24px rgba(99,102,241,.45);cursor:pointer"><svg class="rb" viewBox="0 0 64 64" width="62" height="62" aria-hidden="true"><defs><radialGradient id="rbfhd" cx="35%" cy="25%" r="85%"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#E8EBFF"/><stop offset="1" stop-color="#9FA8F2"/></radialGradient><linearGradient id="rbffc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#30357A"/><stop offset="1" stop-color="#11133A"/></linearGradient><radialGradient id="rbfer" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#F0E2FF"/><stop offset="1" stop-color="#8B5CF6"/></radialGradient><radialGradient id="rbfbl" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#FFE6F3"/><stop offset=".5" stop-color="#FF6FB5"/><stop offset="1" stop-color="#C9287D"/></radialGradient><radialGradient id="rbfbd" cx="35%" cy="20%" r="90%"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#DCE0FF"/><stop offset="1" stop-color="#8E98EA"/></radialGradient></defs><ellipse cx="32" cy="61.5" rx="13" ry="2.2" fill="rgba(25,20,70,0.22)"/><g class="rb-armL"><rect x="12.5" y="46" width="7" height="11" rx="3.5" fill="url(#rbfer)"/></g><g class="rb-armR"><rect x="44.5" y="46" width="7" height="11" rx="3.5" fill="url(#rbfer)"/></g><rect x="19" y="45" width="26" height="15" rx="7" fill="url(#rbfbd)"/><circle cx="32" cy="52.5" r="2.6" fill="#67E8F9"/><g class="rb-head"><g class="rb-ant"><line x1="32" y1="14" x2="32" y2="7.5" stroke="#9AA3F0" stroke-width="2.4" stroke-linecap="round"/><circle class="rb-ball" cx="32" cy="6" r="3.8" fill="url(#rbfbl)"/></g><circle cx="9.5" cy="31" r="5" fill="url(#rbfer)"/><circle cx="54.5" cy="31" r="5" fill="url(#rbfer)"/><rect x="10" y="13" width="44" height="34" rx="15" fill="url(#rbfhd)"/><ellipse cx="22" cy="18.5" rx="8" ry="3" fill="#fff" opacity=".75"/><rect x="15" y="20.5" width="34" height="21" rx="10" fill="url(#rbffc)"/><g class="rb-eyes"><rect x="21" y="26" width="6.5" height="8.5" rx="3.2" fill="#7DF3FF"/><rect x="36.5" y="26" width="6.5" height="8.5" rx="3.2" fill="#7DF3FF"/></g><path d="M27.5 36.6q4.5 3.6 9 0" stroke="#7DF3FF" stroke-width="2" stroke-linecap="round" fill="none"/><ellipse cx="18.6" cy="37.8" rx="2.3" ry="1.3" fill="#FF8FC7" opacity=".7"/><ellipse cx="45.4" cy="37.8" rx="2.3" ry="1.3" fill="#FF8FC7" opacity=".7"/></g></svg></button>
 
 <div class="modal-overlay" id="ai-modal">
   <!-- v286 AI sheet (Apple Intelligence idiom): glowing edge, suggestion
@@ -4280,7 +4280,7 @@ body.dark .slide-action{
   <div class="modal ai-sheet">
     <div class="ai-glow" aria-hidden="true"></div>
     <div class="ai-head">
-      <div class="ai-orb" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#fff" d="M12 2.5c.4 3.9 1.9 6.4 4.4 7.6 1.1.5 2.3.8 3.6.9-1.3.1-2.5.4-3.6.9-2.5 1.2-4 3.7-4.4 7.6-.4-3.9-1.9-6.4-4.4-7.6-1.1-.5-2.3-.8-3.6-.9 1.3-.1 2.5-.4 3.6-.9C10.1 8.9 11.6 6.4 12 2.5z"/><path fill="#fff" opacity=".85" d="M19 15.5c.15 1.5.75 2.45 1.7 2.9.42.2.88.3 1.3.35-.42.04-.88.15-1.3.35-.95.45-1.55 1.4-1.7 2.9-.15-1.5-.75-2.45-1.7-2.9-.42-.2-.88-.3-1.3-.35.42-.05.88-.15 1.3-.35.95-.45 1.55-1.4 1.7-2.9z"/></svg></div>
+      <div class="ai-orb" aria-hidden="true"><svg class="rb" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true"><defs><radialGradient id="rbohd" cx="35%" cy="25%" r="85%"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#E8EBFF"/><stop offset="1" stop-color="#9FA8F2"/></radialGradient><linearGradient id="rbofc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#30357A"/><stop offset="1" stop-color="#11133A"/></linearGradient><radialGradient id="rboer" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#F0E2FF"/><stop offset="1" stop-color="#8B5CF6"/></radialGradient><radialGradient id="rbobl" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#FFE6F3"/><stop offset=".5" stop-color="#FF6FB5"/><stop offset="1" stop-color="#C9287D"/></radialGradient><radialGradient id="rbobd" cx="35%" cy="20%" r="90%"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#DCE0FF"/><stop offset="1" stop-color="#8E98EA"/></radialGradient></defs><ellipse cx="32" cy="61.5" rx="13" ry="2.2" fill="rgba(25,20,70,0.22)"/><g class="rb-armL"><rect x="12.5" y="46" width="7" height="11" rx="3.5" fill="url(#rboer)"/></g><g class="rb-armR"><rect x="44.5" y="46" width="7" height="11" rx="3.5" fill="url(#rboer)"/></g><rect x="19" y="45" width="26" height="15" rx="7" fill="url(#rbobd)"/><circle cx="32" cy="52.5" r="2.6" fill="#67E8F9"/><g class="rb-head"><g class="rb-ant"><line x1="32" y1="14" x2="32" y2="7.5" stroke="#9AA3F0" stroke-width="2.4" stroke-linecap="round"/><circle class="rb-ball" cx="32" cy="6" r="3.8" fill="url(#rbobl)"/></g><circle cx="9.5" cy="31" r="5" fill="url(#rboer)"/><circle cx="54.5" cy="31" r="5" fill="url(#rboer)"/><rect x="10" y="13" width="44" height="34" rx="15" fill="url(#rbohd)"/><ellipse cx="22" cy="18.5" rx="8" ry="3" fill="#fff" opacity=".75"/><rect x="15" y="20.5" width="34" height="21" rx="10" fill="url(#rbofc)"/><g class="rb-eyes"><rect x="21" y="26" width="6.5" height="8.5" rx="3.2" fill="#7DF3FF"/><rect x="36.5" y="26" width="6.5" height="8.5" rx="3.2" fill="#7DF3FF"/></g><path d="M27.5 36.6q4.5 3.6 9 0" stroke="#7DF3FF" stroke-width="2" stroke-linecap="round" fill="none"/><ellipse cx="18.6" cy="37.8" rx="2.3" ry="1.3" fill="#FF8FC7" opacity=".7"/><ellipse cx="45.4" cy="37.8" rx="2.3" ry="1.3" fill="#FF8FC7" opacity=".7"/></g></svg></div>
       <div class="ai-title"><div class="ai-name">ผู้ช่วย AI</div><div class="ai-sub"><span class="adm">สั่งงานเป็นภาษาพูด · แก้เวลา เพิ่มวัน ถามสถิติ</span><span class="emp">ถามเรื่องเวลาทำงาน โอที และสถิติของคุณ</span></div></div>
       <button class="ai-icon-btn ai-tts-btn" id="ai-tts-btn" type="button" onclick="aiTtsToggle()" aria-label="อ่านคำตอบออกเสียง"><svg class="on" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg><svg class="off" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></svg></button>
       <button class="ai-icon-btn adm" onclick="openAISettings()" title="ตั้งค่า Gemini API Key" aria-label="ตั้งค่า API Key"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15 19 4"/><path d="m18 5 2 2"/><path d="m15 8 2 2"/></svg></button>
@@ -4491,7 +4491,7 @@ body.dark .slide-action{
         <span class="more-row-ic">🧩</span><span class="more-row-lbl">เติมวันที่ลืมกด (เข้า / ออก / พัก)</span><span class="more-row-chev">›</span>
       </button>
       <button class="more-row" onclick="openAIModal()">
-        <span class="more-row-ic">✨</span><span class="more-row-lbl">ผู้ช่วย AI</span><span class="more-row-chev">›</span>
+        <span class="more-row-ic">🤖</span><span class="more-row-lbl">ผู้ช่วย AI</span><span class="more-row-chev">›</span>
       </button>
       <button class="more-row" onclick="cycleTheme()">
         <span class="more-row-ic">🎨</span><span class="more-row-lbl">เปลี่ยนธีม</span><span class="more-row-chev">›</span>
@@ -11040,7 +11040,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v307';
+const APP_VERSION = 'v308';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20582,5 +20582,34 @@ body.corp .slide-fill{ border-radius:0 calc(var(--r-sm, 12px) + 4px) calc(var(--
   } catch(e){ console.warn('[v306] avatar sync', e); }
 })();
 </script>
+
+<style id="robot-v308">
+/* v308: 3D-style robot mascot for the AI (glossy SVG gradients, no WebGL).
+   Head tilts, antenna sways with a glowing ball, eyes blink, an arm waves;
+   eyes look around while the AI is thinking. */
+html body #ai-fab#ai-fab{ background:transparent !important; border:none !important; box-shadow:none !important;
+  -webkit-backdrop-filter:none !important; backdrop-filter:none !important; width:66px !important; height:66px !important;
+  filter:drop-shadow(0 8px 12px rgba(60,50,160,0.38)); overflow:visible; }
+#ai-fab svg.rb, #ai-modal .ai-orb svg.rb{ animation:none; overflow:visible; }
+#ai-modal .ai-orb{ background:none !important; box-shadow:none !important; overflow:visible; }
+#ai-modal .ai-orb svg.rb{ filter:drop-shadow(0 4px 8px rgba(60,50,160,0.4)); }
+svg.rb .rb-head, svg.rb .rb-ant, svg.rb .rb-eyes rect, svg.rb .rb-armL, svg.rb .rb-armR, svg.rb .rb-ball{ transform-box:fill-box; }
+svg.rb .rb-head{ transform-origin:50% 92%; animation:rbTilt 4.2s ease-in-out infinite; }
+svg.rb .rb-ant{ transform-origin:50% 100%; animation:rbAnt 1.7s ease-in-out infinite; }
+svg.rb .rb-ball{ transform-origin:50% 50%; animation:rbBall 1.7s ease-in-out infinite; }
+svg.rb .rb-eyes rect{ transform-origin:50% 50%; animation:rbBlink 3.9s infinite; }
+svg.rb .rb-armR{ transform-origin:50% 8%; animation:rbWave 3.2s ease-in-out infinite; }
+svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out infinite; }
+#ai-modal.ai-busy svg.rb .rb-eyes{ animation:rbLook 1.1s ease-in-out infinite; }
+#ai-modal.ai-busy svg.rb .rb-ant{ animation-duration:.7s; }
+@keyframes rbTilt{ 0%,100%{ transform:rotate(0); } 18%{ transform:rotate(-8deg); } 36%{ transform:rotate(7deg); } 52%{ transform:rotate(-3deg); } 62%{ transform:rotate(0); } }
+@keyframes rbAnt{ 0%,100%{ transform:rotate(-12deg); } 50%{ transform:rotate(12deg); } }
+@keyframes rbBall{ 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(1.18); opacity:.85; } }
+@keyframes rbBlink{ 0%,90%,100%{ transform:scaleY(1); } 93%{ transform:scaleY(.12); } 96%{ transform:scaleY(1); } }
+@keyframes rbWave{ 0%,45%,100%{ transform:rotate(0); } 52%{ transform:rotate(-130deg); } 60%{ transform:rotate(-100deg); } 68%{ transform:rotate(-135deg); } 76%{ transform:rotate(-100deg); } 86%{ transform:rotate(0); } }
+@keyframes rbSwing{ 0%,100%{ transform:rotate(6deg); } 50%{ transform:rotate(-6deg); } }
+@keyframes rbLook{ 0%,100%{ transform:translateX(-2px); } 50%{ transform:translateX(2px); } }
+@media (prefers-reduced-motion: reduce){ svg.rb *{ animation:none !important; } }
+</style>
 </body>
 </html>
