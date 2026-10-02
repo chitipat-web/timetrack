@@ -11040,7 +11040,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v305';
+const APP_VERSION = 'v306';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20522,5 +20522,46 @@ body.corp .slide-fill{ border-radius:0 calc(var(--r-sm, 12px) + 4px) calc(var(--
 .slide-action.is-ready .slide-fill{ filter:saturate(1.3) brightness(1.08); }
 @media (prefers-reduced-motion: reduce){ .slide-thumb::after, .slide-fill::after{ animation:none !important; } }
 </style>
+
+<script>
+// v306: one source for every "my avatar" spot. The big home avatar
+// (#ha-greet-avatar) was set once from u.photo (never filled) and locked, and
+// the cloud photo listener only refreshed the header / welcome / settings
+// avatars — so the home showed the initial while the team page had the photo.
+// Keep all of them in sync with the cached cloud photo. Sandboxed.
+(function(){
+  'use strict';
+  try {
+    function sig(d){                                   // cheap hash sampled across the whole data URL
+      if(!d) return '';
+      var h = d.length, step = Math.max(1, Math.floor(d.length / 512));
+      for(var i = 0; i < d.length; i += step) h = (h * 31 + d.charCodeAt(i)) | 0;
+      return d.length + ':' + h;
+    }
+    function apply(id, d, extra){
+      var el = document.getElementById(id); if(!el) return;
+      var s = sig(d);
+      if(!d || el.dataset.ph === s) return;
+      el.innerHTML = '<img src="' + d + '" alt="">' + (extra || '');
+      el.style.background = 'none';
+      el.dataset.ph = s;
+    }
+    function sync(){
+      try {
+        if(typeof curUser === 'undefined' || !curUser || !curUser.email || typeof getPhoto !== 'function') return;
+        var d = getPhoto(curUser.email);
+        if(!d || d.indexOf('data:') !== 0) return;
+        apply('ha-greet-avatar', d);
+        apply('tb-av', d);
+        apply('settings-av', d, '<div class="settings-av-overlay">📷</div>');
+      } catch(e){}
+    }
+    window.syncMyAvatars = sync;
+    setInterval(sync, 3000);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) sync(); });
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sync); else sync();
+  } catch(e){ console.warn('[v306] avatar sync', e); }
+})();
+</script>
 </body>
 </html>
