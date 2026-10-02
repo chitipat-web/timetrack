@@ -11040,7 +11040,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v311';
+const APP_VERSION = 'v312';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20613,5 +20613,187 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
 @keyframes rbLook{ 0%,100%{ transform:translateX(-2px); } 50%{ transform:translateX(2px); } }
 @media (prefers-reduced-motion: reduce){ svg.rb *{ animation:none !important; } }
 </style>
+
+<style id="robot3d-v312">
+#ai-fab.rb3d{ animation:none; }                       /* the 3D robot bobs itself */
+#ai-fab canvas.rb3d-c, #ai-modal .ai-orb canvas.rb3d-c{ display:block; width:100%; height:100%; pointer-events:none; }
+#ai-fab.rb3d svg.rb, #ai-modal .ai-orb.rb3d svg.rb{ display:none; }
+#ai-modal .ai-orb.rb3d{ width:48px; height:48px; }
+</style>
+<script>
+// v312: live 3D robot (three.js r149, loaded lazily after the app is idle).
+// One small WebGL renderer draws the robot for the AI button; the AI sheet's
+// orb copies the same frame with drawImage (no second WebGL context). Runs at
+// ~30 fps, only while visible. Any failure (no WebGL, CDN unreachable,
+// context lost) leaves the SVG robot in place. Sandboxed.
+(function(){
+  'use strict';
+  var SRC = 'https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js';
+  var started = false;
+  function webglOK(){
+    try { var c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch(e){ return false; }
+  }
+  function loadThree(cb){
+    if(window.THREE && window.THREE.WebGLRenderer) return cb();
+    var s = document.createElement('script'); s.src = SRC; s.async = true; s.crossOrigin = 'anonymous';
+    s.onload = function(){ if(window.THREE) cb(); };
+    s.onerror = function(){ console.warn('[3D robot] three.js failed to load — keeping SVG'); };
+    document.head.appendChild(s);
+  }
+  function start(){
+    if(started) return; started = true;
+    var fab = document.getElementById('ai-fab');
+    if(!fab || !webglOK()) return;
+    loadThree(function(){ try { build(window.THREE, fab); } catch(e){ console.warn('[3D robot] build failed — keeping SVG', e); } });
+  }
+
+  function build(T, fab){
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var CSS = 66, DPR = Math.min(window.devicePixelRatio || 1, 2), PX = Math.round(CSS * DPR);
+    var renderer = new T.WebGLRenderer({ antialias:true, alpha:true, powerPreference:'low-power' });
+    renderer.setPixelRatio(1); renderer.setSize(PX, PX, false);
+    renderer.outputEncoding = T.sRGBEncoding;
+    renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
+    renderer.setClearColor(0x000000, 0);
+    var cv = renderer.domElement; cv.className = 'rb3d-c';
+
+    var scene = new T.Scene();
+    var cam = new T.PerspectiveCamera(26, 1, 0.1, 100);
+    cam.position.set(0, 0.45, 13.2); cam.lookAt(0, -0.1, 0);
+
+    // soft studio environment for glossy reflections (built in-scene, no extra files)
+    try {
+      var pm = new T.PMREMGenerator(renderer), env = new T.Scene();
+      env.add(new T.Mesh(new T.BoxGeometry(20, 20, 20), new T.MeshBasicMaterial({ color:0x2a2d55, side:T.BackSide })));
+      var panel = function(w, h, x, y, z, c){ var m = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ color:c, side:T.DoubleSide })); m.position.set(x, y, z); m.lookAt(0, 0, 0); env.add(m); };
+      panel(7, 4, 0, 7, 4, 0xffffff); panel(4, 5, -8, 2, 3, 0xb9c0ff); panel(3, 5, 8, 1, -2, 0xffc2e3);
+      scene.environment = pm.fromScene(env, 0.04).texture; pm.dispose();
+    } catch(e){}
+    scene.add(new T.HemisphereLight(0xffffff, 0x6f66c8, 0.55));
+    var key = new T.DirectionalLight(0xffffff, 1.35); key.position.set(3, 5, 6); scene.add(key);
+    var rim = new T.DirectionalLight(0xbfd2ff, 0.8); rim.position.set(-5, 2, -4); scene.add(rim);
+
+    // envMapIntensity tuned per part; glowing parts skip tone mapping so they stay vivid
+    var mWhite = new T.MeshPhysicalMaterial({ color:0xE9ECFF, roughness:0.3, clearcoat:1, clearcoatRoughness:0.15, envMapIntensity:0.75 });
+    var mPurple = new T.MeshPhysicalMaterial({ color:0x7444EE, roughness:0.42, clearcoat:0.6, clearcoatRoughness:0.3, envMapIntensity:0.35 });
+    var mFace = new T.MeshPhysicalMaterial({ color:0x0C0E30, roughness:0.14, metalness:0, clearcoat:1, clearcoatRoughness:0.06, envMapIntensity:0.35 });
+    var mGlow = new T.MeshBasicMaterial({ color:0x5FEFFF, toneMapped:false });
+    var mBall = new T.MeshPhysicalMaterial({ color:0xFF4FA8, emissive:0xFF2E95, emissiveIntensity:0.5, roughness:0.22, clearcoat:1, envMapIntensity:0.6 });
+    var mCheek = new T.MeshBasicMaterial({ color:0xFF7FBF, transparent:true, opacity:0.9, toneMapped:false });
+    var mWhiteDot = new T.MeshBasicMaterial({ color:0xffffff, toneMapped:false });
+
+    function roundedBox(w, h, d, r, bevel){
+      // the bevel grows the shape outward, so draw it smaller → final size is w × h × d
+      w -= bevel * 2; h -= bevel * 2; r = Math.max(0.01, r - bevel);
+      var sh = new T.Shape(), x = -w/2, y = -h/2;
+      sh.moveTo(x + r, y); sh.lineTo(x + w - r, y); sh.quadraticCurveTo(x + w, y, x + w, y + r);
+      sh.lineTo(x + w, y + h - r); sh.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      sh.lineTo(x + r, y + h); sh.quadraticCurveTo(x, y + h, x, y + h - r);
+      sh.lineTo(x, y + r); sh.quadraticCurveTo(x, y, x + r, y);
+      var g = new T.ExtrudeGeometry(sh, { depth:Math.max(0.01, d - bevel*2), bevelEnabled:true, bevelThickness:bevel, bevelSize:bevel, bevelSegments:6, curveSegments:14 });
+      g.center(); g.computeVertexNormals(); return g;
+    }
+    var root = new T.Group(); scene.add(root);
+
+    // body (round belly) + chest light
+    var bodyG = new T.Group(); bodyG.position.y = -1.05; root.add(bodyG);
+    var body = new T.Mesh(new T.SphereGeometry(1, 40, 30), mWhite); body.scale.set(1.18, 0.98, 1.0); bodyG.add(body);
+    var chest = new T.Mesh(new T.CircleGeometry(0.2, 28), mGlow); chest.position.set(0, 0.02, 1.0); bodyG.add(chest);
+    var chestRing = new T.Mesh(new T.RingGeometry(0.2, 0.3, 28), new T.MeshBasicMaterial({ color:0x55E1F5, transparent:true, opacity:0.45, toneMapped:false })); chestRing.position.set(0, 0.02, 0.995); bodyG.add(chestRing);
+    // legs
+    [-0.45, 0.45].forEach(function(x){ var l = new T.Mesh(new T.CapsuleGeometry(0.24, 0.22, 6, 16), mPurple); l.position.set(x, -2.05, 0.05); root.add(l); });
+    // arms (pivot at the shoulder)
+    function arm(side){
+      var g = new T.Group(); g.position.set(side * 1.08, -0.62, 0.05); root.add(g);
+      var a = new T.Mesh(new T.CapsuleGeometry(0.2, 0.32, 6, 16), mPurple); a.position.y = -0.28; g.add(a);
+      var h = new T.Mesh(new T.SphereGeometry(0.28, 24, 18), mWhite); h.position.y = -0.66; g.add(h);
+      return g;
+    }
+    var armL = arm(-1), armR = arm(1);
+    // head (pivot at the bottom)
+    var headP = new T.Group(); headP.position.y = -0.2; root.add(headP);
+    var head = new T.Group(); head.position.y = 1.05; headP.add(head);
+    head.add(new T.Mesh(roundedBox(2.75, 2.1, 1.9, 0.82, 0.38), mWhite));
+    var face = new T.Mesh(roundedBox(2.05, 1.28, 0.12, 0.55, 0.05), mFace); face.position.z = 0.96; head.add(face);
+    var eyes = [];
+    [-0.43, 0.43].forEach(function(x){
+      var e = new T.Mesh(new T.CapsuleGeometry(0.15, 0.2, 6, 14), mGlow); e.position.set(x, 0.1, 1.04); head.add(e); eyes.push(e);
+      var sp = new T.Mesh(new T.SphereGeometry(0.045, 10, 8), mWhiteDot); sp.position.set(x + 0.06, 0.24, 1.2); head.add(sp);
+    });
+    var smile = new T.Mesh(new T.TorusGeometry(0.2, 0.045, 10, 24, Math.PI), mGlow); smile.rotation.z = Math.PI; smile.position.set(0, -0.26, 1.04); head.add(smile);
+    [-1.18, 1.18].forEach(function(x){ var c = new T.Mesh(new T.SphereGeometry(0.15, 16, 12), mCheek); c.scale.set(1, 0.55, 0.35); c.position.set(x * 0.86, -0.33, 0.98); head.add(c); });
+    [-1, 1].forEach(function(s){ var ear = new T.Mesh(new T.CylinderGeometry(0.34, 0.34, 0.34, 28), mPurple); ear.rotation.z = Math.PI / 2; ear.position.set(s * 1.52, 0, 0); head.add(ear); });
+    var ant = new T.Group(); ant.position.y = 1.05; head.add(ant);
+    var stick = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 0.5, 10), new T.MeshPhysicalMaterial({ color:0xA6AEF4, roughness:0.4 })); stick.position.y = 0.25; ant.add(stick);
+    var ball = new T.Mesh(new T.SphereGeometry(0.22, 24, 18), mBall); ball.position.y = 0.58; ant.add(ball);
+    // soft ground shadow
+    var sc = document.createElement('canvas'); sc.width = sc.height = 64; var sx = sc.getContext('2d');
+    var gr = sx.createRadialGradient(32, 32, 2, 32, 32, 32); gr.addColorStop(0, 'rgba(25,20,70,0.45)'); gr.addColorStop(1, 'rgba(25,20,70,0)');
+    sx.fillStyle = gr; sx.fillRect(0, 0, 64, 64);
+    var shadow = new T.Mesh(new T.PlaneGeometry(3.4, 3.4), new T.MeshBasicMaterial({ map:new T.CanvasTexture(sc), transparent:true, depthWrite:false }));
+    shadow.rotation.x = -Math.PI / 2; shadow.position.y = -2.42; scene.add(shadow);
+
+    // mount
+    // canvases go in now, but the SVG robot is only hidden after the first
+    // successful 3D frame — a blank canvas must never replace the mascot
+    fab.appendChild(cv);
+    var orb = document.querySelector('#ai-modal .ai-orb'), oc = null, octx = null, shown = false;
+    if(orb){ oc = document.createElement('canvas'); oc.className = 'rb3d-c'; oc.width = oc.height = PX; octx = oc.getContext('2d'); orb.appendChild(oc); }
+    var modal = document.getElementById('ai-modal');
+
+    // look toward taps
+    var look = { x:0, y:0, tx:0, ty:0, until:0 };
+    document.addEventListener('pointerdown', function(e){
+      try {
+        var r = fab.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        look.tx = Math.max(-0.7, Math.min(0.7, (e.clientX - cx) / 260));
+        look.ty = Math.max(-0.35, Math.min(0.35, (e.clientY - cy) / 520));
+        look.until = performance.now() + 1600;
+      } catch(_){}
+    }, { passive:true });
+
+    var t0 = performance.now(), last = 0, raf = 0, alive = true, blinkAt = 2.5;
+    function frame(now){
+      raf = 0; if(!alive) return;
+      if(document.hidden || !fab.offsetWidth){ setTimeout(kick, 800); return; }   // (offsetParent is always null for a fixed element)
+      raf = requestAnimationFrame(frame);
+      if(now - last < 32) return; last = now;
+      var t = (now - t0) / 1000, busy = modal && modal.classList.contains('ai-busy');
+      if(!reduce){
+        if(now > look.until){ look.tx *= 0.9; look.ty *= 0.9; }
+        look.x += (look.tx - look.x) * 0.12; look.y += (look.ty - look.y) * 0.12;
+        root.position.y = Math.sin(t * 2.1) * 0.09;
+        root.rotation.y = Math.sin(t * 0.6) * 0.32 + look.x * 0.5;
+        headP.rotation.z = Math.sin(t * 1.5) * 0.09;
+        headP.rotation.y = look.x * 0.6; headP.rotation.x = look.y;
+        ant.rotation.z = Math.sin(t * (busy ? 9 : 3.6)) * 0.28;
+        var bs = 1 + Math.sin(t * 5) * 0.06; ball.scale.set(bs, bs, bs);
+        var br = 1 + Math.sin(t * 2.6) * 0.025; body.scale.set(1.18 * br, 0.98 / br, 1.0);
+        armL.rotation.z = -0.12 + Math.sin(t * 2) * 0.1;
+        var w = t % 6.5;                                                 // wave every ~6.5 s
+        armR.rotation.z = (w > 3.2 && w < 5) ? (-2.3 + Math.sin((w - 3.2) * 11) * 0.35) : 0.12 + Math.sin(t * 2 + 1) * 0.1;
+        if(t > blinkAt){ var k = t - blinkAt; var sy = k < 0.08 ? 1 - k / 0.08 * 0.9 : k < 0.16 ? 0.1 + (k - 0.08) / 0.08 * 0.9 : 1; eyes.forEach(function(e){ e.scale.y = sy; }); if(k > 0.16) blinkAt = t + 2.6 + Math.random() * 2.4; }
+        var ex = busy ? Math.sin(t * 6) * 0.07 : 0; eyes[0].position.x = -0.43 + ex; eyes[1].position.x = 0.43 + ex;
+      }
+      renderer.render(scene, cam);
+      if(!shown){ shown = true; fab.classList.add('rb3d'); if(orb) orb.classList.add('rb3d'); }
+      if(octx && modal && modal.classList.contains('open')){ octx.clearRect(0, 0, PX, PX); octx.drawImage(cv, 0, 0); }
+    }
+    function kick(){ if(alive && !raf) raf = requestAnimationFrame(frame); }
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) kick(); });
+    cv.addEventListener('webglcontextlost', function(e){
+      e.preventDefault(); alive = false;
+      fab.classList.remove('rb3d'); if(orb) orb.classList.remove('rb3d');
+      try { cv.remove(); if(oc) oc.remove(); } catch(_){}
+      console.warn('[3D robot] context lost — back to SVG');
+    });
+    window.rb3d = { renderer:renderer, scene:scene, camera:cam, frame:function(){ last = 0; frame(performance.now()); } };
+    kick();
+  }
+
+  function boot(){ setTimeout(function(){ if('requestIdleCallback' in window) requestIdleCallback(start, { timeout:4000 }); else start(); }, 2500); }
+  if(document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
+})();
+</script>
 </body>
 </html>
