@@ -11040,7 +11040,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v312';
+const APP_VERSION = 'v313';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20621,7 +20621,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
 #ai-modal .ai-orb.rb3d{ width:48px; height:48px; }
 </style>
 <script>
-// v312: live 3D robot (three.js r149, loaded lazily after the app is idle).
+// v312: live 3D robot (three.js r149; v313: articulated joints + IK legs, loaded lazily after the app is idle).
 // One small WebGL renderer draws the robot for the AI button; the AI sheet's
 // orb copies the same frame with drawImage (no second WebGL context). Runs at
 // ~30 fps, only while visible. Any failure (no WebGL, CDN unreachable,
@@ -20659,7 +20659,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
 
     var scene = new T.Scene();
     var cam = new T.PerspectiveCamera(26, 1, 0.1, 100);
-    cam.position.set(0, 0.45, 13.2); cam.lookAt(0, -0.1, 0);
+    cam.position.set(0, 0.4, 13.4); cam.lookAt(0, -0.2, 0);
 
     // soft studio environment for glossy reflections (built in-scene, no extra files)
     try {
@@ -20695,23 +20695,43 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     }
     var root = new T.Group(); scene.add(root);
 
+    // v313 skeleton: hips → spine → (belly, shoulders, neck). Real joints:
+    // shoulder → elbow → wrist, hip → knee → ankle, neck → head. The legs use
+    // 2-bone IK so the feet stay planted while the hips bob and shift weight.
+    var HIP_Y = -1.75, L1 = 0.32, L2 = 0.3, ANK_Y = HIP_Y - 0.6;
+    var hips = new T.Group(); hips.position.y = HIP_Y; root.add(hips);
+    var spine = new T.Group(); hips.add(spine);
+    function joint(r){ return new T.Mesh(new T.SphereGeometry(r, 20, 14), mWhite); }
+    function limb(r, len, y, par){ var m = new T.Mesh(new T.CapsuleGeometry(r, len, 6, 14), mPurple); m.position.y = y; par.add(m); return m; }
+
     // body (round belly) + chest light
-    var bodyG = new T.Group(); bodyG.position.y = -1.05; root.add(bodyG);
+    var bodyG = new T.Group(); bodyG.position.y = -1.05 - HIP_Y; spine.add(bodyG);
     var body = new T.Mesh(new T.SphereGeometry(1, 40, 30), mWhite); body.scale.set(1.18, 0.98, 1.0); bodyG.add(body);
     var chest = new T.Mesh(new T.CircleGeometry(0.2, 28), mGlow); chest.position.set(0, 0.02, 1.0); bodyG.add(chest);
     var chestRing = new T.Mesh(new T.RingGeometry(0.2, 0.3, 28), new T.MeshBasicMaterial({ color:0x55E1F5, transparent:true, opacity:0.45, toneMapped:false })); chestRing.position.set(0, 0.02, 0.995); bodyG.add(chestRing);
-    // legs
-    [-0.45, 0.45].forEach(function(x){ var l = new T.Mesh(new T.CapsuleGeometry(0.24, 0.22, 6, 16), mPurple); l.position.set(x, -2.05, 0.05); root.add(l); });
-    // arms (pivot at the shoulder)
-    function arm(side){
-      var g = new T.Group(); g.position.set(side * 1.08, -0.62, 0.05); root.add(g);
-      var a = new T.Mesh(new T.CapsuleGeometry(0.2, 0.32, 6, 16), mPurple); a.position.y = -0.28; g.add(a);
-      var h = new T.Mesh(new T.SphereGeometry(0.28, 24, 18), mWhite); h.position.y = -0.66; g.add(h);
-      return g;
-    }
-    var armL = arm(-1), armR = arm(1);
-    // head (pivot at the bottom)
-    var headP = new T.Group(); headP.position.y = -0.2; root.add(headP);
+    // legs: hip → thigh → knee → shin → ankle → foot
+    var legs = [-1, 1].map(function(s){
+      var hip = new T.Group(); hip.rotation.order = 'ZYX'; hip.position.set(s * 0.45, 0, 0.05); hips.add(hip);
+      limb(0.2, L1 - 0.12, -L1 / 2, hip);
+      var knee = new T.Group(); knee.position.y = -L1; hip.add(knee); knee.add(joint(0.17));
+      limb(0.185, L2 - 0.12, -L2 / 2, knee);
+      var ank = new T.Group(); ank.rotation.order = 'ZYX'; ank.position.y = -L2; knee.add(ank);
+      var foot = new T.Mesh(new T.SphereGeometry(0.25, 22, 16), mWhite); foot.scale.set(1, 0.55, 1.3); foot.position.set(0, -0.02, 0.07); ank.add(foot);
+      return { s:s, hip:hip, knee:knee, ank:ank };
+    });
+    // arms: shoulder → upper arm → elbow → forearm → wrist → hand (+ thumb)
+    var arms = [-1, 1].map(function(s){
+      var sh = new T.Group(); sh.position.set(s * 1.08, -0.62 - HIP_Y, 0.05); spine.add(sh);
+      limb(0.19, 0.14, -0.16, sh);
+      var el = new T.Group(); el.position.y = -0.32; sh.add(el); el.add(joint(0.165));
+      limb(0.17, 0.12, -0.15, el);
+      var wr = new T.Group(); wr.position.y = -0.3; el.add(wr);
+      var hand = new T.Mesh(new T.SphereGeometry(0.25, 24, 18), mWhite); hand.scale.set(1, 1.08, 0.9); hand.position.y = -0.13; wr.add(hand);
+      var th = new T.Mesh(new T.SphereGeometry(0.095, 14, 10), mWhite); th.position.set(-s * 0.19, -0.05, 0.1); wr.add(th);
+      return { s:s, sh:sh, el:el, wr:wr, y0:sh.position.y };
+    });
+    // neck (pivot at the bottom of the head)
+    var headP = new T.Group(); headP.position.y = -0.2 - HIP_Y; spine.add(headP);
     var head = new T.Group(); head.position.y = 1.05; headP.add(head);
     head.add(new T.Mesh(roundedBox(2.75, 2.1, 1.9, 0.82, 0.38), mWhite));
     var face = new T.Mesh(roundedBox(2.05, 1.28, 0.12, 0.55, 0.05), mFace); face.position.z = 0.96; head.add(face);
@@ -20731,7 +20751,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     var gr = sx.createRadialGradient(32, 32, 2, 32, 32, 32); gr.addColorStop(0, 'rgba(25,20,70,0.45)'); gr.addColorStop(1, 'rgba(25,20,70,0)');
     sx.fillStyle = gr; sx.fillRect(0, 0, 64, 64);
     var shadow = new T.Mesh(new T.PlaneGeometry(3.4, 3.4), new T.MeshBasicMaterial({ map:new T.CanvasTexture(sc), transparent:true, depthWrite:false }));
-    shadow.rotation.x = -Math.PI / 2; shadow.position.y = -2.42; scene.add(shadow);
+    shadow.rotation.x = -Math.PI / 2; shadow.position.y = -2.5; scene.add(shadow);
 
     // mount
     // canvases go in now, but the SVG robot is only hidden after the first
@@ -20752,7 +20772,72 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       } catch(_){}
     }, { passive:true });
 
-    var t0 = performance.now(), last = 0, raf = 0, alive = true, blinkAt = 2.5;
+    // ── motion: layered, phase-offset, eased — like a body, not a toy ──
+    function ss(a, b, x){ x = Math.max(0, Math.min(1, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
+    function mix(a, b, k){ return a + (b - a) * k; }
+    function legIK(L){
+      var r = hips.rotation.z, hx = hips.position.x + L.s * 0.45 * Math.cos(r), hy = hips.position.y + L.s * 0.45 * Math.sin(r);
+      var dx = L.s * 0.45 - hx, dy = ANK_Y - hy, d = Math.min(L1 + L2 - 0.002, Math.max(0.25, Math.sqrt(dx * dx + dy * dy)));
+      var a = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
+      var k = Math.PI - Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + L2 * L2 - d * d) / (2 * L1 * L2))));
+      var lat = Math.atan2(dx, -dy);
+      L.hip.rotation.z = lat - r; L.hip.rotation.x = -a;     // knee goes forward
+      L.knee.rotation.x = k;
+      L.ank.rotation.x = a - k; L.ank.rotation.z = -lat;     // foot stays flat
+    }
+    var sm = { think:0, lx:0, ly:0, hx:0, hy:0 }, antA = 0, antV = 0, prevTilt = null;
+    function pose(t, dt, busy){
+      sm.think += ((busy ? 1 : 0) - sm.think) * Math.min(1, dt * 3.5);
+      sm.lx += (look.x - sm.lx) * 0.06; sm.ly += (look.y - sm.ly) * 0.06;   // torso/neck follow slowly
+      sm.hx += (look.x - sm.hx) * 0.2;  sm.hy += (look.y - sm.hy) * 0.2;    // head leads
+      var th = sm.think;
+      var br = Math.sin(t * 2.6);                                   // breathing
+      var sway = Math.sin(t * 0.9);                                 // weight shift left <-> right
+      var bob = (Math.sin(t * 2.1) - 1) * 0.5;                      // 0 .. -1 (knees bend)
+      var w = t % 7, wv = ss(3.2, 3.65, w) * (1 - ss(5.0, 5.6, w)), ph = (w - 3.2) * 10;   // wave every 7 s
+      // pelvis + spine (counter-balance)
+      hips.position.x = sway * 0.06; hips.position.y = HIP_Y + bob * 0.07 - th * 0.03;
+      hips.rotation.z = sway * 0.05;
+      spine.rotation.z = -sway * 0.08 - wv * 0.06 + Math.sin(t * 1.3) * 0.015;
+      spine.rotation.x = 0.03 + br * 0.015 + th * 0.07;
+      spine.rotation.y = Math.sin(t * 0.6 + 0.8) * 0.08 + sm.lx * 0.25;
+      root.rotation.y = Math.sin(t * 0.6) * 0.16 + sm.lx * 0.25;
+      bodyG.scale.set(1 + br * 0.018, 1 + br * 0.012, 1 + br * 0.018);
+      legs.forEach(legIK);
+      // neck + head
+      headP.rotation.z = -spine.rotation.z * 0.6 - hips.rotation.z * 0.5 + Math.sin(t * 1.5) * 0.07 - wv * 0.1 + th * 0.13;
+      headP.rotation.y = sm.lx * 0.25 + Math.sin(t * 0.45) * 0.06;
+      headP.rotation.x = sm.ly * 0.5 - br * 0.02 - th * 0.1;
+      head.rotation.y = sm.hx * 0.35; head.rotation.x = sm.hy * 0.4;
+      // arms: shoulder leads, elbow and wrist follow a beat later (overlap)
+      arms.forEach(function(A){
+        var s = A.s;
+        var zS = s * (0.2 + br * 0.03) - Math.sin(t * 0.9 - 0.5) * 0.07, xS = -0.08 + Math.sin(t * 2.1 + s) * 0.03, yS = 0;
+        var xE = -0.35 - br * 0.05 + Math.sin(t * 2.1 - 0.6 + s) * 0.07, zE = 0;
+        var xW = Math.sin(t * 2.1 - 1.2 + s) * 0.14, zW = 0;
+        if(s > 0 && wv > 0){                                        // right hand waves
+          zS = mix(zS, 1.8, wv); xS = mix(xS, -0.35, wv); yS = wv * 0.06;
+          zE = wv * (0.85 + Math.sin(ph) * 0.4); xE = mix(xE, -0.1, wv);
+          zW = wv * Math.sin(ph - 1.1) * 0.5; xW = mix(xW, 0, wv);
+        }
+        if(s < 0 && th > 0.001){                                    // hand to chin while thinking
+          zS = mix(zS, 0.55, th); xS = mix(xS, -1.25, th);
+          xE = mix(xE, -2.0, th);
+          xW = mix(xW, 0.3 + Math.sin(t * 3) * 0.1, th);
+        }
+        A.sh.position.y = A.y0 + br * 0.02 + yS;
+        A.sh.rotation.set(xS, 0, zS); A.el.rotation.set(xE, 0, zE); A.wr.rotation.set(xW, 0, zW);
+      });
+      // antenna: damped spring dragged by the head's motion (follow-through)
+      var tilt = hips.rotation.z + spine.rotation.z + headP.rotation.z;
+      if(prevTilt === null) prevTilt = tilt;
+      antV += (-antA * 90 - antV * 5) * dt - (tilt - prevTilt) * 150; prevTilt = tilt;
+      antA = Math.max(-0.5, Math.min(0.5, antA + antV * dt));
+      ant.rotation.z = antA + Math.sin(t * (busy ? 9 : 2.4)) * (busy ? 0.2 : 0.05);
+    }
+    pose(0, 0.033, false);
+
+    var t0 = performance.now(), last = 0, raf = 0, alive = true, blinkAt = 2.5, lastT = 0;
     function frame(now){
       raf = 0; if(!alive) return;
       if(document.hidden || !fab.offsetWidth){ setTimeout(kick, 800); return; }   // (offsetParent is always null for a fixed element)
@@ -20762,16 +20847,9 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       if(!reduce){
         if(now > look.until){ look.tx *= 0.9; look.ty *= 0.9; }
         look.x += (look.tx - look.x) * 0.12; look.y += (look.ty - look.y) * 0.12;
-        root.position.y = Math.sin(t * 2.1) * 0.09;
-        root.rotation.y = Math.sin(t * 0.6) * 0.32 + look.x * 0.5;
-        headP.rotation.z = Math.sin(t * 1.5) * 0.09;
-        headP.rotation.y = look.x * 0.6; headP.rotation.x = look.y;
-        ant.rotation.z = Math.sin(t * (busy ? 9 : 3.6)) * 0.28;
+        var dt = Math.min(0.05, Math.max(0.001, t - lastT)); lastT = t;
+        pose(t, dt, busy);
         var bs = 1 + Math.sin(t * 5) * 0.06; ball.scale.set(bs, bs, bs);
-        var br = 1 + Math.sin(t * 2.6) * 0.025; body.scale.set(1.18 * br, 0.98 / br, 1.0);
-        armL.rotation.z = -0.12 + Math.sin(t * 2) * 0.1;
-        var w = t % 6.5;                                                 // wave every ~6.5 s
-        armR.rotation.z = (w > 3.2 && w < 5) ? (-2.3 + Math.sin((w - 3.2) * 11) * 0.35) : 0.12 + Math.sin(t * 2 + 1) * 0.1;
         if(t > blinkAt){ var k = t - blinkAt; var sy = k < 0.08 ? 1 - k / 0.08 * 0.9 : k < 0.16 ? 0.1 + (k - 0.08) / 0.08 * 0.9 : 1; eyes.forEach(function(e){ e.scale.y = sy; }); if(k > 0.16) blinkAt = t + 2.6 + Math.random() * 2.4; }
         var ex = busy ? Math.sin(t * 6) * 0.07 : 0; eyes[0].position.x = -0.43 + ex; eyes[1].position.x = 0.43 + ex;
       }
@@ -20787,7 +20865,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       try { cv.remove(); if(oc) oc.remove(); } catch(_){}
       console.warn('[3D robot] context lost — back to SVG');
     });
-    window.rb3d = { renderer:renderer, scene:scene, camera:cam, frame:function(){ last = 0; frame(performance.now()); } };
+    window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose, frame:function(){ last = 0; frame(performance.now()); } };
     kick();
   }
 
