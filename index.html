@@ -3593,7 +3593,7 @@ body.dark .slide-action{
     <label class="login-lbl">แผนก</label>
     <input class="login-inp" id="reg-dept" type="text" placeholder="เช่น การตลาด, IT, บัญชี"/>
 
-    <button class="login-btn" onclick="doRegister()">สมัครสมาชิก</button>
+    <button class="login-btn" id="reg-btn" onclick="doRegister()">สมัครสมาชิก</button>
     <button class="btn-forgot" onclick="showLogin()">← กลับไปหน้า Login</button>
 
     <div id="reg-loading" style="display:none;text-align:center;padding:16px;color:var(--accent2)">
@@ -11040,7 +11040,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v306';
+const APP_VERSION = 'v307';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -11152,6 +11152,10 @@ function getThaiError(code) {
     'auth/network-request-failed':'ไม่มีการเชื่อมต่ออินเทอร์เน็ต',
     'auth/requires-recent-login': 'กรุณา Login ใหม่เพื่อยืนยันตัวตน',
     'auth/expired-action-code':   'ลิงก์หมดอายุแล้ว กรุณาขอใหม่',
+    'auth/operation-not-allowed': 'ระบบยังไม่เปิดให้สมัครด้วยอีเมล — แจ้งแอดมิน',
+    'auth/missing-password':      'กรุณาตั้งรหัสผ่าน',
+    'auth/missing-email':         'กรุณาใส่อีเมล',
+    'auth/internal-error':        'ระบบขัดข้องชั่วคราว ลองใหม่อีกครั้ง',
   };
   return map[code] || `เกิดข้อผิดพลาด (${code})`;
 }
@@ -11202,8 +11206,8 @@ async function handleFirebaseUser(fbUser) {
         initial: (fbUser.displayName || fbUser.email)[0].toUpperCase(),
         createdAt: Date.now()
       };
-      const empSnap = await db.ref('employees').once('value');
-      if (!empSnap.exists()) profile.role = 'admin';
+      // v307: a failed "is this the first user?" read must not block login
+      try { const empSnap = await db.ref('employees').once('value'); if (!empSnap.exists()) profile.role = 'admin'; } catch (_) {}
       await db.ref('employees/' + fbUser.uid).set(profile);
     }
     curUser = profile;
@@ -11624,78 +11628,93 @@ function showRegErr(msg) {
   el.style.display = 'block';
 }
 
+// v307: hardened self sign-up. Every step that used to abort half-way now
+// recovers: no double submit; email normalised; an account left over from an
+// earlier half-finished sign-up is signed in instead of failing; display name
+// and profile writes are retried / non-blocking; the app is entered through
+// handleFirebaseUser — the same path as a normal first login, which also
+// re-creates a missing profile — so a new user is never stuck.
+let _regBusy = false;
+function _regErrText(err){
+  const code = (err && err.code) || '';
+  if (code === 'auth/email-already-in-use') return 'อีเมลนี้มีบัญชีอยู่แล้ว (รหัสผ่านไม่ตรง) — กลับไปหน้าเข้าสู่ระบบ หรือกด "ลืมรหัสผ่าน"';
+  if (code.indexOf('auth/') === 0) return getThaiError(code);
+  if (/permission/i.test(code + ' ' + ((err && err.message) || ''))) return 'บันทึกข้อมูลไม่สำเร็จ (สิทธิ์ระบบ) — แจ้งแอดมิน';
+  return 'สมัครไม่สำเร็จ ลองใหม่อีกครั้ง' + (code ? ' (' + code + ')' : '');
+}
 async function doRegister() {
-  const name  = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
+  if (_regBusy) return;
+  const name  = document.getElementById('reg-name').value.trim().slice(0, 60);
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
   const pass  = document.getElementById('reg-pw').value;
   const pass2 = document.getElementById('reg-pw2').value;
-  const dept  = document.getElementById('reg-dept').value.trim() || 'ทั่วไป';
+  const dept  = document.getElementById('reg-dept').value.trim().slice(0, 40) || 'ทั่วไป';
+  const btn   = document.getElementById('reg-btn');
+  const suc   = document.getElementById('reg-success');
 
   document.getElementById('reg-err').style.display = 'none';
+  if (suc) suc.style.display = 'none';
 
   if (!name)  { showRegErr('กรุณาใส่ชื่อ-นามสกุล'); return; }
   if (!email) { showRegErr('กรุณาใส่อีเมล'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { showRegErr('รูปแบบอีเมลไม่ถูกต้อง'); return; }
   if (!pass)  { showRegErr('กรุณาตั้งรหัสผ่าน'); return; }
   if (pass.length < 6) { showRegErr('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'); return; }
   if (pass !== pass2) { showRegErr('รหัสผ่านไม่ตรงกัน กรุณากรอกใหม่'); return; }
+  if (navigator.onLine === false) { showRegErr('ไม่มีอินเทอร์เน็ต — เชื่อมต่อแล้วลองใหม่'); return; }
 
+  _regBusy = true;
+  if (btn) btn.disabled = true;
   document.getElementById('reg-loading').style.display = 'block';
+  const done = () => { _regBusy = false; if (btn) btn.disabled = false; document.getElementById('reg-loading').style.display = 'none'; };
 
   try {
-    // Create Firebase Auth user
-    const result = await auth.createUserWithEmailAndPassword(email, pass);
-    const fbUser = result.user;
+    let fbUser = null, existed = false;
+    try {
+      fbUser = (await auth.createUserWithEmailAndPassword(email, pass)).user;
+    } catch (e) {
+      if (!e || e.code !== 'auth/email-already-in-use') throw e;
+      // maybe their own half-finished earlier sign-up — same password signs them in
+      try { fbUser = (await auth.signInWithEmailAndPassword(email, pass)).user; existed = true; }
+      catch (e2) { throw { code: 'auth/email-already-in-use' }; }
+    }
+    if (!existed) { try { await fbUser.updateProfile({ displayName: name }); } catch (_) {} }
 
-    // Update display name
-    await fbUser.updateProfile({ displayName: name });
-
-    // Check if first user = admin
-    const empSnap = await db.ref('employees').once('value');
-    const isFirst = !empSnap.exists();
-
-    // Save profile to database
-    const profile = {
-      id: fbUser.uid,
-      name: name,
-      email: email,
-      photo: '',
-      dept: dept,
-      role: isFirst ? 'admin' : 'employee',
-      initial: name[0].toUpperCase(),
-      createdAt: Date.now()
-    };
-    await db.ref('employees/' + fbUser.uid).set(profile);
+    // profile: create only if missing; retried; never blocks entering the app
+    let saved = false;
+    for (let i = 0; i < 3 && !saved; i++) {
+      try {
+        const cur = await db.ref('employees/' + fbUser.uid).once('value');
+        if (cur.exists()) { saved = true; break; }
+        let isFirst = false;
+        try { isFirst = !(await db.ref('employees').once('value')).exists(); } catch (_) {}
+        await db.ref('employees/' + fbUser.uid).set({
+          id: fbUser.uid, name: name, email: email, photo: '', dept: dept,
+          role: isFirst ? 'admin' : 'employee', initial: name[0].toUpperCase(), createdAt: Date.now()
+        });
+        saved = true;
+      } catch (e) {
+        console.warn('[Register] profile write retry', i + 1, e && e.code);
+        await new Promise(r => setTimeout(r, 700 * (i + 1)));
+      }
+    }
 
     document.getElementById('reg-loading').style.display = 'none';
-
-    // Show success
-    const suc = document.getElementById('reg-success');
-    suc.innerHTML = `✅ สมัครสมาชิกสำเร็จ!<br>ยินดีต้อนรับ <strong>${escHtml(name)}</strong>`;
-    suc.style.display = 'block';
-
-    // Auto login after 1.5s
+    if (suc) {
+      suc.innerHTML = existed
+        ? '✅ บัญชีนี้มีอยู่แล้ว — เข้าสู่ระบบให้เลย'
+        : `✅ สมัครสมาชิกสำเร็จ!<br>ยินดีต้อนรับ <strong>${escHtml(name)}</strong>` + (saved ? '' : '<br><small>กำลังบันทึกโปรไฟล์ ระบบจะทำต่อให้อัตโนมัติ</small>');
+      suc.style.display = 'block';
+    }
     setTimeout(() => {
-      document.getElementById('register-screen').style.display = 'none';
-      document.getElementById('app-shell').style.display = 'block';
-      curUser = profile;
-      // Fetch fresh employee list to avoid duplicates
-      db.ref('employees').once('value').then(snap => {
-        employees = snap.val() ? Object.values(snap.val()) : [profile];
-        records = [];
-        localStorage.setItem('tt_emp', JSON.stringify(employees));
-        setupRealtimeListeners();
-        initApp();
-      }).catch(() => {
-        employees = [profile];
-        records = [];
-        setupRealtimeListeners();
-        initApp();
-      });
-    }, 1500);
-
-  } catch(err) {
-    document.getElementById('reg-loading').style.display = 'none';
-    showRegErr(getThaiError(err.code));
+      try {
+        document.getElementById('register-screen').style.display = 'none';
+        handleFirebaseUser(fbUser);     // same path as a normal login (loads data, re-creates a missing profile)
+      } finally { done(); }
+    }, 1200);
+  } catch (err) {
+    done();
+    showRegErr(_regErrText(err));
   }
 }
 
