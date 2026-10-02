@@ -11040,7 +11040,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v313';
+const APP_VERSION = 'v314';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20785,7 +20785,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       L.knee.rotation.x = k;
       L.ank.rotation.x = a - k; L.ank.rotation.z = -lat;     // foot stays flat
     }
-    var sm = { think:0, lx:0, ly:0, hx:0, hy:0 }, antA = 0, antV = 0, prevTilt = null;
+    var sm = { think:0, lx:0, ly:0, hx:0, hy:0 }, antA = 0, antV = 0, prevTilt = null, waveOff = 0;
     function pose(t, dt, busy){
       sm.think += ((busy ? 1 : 0) - sm.think) * Math.min(1, dt * 3.5);
       sm.lx += (look.x - sm.lx) * 0.06; sm.ly += (look.y - sm.ly) * 0.06;   // torso/neck follow slowly
@@ -20794,7 +20794,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       var br = Math.sin(t * 2.6);                                   // breathing
       var sway = Math.sin(t * 0.9);                                 // weight shift left <-> right
       var bob = (Math.sin(t * 2.1) - 1) * 0.5;                      // 0 .. -1 (knees bend)
-      var w = t % 7, wv = ss(3.2, 3.65, w) * (1 - ss(5.0, 5.6, w)), ph = (w - 3.2) * 10;   // wave every 7 s
+      var w = (t + waveOff) % 7, wv = ss(3.2, 3.65, w) * (1 - ss(5.0, 5.6, w)), ph = (w - 3.2) * 10;   // wave every 7 s
       // pelvis + spine (counter-balance)
       hips.position.x = sway * 0.06; hips.position.y = HIP_Y + bob * 0.07 - th * 0.03;
       hips.rotation.z = sway * 0.05;
@@ -20865,11 +20865,87 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       try { cv.remove(); if(oc) oc.remove(); } catch(_){}
       console.warn('[3D robot] context lost — back to SVG');
     });
-    window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose, frame:function(){ last = 0; frame(performance.now()); } };
+    window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose,
+      wave:function(){ var t = (performance.now() - t0) / 1000, w = (t + waveOff) % 7; if(w < 3.0 || w > 5.7) waveOff = ((3.0 - t) % 7 + 7) % 7; },   // v314: wave now (greeting)
+      frame:function(){ last = 0; frame(performance.now()); } };
     kick();
   }
 
   function boot(){ setTimeout(function(){ if('requestIdleCallback' in window) requestIdleCallback(start, { timeout:4000 }); else start(); }, 2500); }
+  if(document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
+})();
+</script>
+<style id="rb-bubble-v314">
+/* v314: greeting speech bubble above the AI robot. Solid bubble → fixed text colours per theme */
+#rb-bubble{ position:fixed; z-index:46; max-width:210px; padding:9px 13px; border-radius:16px 16px 6px 16px;
+  background:#FFFFFF; color:#1E1B4B; font:600 13.5px/1.35 var(--font-body, -apple-system, system-ui, sans-serif);
+  box-shadow:0 8px 24px rgba(40,30,120,0.22), 0 1px 0 rgba(255,255,255,0.8) inset; border:1px solid rgba(124,77,235,0.18);
+  transform-origin:88% 120%; opacity:0; transform:translateY(6px) scale(.6); pointer-events:none;
+  transition:opacity .22s ease, transform .38s cubic-bezier(.34,1.56,.64,1); -webkit-tap-highlight-color:transparent; cursor:pointer; }
+#rb-bubble.show{ opacity:1; transform:none; pointer-events:auto; }
+#rb-bubble::after{ content:''; position:absolute; right:20px; bottom:-7px; width:14px; height:14px; background:inherit;
+  border-right:1px solid rgba(124,77,235,0.18); border-bottom:1px solid rgba(124,77,235,0.18); transform:rotate(45deg); border-radius:0 0 4px 0; }
+body.dark #rb-bubble{ background:#272250; color:#F3F1FF; border-color:rgba(180,160,255,0.28); box-shadow:0 8px 24px rgba(0,0,0,0.45); }
+body.dark #rb-bubble::after{ border-color:rgba(180,160,255,0.28); }
+@media (prefers-reduced-motion: reduce){ #rb-bubble{ transition:opacity .2s ease; transform:none; } }
+</style>
+<script>
+// v314: the AI robot greets the user with a speech bubble (time-of-day + first
+// name), and waves while it talks. Shows on open, then now and then (max 5 per
+// session); never over an open sheet/modal. Tap → opens the AI. Sandboxed.
+(function(){
+  'use strict';
+  var b = null, hideT = 0, shown = 0, MAX = 5, lastTip = -1;
+  function firstName(){
+    try { var u = (typeof curUser !== 'undefined' && curUser) || null; var n = u && u.name ? String(u.name).trim() : ''; return n ? n.split(/\s+/)[0] : ''; } catch(e){ return ''; }
+  }
+  function greeting(){
+    var h = new Date().getHours(), n = firstName(), k = n ? ' คุณ' + n : '';
+    if(h >= 5 && h < 11)  return 'อรุณสวัสดิ์' + k + ' ☀️';
+    if(h >= 11 && h < 13) return 'สวัสดีตอนเที่ยง' + k + ' 🍱 อย่าลืมพักกินข้าวนะ';
+    if(h >= 13 && h < 17) return 'สวัสดีตอนบ่าย' + k + ' 💪 สู้ๆ นะ';
+    if(h >= 17 && h < 21) return 'สวัสดีตอนเย็น' + k + ' 🌇 วันนี้เหนื่อยไหม';
+    return 'ดึกแล้วนะ' + k + ' 🌙 พักผ่อนด้วย';
+  }
+  var TIPS = ['มีอะไรให้ช่วยไหม? แตะฉันได้เลย 😊', 'ถามชั่วโมงทำงานหรือค่าแรงได้นะ 💰', 'กด 🎤 แล้วพูดกับฉันได้เลย', 'วันนี้ก็สู้ๆ นะ ✨', 'สงสัยอะไร ถามฉันได้ทุกเรื่อง 🤖'];
+  function blocked(fab){
+    if(!fab || !fab.offsetWidth || document.hidden) return true;
+    return !!document.querySelector('.modal-overlay.open');
+  }
+  function place(fab){
+    var r = fab.getBoundingClientRect();
+    b.style.right = Math.max(8, window.innerWidth - r.right - 2) + 'px';
+    b.style.bottom = Math.max(8, window.innerHeight - r.top + 4) + 'px';
+  }
+  function hide(){ clearTimeout(hideT); if(b) b.classList.remove('show'); }
+  function say(text){
+    var fab = document.getElementById('ai-fab');
+    if(blocked(fab)) return false;
+    if(!b){
+      b = document.createElement('div'); b.id = 'rb-bubble'; b.setAttribute('role', 'status');
+      b.addEventListener('click', function(){ hide(); try { openAIModal(); } catch(e){} });
+      document.body.appendChild(b);
+    }
+    b.textContent = text; place(fab);
+    void b.offsetWidth; b.classList.add('show');
+    try { if(window.rb3d && window.rb3d.wave) window.rb3d.wave(); } catch(e){}
+    clearTimeout(hideT); hideT = setTimeout(hide, 6000);
+    shown++; return true;
+  }
+  function tick(){
+    if(shown >= MAX) return;
+    var text;
+    if(shown === 0) text = greeting();
+    else { var i; do { i = Math.floor(Math.random() * TIPS.length); } while(i === lastTip && TIPS.length > 1); lastTip = i; text = TIPS[i]; }
+    // first greeting retries quickly until the app is ready; later ones every ~80 s
+    var ok = say(text);
+    setTimeout(tick, ok || shown > 0 ? 80000 + Math.random() * 20000 : 1500);
+  }
+  // any tap elsewhere dismisses it (passive — never blocks the tap itself)
+  document.addEventListener('pointerdown', function(e){ if(b && e.target !== b && !b.contains(e.target)) hide(); }, { passive:true, capture:true });
+  window.addEventListener('resize', hide);
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) hide(); });
+  function boot(){ setTimeout(tick, 4000); }
   if(document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
 })();
 </script>
