@@ -4762,10 +4762,11 @@ function avatarColor(name){
   if(!name) return ['#0077bb','#00bfff'];
   let hash=0;
   for(let i=0;i<name.length;i++) hash=name.charCodeAt(i)+((hash<<5)-hash);
-  const hue=Math.abs(hash)%360;
-  // Avoid muddy range, shift if needed
-  const h=(hue>=25&&hue<=55)?hue+90:(hue>=195&&hue<=225)?hue+60:hue;
-  return [`hsl(${h%360},72%,40%)`,`hsl(${(h+32)%360},82%,58%)`];
+  // v318: curated gradients that sit with the blue/violet theme (the old hue
+  // hash often landed on lime/olive)
+  const P=[['#3D6BFF','#7BA6FF'],['#6A4CFF','#A88EFF'],['#A93FE8','#DA8BFF'],['#E5427F','#FF8DB6'],
+           ['#0F9F95','#4FDCC6'],['#0B8DD6','#5FCBFF'],['#E85D4E','#FF9E85'],['#D18A0C','#FFC857']];
+  return P[Math.abs(hash)%P.length];
 }
 function avatarGrad(name){const[c1,c2]=avatarColor(name);return `linear-gradient(135deg,${c1},${c2})`;}
 function avatarLetter(name){return name?name.trim()[0].toUpperCase():'?';}
@@ -6821,8 +6822,8 @@ function renderHome(){
         </div>
       </div>
       <div class="rec-actions">
-        <button class="btn-edit" onclick="openEdit('${r.id}','${curUser.email}')">✏️</button>
-        <button class="btn-del" onclick="deleteRec('${r.id}','${curUser.id}')">🗑</button>
+        <button class="btn-edit" onclick="openEdit('${r.id}','${curUser.email}')" title="แก้ไข" aria-label="แก้ไข"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2"/></svg></button>
+        <button class="btn-del" onclick="deleteRec('${r.id}','${curUser.id}')" title="ลบ" aria-label="ลบ"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 7h16M9 7V4.8c0-.4.4-.8.8-.8h4.4c.4 0 .8.4.8.8V7M6.5 7l.8 12.2c.1.9.8 1.8 1.8 1.8h5.8c1 0 1.7-.9 1.8-1.8L17.5 7M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
     </div>`;
   }).join('');
@@ -7052,13 +7053,13 @@ function renderHistory(resetPage){
       <div class="hi-records">
         ${rs.map((r,i)=>`<div class="hi-rec" data-rid="${r.id}">
           <div>
-            <span class="hi-times">${r.checkIn} → ${r.checkOut||'...'}</span>
+            <span class="hi-times"><b>${r.checkIn}</b><i class="hi-arrow">→</i><b>${r.checkOut||'<span class="hi-open">ยังไม่ออก</span>'}</b></span>
             ${r.note?`<span style="font-size:11px;color:var(--text3);margin-left:6px">${escHtml(r.note)}</span>`:''}
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <span class="hi-net">${r.checkOut?fmtHMt(calcHours(r.checkIn,r.checkOut)*60):''}</span>
-            <button class="btn-edit" onclick="openEdit('${r.id}','${curUser.email}')">✏️</button>
-            <button class="btn-del" onclick="deleteRec('${r.id}','${curUser.id}')">🗑</button>
+            <button class="btn-edit" onclick="openEdit('${r.id}','${curUser.email}')" title="แก้ไข" aria-label="แก้ไข"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2"/></svg></button>
+            <button class="btn-del" onclick="deleteRec('${r.id}','${curUser.id}')" title="ลบ" aria-label="ลบ"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 7h16M9 7V4.8c0-.4.4-.8.8-.8h4.4c.4 0 .8.4.8.8V7M6.5 7l.8 12.2c.1.9.8 1.8 1.8 1.8h5.8c1 0 1.7-.9 1.8-1.8L17.5 7M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </div>
         </div>`).join('')}
       </div>
@@ -10382,20 +10383,25 @@ async function checkLateEmployees() {
 }
 
 function showLateAlert(name, lateMin) {
+  // v318: one stack for all alerts — two late employees used to be drawn on top of each other
+  let stack = document.getElementById('late-stack');
+  if(!stack){ stack = document.createElement('div'); stack.id = 'late-stack';
+    stack.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:12px;right:12px;z-index:400;display:flex;flex-direction:column;gap:8px;pointer-events:none';
+    document.body.appendChild(stack); }
   const banner = document.createElement('div');
-  banner.style.cssText = `position:fixed;top:64px;left:12px;right:12px;z-index:400;
-    background:linear-gradient(135deg,rgba(20,10,10,.95),rgba(40,10,10,.95));
-    border:1.5px solid rgba(239,68,68,.5);border-radius:14px;
-    padding:12px 16px;box-shadow:0 4px 24px rgba(239,68,68,.3);
+  banner.style.cssText = `pointer-events:auto;
+    background:linear-gradient(135deg,#1C0C0E,#300E10);
+    border:1px solid rgba(239,68,68,.45);border-radius:16px;
+    padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.35);
     display:flex;align-items:center;gap:12px;animation:slideDown .3s ease`;
   banner.innerHTML = `
-    <span style="font-size:24px">⚠️</span>
+    <span style="width:34px;height:34px;border-radius:10px;background:rgba(239,68,68,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3.5 2.8 19.5h18.4L12 3.5z" fill="none" stroke="#FF6B6B" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4.2" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="#FF6B6B"/></svg></span>
     <div style="flex:1">
-      <div style="font-weight:700;color:#ef4444;font-size:13px">${name} ยังไม่มาทำงาน!</div>
+      <div style="font-weight:700;color:#FF6B6B;font-size:13.5px">${escHtml(name)} ยังไม่มาทำงาน</div>
       <div style="font-size:11px;color:#94a3b8">สายมาแล้ว ${lateMin} นาที (เวลาเข้างาน ${getWorkStart()})</div>
     </div>
-    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer">✕</button>`;
-  document.body.appendChild(banner);
+    <button onclick="this.parentElement.remove()" aria-label="ปิด" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer;padding:4px 6px">✕</button>`;
+  stack.appendChild(banner);
   setTimeout(()=>{ if(banner.parentElement) banner.remove(); }, 8000);
 }
 
@@ -11040,7 +11046,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v317';
+const APP_VERSION = 'v318';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -11912,8 +11918,8 @@ function wrapRecordSwipe(container) {
     const actions = document.createElement('div');
     actions.className = 'swipe-actions';
     actions.innerHTML = `
-      <button class="swipe-edit-btn" onclick="${editBtn?.getAttribute('onclick')||''}">✏️</button>
-      <button class="swipe-del-btn" onclick="${delBtn?.getAttribute('onclick')||''}">🗑</button>`;
+      <button class="swipe-edit-btn" onclick="${editBtn?.getAttribute('onclick')||''}" aria-label="แก้ไข"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2"/></svg></button>
+      <button class="swipe-del-btn" onclick="${delBtn?.getAttribute('onclick')||''}" aria-label="ลบ"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 7h16M9 7V4.8c0-.4.4-.8.8-.8h4.4c.4 0 .8.4.8.8V7M6.5 7l.8 12.2c.1.9.8 1.8 1.8 1.8h5.8c1 0 1.7-.9 1.8-1.8L17.5 7M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
 
     el.classList.add('swipe-item');
     el.parentNode.insertBefore(wrap, el);
@@ -21062,6 +21068,26 @@ body.corp .mc2{ background:var(--c-surface); border-color:var(--c-border); }
 body.corp .mc2-bar{ background:var(--c-brand, #0F5FB8); box-shadow:none; }
 body.corp .mc2-col.is-today .mc2-bar{ box-shadow:0 0 0 2px var(--c-border-2); }
 @media (prefers-reduced-motion: reduce){ .mc2-bar{ animation:none; } }
+</style>
+<style id="polish-v318">
+/* v318: history session rows — times readable, net + actions on one line */
+.hi-rec{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.hi-times{ font-family:var(--font-display, inherit); font-size:15.5px; color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:-0.01em; }
+.hi-times b{ font-weight:700; }
+.hi-times .hi-arrow{ font-style:normal; color:var(--ink-4); margin:0 6px; font-weight:400; }
+.hi-times .hi-open{ color:var(--sys-red, #FF453A); font-size:13px; font-weight:700; }
+.hi-rec .btn-edit, .hi-rec .btn-del{ width:34px; height:34px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; }
+.hi-rec .btn-edit{ background:rgba(10,132,255,0.14); }
+.hi-rec .btn-del{ background:rgba(255,69,58,0.14); }
+.btn-edit .ico, .btn-del .ico, .swipe-edit-btn .ico, .swipe-del-btn .ico{ display:block; }
+.swipe-edit-btn .ico, .swipe-del-btn .ico{ margin:auto; color:#fff; width:20px; height:20px; }
+/* month / year pickers: a chevron so they read as dropdowns */
+html body select.sel:not(#_){ padding-right:40px !important; background-repeat:no-repeat !important; background-position:right 14px center !important; background-size:14px 14px !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%23596173' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important; }
+html body.dark select.sel:not(#_){
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%23C9D2EA' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important; }
+html body.corp:not(.dark) select.sel:not(#_){
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%23596173' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important; }
 </style>
 </body>
 </html>
