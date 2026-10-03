@@ -11040,7 +11040,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v315';
+const APP_VERSION = 'v316';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18608,6 +18608,8 @@ body.sky-gl .sky-stars, body.sky-gl .sky-twwrap, body.sky-gl .sky-moon, body.sky
    star layers over the GL canvas cost compositing every frame). */
 .sky-moonc{ width:58px; height:58px; top:calc(env(safe-area-inset-top,0px) + 66px); right:92px; display:none; opacity:0; transition:opacity 1.2s; }
 body.sky-gl .sky-moonc{ display:block; }
+.sky-starc{ top:0; left:0; width:100%; height:100%; display:none; opacity:0; transition:opacity 1.2s; }
+body.sky-gl .sky-starc{ display:block; }
 /* v261: Liquid Glass (Phase D, opt-in) paints a fixed canvas at the same z-index,
    appended later in the DOM, so it would cover the sky. Sky mode wins. */
 body.sky .lg-canvas{ display:none !important; }
@@ -19376,6 +19378,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       parts.tw = el('sky-twwrap'); parts.tw.style.cssText = 'inset:0;transition:opacity 1.2s';
       el('sky-stars tw', parts.tw).style.boxShadow = starShadows(28, 99, 1);
       parts.moon = el('sky-moon');
+      parts.starc = document.createElement('canvas'); parts.starc.className = 'sky-starc'; scene.appendChild(parts.starc);
       parts.moonc = document.createElement('canvas'); parts.moonc.className = 'sky-moonc'; scene.appendChild(parts.moonc);
       parts.clouds = [];
       var cfg = [[9,95,-35],[27,140,-95],[40,115,-20],[17,170,-140]];  // top vh, seconds, start offset
@@ -19486,10 +19489,6 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       ' if(uStars>0.){',
       '  vec2 mw=p-vec2(.3,.55); float band=exp(-pow(dot(mw,normalize(vec2(.8,-.6))),2.)*28.);',
       '  sky+=vec3(.55,.6,.8)*uStars*band*fbm3(p*7.)*.22;',
-      '  vec2 cell=floor(gl_FragCoord.xy/6.); float h=hash(cell+.5);',
-      '  if(h>.965){ vec2 o=vec2(hash(cell+3.1),hash(cell+7.7))*6.; float sd=length(gl_FragCoord.xy-cell*6.-o);',
-      '   float tw=.6+.4*sin(uTime*(1.+h*3.)+h*40.);',
-      '   sky+=vec3(1.,.97,.92)*uStars*1.6*smoothstep(1.8,0.,sd)*tw*min(1.,(h-.965)*60.)*smoothstep(.1,.5,uv.y); }',
       ' }',
       ' // moon glow only — the disc itself is a crisp 2D canvas on top (v315)',
       ' vec2 mp=vec2(uMoonPos.x*asp,uMoonPos.y); vec2 ml=(p-mp)/uMoonR; float md=length(ml);',
@@ -19550,6 +19549,25 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         d[o+3] = 255 * edge * (.16 + .84 * lit);
       }
       ctx.putImageData(img, 0, 0);
+    }
+    // v316: star points drawn once at full device resolution (the low-res GL
+    // canvas turned them into blurry squares). Static — redrawn only on resize.
+    function drawStars(cv){
+      var dpr = Math.min(window.devicePixelRatio || 1, 3), W = innerWidth, H = innerHeight;
+      var key = W + 'x' + H + '@' + dpr; if(cv._k === key) return; cv._k = key;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      var ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      var r = rng(731), n = Math.round(W * H / 1500);
+      for(var i=0;i<n;i++){
+        var x = r() * W, y = Math.pow(r(), 1.35) * H * 0.92, b = r(), fade = Math.max(0, Math.min(1, (1 - y / H - 0.1) / 0.4));
+        if(fade <= 0) continue;
+        var big = b > 0.93, rad = big ? 1.15 : 0.45 + r() * 0.5, a = (0.35 + r() * 0.65) * fade;
+        var warm = r(), col = warm < 0.15 ? '255,226,196' : warm > 0.85 ? '206,222,255' : '255,250,242';
+        if(big){ var g = ctx.createRadialGradient(x, y, 0, x, y, 4.5); g.addColorStop(0, 'rgba(' + col + ',' + (a * 0.35).toFixed(3) + ')'); g.addColorStop(1, 'rgba(' + col + ',0)');
+          ctx.fillStyle = g; ctx.fillRect(x - 4.5, y - 4.5, 9, 9); }
+        ctx.fillStyle = 'rgba(' + col + ',' + a.toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
+      }
     }
     function glInit(){
       if(GL.ok || GL.dead) return GL.ok;
@@ -19639,16 +19657,19 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         cover: COVER[kind] || .36, cloudA: night ? .55 : .92,
         sun: ph === 'day' ? sunAmt : low ? sunAmt*.8 : 0,
         sunPos: ph === 'day' ? [.86,.94] : ph === 'dawn' ? [.2,.06] : [.8,.06],
-        stars: night ? Math.max(0, 1 - (COVER[kind]||0)*.6) : 0,
+        stars: night && !wet ? Math.max(0, 1 - (COVER[kind]||0)*.6) : 0,
         moon: night ? (wet || kind === 'overcast' ? 0 : 1) : 0,
         rain: wet ? (kind === 'storm' ? 1 : .8) : 0,
         phase: moonPhase(), still: !!mq
       };
       document.body.classList.add('sky-gl');
       try { if(parts.moonc){ drawMoon(parts.moonc, GL.st.phase); parts.moonc.style.opacity = String(GL.st.moon); } } catch(_){}
+      try { if(parts.starc){ if(GL.st.stars > 0) drawStars(parts.starc); parts.starc.style.opacity = String(GL.st.stars); } } catch(_){}
       glKick();
     }
     document.addEventListener('visibilitychange', function(){ if(!document.hidden) glKick(); });
+    var _starRz = 0;   // v316: keep the star canvas sharp after a rotation / resize
+    window.addEventListener('resize', function(){ clearTimeout(_starRz); _starRz = setTimeout(function(){ try { if(parts.starc && GL.st && GL.st.stars > 0) drawStars(parts.starc); } catch(_){} }, 300); });
     function paint(){
       var b = document.body; if(!b) return;
       var ph = (window.__skyForcePhase) || phaseAt(israelNow().min, sunTimes());
