@@ -11046,7 +11046,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v319';
+const APP_VERSION = 'v320';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20852,6 +20852,10 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       L.ank.rotation.x = a - k; L.ank.rotation.z = -lat;     // foot stays flat
     }
     var sm = { think:0, lx:0, ly:0, hx:0, hy:0 }, antA = 0, antV = 0, prevTilt = null, waveOff = 0;
+    // v320: one-shot reactions (check-in cheer, check-out bye, OT sweat)
+    var act = { type:'', t0:-99, dur:0 }, actEyes = 1;
+    var drop = new T.Mesh(new T.SphereGeometry(0.17, 16, 12), new T.MeshPhysicalMaterial({ color:0x38B6FF, emissive:0x1A7FD0, emissiveIntensity:0.35, roughness:0.05, clearcoat:1, envMapIntensity:1.2 }));
+    drop.scale.set(0.8, 1.15, 0.8); drop.visible = false; head.add(drop);
     function pose(t, dt, busy){
       sm.think += ((busy ? 1 : 0) - sm.think) * Math.min(1, dt * 3.5);
       sm.lx += (look.x - sm.lx) * 0.06; sm.ly += (look.y - sm.ly) * 0.06;   // torso/neck follow slowly
@@ -20861,11 +20865,16 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       var sway = Math.sin(t * 0.9);                                 // weight shift left <-> right
       var bob = (Math.sin(t * 2.1) - 1) * 0.5;                      // 0 .. -1 (knees bend)
       var w = (t + waveOff) % 7, wv = ss(3.2, 3.65, w) * (1 - ss(5.0, 5.6, w)), ph = (w - 3.2) * 10;   // wave every 7 s
+      var aa = t - act.t0, ae = (aa >= 0 && aa < act.dur) ? ss(0, 0.22, aa) * (1 - ss(act.dur - 0.45, act.dur, aa)) : 0;
+      var cheer = act.type === 'cheer' ? ae : 0, sweat = act.type === 'sweat' ? ae : 0;
+      var hop = cheer ? Math.abs(Math.sin(aa * Math.PI * 2.3)) * 0.26 * cheer : 0;   // 2–3 hops, feet leave the ground
+      actEyes = 1 - cheer * 0.55;
+      if(ae > 0 && act.type !== 'bye'){ wv *= 1 - ae; }            // no idle wave during a reaction
       // pelvis + spine (counter-balance)
-      hips.position.x = sway * 0.06; hips.position.y = HIP_Y + bob * 0.07 - th * 0.03;
+      hips.position.x = sway * 0.06; hips.position.y = HIP_Y + bob * 0.07 - th * 0.03 + hop - cheer * 0.04;
       hips.rotation.z = sway * 0.05;
       spine.rotation.z = -sway * 0.08 - wv * 0.06 + Math.sin(t * 1.3) * 0.015;
-      spine.rotation.x = 0.03 + br * 0.015 + th * 0.07;
+      spine.rotation.x = 0.03 + br * 0.015 + th * 0.07 - cheer * 0.1 + sweat * 0.06;
       spine.rotation.y = Math.sin(t * 0.6 + 0.8) * 0.08 + sm.lx * 0.25;
       root.rotation.y = Math.sin(t * 0.6) * 0.16 + sm.lx * 0.25;
       bodyG.scale.set(1 + br * 0.018, 1 + br * 0.012, 1 + br * 0.018);
@@ -20873,7 +20882,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       // neck + head
       headP.rotation.z = -spine.rotation.z * 0.6 - hips.rotation.z * 0.5 + Math.sin(t * 1.5) * 0.07 - wv * 0.1 + th * 0.13;
       headP.rotation.y = sm.lx * 0.25 + Math.sin(t * 0.45) * 0.06;
-      headP.rotation.x = sm.ly * 0.5 - br * 0.02 - th * 0.1;
+      headP.rotation.x = sm.ly * 0.5 - br * 0.02 - th * 0.1 - cheer * 0.09 + sweat * 0.05;
+      headP.rotation.z += sweat * Math.sin(aa * 2.2) * 0.08;
       head.rotation.y = sm.hx * 0.35; head.rotation.x = sm.hy * 0.4;
       // arms: shoulder leads, elbow and wrist follow a beat later (overlap)
       arms.forEach(function(A){
@@ -20891,6 +20901,18 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
           xE = mix(xE, -2.0, th);
           xW = mix(xW, 0.3 + Math.sin(t * 3) * 0.1, th);
         }
+        if(cheer > 0){                                              // both arms up, pumping
+          var pump = Math.sin(aa * 12 + (s > 0 ? 0 : 1.2));
+          zS = mix(zS, s * 2.75, cheer); xS = mix(xS, -0.15, cheer); yS += cheer * 0.08;
+          zE = mix(zE, s * (0.2 + pump * 0.22), cheer); xE = mix(xE, 0, cheer);
+          zW = mix(zW, s * pump * 0.35, cheer); xW = mix(xW, 0, cheer);
+        }
+        if(s < 0 && sweat > 0){                                     // left hand fans the face ("phew!")
+          var fan = Math.sin(aa * 14);
+          zS = mix(zS, -1.75, sweat); xS = mix(xS, -0.35, sweat); yS += sweat * 0.05;
+          zE = mix(zE, -0.95 + fan * 0.12, sweat); xE = mix(xE, -0.2, sweat);
+          zW = mix(zW, fan * 0.55, sweat); xW = mix(xW, -0.3, sweat);
+        }
         A.sh.position.y = A.y0 + br * 0.02 + yS;
         A.sh.rotation.set(xS, 0, zS); A.el.rotation.set(xE, 0, zE); A.wr.rotation.set(xW, 0, zW);
       });
@@ -20899,7 +20921,10 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       if(prevTilt === null) prevTilt = tilt;
       antV += (-antA * 90 - antV * 5) * dt - (tilt - prevTilt) * 150; prevTilt = tilt;
       antA = Math.max(-0.5, Math.min(0.5, antA + antV * dt));
-      ant.rotation.z = antA + Math.sin(t * (busy ? 9 : 2.4)) * (busy ? 0.2 : 0.05);
+      ant.rotation.z = antA + Math.sin(t * (busy ? 9 : 2.4)) * (busy ? 0.2 : 0.05) + cheer * Math.sin(aa * 16) * 0.25;
+      // sweat drop slides down the side of the head
+      if(sweat > 0.02){ var dp = (aa * 0.55) % 1; drop.visible = true; drop.position.set(1.18, 0.7 - dp * 0.85, 0.95); var dk = sweat * (1 - ss(0.8, 1, dp)); drop.scale.set(0.8 * dk, 1.2 * dk, 0.8 * dk); }
+      else drop.visible = false;
     }
     pose(0, 0.033, false);
 
@@ -20917,6 +20942,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
         pose(t, dt, busy);
         var bs = 1 + Math.sin(t * 5) * 0.06; ball.scale.set(bs, bs, bs);
         if(t > blinkAt){ var k = t - blinkAt; var sy = k < 0.08 ? 1 - k / 0.08 * 0.9 : k < 0.16 ? 0.1 + (k - 0.08) / 0.08 * 0.9 : 1; eyes.forEach(function(e){ e.scale.y = sy; }); if(k > 0.16) blinkAt = t + 2.6 + Math.random() * 2.4; }
+        if(actEyes < 1) eyes.forEach(function(e){ e.scale.y = Math.min(e.scale.y, actEyes); });
+        else if(t <= blinkAt) eyes.forEach(function(e){ if(e.scale.y < 1) e.scale.y = 1; });
         var ex = busy ? Math.sin(t * 6) * 0.07 : 0; eyes[0].position.x = -0.43 + ex; eyes[1].position.x = 0.43 + ex;
       }
       renderer.render(scene, cam);
@@ -20932,6 +20959,9 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       console.warn('[3D robot] context lost — back to SVG');
     });
     window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose,
+      act:function(type){ var t = (performance.now() - t0) / 1000; act = { type:type, t0:t, dur:type === 'cheer' ? 2.4 : 2.8 };
+        if(type === 'bye'){ var w = (t + waveOff) % 7; if(w < 3.0 || w > 5.7) waveOff = ((3.0 - t) % 7 + 7) % 7; }
+        kick(); return t; },   // v320
       wave:function(){ var t = (performance.now() - t0) / 1000, w = (t + waveOff) % 7; if(w < 3.0 || w > 5.7) waveOff = ((3.0 - t) % 7 + 7) % 7; },   // v314: wave now (greeting)
       frame:function(){ last = 0; frame(performance.now()); } };
     kick();
@@ -20984,7 +21014,7 @@ body.dark #rb-bubble::after{ border-color:rgba(180,160,255,0.28); }
     b.style.bottom = Math.max(8, window.innerHeight - r.top + 4) + 'px';
   }
   function hide(){ clearTimeout(hideT); if(b) b.classList.remove('show'); }
-  function say(text){
+  function say(text, noWave){
     var fab = document.getElementById('ai-fab');
     if(blocked(fab)) return false;
     if(!b){
@@ -20994,10 +21024,12 @@ body.dark #rb-bubble::after{ border-color:rgba(180,160,255,0.28); }
     }
     b.textContent = text; place(fab);
     void b.offsetWidth; b.classList.add('show');
-    try { if(window.rb3d && window.rb3d.wave) window.rb3d.wave(); } catch(e){}
+    if(!noWave){ try { if(window.rb3d && window.rb3d.wave) window.rb3d.wave(); } catch(e){} }
     clearTimeout(hideT); hideT = setTimeout(hide, 6000);
     shown++; return true;
   }
+  // v320: other features can make the robot talk (doesn't use up the greeting quota)
+  window.rbSay = function(text){ var ok = say(text, true); if(ok) shown--; return ok; };
   function tick(){
     if(shown >= MAX) return;
     var text;
@@ -21106,5 +21138,103 @@ html body .more-row.more-logout .more-row-ic.mi{ color:#fff !important; }
 .st-dot, .sf-dot.in{ background:#30D158; box-shadow:0 0 0 3px rgba(48,209,88,0.22); }
 .sf-dot.out{ background:transparent; box-shadow:inset 0 0 0 2px #FF6B6B; }
 </style>
+<style id="celebrate-v320">
+/* v320: check-in / check-out reactions — never blocks the screen */
+@keyframes rbCheerPop{ 0%{ transform:none } 18%{ transform:translateY(-14px) scale(1.28) } 40%{ transform:translateY(-4px) scale(1.18) } 62%{ transform:translateY(-12px) scale(1.24) } 100%{ transform:none } }
+html body #ai-fab#ai-fab.rb-cheer{ animation:rbCheerPop 1.6s cubic-bezier(.3,1.5,.5,1) both !important; }
+#rb-confetti{ position:fixed; z-index:44; pointer-events:none; }
+@media (prefers-reduced-motion: reduce){ html body #ai-fab#ai-fab.rb-cheer{ animation:none !important; } }
+</style>
+<script>
+// v320: the 3D robot reacts when you clock in/out — cheer + 3D confetti on
+// check-in, wave goodbye on check-out, wipe sweat after OT. Detects success
+// from the records before/after the original function (no change to it).
+(function(){
+  'use strict';
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function fabOK(){ var f = document.getElementById('ai-fab'); return f && f.offsetWidth ? f : null; }
+  function hm(min){ min = Math.max(0, Math.round(min)); return Math.floor(min / 60) + 'ช ' + (min % 60) + 'น'; }
+
+  // 3D confetti: paper pieces with position/velocity in 3D, tumbling on two
+  // axes, projected with perspective onto a 2D canvas around the robot
+  function confetti(fab){
+    if(reduce) return;
+    var r = fab.getBoundingClientRect(), W = 340, H = 420, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var cx = r.left + r.width / 2, cy = r.top + r.height * 0.35;
+    var left = Math.max(0, Math.min(innerWidth - W, cx - W / 2)), top = Math.max(0, cy - H * 0.62);
+    var cv = document.createElement('canvas'); cv.id = 'rb-confetti';
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.cssText = 'left:' + left + 'px;top:' + top + 'px;width:' + W + 'px;height:' + H + 'px';
+    document.body.appendChild(cv);
+    var ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+    var ox = cx - left, oy = cy - top, COLS = ['#FF5E9A','#FFC93C','#5EE6D0','#7BA6FF','#A88EFF','#FF8A3D','#4ADE80','#FFFFFF'];
+    var P = [];
+    for(var i = 0; i < 130; i++){
+      var a = Math.random() * Math.PI * 2, up = 300 + Math.random() * 360, side = 70 + Math.random() * 220;
+      P.push({ x:0, y:0, z:(Math.random() - 0.5) * 40,
+        vx:Math.cos(a) * side, vy:-up, vz:(Math.random() - 0.3) * 260,
+        rx:Math.random() * 6, ry:Math.random() * 6, rz:Math.random() * 6,
+        wx:4 + Math.random() * 10, wy:3 + Math.random() * 8, wz:(Math.random() - 0.5) * 8,
+        w:6 + Math.random() * 6, h:10 + Math.random() * 9, c:COLS[i % COLS.length], round:Math.random() < 0.18 });
+    }
+    var t0 = performance.now(), last = t0, DUR = 2800;
+    function step(now){
+      var dt = Math.min(0.05, (now - last) / 1000), age = now - t0; last = now;
+      ctx.clearRect(0, 0, W, H);
+      var fade = age > DUR - 600 ? Math.max(0, (DUR - age) / 600) : 1;
+      P.sort(function(p, q){ return p.z - q.z; });                 // far pieces first
+      for(var i = 0; i < P.length; i++){
+        var p = P[i];
+        p.vy += 900 * dt; p.vx *= 0.985; p.vz *= 0.985; p.vy *= 0.985;   // gravity + air drag
+        p.vx += Math.sin(age / 180 + i) * 8 * dt * 10;                   // flutter
+        p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+        p.rx += p.wx * dt; p.ry += p.wy * dt; p.rz += p.wz * dt;
+        var k = 400 / (400 - Math.max(-300, Math.min(300, p.z)));  // perspective
+        var sx = ox + p.x * k, sy = oy + p.y * k;
+        if(sy > H + 20) continue;
+        var fx = Math.cos(p.rx), fy = Math.cos(p.ry);                   // tumbling = foreshortening
+        ctx.save(); ctx.translate(sx, sy); ctx.rotate(p.rz);
+        ctx.globalAlpha = fade * (0.75 + 0.25 * Math.abs(fx * fy));
+        ctx.fillStyle = p.c;
+        if(p.round){ ctx.beginPath(); ctx.ellipse(0, 0, p.w * 0.6 * k, p.w * 0.6 * k * Math.abs(fy) + 0.6, 0, 0, Math.PI * 2); ctx.fill(); }
+        else { ctx.fillRect(-p.w * k * Math.abs(fx) / 2, -p.h * k * Math.abs(fy) / 2, p.w * k * Math.abs(fx) + 0.6, p.h * k * Math.abs(fy) + 0.6); }
+        ctx.restore();
+      }
+      if(age < DUR) requestAnimationFrame(step); else cv.remove();
+    }
+    requestAnimationFrame(step);
+  }
+  function react(type, text, withConfetti){
+    var fab = fabOK(); if(!fab) return;
+    try { if(window.rb3d && window.rb3d.act) window.rb3d.act(type); } catch(e){}
+    if(type === 'cheer' && !reduce){ fab.classList.remove('rb-cheer'); void fab.offsetWidth; fab.classList.add('rb-cheer'); setTimeout(function(){ fab.classList.remove('rb-cheer'); }, 1700); }
+    if(withConfetti) setTimeout(function(){ try { confetti(fab); } catch(e){} }, 120);
+    setTimeout(function(){ try { if(window.rbSay) window.rbSay(text); } catch(e){} }, 350);
+  }
+  function openRec(){ try { var d = todayStr(); return records.find(function(r){ return r.empId === curUser.id && r.date === d && !r.checkOut; }) || null; } catch(e){ return null; } }
+  function wrap(name, after){
+    var orig = window[name]; if(typeof orig !== 'function') return;
+    window[name] = function(){
+      var before = openRec(), res = orig.apply(this, arguments);
+      try { after(before, openRec()); } catch(e){}
+      return res;
+    };
+  }
+  function install(){
+    wrap('doCheckIn', function(before, now){
+      if(before || !now) return;                                   // didn't check in
+      var late = !!now.isLate;
+      react('cheer', late ? 'มาแล้ว! พรุ่งนี้มาเร็วอีกนิดนะ 😉' : 'เข้างานแล้ว! วันนี้สู้ๆ นะ 💪', !late);
+    });
+    wrap('doCheckOut', function(before, now){
+      if(!before || now) return;                                   // didn't check out
+      var d = before.date, mins = 0, ot = 0;
+      try { records.filter(function(r){ return r.empId === curUser.id && r.date === d && r.checkOut; }).forEach(function(r){ mins += calcHours(r.checkIn, r.checkOut) * 60; ot += r.otMin || 0; }); } catch(e){}
+      if(ot > 0) react('sweat', 'OT วันนี้ ' + hm(ot) + ' เก่งมาก! พักผ่อนเยอะๆ 💦', false);
+      else react('bye', 'เหนื่อยหน่อยนะ วันนี้ทำ ' + hm(mins) + ' 👋', false);
+    });
+  }
+  if(document.readyState === 'complete') install(); else window.addEventListener('load', install);
+})();
+</script>
 </body>
 </html>
