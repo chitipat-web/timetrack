@@ -11040,7 +11040,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v314';
+const APP_VERSION = 'v315';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18602,6 +18602,12 @@ body.sky #sky-scene{ display:block; }
 body.sky-gl #sky-gl{ display:block; }
 body.sky-gl .sky-cloud, body.sky-gl .sky-sun, body.sky-gl .sky-rays, body.sky-gl .sky-glow,
 body.sky-gl .sky-stars, body.sky-gl .sky-twwrap, body.sky-gl .sky-moon, body.sky-gl .sky-rainbox{ display:none !important; }
+/* v315: the GL canvas is ~0.4× resolution (soft clouds don't need more), which
+   made the hard-edged moon blocky. The moon disc is now a small 2D canvas drawn
+   once at full device resolution (stars stay in the shader: full-screen CSS
+   star layers over the GL canvas cost compositing every frame). */
+.sky-moonc{ width:58px; height:58px; top:calc(env(safe-area-inset-top,0px) + 66px); right:92px; display:none; opacity:0; transition:opacity 1.2s; }
+body.sky-gl .sky-moonc{ display:block; }
 /* v261: Liquid Glass (Phase D, opt-in) paints a fixed canvas at the same z-index,
    appended later in the DOM, so it would cover the sky. Sky mode wins. */
 body.sky .lg-canvas{ display:none !important; }
@@ -19370,6 +19376,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       parts.tw = el('sky-twwrap'); parts.tw.style.cssText = 'inset:0;transition:opacity 1.2s';
       el('sky-stars tw', parts.tw).style.boxShadow = starShadows(28, 99, 1);
       parts.moon = el('sky-moon');
+      parts.moonc = document.createElement('canvas'); parts.moonc.className = 'sky-moonc'; scene.appendChild(parts.moonc);
       parts.clouds = [];
       var cfg = [[9,95,-35],[27,140,-95],[40,115,-20],[17,170,-140]];  // top vh, seconds, start offset
       cfg.forEach(function(c){ var d = el('sky-cloud'); d.style.top = c[0]+'vh'; d.style.animationDuration = c[1]+'s'; d.style.animationDelay = c[2]+'s'; parts.clouds.push(d); });
@@ -19484,14 +19491,9 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       '   float tw=.6+.4*sin(uTime*(1.+h*3.)+h*40.);',
       '   sky+=vec3(1.,.97,.92)*uStars*1.6*smoothstep(1.8,0.,sd)*tw*min(1.,(h-.965)*60.)*smoothstep(.1,.5,uv.y); }',
       ' }',
-      ' // moon with real phase (0=new, .5=full)',
+      ' // moon glow only — the disc itself is a crisp 2D canvas on top (v315)',
       ' vec2 mp=vec2(uMoonPos.x*asp,uMoonPos.y); vec2 ml=(p-mp)/uMoonR; float md=length(ml);',
-      ' if(uMoon>0.){',
-      '  sky+=vec3(.75,.8,1.)*uMoon*.22*exp(-(md-1.)*1.2)*step(1.,md);',
-      '  if(md<1.){ float s=sqrt(max(0.,1.-ml.y*ml.y)); float ph=uPhase*6.2831853; float k=cos(ph);',
-      '   float lit = ph<3.1415927 ? smoothstep(k*s-.04,k*s+.04,ml.x) : 1.-smoothstep(-k*s-.04,-k*s+.04,ml.x);',
-      '   float cr=.8+.2*fbm5(ml*2.5+11.); vec3 mc=vec3(.95,.95,.98)*cr*mix(.07,1.,lit)*(1.-.18*md*md);',
-      '   sky=mix(sky,mc,uMoon*smoothstep(1.,.96,md)); } }',
+      ' if(uMoon>0.){ sky+=vec3(.75,.8,1.)*uMoon*.22*exp(-(md-1.)*1.2)*smoothstep(.94,1.04,md); }',
       ' // sun: disc, bloom, wide glare and a faint halo ring',
       ' vec2 sp=vec2(uSunPos.x*asp,uSunPos.y); float d=length(p-sp);',
       ' sky+=uSunCol*uSun*(exp(-d*2.6)*.30+exp(-d*9.)*.45+exp(-d*28.)*.6+smoothstep(.028,.02,d)*.9+exp(-abs(d-.22)*45.)*.04);',
@@ -19520,6 +19522,34 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       var syn = 29.530588853, ref = Date.UTC(2000,0,6,18,14);
       var age = ((Date.now()-ref)/86400000) % syn; if(age < 0) age += syn;
       return age/syn;
+    }
+    // v315: moon disc drawn once per phase at full device resolution (anti-aliased
+    // rim and terminator, maria texture, limb darkening, faint earthshine)
+    function drawMoon(cv, phase){
+      var dpr = Math.min(window.devicePixelRatio || 1, 3), S = Math.round(58 * dpr);
+      var key = S + '|' + phase.toFixed(3); if(cv._k === key) return; cv._k = key;
+      cv.width = cv.height = S;
+      var ctx = cv.getContext('2d'), img = ctx.createImageData(S, S), d = img.data;
+      function hh(x, y){ var v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return v - Math.floor(v); }
+      function vn(x, y){ var ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy; fx = fx*fx*(3-2*fx); fy = fy*fy*(3-2*fy);
+        var a = hh(ix,iy), b = hh(ix+1,iy), c = hh(ix,iy+1), e = hh(ix+1,iy+1); return a + (b-a)*fx + (c-a)*fy + (a-b-c+e)*fx*fy; }
+      function fbm(x, y){ var v = 0, a = .5; for(var i=0;i<4;i++){ v += a*vn(x,y); x = x*2.03+1.7; y = y*2.03+9.2; a *= .5; } return v; }
+      function sst(a, b, x){ x = Math.max(0, Math.min(1, (x-a)/(b-a))); return x*x*(3-2*x); }
+      var ph = phase * Math.PI * 2, k = Math.cos(ph), wax = ph < Math.PI, px = 2 / S, tw = Math.max(px * 1.5, .03);
+      for(var j=0;j<S;j++) for(var i=0;i<S;i++){
+        var x = (i + .5) / S * 2 - 1, y = 1 - (j + .5) / S * 2, md = Math.sqrt(x*x + y*y);
+        var edge = Math.max(0, Math.min(1, (1 - md) / px + .5)); if(edge <= 0) continue;
+        var sq = Math.sqrt(Math.max(0, 1 - y*y)), t = k * sq;
+        var lit = wax ? sst(t - tw, t + tw, x) : 1 - sst(-t - tw, -t + tw, x);
+        var mar = fbm(x * 2.2 + 11, y * 2.2 + 11), cr = .8 + .2 * sst(.3, .62, mar);
+        var lb = 1 - .2 * md * md, L = cr * lb;
+        var r = 244*L, g = 244*L, b = 250*L;               // lit surface
+        var er = 70, eg = 78, eb = 104;                     // earthshine on the dark side
+        var o = (j * S + i) * 4;
+        d[o]   = er + (r - er) * lit; d[o+1] = eg + (g - eg) * lit; d[o+2] = eb + (b - eb) * lit;
+        d[o+3] = 255 * edge * (.16 + .84 * lit);
+      }
+      ctx.putImageData(img, 0, 0);
     }
     function glInit(){
       if(GL.ok || GL.dead) return GL.ok;
@@ -19615,6 +19645,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         phase: moonPhase(), still: !!mq
       };
       document.body.classList.add('sky-gl');
+      try { if(parts.moonc){ drawMoon(parts.moonc, GL.st.phase); parts.moonc.style.opacity = String(GL.st.moon); } } catch(_){}
       glKick();
     }
     document.addEventListener('visibilitychange', function(){ if(!document.hidden) glKick(); });
