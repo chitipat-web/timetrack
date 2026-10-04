@@ -3692,38 +3692,64 @@ body.dark .slide-action{
              numerals round the rim, hour numerals, skeleton hands with a
              thin stem + wide bar, orange sweep seconds. Hand ids unchanged —
              tick() and the smooth-sweep loop rotate them about (100,100). -->
-        <svg viewBox="0 0 200 200" class="clock-svg" aria-hidden="true">
+        <svg viewBox="0 0 200 200" class="clock-svg lw2" aria-hidden="true">
+          <!-- v321 3D dial: metal bezel, deep domed face with vignette, applied
+               indices with lume, faceted dauphine hands with real drop shadows,
+               today's shift arc, date window and a glass highlight. Hand ids
+               unchanged — tick() and the sweep loop rotate them about (100,100). -->
           <defs>
-            <radialGradient id="lw-face" cx="50%" cy="38%" r="65%">
-              <stop offset="0%" class="lw-face-a"/>
-              <stop offset="100%" class="lw-face-b"/>
+            <linearGradient id="lw2-bez" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#FFFFFF"/><stop offset=".35" stop-color="#C9CFEA"/><stop offset=".5" stop-color="#7C84B0"/><stop offset=".68" stop-color="#D6DAF2"/><stop offset="1" stop-color="#5D648F"/>
+            </linearGradient>
+            <linearGradient id="lw2-bez-in" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stop-color="#FFFFFF" stop-opacity=".85"/><stop offset=".5" stop-color="#9AA2CC" stop-opacity=".5"/><stop offset="1" stop-color="#2B3060" stop-opacity=".8"/>
+            </linearGradient>
+            <radialGradient id="lw2-face" cx="50%" cy="34%" r="72%">
+              <stop offset="0" class="lw2-f1"/><stop offset=".62" class="lw2-f2"/><stop offset="1" class="lw2-f3"/>
             </radialGradient>
+            <radialGradient id="lw2-vig" cx="50%" cy="50%" r="50%">
+              <stop offset=".78" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/>
+            </radialGradient>
+            <linearGradient id="lw2-glass" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#fff" stop-opacity=".30"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="lw2-metal" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#FFFFFF"/><stop offset=".5" stop-color="#E4E8FA"/><stop offset=".5" stop-color="#AEB6DA"/><stop offset="1" stop-color="#8E97C4"/>
+            </linearGradient>
+            <filter id="lw2-sh" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="1.3"/><feOffset dx="1.4" dy="2.4" result="o"/>
+              <feComponentTransfer><feFuncA type="linear" slope=".5"/></feComponentTransfer>
+              <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
           </defs>
-          <circle class="lw-bezel" cx="100" cy="100" r="99"/>
-          <circle cx="100" cy="100" r="97" fill="url(#lw-face)"/>
-          <circle class="lw-ring" cx="100" cy="100" r="80.5"/>
-          <g><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(0 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(6 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(12 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(18 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(24 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(30 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(36 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(42 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(48 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(54 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(60 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(66 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(72 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(78 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(84 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(90 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(96 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(102 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(108 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(114 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(120 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(126 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(132 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(138 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(144 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(150 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(156 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(162 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(168 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(174 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(180 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(186 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(192 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(198 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(204 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(210 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(216 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(222 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(228 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(234 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(240 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(246 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(252 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(258 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(264 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(270 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(276 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(282 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(288 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(294 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(300 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(306 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(312 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(318 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(324 100 100)"/><rect class="lw-tick-h" x="98.8" y="21" width="2.4" height="8" rx="1.2" transform="rotate(330 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(336 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(342 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(348 100 100)"/><rect class="lw-tick" x="99.5" y="21" width="1" height="5" rx="0.5" transform="rotate(354 100 100)"/></g>
-          <g><text class="lw-min" x="144.2" y="26.4" text-anchor="middle">05</text><text class="lw-min" x="176.6" y="58.7" text-anchor="middle">10</text><text class="lw-min" x="188.5" y="103.0" text-anchor="middle">15</text><text class="lw-min" x="176.6" y="147.2" text-anchor="middle">20</text><text class="lw-min" x="144.2" y="179.6" text-anchor="middle">25</text><text class="lw-min" x="100.0" y="191.5" text-anchor="middle">30</text><text class="lw-min" x="55.7" y="179.6" text-anchor="middle">35</text><text class="lw-min" x="23.4" y="147.3" text-anchor="middle">40</text><text class="lw-min" x="11.5" y="103.0" text-anchor="middle">45</text><text class="lw-min" x="23.4" y="58.7" text-anchor="middle">50</text><text class="lw-min" x="55.7" y="26.4" text-anchor="middle">55</text><text class="lw-min" x="100.0" y="14.5" text-anchor="middle">60</text></g>
-          <g><text class="lw-hr" x="155.0" y="106.5" text-anchor="middle">3</text><text class="lw-hr" x="100.0" y="161.5" text-anchor="middle">6</text><text class="lw-hr" x="45.0" y="106.5" text-anchor="middle">9</text><text class="lw-hr" x="100.0" y="51.5" text-anchor="middle">12</text></g>
-          <text class="lw-brand" x="100" y="76" text-anchor="middle">RUDY</text>
-          <text class="lw-sub" x="100" y="130" text-anchor="middle">ISRAEL · IDT</text>
-
-          <g id="clock-hand-hour" transform="rotate(0 100 100)">
-            <rect class="lw-stem" x="98.6" y="84" width="2.8" height="18" rx="1.4"/>
-            <rect class="lw-bar" x="96" y="50" width="8" height="38" rx="4"/>
-            <rect class="lw-core" x="98.4" y="54" width="3.2" height="30" rx="1.6"/>
-          </g>
-          <g id="clock-hand-min" transform="rotate(0 100 100)">
-            <rect class="lw-stem" x="98.8" y="84" width="2.4" height="18" rx="1.2"/>
-            <rect class="lw-bar" x="96.6" y="24" width="6.8" height="64" rx="3.4"/>
-            <rect class="lw-core" x="98.6" y="28" width="2.8" height="56" rx="1.4"/>
-          </g>
-          <circle class="lw-cap" cx="100" cy="100" r="5"/>
-          <g id="clock-hand-sec" transform="rotate(0 100 100)">
-            <line class="lw-sec" x1="100" y1="120" x2="100" y2="17"/>
-            <circle class="lw-sec-dot" cx="100" cy="100" r="3.6"/>
-          </g>
-          <circle class="lw-pin" cx="100" cy="100" r="1.4"/>
+          <circle cx="100" cy="100" r="99.2" fill="url(#lw2-bez)"/>
+          <circle cx="100" cy="100" r="95" fill="none" stroke="url(#lw2-bez-in)" stroke-width="1.6"/>
+          <circle cx="100" cy="100" r="94" fill="url(#lw2-face)"/>
+          <circle cx="100" cy="100" r="94" fill="url(#lw2-vig)"/>
+          <g class="lw2-tick"><line x1="108.83" y1="15.96" x2="109.25" y2="11.98"/><line x1="117.57" y1="17.35" x2="118.40" y2="13.43"/><line x1="126.11" y1="19.64" x2="127.35" y2="15.83"/><line x1="134.37" y1="22.81" x2="136.00" y2="19.15"/><line x1="149.67" y1="31.64" x2="152.02" y2="28.40"/><line x1="156.54" y1="37.20" x2="159.22" y2="34.23"/><line x1="162.80" y1="43.46" x2="165.77" y2="40.78"/><line x1="168.36" y1="50.33" x2="171.60" y2="47.98"/><line x1="177.19" y1="65.63" x2="180.85" y2="64.00"/><line x1="180.36" y1="73.89" x2="184.17" y2="72.65"/><line x1="182.65" y1="82.43" x2="186.57" y2="81.60"/><line x1="184.04" y1="91.17" x2="188.02" y2="90.75"/><line x1="184.04" y1="108.83" x2="188.02" y2="109.25"/><line x1="182.65" y1="117.57" x2="186.57" y2="118.40"/><line x1="180.36" y1="126.11" x2="184.17" y2="127.35"/><line x1="177.19" y1="134.37" x2="180.85" y2="136.00"/><line x1="168.36" y1="149.67" x2="171.60" y2="152.02"/><line x1="162.80" y1="156.54" x2="165.77" y2="159.22"/><line x1="156.54" y1="162.80" x2="159.22" y2="165.77"/><line x1="149.67" y1="168.36" x2="152.02" y2="171.60"/><line x1="134.37" y1="177.19" x2="136.00" y2="180.85"/><line x1="126.11" y1="180.36" x2="127.35" y2="184.17"/><line x1="117.57" y1="182.65" x2="118.40" y2="186.57"/><line x1="108.83" y1="184.04" x2="109.25" y2="188.02"/><line x1="91.17" y1="184.04" x2="90.75" y2="188.02"/><line x1="82.43" y1="182.65" x2="81.60" y2="186.57"/><line x1="73.89" y1="180.36" x2="72.65" y2="184.17"/><line x1="65.63" y1="177.19" x2="64.00" y2="180.85"/><line x1="50.33" y1="168.36" x2="47.98" y2="171.60"/><line x1="43.46" y1="162.80" x2="40.78" y2="165.77"/><line x1="37.20" y1="156.54" x2="34.23" y2="159.22"/><line x1="31.64" y1="149.67" x2="28.40" y2="152.02"/><line x1="22.81" y1="134.37" x2="19.15" y2="136.00"/><line x1="19.64" y1="126.11" x2="15.83" y2="127.35"/><line x1="17.35" y1="117.57" x2="13.43" y2="118.40"/><line x1="15.96" y1="108.83" x2="11.98" y2="109.25"/><line x1="15.96" y1="91.17" x2="11.98" y2="90.75"/><line x1="17.35" y1="82.43" x2="13.43" y2="81.60"/><line x1="19.64" y1="73.89" x2="15.83" y2="72.65"/><line x1="22.81" y1="65.63" x2="19.15" y2="64.00"/><line x1="31.64" y1="50.33" x2="28.40" y2="47.98"/><line x1="37.20" y1="43.46" x2="34.23" y2="40.78"/><line x1="43.46" y1="37.20" x2="40.78" y2="34.23"/><line x1="50.33" y1="31.64" x2="47.98" y2="28.40"/><line x1="65.63" y1="22.81" x2="64.00" y2="19.15"/><line x1="73.89" y1="19.64" x2="72.65" y2="15.83"/><line x1="82.43" y1="17.35" x2="81.60" y2="13.43"/><line x1="91.17" y1="15.96" x2="90.75" y2="11.98"/></g>
+          <g filter="url(#lw2-sh)"><g transform="rotate(30 100 100)"><rect class="lw2-idx" x="98.2" y="15.5" width="3.6" height="13" rx="1.8"/><rect class="lw2-lume" x="99.35" y="17.5" width="1.3" height="9" rx="0.65"/></g><g transform="rotate(60 100 100)"><rect class="lw2-idx" x="98.2" y="15.5" width="3.6" height="13" rx="1.8"/><rect class="lw2-lume" x="99.35" y="17.5" width="1.3" height="9" rx="0.65"/></g><g transform="rotate(120 100 100)"><rect class="lw2-idx" x="98.2" y="15.5" width="3.6" height="13" rx="1.8"/><rect class="lw2-lume" x="99.35" y="17.5" width="1.3" height="9" rx="0.65"/></g><g transform="rotate(150 100 100)"><rect class="lw2-idx" x="98.2" y="15.5" width="3.6" height="13" rx="1.8"/><rect class="lw2-lume" x="99.35" y="17.5" width="1.3" height="9" rx="0.65"/></g><g transform="rotate(210 100 100)"><rect class="lw2-idx" x="98.2" y="15.5" width="3.6" height="13" rx="1.8"/><rect class="lw2-lume" x="99.35" y="17.5" width="1.3" height="9" rx="0.65"/></g><g transform="rotate(240 100 100)"><rect class="lw2-idx" x="98.2" y="15.5" width="3.6" height="13" rx="1.8"/><rect class="lw2-lume" x="99.35" y="17.5" width="1.3" height="9" rx="0.65"/></g><g transform="rotate(300 100 100)"><rect class="lw2-idx" x="98.2" y="15.5" width="3.6" height="13" rx="1.8"/><rect class="lw2-lume" x="99.35" y="17.5" width="1.3" height="9" rx="0.65"/></g><g transform="rotate(330 100 100)"><rect class="lw2-idx" x="98.2" y="15.5" width="3.6" height="13" rx="1.8"/><rect class="lw2-lume" x="99.35" y="17.5" width="1.3" height="9" rx="0.65"/></g></g>
+          <g filter="url(#lw2-sh)"><text class="lw2-num" x="100" y="40.5" text-anchor="middle">12</text><text class="lw2-num" x="163" y="107" text-anchor="middle">3</text><text class="lw2-num" x="100" y="171.5" text-anchor="middle">6</text><text class="lw2-num" x="37" y="107" text-anchor="middle">9</text></g>
+          <path id="lw2-shift-track" class="lw2-arc-track" d=""/>
+          <path id="lw2-shift" class="lw2-arc" d=""/>
+          <text class="lw2-brand" x="100" y="58" text-anchor="middle">RUDY</text>
+          <g class="lw2-datewin"><rect x="84" y="128" width="32" height="14" rx="4"/><text id="lw2-date" x="100" y="138.2" text-anchor="middle">—</text></g>
+          <text class="lw2-sub" x="100" y="152" text-anchor="middle">ISRAEL</text>
+          <g filter="url(#lw2-sh)"><g id="clock-hand-hour" transform="rotate(0 100 100)">
+            <path class="lw2-h-l" d="M100 112 L95.4 100 L100 50 Z"/><path class="lw2-h-r" d="M100 112 L104.6 100 L100 50 Z"/>
+            <rect class="lw2-lume" x="99.3" y="60" width="1.4" height="30" rx="0.7"/>
+          </g></g>
+          <g filter="url(#lw2-sh)"><g id="clock-hand-min" transform="rotate(0 100 100)">
+            <path class="lw2-h-l" d="M100 113 L96.4 100 L100 20 Z"/><path class="lw2-h-r" d="M100 113 L103.6 100 L100 20 Z"/>
+            <rect class="lw2-lume" x="99.35" y="30" width="1.3" height="58" rx="0.65"/>
+          </g></g>
+          <circle cx="100" cy="100" r="6.2" fill="url(#lw2-metal)"/>
+          <g filter="url(#lw2-sh)"><g id="clock-hand-sec" transform="rotate(0 100 100)">
+            <line class="lw2-sec" x1="100" y1="124" x2="100" y2="14"/>
+            <circle class="lw2-sec-dot" cx="100" cy="119" r="3.4"/>
+            <circle class="lw2-sec-dot" cx="100" cy="100" r="3.6"/>
+          </g></g>
+          <circle cx="100" cy="100" r="1.5" fill="#2A2E44"/>
+          <path d="M18 92 A82 82 0 0 1 182 92 Q100 70 18 92 Z" fill="url(#lw2-glass)" pointer-events="none"/>
         </svg>
       </div>
       <div class="clock-time" id="clock-display" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">00:00:00</div>
@@ -5138,7 +5164,7 @@ function startClock(){
     const cl = document.getElementById('clock-display');
     if(cl) cl.textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
     const dg = document.getElementById('hq-digital');   // v281 digital face
-    if(dg) dg.innerHTML=`${pad(n.getHours())}:${pad(n.getMinutes())}<small>:${pad(n.getSeconds())}</small>`;
+    if(dg) dg.innerHTML=`${pad(n.getHours())}<span class="hq-colon">:</span>${pad(n.getMinutes())}<small>:${pad(n.getSeconds())}</small>`;
     // v230 analog hands — fractional minute carries hour smoothly
     const sec = n.getSeconds() + n.getMilliseconds()/1000;
     const min = n.getMinutes() + sec/60;
@@ -11046,7 +11072,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v320';
+const APP_VERSION = 'v321';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21236,5 +21262,68 @@ html body #ai-fab#ai-fab.rb-cheer{ animation:rbCheerPop 1.6s cubic-bezier(.3,1.5
   if(document.readyState === 'complete') install(); else window.addEventListener('load', install);
 })();
 </script>
+<style id="clock-v321">
+/* v321 3D analog dial */
+:root{ --lw2-f1:#FFFFFF; --lw2-f2:#EEF1FB; --lw2-f3:#C9D0EA; --lw2-ink:#1B2140; --lw2-ink2:rgba(27,33,64,.55); --lw2-hl:#FFFFFF; --lw2-hr:#C3CAE6; --lw2-lume:#2FB8FF; --lw2-win:#FFFFFF; --lw2-winb:rgba(27,33,64,.18); }
+body.dark{ --lw2-f1:#2C3466; --lw2-f2:#161B3D; --lw2-f3:#090C22; --lw2-ink:#F2F4FF; --lw2-ink2:rgba(230,235,255,.55); --lw2-hl:#FFFFFF; --lw2-hr:#9EA7D6; --lw2-lume:#7DF3FF; --lw2-win:#0B0F2A; --lw2-winb:rgba(255,255,255,.18); }
+.lw2-f1{ stop-color:var(--lw2-f1); } .lw2-f2{ stop-color:var(--lw2-f2); } .lw2-f3{ stop-color:var(--lw2-f3); }
+.lw2-tick line{ stroke:var(--lw2-ink); stroke-opacity:.35; stroke-width:.8; stroke-linecap:round; }
+.lw2-idx{ fill:url(#lw2-metal); stroke:rgba(0,0,0,.18); stroke-width:.3; }
+.lw2-lume{ fill:var(--lw2-lume); opacity:.9; }
+.lw2-num{ font-family:-apple-system,'SF Pro Rounded','SF Pro Display',sans-serif; font-size:21px; font-weight:700; fill:var(--lw2-ink); letter-spacing:-0.02em; }
+.lw2-brand{ font-family:-apple-system,'SF Pro Display',sans-serif; font-size:7px; font-weight:800; letter-spacing:.42em; fill:var(--lw2-ink2); }
+.lw2-sub{ font-family:-apple-system,'SF Pro Text',sans-serif; font-size:5px; font-weight:700; letter-spacing:.3em; fill:var(--lw2-ink2); }
+.lw2-datewin rect{ fill:var(--lw2-win); stroke:var(--lw2-winb); stroke-width:.6; }
+.lw2-datewin text{ font-family:-apple-system,'SF Pro Text','Sarabun',sans-serif; font-size:8px; font-weight:700; fill:var(--lw2-ink); }
+.lw2-h-l{ fill:var(--lw2-hl); } .lw2-h-r{ fill:var(--lw2-hr); }
+body:not(.dark) .lw2-h-l{ fill:#3A4170; } body:not(.dark) .lw2-h-r{ fill:#1B2140; }
+.lw2-sec{ stroke:#FF8A00; stroke-width:1.3; stroke-linecap:round; }
+.lw2-sec-dot{ fill:#FF8A00; }
+.lw2-arc-track{ fill:none; stroke:var(--lw2-ink); stroke-opacity:.10; stroke-width:3; stroke-linecap:round; }
+.lw2-arc{ fill:none; stroke:#30D158; stroke-width:3; stroke-linecap:round; filter:drop-shadow(0 0 2px rgba(48,209,88,.6)); }
+html body .clock-svg.lw2:not(#_){ filter:drop-shadow(0 10px 22px rgba(10,20,60,.35)) !important; }
+html body.corp .clock-svg.lw2:not(#_){ filter:drop-shadow(0 4px 10px rgba(0,0,0,.12)) !important; }
+</style>
+<script>
+// v321: date window + today's shift arc on the analog dial (once a minute)
+(function(){
+  'use strict';
+  function P(r, deg){ var t = deg * Math.PI / 180; return [(100 + r * Math.sin(t)).toFixed(2), (100 - r * Math.cos(t)).toFixed(2)]; }
+  function arc(r, a0, a1){ if(a1 - a0 < 0.5) return ''; var s = P(r, a0), e = P(r, a1); return 'M' + s[0] + ' ' + s[1] + ' A' + r + ' ' + r + ' 0 ' + (a1 - a0 > 180 ? 1 : 0) + ' 1 ' + e[0] + ' ' + e[1]; }
+  function mins(hm){ var p = String(hm || '').split(':'); return (+p[0]) * 60 + (+p[1] || 0); }
+  function upd(){
+    try {
+      var n = (typeof _ilWall === 'function') ? _ilWall() : new Date();
+      var dw = document.getElementById('lw2-date'); if(!dw) return;
+      var dn = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+      dw.textContent = dn[n.getDay()] + ' ' + n.getDate();
+      var tr = document.getElementById('lw2-shift'), tk = document.getElementById('lw2-shift-track');
+      var d = (typeof todayStr === 'function') ? todayStr() : '';
+      var mine = (typeof records !== 'undefined' && typeof curUser !== 'undefined' && curUser) ? records.filter(function(r){ return r && r.empId === curUser.id && r.date === d && r.checkIn; }) : [];
+      if(!mine.length){ tr.setAttribute('d', ''); tk.setAttribute('d', ''); return; }
+      var start = Math.min.apply(null, mine.map(function(r){ return mins(r.checkIn); }));
+      var open = mine.some(function(r){ return !r.checkOut; });
+      var end = open ? n.getHours() * 60 + n.getMinutes() : Math.max.apply(null, mine.map(function(r){ return mins(r.checkOut || r.checkIn); }));
+      end = Math.min(end, start + 12 * 60 - 1);
+      var a0 = (start % 720) / 2, a1 = a0 + Math.max(0, end - start) / 2;   // 0.5° per minute on a 12 h dial
+      tk.setAttribute('d', arc(91.2, a0, a0 + 359.4));
+      tr.setAttribute('d', arc(91.2, a0, a1));
+    } catch(e){}
+  }
+  window.lw2Update = upd;
+  setInterval(upd, 30000);
+  if(document.readyState === 'complete') setTimeout(upd, 500); else window.addEventListener('load', function(){ setTimeout(upd, 500); });
+  // refresh right after clocking in/out
+  ['doCheckIn','doCheckOut'].forEach(function(fn){ window.addEventListener('load', function(){ var o = window[fn]; if(typeof o !== 'function') return; window[fn] = function(){ var r = o.apply(this, arguments); setTimeout(upd, 50); return r; }; }); });
+})();
+</script>
+<style id="clock-digital-v321">
+/* v321 digital face: soft glow, blinking colon, tabular figures */
+#clock-hero .hq-digital{ font-variant-numeric:tabular-nums; letter-spacing:-0.03em; color:var(--ink);
+  text-shadow:0 2px 0 rgba(255,255,255,0.06), 0 6px 22px rgba(90,140,255,0.28); }
+#clock-hero .hq-colon{ margin:0 1px; animation:hqColon 1s steps(1) infinite; }
+@keyframes hqColon{ 50%{ opacity:.25 } }
+@media (prefers-reduced-motion: reduce){ #clock-hero .hq-colon{ animation:none; } }
+</style>
 </body>
 </html>
