@@ -11072,7 +11072,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v321';
+const APP_VERSION = 'v322';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20879,7 +20879,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     }
     var sm = { think:0, lx:0, ly:0, hx:0, hy:0 }, antA = 0, antV = 0, prevTilt = null, waveOff = 0;
     // v320: one-shot reactions (check-in cheer, check-out bye, OT sweat)
-    var act = { type:'', t0:-99, dur:0 }, actEyes = 1;
+    var act = { type:'', t0:-99, dur:0 }, actEyes = 1, peekT = 0, pk = 0;
     var drop = new T.Mesh(new T.SphereGeometry(0.17, 16, 12), new T.MeshPhysicalMaterial({ color:0x38B6FF, emissive:0x1A7FD0, emissiveIntensity:0.35, roughness:0.05, clearcoat:1, envMapIntensity:1.2 }));
     drop.scale.set(0.8, 1.15, 0.8); drop.visible = false; head.add(drop);
     function pose(t, dt, busy){
@@ -20887,6 +20887,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       sm.lx += (look.x - sm.lx) * 0.06; sm.ly += (look.y - sm.ly) * 0.06;   // torso/neck follow slowly
       sm.hx += (look.x - sm.hx) * 0.2;  sm.hy += (look.y - sm.hy) * 0.2;    // head leads
       var th = sm.think;
+      pk += (peekT - pk) * Math.min(1, dt * (peekT ? 7 : 4));         // v322 peek (scrolling)
       var br = Math.sin(t * 2.6);                                   // breathing
       var sway = Math.sin(t * 0.9);                                 // weight shift left <-> right
       var bob = (Math.sin(t * 2.1) - 1) * 0.5;                      // 0 .. -1 (knees bend)
@@ -20902,7 +20903,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       spine.rotation.z = -sway * 0.08 - wv * 0.06 + Math.sin(t * 1.3) * 0.015;
       spine.rotation.x = 0.03 + br * 0.015 + th * 0.07 - cheer * 0.1 + sweat * 0.06;
       spine.rotation.y = Math.sin(t * 0.6 + 0.8) * 0.08 + sm.lx * 0.25;
-      root.rotation.y = Math.sin(t * 0.6) * 0.16 + sm.lx * 0.25;
+      root.rotation.y = Math.sin(t * 0.6) * 0.16 * (1 - pk) + sm.lx * 0.25 - pk * 0.55;
+      spine.rotation.z += pk * 0.12;
       bodyG.scale.set(1 + br * 0.018, 1 + br * 0.012, 1 + br * 0.018);
       legs.forEach(legIK);
       // neck + head
@@ -20910,7 +20912,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       headP.rotation.y = sm.lx * 0.25 + Math.sin(t * 0.45) * 0.06;
       headP.rotation.x = sm.ly * 0.5 - br * 0.02 - th * 0.1 - cheer * 0.09 + sweat * 0.05;
       headP.rotation.z += sweat * Math.sin(aa * 2.2) * 0.08;
-      head.rotation.y = sm.hx * 0.35; head.rotation.x = sm.hy * 0.4;
+      head.rotation.y = sm.hx * 0.35 - pk * 0.3; head.rotation.x = sm.hy * 0.4;
+      headP.rotation.z += pk * 0.24;
       // arms: shoulder leads, elbow and wrist follow a beat later (overlap)
       arms.forEach(function(A){
         var s = A.s;
@@ -20939,6 +20942,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
           zE = mix(zE, -0.95 + fan * 0.12, sweat); xE = mix(xE, -0.2, sweat);
           zW = mix(zW, fan * 0.55, sweat); xW = mix(xW, -0.3, sweat);
         }
+        if(pk > 0.01){ zS = mix(zS, s > 0 ? 1.15 : -0.35, pk); xE = mix(xE, s > 0 ? -1.1 : -0.6, pk); }   // grabs the edge
         A.sh.position.y = A.y0 + br * 0.02 + yS;
         A.sh.rotation.set(xS, 0, zS); A.el.rotation.set(xE, 0, zE); A.wr.rotation.set(xW, 0, zW);
       });
@@ -20970,7 +20974,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
         if(t > blinkAt){ var k = t - blinkAt; var sy = k < 0.08 ? 1 - k / 0.08 * 0.9 : k < 0.16 ? 0.1 + (k - 0.08) / 0.08 * 0.9 : 1; eyes.forEach(function(e){ e.scale.y = sy; }); if(k > 0.16) blinkAt = t + 2.6 + Math.random() * 2.4; }
         if(actEyes < 1) eyes.forEach(function(e){ e.scale.y = Math.min(e.scale.y, actEyes); });
         else if(t <= blinkAt) eyes.forEach(function(e){ if(e.scale.y < 1) e.scale.y = 1; });
-        var ex = busy ? Math.sin(t * 6) * 0.07 : 0; eyes[0].position.x = -0.43 + ex; eyes[1].position.x = 0.43 + ex;
+        var ex = (busy ? Math.sin(t * 6) * 0.07 : 0) - pk * 0.09; eyes[0].position.x = -0.43 + ex; eyes[1].position.x = 0.43 + ex;
       }
       renderer.render(scene, cam);
       if(!shown){ shown = true; fab.classList.add('rb3d'); if(orb) orb.classList.add('rb3d'); }
@@ -20985,6 +20989,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       console.warn('[3D robot] context lost — back to SVG');
     });
     window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose,
+      peek:function(on){ peekT = on ? 1 : 0; kick(); },   // v322
       act:function(type){ var t = (performance.now() - t0) / 1000; act = { type:type, t0:t, dur:type === 'cheer' ? 2.4 : 2.8 };
         if(type === 'bye'){ var w = (t + waveOff) % 7; if(w < 3.0 || w > 5.7) waveOff = ((3.0 - t) % 7 + 7) % 7; }
         kick(); return t; },   // v320
@@ -21074,29 +21079,37 @@ body.dark #rb-bubble::after{ border-color:rgba(180,160,255,0.28); }
 })();
 </script>
 <style id="fab-tuck-v317">
-/* v317: the AI robot slides aside (smaller, half-transparent) while the page scrolls,
-   so it never sits on top of what you're reading; it returns when scrolling stops */
-html body #ai-fab#ai-fab{ transition:transform .38s cubic-bezier(.34,1.4,.64,1), opacity .3s ease; }
-html body #ai-fab#ai-fab.fab-tuck{ transform:translateX(44px) scale(.7) !important; opacity:.45 !important; animation:none !important; }
-@media (prefers-reduced-motion: reduce){ html body #ai-fab#ai-fab.fab-tuck{ transform:none !important; opacity:.35 !important; } }
+/* v317/v322: while the page scrolls the AI robot slips behind the right edge and
+   peeks out (3D body leans, head tilts, eyes look in); it pops back with a soft
+   spring when scrolling stops. Hide = quick ease-out, return = slower spring. */
+html body #ai-fab#ai-fab{ transform-origin:50% 90%; transition:transform .7s cubic-bezier(.3,1.45,.55,1), opacity .4s ease; will-change:transform; }
+html body #ai-fab#ai-fab.fab-tuck{ transform:translateX(70%) rotate(-10deg) !important; animation:none !important;
+  transition:transform .45s cubic-bezier(.22,1,.36,1), opacity .3s ease; }
+@media (prefers-reduced-motion: reduce){ html body #ai-fab#ai-fab, html body #ai-fab#ai-fab.fab-tuck{ transition:opacity .2s; }
+  html body #ai-fab#ai-fab.fab-tuck{ transform:none !important; opacity:.4 !important; } }
 </style>
 <script>
 (function(){
   'use strict';
-  var t = 0, fab = null;
-  function onScroll(){
+  var t = 0, fab = null, lastY = new WeakMap(), moved = 0;
+  function peek(on){ try { if(window.rb3d && window.rb3d.peek) window.rb3d.peek(on); } catch(e){} }
+  function onScroll(dy){
     fab = fab || document.getElementById('ai-fab'); if(!fab || !fab.offsetWidth) return;
+    moved += Math.abs(dy);
     if(!fab.classList.contains('fab-tuck')){
-      fab.classList.add('fab-tuck');
+      if(moved < 14) return;                                     // ignore tiny jitters
+      fab.classList.add('fab-tuck'); peek(true);
       var b = document.getElementById('rb-bubble'); if(b) b.classList.remove('show');
     }
-    clearTimeout(t); t = setTimeout(function(){ fab.classList.remove('fab-tuck'); }, 1100);
+    clearTimeout(t); t = setTimeout(function(){ fab.classList.remove('fab-tuck'); peek(false); moved = 0; }, 850);
   }
   // capture: also catches scrolling inside scrollable panels
   document.addEventListener('scroll', function(e){
     var el = e.target;
     if(el && el.closest && el.closest('.modal-overlay')) return;   // sheets/modals don't move the robot
-    onScroll();
+    var node = (el === document || !el || el.scrollTop === undefined) ? (document.scrollingElement || document.documentElement) : el;
+    var y = node.scrollTop || 0, prev = lastY.has(node) ? lastY.get(node) : y; lastY.set(node, y);
+    onScroll(y - prev);
   }, { passive:true, capture:true });
 })();
 </script>
