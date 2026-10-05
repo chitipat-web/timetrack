@@ -11081,7 +11081,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v324';
+const APP_VERSION = 'v325';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -16641,7 +16641,7 @@ body.dark [class*="tab"] .label{
       const meSuffix = leader.uid === curUser.id ? ' (คุณเอง! 🎉)' : '';
       leaderHtml =
         '<div class="hwc-lb-leader">' +
-          '<div class="hwc-lb-leader-icon">🌟</div>' +
+          '<div class="hwc-lb-leader-icon">' + (window.RB_ICONS && RB_ICONS.trophy ? '<img class="rb-ico3d" src="' + RB_ICONS.trophy + '" alt="">' : '🌟') + '</div>' +
           '<div class="hwc-lb-leader-name">' + esc(leader.name) + meSuffix + '</div>' +
           '<div class="hwc-lb-leader-stat">' + esc(leader.displayValue) + esc(leaderSuffix) + '</div>' +
           '<div class="hwc-lb-leader-sub">ผู้นำสัปดาห์นี้</div>' +
@@ -21003,6 +21003,62 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       try { cv.remove(); if(oc) oc.remove(); } catch(_){}
       console.warn('[3D robot] context lost — back to SVG');
     });
+    // ── v325: bake 3D icons once (sprout, box, ₪ coin, trophy) with this same
+    // renderer, keep them as PNGs, then hand the canvas back to the robot.
+    // No ongoing cost: these are plain images after the first second.
+    function bakeIcons(){
+      var S2 = 160, out = {};
+      var bs = new T.Scene(); bs.environment = scene.environment;
+      bs.add(new T.HemisphereLight(0xffffff, 0x554a80, 0.45));
+      var k2 = new T.DirectionalLight(0xfff4e6, 1.15); k2.position.set(3, 5, 6); bs.add(k2);
+      var r2 = new T.DirectionalLight(0xbfd2ff, 0.7); r2.position.set(-5, 2, -4); bs.add(r2);
+      var bc = new T.PerspectiveCamera(30, 1, 0.1, 50); bc.position.set(0, 0.6, 6); bc.lookAt(0, 0, 0);
+      var gold = new T.MeshStandardMaterial({ color:0xFFB81C, emissive:0x4A2E00, emissiveIntensity:0.35, metalness:0.85, roughness:0.28, envMapIntensity:1.0 });
+      var ex0 = renderer.toneMappingExposure;
+      function shot(name, obj){ bs.add(obj); renderer.setSize(S2, S2, false); renderer.toneMappingExposure = 0.85; renderer.render(bs, bc); renderer.toneMappingExposure = ex0; out[name] = cv.toDataURL('image/png'); bs.remove(obj); }
+      // sprout in a little terracotta pot (reads as a plant on the green button)
+      var sp = new T.Group();
+      var potM = new T.MeshStandardMaterial({ color:0xC4552A, roughness:0.7, envMapIntensity:0.3 });
+      var pot = new T.Mesh(new T.CylinderGeometry(0.52, 0.38, 0.62, 32), potM); pot.position.y = -0.62; sp.add(pot);
+      var rim = new T.Mesh(new T.TorusGeometry(0.53, 0.07, 10, 32), potM); rim.rotation.x = Math.PI / 2; rim.position.y = -0.31; sp.add(rim);
+      var soil = new T.Mesh(new T.CylinderGeometry(0.48, 0.48, 0.05, 32), new T.MeshStandardMaterial({ color:0x4A2A12, roughness:1, envMapIntensity:0.2 })); soil.position.y = -0.33; sp.add(soil);
+      var leafM = new T.MeshPhysicalMaterial({ color:0x2BC653, emissive:0x0B4A1C, emissiveIntensity:0.25, roughness:0.45, clearcoat:0.3, envMapIntensity:0.25 });
+      var stem = new T.Mesh(new T.CylinderGeometry(0.055, 0.07, 0.62, 12), new T.MeshStandardMaterial({ color:0x168A3A, roughness:0.5, envMapIntensity:0.3 })); stem.position.y = -0.02; sp.add(stem);
+      var l1 = new T.Mesh(new T.SphereGeometry(0.46, 28, 18), leafM); l1.scale.set(1, 0.2, 0.52); l1.position.set(-0.36, 0.42, 0.02); l1.rotation.z = 0.72; sp.add(l1);
+      var l2 = new T.Mesh(new T.SphereGeometry(0.52, 28, 18), leafM); l2.scale.set(1, 0.2, 0.55); l2.position.set(0.4, 0.5, 0.02); l2.rotation.z = -0.78; sp.add(l2);
+      sp.rotation.set(0.12, -0.35, 0); sp.position.y = 0.12; shot('sprout', sp);
+      // parcel box
+      var bx = new T.Group();
+      bx.add(new T.Mesh(roundedBox(1.5, 1.15, 1.25, 0.14, 0.06), new T.MeshStandardMaterial({ color:0xB06A2C, roughness:0.8, envMapIntensity:0.25 })));
+      var tapeM = new T.MeshStandardMaterial({ color:0xD9A15A, roughness:0.4, envMapIntensity:0.4 });
+      var t1 = new T.Mesh(new T.BoxGeometry(0.32, 0.02, 1.27), tapeM); t1.position.y = 0.585; bx.add(t1);
+      var t2 = new T.Mesh(new T.BoxGeometry(0.32, 0.55, 0.02), tapeM); t2.position.set(0, 0.31, 0.63); bx.add(t2);
+      bx.rotation.set(0.38, -0.62, 0); shot('box', bx);
+      // ₪ coin (engraved face from a canvas texture)
+      var fc = document.createElement('canvas'); fc.width = fc.height = 256; var fx = fc.getContext('2d');
+      var fg = fx.createRadialGradient(100, 90, 20, 128, 128, 140); fg.addColorStop(0, '#FFE58A'); fg.addColorStop(1, '#D9A21E'); fx.fillStyle = fg; fx.fillRect(0, 0, 256, 256);
+      fx.strokeStyle = 'rgba(140,90,0,0.55)'; fx.lineWidth = 10; fx.beginPath(); fx.arc(128, 128, 104, 0, Math.PI * 2); fx.stroke();
+      fx.font = '800 150px -apple-system, "SF Pro Display", Arial, sans-serif'; fx.textAlign = 'center'; fx.textBaseline = 'middle';
+      fx.fillStyle = 'rgba(255,255,255,0.55)'; fx.fillText('₪', 131, 141); fx.fillStyle = '#9A6A00'; fx.fillText('₪', 128, 136);
+      var faceTex = new T.CanvasTexture(fc); faceTex.encoding = T.sRGBEncoding; faceTex.center.set(0.5, 0.5); faceTex.rotation = Math.PI / 2;
+      var faceM = new T.MeshStandardMaterial({ map:faceTex, metalness:0.85, roughness:0.3, envMapIntensity:1.1 });
+      var coin = new T.Mesh(new T.CylinderGeometry(0.95, 0.95, 0.2, 64), [gold, faceM, faceM]);
+      coin.rotation.set(Math.PI / 2 - 0.32, 0, 0); coin.rotation.order = 'XYZ';
+      var cg = new T.Group(); cg.add(coin); cg.rotation.z = -0.12; shot('coin', cg);
+      // trophy
+      var tr = new T.Group();
+      var prof = [[0.06,0],[0.2,0.04],[0.42,0.24],[0.56,0.6],[0.62,0.98],[0.56,1.0],[0.5,0.62],[0.36,0.3],[0.06,0.12]].map(function(q){ return new T.Vector2(q[0], q[1]); });
+      var cup = new T.Mesh(new T.LatheGeometry(prof, 48), gold); cup.material.side = T.DoubleSide; cup.position.y = -0.05; tr.add(cup);
+      var stm = new T.Mesh(new T.CylinderGeometry(0.08, 0.12, 0.42, 16), gold); stm.position.y = -0.24; tr.add(stm);
+      var plinth = new T.Mesh(roundedBox(0.9, 0.24, 0.62, 0.08, 0.03), new T.MeshPhysicalMaterial({ color:0x2B2160, roughness:0.35, clearcoat:0.8, envMapIntensity:0.4 })); plinth.position.y = -0.56; tr.add(plinth);
+      var plate = new T.Mesh(new T.BoxGeometry(0.42, 0.1, 0.02), gold); plate.position.set(0, -0.56, 0.32); tr.add(plate);
+      [-1, 1].forEach(function(sd){ var h = new T.Mesh(new T.TorusGeometry(0.22, 0.045, 10, 24, Math.PI), gold); h.position.set(sd * 0.6, 0.62, 0); h.rotation.z = sd > 0 ? -Math.PI / 2 : Math.PI / 2; tr.add(h); });
+      tr.rotation.y = -0.3; tr.position.y = 0.05; shot('trophy', tr);
+      renderer.setSize(PX, PX, false);
+      window.RB_ICONS = out;
+      try { window.dispatchEvent(new Event('rbicons')); } catch(e){}
+    }
+    try { bakeIcons(); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] bake failed', e); }
     window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose,
       peek:function(on){ peekT = on ? 1 : 0; kick(); },   // v322
       act:function(type){ var t = (performance.now() - t0) / 1000; act = { type:type, t0:t, dur:type === 'cheer' ? 2.4 : 2.8 };
@@ -21397,5 +21453,30 @@ html body:not(.corp) .slide-action[data-mode="out"] .slide-thumb:not(#_){
   box-shadow:0 9px 18px rgba(170,30,24,.45), 0 3px 0 #A81F18, inset 0 -4px 7px rgba(0,0,0,.18), inset 0 2px 2px rgba(255,255,255,.5) !important; }
 html body:not(.corp) .slide-action.is-dragging .slide-thumb:not(#_){ box-shadow:0 4px 9px rgba(0,0,0,.3), 0 1px 0 rgba(0,0,0,.25), inset 0 -2px 5px rgba(0,0,0,.22), inset 0 2px 2px rgba(255,255,255,.45) !important; }
 </style>
+<style id="icons3d-v325">
+/* v325: baked 3D icons */
+img.rb-ico3d{ display:block; pointer-events:none; -webkit-user-drag:none; }
+#place-switch .place-ic.has3d{ background:none !important; width:38px; height:38px; margin:-4px 0; }
+#place-switch .place-ic.has3d img{ width:38px; height:38px; filter:drop-shadow(0 3px 4px rgba(0,0,0,.25)); }
+.hq-pay-ic.has3d img{ width:44px; height:44px; filter:drop-shadow(0 4px 6px rgba(0,0,0,.25)); }
+.hwc-lb-leader-icon img.rb-ico3d{ width:64px; height:64px; margin:0 auto; filter:drop-shadow(0 6px 10px rgba(0,0,0,.3)); }
+</style>
+<script>
+// v325: swap in the baked 3D icons once they exist (fallback = current icons)
+(function(){
+  'use strict';
+  function img(src){ return '<img class="rb-ico3d" src="' + src + '" alt="">'; }
+  function apply(){
+    var I = window.RB_ICONS; if(!I) return;
+    var f = document.querySelector('#place-switch .place-opt.field .place-ic'), p = document.querySelector('#place-switch .place-opt.pack .place-ic');
+    if(f && I.sprout && !f.classList.contains('has3d')){ f.innerHTML = img(I.sprout); f.classList.add('has3d'); }
+    if(p && I.box && !p.classList.contains('has3d')){ p.innerHTML = img(I.box); p.classList.add('has3d'); }
+    document.querySelectorAll('.hq-pay-ic').forEach(function(c){ if(I.coin && !c.classList.contains('has3d')){ c.innerHTML = img(I.coin); c.classList.add('has3d'); } });
+    document.querySelectorAll('.hwc-lb-leader-icon').forEach(function(c){ if(I.trophy && !c.querySelector('img')) c.innerHTML = img(I.trophy); });
+  }
+  window.addEventListener('rbicons', apply);
+  if(window.RB_ICONS) apply();
+})();
+</script>
 </body>
 </html>
