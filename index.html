@@ -3894,7 +3894,7 @@ body.dark .slide-action{
           <div class="ha-week-val"><span id="ha-week-total"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></span><span class="u"></span></div>
           <div class="ha-week-delta" id="ha-week-delta">↑ +0%</div>
         </div>
-        <div class="ha-week-period" id="ha-week-period">—<strong>พ.ค.</strong></div>
+        <div class="ha-week-period" id="ha-week-period"></div>
       </div>
       <div class="ha-bars" id="ha-bars">
         <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">จ</div></div>
@@ -6841,7 +6841,7 @@ function renderHome(){
 
   // Today records list
   const listEl=document.getElementById('today-list');
-  if(!myRec.length){listEl.innerHTML='<div class="empty-state"><div class="empty-icon">⏱</div><div>ยังไม่มีรายการวันนี้</div></div>';return}
+  if(!myRec.length){listEl.innerHTML=(window.RB_ICONS&&RB_ICONS.robot)?'<div class="empty-state es3d"><img class="rb-ico3d es-robot" src="'+RB_ICONS.robot+'" alt=""><div class="es-t">ยังไม่มีรายการวันนี้</div><div class="es-s">เลื่อนปุ่มด้านบนเพื่อเข้างานได้เลย</div></div>':'<div class="empty-state"><div class="empty-icon">⏱</div><div>ยังไม่มีรายการวันนี้</div></div>';return}
   listEl.innerHTML=myRec.map((r,i)=>{
     const hrs=r.checkOut?calcHours(r.checkIn,r.checkOut):calcHours(r.checkIn,nowStr());
     const otH=(r.otMin||0)/60;
@@ -11081,7 +11081,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v326';
+const APP_VERSION = 'v327';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21054,6 +21054,12 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       var plate = new T.Mesh(new T.BoxGeometry(0.42, 0.1, 0.02), gold); plate.position.set(0, -0.56, 0.32); tr.add(plate);
       [-1, 1].forEach(function(sd){ var h = new T.Mesh(new T.TorusGeometry(0.22, 0.045, 10, 24, Math.PI), gold); h.position.set(sd * 0.6, 0.62, 0); h.rotation.z = sd > 0 ? -Math.PI / 2 : Math.PI / 2; tr.add(h); });
       tr.rotation.y = -0.3; tr.position.y = 0.05; shot('trophy', tr);
+      // v327: the robot itself as an illustration (mid-wave), for empty states
+      try {
+        var tw = 30, w0 = waveOff; waveOff = ((4.25 - tw) % 7 + 7) % 7;
+        pose(tw, 0.033, false); renderer.setSize(220, 220, false); renderer.render(scene, cam);
+        out.robot = cv.toDataURL('image/png'); waveOff = w0; prevTilt = null;
+      } catch(e){}
       renderer.setSize(PX, PX, false);
       window.RB_ICONS = out;
       try { window.dispatchEvent(new Event('rbicons')); } catch(e){}
@@ -21473,6 +21479,8 @@ img.rb-ico3d{ display:block; pointer-events:none; -webkit-user-drag:none; }
     if(p && I.box && !p.classList.contains('has3d')){ p.innerHTML = img(I.box); p.classList.add('has3d'); }
     document.querySelectorAll('.hq-pay-ic').forEach(function(c){ if(I.coin && !c.classList.contains('has3d')){ c.innerHTML = img(I.coin); c.classList.add('has3d'); } });
     document.querySelectorAll('.hwc-lb-leader-icon').forEach(function(c){ if(I.trophy && !c.querySelector('img')) c.innerHTML = img(I.trophy); });
+    var tl = document.getElementById('today-list');   // v327: redraw the empty state with the 3D robot
+    if(I.robot && tl && tl.querySelector('.empty-state:not(.es3d)')){ try { renderHome(); } catch(e){} }
   }
   window.addEventListener('rbicons', apply);
   if(window.RB_ICONS) apply();
@@ -21491,6 +21499,25 @@ body.sky.lg:not([data-sky="night"]) #app-shell .more-sec{ color:rgba(255,255,255
 body.sky.lg:not([data-sky="night"]) #app-shell .more-row.more-logout .more-row-lbl{ color:#FFE1DE !important; }
 body.sky.lg:not([data-sky="night"]) .nav-btn.active{ color:#fff !important; background:rgba(0,40,110,.28) !important; }
 body.sky.lg:not([data-sky="night"]) #app-shell img, body.sky.lg:not([data-sky="night"]) #app-shell svg{ text-shadow:none; }
+</style>
+<style id="ai3d-home-v327">
+/* v327 "AI 3D" look — glossy clay + purple/cyan glow, like the robot */
+.empty-state.es3d{ border:none !important; background:radial-gradient(120% 90% at 50% 0%, rgba(116,68,238,.22), rgba(95,239,255,.06) 60%, transparent 80%) !important;
+  padding:6px 12px 18px !important; text-align:center; }
+.es3d .es-robot{ width:118px; height:118px; margin:-6px auto 2px; filter:drop-shadow(0 10px 18px rgba(80,50,200,.45)); animation:esFloat 3.6s ease-in-out infinite; }
+.es3d .es-t{ font-weight:800; font-size:15px; color:var(--ink); }
+.es3d .es-s{ font-size:12.5px; color:var(--ink-3); margin-top:3px; }
+@keyframes esFloat{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
+/* weekly card: glossy capsule bars in grooves, today glows purple→cyan */
+html body:not(.corp) .ha-bars{ height:96px; }
+html body:not(.corp) .ha-bar-track{ height:70px; border-radius:999px; background:linear-gradient(180deg, rgba(0,0,0,.18), rgba(255,255,255,.04)); box-shadow:inset 0 2px 4px rgba(0,0,0,.25); padding:2px; box-sizing:border-box; }
+html body:not(.corp) .ha-bar-fill:not(#_){ border-radius:999px !important; position:relative;
+  background:linear-gradient(90deg, rgba(255,255,255,.0) 0%, rgba(255,255,255,.45) 30%, rgba(255,255,255,0) 60%), linear-gradient(180deg,#8FD3FF,#3D6BFF) !important;
+  box-shadow:0 4px 10px rgba(40,80,255,.35) !important; min-height:0; }
+html body:not(.corp) .ha-bar-fill.today:not(#_){ background:linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.5) 30%, rgba(255,255,255,0) 60%), linear-gradient(180deg,#5FEFFF,#7444EE) !important;
+  box-shadow:0 0 14px rgba(116,68,238,.75), 0 0 4px rgba(95,239,255,.9) !important; }
+html body:not(.corp) .ha-week-val{ background:linear-gradient(90deg, var(--ink) 40%, #9FE8FF); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+html body:not(.corp) .ha-week-val small{ -webkit-text-fill-color:var(--ink-3); }
 </style>
 </body>
 </html>
