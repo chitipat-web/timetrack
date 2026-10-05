@@ -4190,7 +4190,7 @@ body.dark .slide-action{
     </div>
 
     <div class="card">
-      <div class="section-title">🕐 เวลาทำงาน</div>
+      <div class="section-title"><svg class="st-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>เวลาทำงาน</div>
       <div class="modal-grid">
         <div class="form-group"><label class="form-label">เวลาเริ่มงาน</label><input type="time" id="set-work-start" class="form-inp" value="06:00" onchange="saveWorkStart()"/></div>
         <div class="form-group"><label class="form-label">เวลาเลิกงานปกติ (นับถอยหลังหน้าหลัก · โอทีคิดตามสูตรคิดเงิน)</label><input type="time" id="set-ot-start" class="form-inp" value="16:30" onchange="saveOTStart()"/></div>
@@ -4198,7 +4198,12 @@ body.dark .slide-action{
     </div>
 
     <div class="card">
-      <div class="section-title">🌙 ธีม</div>
+      <div class="section-title"><svg class="st-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>ธีม</div>
+      <div class="theme-pick" id="theme-pick" role="radiogroup" aria-label="เลือกธีม">
+        <button type="button" class="tp tp-glass" data-t="glass" onclick="themePick('glass')"><span class="tp-mock"><i></i><b></b><b></b></span><span class="tp-name">Liquid Glass</span></button>
+        <button type="button" class="tp tp-corp" data-t="corp" onclick="themePick('corp')"><span class="tp-mock"><i></i><b></b><b></b></span><span class="tp-name">องค์กร</span></button>
+        <button type="button" class="tp tp-sky" data-t="sky" onclick="themePick('sky')"><span class="tp-mock"><i></i><b></b><b></b></span><span class="tp-name">ท้องฟ้าเดิม</span></button>
+      </div>
       <button class="btn-primary" onclick="cycleTheme()" id="sky-btn" style="background:linear-gradient(135deg,#2F6DB5,#7DB7E6);width:100%;margin-bottom:8px">🏢 ธีมองค์กร · เปลี่ยนเป็นท้องฟ้า</button>
       <div class="lg-level" id="lg-level-wrap">
         <label for="lg-level">ความใสของกระจก (Liquid Glass)</label>
@@ -4210,13 +4215,13 @@ body.dark .slide-action{
     </div>
 
     <div class="card">
-      <div class="section-title">✨ เอฟเฟค Cinematic</div>
+      <div class="section-title"><svg class="st-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/></svg>เอฟเฟค Cinematic</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px">เอฟเฟคหนัก: glitch, particle trail, splash screen — ปิดถ้ารู้สึกเครื่องหน่วง</div>
       <button class="btn-primary" onclick="onToggleCinematic()" id="cinema-btn" style="background:linear-gradient(135deg,#9c27b0,#673ab7)">⚡ ปิด/เปิด เอฟเฟค</button>
     </div>
 
     <div class="card" id="lg-card-section">
-      <div class="section-title">🪟 Liquid Glass (ทดลอง)</div>
+      <div class="section-title"><svg class="st-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 4v16M4 12h16"/></svg>Liquid Glass (ทดลอง)</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px">พื้นหลังเอฟเฟคกระจกแบบ iOS 26 (WebGL shader) — กินแบตเพิ่ม ปิดได้ตลอด</div>
       <div id="lg-status-row" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:12px">
         <span id="lg-status-dot" style="width:8px;height:8px;border-radius:50%;background:#888;flex-shrink:0"></span>
@@ -4228,7 +4233,7 @@ body.dark .slide-action{
     </div>
 
     <div class="card" id="hcheck-card-section">
-      <div class="section-title">🩺 สถานะระบบ</div>
+      <div class="section-title"><svg class="st-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg>สถานะระบบ</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px">ตรวจว่าส่วนสำคัญของแอพทำงานปกติ + ดู error ที่เกิดขึ้นล่าสุด</div>
       <div id="hcheck-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
       <button class="btn-primary" id="hcheck-run-btn" onclick="onRunHealthCheck()" style="background:linear-gradient(135deg,#30D158,#1F9D40);width:100%;margin-bottom:8px">🔄 ตรวจสอบระบบ</button>
@@ -4237,14 +4242,14 @@ body.dark .slide-action{
     </div>
 
     <div class="card">
-      <div class="section-title">🔊 เสียง</div>
+      <div class="section-title"><svg class="st-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h3l5 4V6l-5 4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>เสียง</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px">เสียง check-in, แจ้งเตือน, success/error</div>
       <button class="btn-primary" onclick="onToggleAudio()" id="audio-btn" style="background:linear-gradient(135deg,#16a34a,#10b981);margin-bottom:8px">🔊 เปิด/ปิดเสียง</button>
       <button class="btn-primary" onclick="onToggleAmbient()" id="ambient-btn" style="background:linear-gradient(135deg,#7c3aed,#5b21b6)">🎶 เปิด/ปิดเสียงพื้นหลัง</button>
     </div>
 
     <div class="card">
-      <div class="section-title">📊 Firebase Realtime</div>
+      <div class="section-title"><svg class="st-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg>Firebase Realtime</div>
       <div class="conn-row"><div class="cs-dot demo" id="conn-dot"></div><span id="conn-lbl">โหมดสาธิต (เก็บในเครื่อง)</span></div>
       <input type="text" id="fb-url" class="form-inp" placeholder="https://your-project.firebaseio.com" style="margin-bottom:8px;font-size:12px;font-family:var(--mono)"/>
       <button class="btn-primary" onclick="connectFB()" style="padding:10px;font-size:13px">เชื่อมต่อ Firebase</button>
@@ -11093,7 +11098,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v328';
+const APP_VERSION = 'v329';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21558,5 +21563,47 @@ html body:not(.corp) .ha-week-val small{ -webkit-text-fill-color:var(--ink-3); }
 .sal3d-leg span{ display:inline-flex; align-items:center; gap:5px; } .sal3d-leg b{ width:9px; height:9px; border-radius:3px; display:inline-block; }
 body.corp .sal3d{ background:var(--c-brand, #0F5FB8); box-shadow:none; } body.corp .sal3d::after{ display:none; }
 </style>
+<style id="ai3d-settings-v329">
+/* v329 AI-3D settings: glowing avatar ring, visual theme picker, glass buttons, line-icon titles */
+#page-settings .settings-av{ box-shadow:0 0 0 3px rgba(255,255,255,.18), 0 0 0 6px rgba(116,68,238,.55), 0 0 26px rgba(95,239,255,.45), 0 12px 26px rgba(30,20,90,.45) !important; }
+#page-settings .section-title .st-ico{ vertical-align:-3px; margin-right:6px; color:#9FE8FF; }
+.theme-pick{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:2px 0 12px; }
+.tp{ font:inherit; border:none; background:none; padding:0; cursor:pointer; text-align:center; -webkit-tap-highlight-color:transparent; }
+.tp-mock{ position:relative; display:block; height:92px; border-radius:16px; overflow:hidden; box-shadow:0 6px 14px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.18); transition:transform .25s cubic-bezier(.3,1.5,.5,1), box-shadow .25s; }
+.tp-mock i{ position:absolute; left:10%; right:10%; top:14%; height:34%; border-radius:10px; }
+.tp-mock b{ position:absolute; left:10%; height:9%; border-radius:6px; }
+.tp-mock b:nth-of-type(1){ top:58%; width:62%; } .tp-mock b:nth-of-type(2){ top:74%; width:42%; }
+.tp-glass .tp-mock{ background:radial-gradient(80% 60% at 80% 10%, rgba(95,239,255,.35), transparent 60%), linear-gradient(160deg,#1C2560,#0B0F2E); }
+.tp-glass .tp-mock i{ background:rgba(255,255,255,.14); box-shadow:inset 0 1px 0 rgba(255,255,255,.35); backdrop-filter:blur(2px); }
+.tp-glass .tp-mock b{ background:rgba(255,255,255,.35); }
+.tp-corp .tp-mock{ background:linear-gradient(180deg,#123C7A 0 22%, #F3F4F6 22%); }
+.tp-corp .tp-mock i{ top:30%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.15); } .tp-corp .tp-mock b{ background:#C9D2E0; }
+.tp-sky .tp-mock{ background:linear-gradient(180deg,#5FB3FF,#BFE3FF); }
+.tp-sky .tp-mock i{ background:rgba(255,255,255,.55); } .tp-sky .tp-mock b{ background:rgba(255,255,255,.8); }
+.tp-name{ display:block; margin-top:6px; font-size:12px; font-weight:700; color:var(--ink-2, var(--ink)); }
+.tp.active .tp-mock{ transform:translateY(-2px); box-shadow:0 0 0 2px #fff, 0 0 0 5px #7444EE, 0 0 22px rgba(95,239,255,.6), 0 10px 20px rgba(0,0,0,.3); }
+.tp.active .tp-name{ color:var(--ink); }
+#sky-btn{ display:none !important; }
+/* gradient blobs → one calm glass button style */
+html body:not(.corp) #page-settings .card .btn-primary:not(#_), html body:not(.corp) #page-settings .card .btn-secondary:not(#_){
+  background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)) !important; color:var(--ink) !important;
+  border:1px solid rgba(159,232,255,.28) !important; box-shadow:0 4px 14px rgba(20,10,80,.25), inset 0 1px 0 rgba(255,255,255,.25) !important;
+  border-radius:14px !important; width:100%; font-weight:700; }
+html body:not(.corp) #page-settings .card .btn-primary:not(#_):active{ transform:scale(.98); }
+</style>
+<script>
+// v329 visual theme picker → drives the existing cycleTheme() (no new theme logic)
+(function(){
+  'use strict';
+  function cur(){ try { if(localStorage.getItem('tt_sky') === '1') return 'sky'; return localStorage.getItem('tt_ui') === 'corp' ? 'corp' : 'glass'; } catch(e){ return 'glass'; } }
+  function mark(){ var c = cur(); document.querySelectorAll('#theme-pick .tp').forEach(function(b){ var on = b.dataset.t === c; b.classList.toggle('active', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }); }
+  window.themePick = function(t){
+    for(var i = 0; i < 3 && cur() !== t; i++){ try { cycleTheme(); } catch(e){ break; } }
+    mark();
+  };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
+  window.addEventListener('load', function(){ setTimeout(mark, 300); });
+})();
+</script>
 </body>
 </html>
