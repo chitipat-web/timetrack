@@ -3155,6 +3155,10 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 </head>
 <body>
 <script>
+// v324 line-icon helper for JS-built markup (stroke = currentColor)
+window.ICO = (function(){ var P = {clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', flame:'<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.6 1.2 2.6 2.2 3C11 9 11.5 6 12 3z"/>', target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>', box:'<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/>'}; return function(n, sz){ sz = sz || 15; return '<svg class="ico" viewBox="0 0 24 24" width="' + sz + '" height="' + sz + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (P[n] || '') + '</svg>'; }; })();
+</script>
+<script>
 // v323 battery saver: read once, before any heavy effect starts
 (function(){ try { if(localStorage.getItem('tt_lite') === '1'){ window.__rudyLite = true; window.__skyNoGL = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('lite','cinema-off'); }); } } catch(e){} })();
 </script>
@@ -3805,7 +3809,7 @@ body.dark .slide-action{
         <div class="ha-chip-value muted" id="s-firstin">--:--</div>
       </div>
       <div class="ha-chip green">
-        <div class="ha-chip-icon">⏱</div>
+        <div class="ha-chip-icon"><svg class="ico" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
         <div class="ha-chip-label">ทำงาน</div>
         <div class="ha-chip-value"><span id="s-hours"><span style="white-space:nowrap">0<small style="font-size:.55em">ช</small> 00<small style="font-size:.55em">น</small></span></span><span class="u"></span></div>
       </div>
@@ -3873,7 +3877,7 @@ body.dark .slide-action{
 
     <!-- 🔥 Streak -->
     <div class="ha-streak">
-      <div class="ha-streak-flame">🔥</div>
+      <div class="ha-streak-flame"><svg class="ico" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.6 1.2 2.6 2.2 3C11 9 11.5 6 12 3z"/></svg></div>
       <div class="ha-streak-info">
         <div class="ha-streak-num"><span id="ha-streak-done">0</span><span class="total">/7</span></div>
         <div class="ha-streak-label">CHECK-IN STREAK · 7 วัน</div>
@@ -3906,7 +3910,7 @@ body.dark .slide-action{
     <!-- KEEP all old elements for JS compat (hidden via .home-a CSS) -->
     <div class="stats-grid">
       <div class="stat-box"><div class="stat-icon">🕐</div><div class="stat-val c-blue">--:--</div><div class="stat-lbl">เข้าครั้งแรก</div></div>
-      <div class="stat-box"><div class="stat-icon">⏱</div><div class="stat-val c-green">0.0</div><div class="stat-lbl">ชม.ทำงาน</div></div>
+      <div class="stat-box"><div class="stat-icon"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="stat-val c-green">0.0</div><div class="stat-lbl">ชม.ทำงาน</div></div>
       <div class="stat-box"><div class="stat-icon">⚡</div><div class="stat-val c-orange">0.0</div><div class="stat-lbl">ชม.โอที</div></div>
       <div class="stat-box"><div class="stat-icon">🔄</div><div class="stat-val c-purple">0</div><div class="stat-lbl">รอบเข้า-ออก</div></div>
     </div>
@@ -4088,8 +4092,8 @@ body.dark .slide-action{
 
     <!-- Admin actions -->
     <div class="section-card admin-only-action" style="margin-top:24px">
-      <div class="section-card-title">⚙️ จัดการพนักงาน</div>
-      <button class="btn-primary" style="width:100%" onclick="openAddEmpModal()">➕ เพิ่มพนักงานใหม่</button>
+      <div class="section-card-title"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg> จัดการพนักงาน</div>
+      <button class="btn-primary" style="width:100%" onclick="openAddEmpModal()"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> เพิ่มพนักงานใหม่</button>
     </div>
   </div>
 
@@ -7074,7 +7078,7 @@ function renderHistory(resetPage){
     const holiday=isHoliday(date);
     return `<div class="history-item">
       <div class="hi-header">
-        <div><div class="hi-date-lbl">${parseInt(dd)} ${mons[parseInt(m)-1]}</div><div class="hi-day-lbl">วัน${dayNames[d.getDay()]} ${holiday?'🏖 '+getHolidays()[date]:''}${rs.some(r=>r.place==='pack')?' · 📦 โรงแพ็ค':''}</div></div>
+        <div><div class="hi-date-lbl">${parseInt(dd)} ${mons[parseInt(m)-1]}</div><div class="hi-day-lbl">วัน${dayNames[d.getDay()]} ${holiday?'🏖 '+getHolidays()[date]:''}${rs.some(r=>r.place==='pack')?' · <span class="pack-tag">'+ICO('box',12)+'โรงแพ็ค</span>':''}</div></div>
         <div style="text-align:right">
           <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--green)">${fmtHMt(totalH*60)}</div>
           ${totalOT>0?`<div style="font-size:11px;color:var(--yellow)">⚡ OT ${fmtHMt(totalOT)}</div>`:''}
@@ -11077,7 +11081,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v323';
+const APP_VERSION = 'v324';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -15753,7 +15757,7 @@ body.dark [class*="tab"] .label{
     el.dataset.lastGoalNum = String(onTimeCount);
 
     el.innerHTML =
-      '<div class="hw-title"><span class="hw-icon">🎯</span>เป้าหมายสัปดาห์</div>' +
+      '<div class="hw-title"><span class="hw-icon">' + ICO('target', 15) + '</span>เป้าหมายสัปดาห์</div>' +
       '<div class="hwb-goal-row">' +
         '<div class="hwb-goal-label">วันมาตรงเวลา</div>' +
         '<div class="hwb-goal-value"><span class="hwb-goal-num">' + lastGoal + '</span><span class="hwb-goal-target">/' + target + '</span></div>' +
@@ -16595,19 +16599,19 @@ body.dark [class*="tab"] .label{
     try {
       if(metric === 'hours'){
         rows = computeHours(emps, records, weekStart);
-        title = '⏱️ ชั่วโมงทำงาน';
+        title = 'ชั่วโมงทำงาน';
         leaderSuffix = '';
         const sum = rows.reduce((s, r) => s + r.value, 0);
         teamSummary = 'ทีมรวม <strong>' + fmtHMt(sum*60) + '</strong> สัปดาห์นี้';
       } else if(metric === 'streak'){
         rows = computeStreak(emps, records);
-        title = '🔥 Check-in Streak';
+        title = 'Check-in Streak';
         leaderSuffix = ' ติดต่อกัน';
         const maxStreak = Math.max(0, ...rows.map(r => r.value));
         teamSummary = 'streak ยาวสุดของทีม <strong>' + maxStreak + ' วัน</strong>';
       } else {
         rows = computeOnTime(emps, records, weekStart);
-        title = '🎯 ตรงเวลาสัปดาห์';
+        title = 'ตรงเวลาสัปดาห์';
         leaderSuffix = ' วัน';
         const sum = rows.reduce((s, r) => s + r.value, 0);
         const totalMax = rows.length * 6;   // v279: Sun–Fri
@@ -16625,9 +16629,9 @@ body.dark [class*="tab"] .label{
     // build tabs
     const tabs =
       '<div class="hwc-lb-tabs">' +
-        '<button type="button" class="hwc-lb-tab' + (metric === 'ontime' ? ' active' : '') + '" data-m="ontime">🎯 ตรงเวลา</button>' +
-        '<button type="button" class="hwc-lb-tab' + (metric === 'hours' ? ' active' : '') + '" data-m="hours">⏱️ ชั่วโมง</button>' +
-        '<button type="button" class="hwc-lb-tab' + (metric === 'streak' ? ' active' : '') + '" data-m="streak">🔥 สตรีค</button>' +
+        '<button type="button" class="hwc-lb-tab' + (metric === 'ontime' ? ' active' : '') + '" data-m="ontime">' + ICO('target') + 'ตรงเวลา</button>' +
+        '<button type="button" class="hwc-lb-tab' + (metric === 'hours' ? ' active' : '') + '" data-m="hours">' + ICO('clock') + 'ชั่วโมง</button>' +
+        '<button type="button" class="hwc-lb-tab' + (metric === 'streak' ? ' active' : '') + '" data-m="streak">' + ICO('flame') + 'สตรีค</button>' +
       '</div>';
 
     // หา leader (อันดับ 1) — ถ้าทุกคน value=0 ให้แสดง empty
@@ -16654,7 +16658,7 @@ body.dark [class*="tab"] .label{
         const r = others[i];
         const isMe = r.uid === curUser.id;
         const rank = i + 2; // เริ่มจาก 2 เพราะ leader อันดับ 1
-        const medal = rank === 2 ? '🥈' : (rank === 3 ? '🥉' : '·');
+        const medal = '<span class="rk rk' + Math.min(rank, 4) + '">' + rank + '</span>';   // v324: numbered rank badges
         othersHtml +=
           '<div class="hwc-lb-row">' +
             '<div class="hwc-lb-rank">' + medal + '</div>' +
@@ -16667,7 +16671,7 @@ body.dark [class*="tab"] .label{
     const titleEsc = esc(title);
 
     el.innerHTML =
-      '<div class="hw-title"><span class="hw-icon">🏆</span>' + titleEsc + '</div>' +
+      '<div class="hw-title"><span class="hw-icon">' + ICO(metric === 'hours' ? 'clock' : metric === 'streak' ? 'flame' : 'target', 15) + '</span>' + titleEsc + '</div>' +
       tabs +
       leaderHtml +
       othersHtml +
@@ -21371,5 +21375,27 @@ body.lite .sky-drop{ display:none !important; }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', label); else label();
 })();
 </script>
+<style id="icons-slider-v324">
+/* v324: remaining emoji → line icons */
+.ha-chip-icon .ico{ display:block; } .stat-icon .ico{ display:inline-block; color:var(--sys-green, #30D158); }
+.ha-streak-flame{ color:#FF9F0A; display:flex; align-items:center; justify-content:center; }
+.section-card-title .ico, .hw-icon .ico{ vertical-align:-3px; margin-right:2px; }
+.btn-primary .ico{ vertical-align:-4px; margin-right:4px; }
+.hwc-lb-tab{ display:inline-flex; align-items:center; justify-content:center; gap:5px; }
+.hwc-lb-tab .ico{ flex-shrink:0; }
+.pack-tag{ display:inline-flex; align-items:center; gap:3px; padding:1px 7px; border-radius:999px; background:rgba(255,159,10,0.16); color:#FF9F0A; font-weight:700; font-size:11px; vertical-align:1px; }
+.rk{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:11.5px; font-weight:800; color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 2px 5px rgba(0,0,0,.2); }
+.rk2{ background:linear-gradient(135deg,#E8ECF4,#9AA3B5); color:#2A3040; } .rk3{ background:linear-gradient(135deg,#F2B27A,#B8682E); } .rk4{ background:rgba(128,128,140,.35); }
+/* v324: 3D slide-to-check-in — recessed groove + raised glossy thumb that sinks while dragging (corp stays flat) */
+html body:not(.corp) .slide-action:not(#_){ box-shadow:inset 0 3px 8px rgba(0,0,0,.28), inset 0 -1px 0 rgba(255,255,255,.14) !important; }
+html body:not(.corp) .slide-action[data-mode="in"] .slide-thumb:not(#_){
+  background:radial-gradient(circle at 34% 26%, rgba(255,255,255,.6), rgba(255,255,255,0) 46%), linear-gradient(180deg,#52E383,#1E9E46) !important;
+  box-shadow:0 9px 18px rgba(18,120,52,.45), 0 3px 0 #17803A, inset 0 -4px 7px rgba(0,0,0,.18), inset 0 2px 2px rgba(255,255,255,.55) !important; }
+html body:not(.corp) .slide-action[data-mode="out"] .slide-thumb:not(#_){
+  background:radial-gradient(circle at 34% 26%, rgba(255,255,255,.55), rgba(255,255,255,0) 46%), linear-gradient(180deg,#FF6E66,#D2281F) !important;
+  box-shadow:0 9px 18px rgba(170,30,24,.45), 0 3px 0 #A81F18, inset 0 -4px 7px rgba(0,0,0,.18), inset 0 2px 2px rgba(255,255,255,.5) !important; }
+html body:not(.corp) .slide-action.is-dragging .slide-thumb:not(#_){ box-shadow:0 4px 9px rgba(0,0,0,.3), 0 1px 0 rgba(0,0,0,.25), inset 0 -2px 5px rgba(0,0,0,.22), inset 0 2px 2px rgba(255,255,255,.45) !important; }
+</style>
 </body>
 </html>
