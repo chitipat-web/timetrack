@@ -11081,7 +11081,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v325';
+const APP_VERSION = 'v326';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21478,5 +21478,19 @@ img.rb-ico3d{ display:block; pointer-events:none; -webkit-user-drag:none; }
   if(window.RB_ICONS) apply();
 })();
 </script>
+<style id="daysky-v326">
+/* v326: legibility on the bright daytime sky (Liquid Glass + sky keeps white
+   ink in every phase; on a light-blue sky the colored values and pale labels
+   washed out). Night is untouched. */
+body.sky.lg:not([data-sky="night"]) #app-shell{ text-shadow:0 1px 2px rgba(0,28,80,.32); }
+body.sky.lg:not([data-sky="night"]) #app-shell .hq-pay-amt,
+body.sky.lg:not([data-sky="night"]) #app-shell .ha-chip-value,
+body.sky.lg:not([data-sky="night"]) #app-shell .hi-header [style*="--green"],
+body.sky.lg:not([data-sky="night"]) #app-shell .mc2-ot-t{ text-shadow:0 1px 0 rgba(0,40,90,.45), 0 2px 8px rgba(0,30,80,.45); }
+body.sky.lg:not([data-sky="night"]) #app-shell .more-sec{ color:rgba(255,255,255,.9) !important; }
+body.sky.lg:not([data-sky="night"]) #app-shell .more-row.more-logout .more-row-lbl{ color:#FFE1DE !important; }
+body.sky.lg:not([data-sky="night"]) .nav-btn.active{ color:#fff !important; background:rgba(0,40,110,.28) !important; }
+body.sky.lg:not([data-sky="night"]) #app-shell img, body.sky.lg:not([data-sky="night"]) #app-shell svg{ text-shadow:none; }
+</style>
 </body>
 </html>
