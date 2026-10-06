@@ -11110,7 +11110,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v337';
+const APP_VERSION = 'v338';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21191,6 +21191,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
         h.position.set(0.12, 0.98, 0); h.rotation.z = -0.3; h.visible = false; head.add(h); return h; }
       ACC.nightcap = hat(stripeTex('#2F3FC8', '#5B6CF5', 8));
       ACC.party = hat(stripeTex('#FFC857', '#7444EE', 12), 0xFF4F9A);
+      ACC.santa = hat(stripeTex('#D62839', '#E23A4A', 2), 0xffffff);   // v338 Christmas
       // umbrella held in the left hand
       var u = new T.Group(), um = new T.MeshStandardMaterial({ map:stripeTex('#7444EE', '#5FEFFF', 8), roughness:0.45, side:T.DoubleSide, envMapIntensity:0.5 });
       var dome = new T.Mesh(new T.SphereGeometry(1.6, 32, 10, 0, Math.PI * 2, 0, Math.PI * 0.4), um); dome.scale.y = 0.6; dome.position.y = 2.75; u.add(dome);
@@ -21200,19 +21201,20 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       u.position.set(0, -0.15, 0.08); u.visible = false; arms[0].wr.add(u); ACC.umbrella = u;
     })();
     var uQ = new T.Quaternion(), uUp = new T.Quaternion(), uE = new T.Euler();
-    var accWant = { shades:false, scarf:false, nightcap:false, party:false, umbrella:false }, accChk = -99;
+    var accWant = { shades:false, scarf:false, nightcap:false, party:false, santa:false, umbrella:false }, accChk = -99;
     function accPick(){
       var b = document.body, wx = b.getAttribute('data-sky-wx') || '', ph = b.getAttribute('data-sky') || '', tp = parseFloat(b.getAttribute('data-sky-temp'));
       var n = (typeof _ilWall === 'function' ? _ilWall() : new Date()), md = (n.getMonth() + 1) * 100 + n.getDate(), hh = n.getHours();
-      var holiday = md === 1231 || md === 101 || (md >= 413 && md <= 415);   // New Year, Songkran
-      var w = { party:holiday, nightcap:!holiday && (hh >= 22 || hh < 4), umbrella:wx === 'rain' || wx === 'storm' };
+      var xmas = window.__fest ? window.__fest === 'xmas' : (md >= 1224 && md <= 1226);   // v338 Christmas → Santa hat
+      var holiday = !xmas && (window.__fest === 'newyear' || md === 1231 || md === 101 || (md >= 413 && md <= 415));   // New Year, Songkran
+      var w = { santa:xmas, party:holiday, nightcap:!holiday && !xmas && (hh >= 22 || hh < 4), umbrella:wx === 'rain' || wx === 'storm' };
       w.shades = !w.umbrella && !w.nightcap && ph === 'day' && (wx === 'clear' || wx === 'few' || wx === '');
       w.scarf = isFinite(tp) && tp < 14;
-      if(window.__rbAcc) w = Object.assign({ shades:false, scarf:false, nightcap:false, party:false, umbrella:false }, window.__rbAcc);   // testing override
+      if(window.__rbAcc) w = Object.assign({ shades:false, scarf:false, nightcap:false, party:false, santa:false, umbrella:false }, window.__rbAcc);   // testing override
       accWant = w;
       Object.keys(ACC).forEach(function(k){ ACC[k].visible = !!w[k]; });
-      ant.visible = !(w.party || w.nightcap);
-      var hat = w.party || w.nightcap; cam.position.z = w.umbrella ? 17.2 : hat ? 14.2 : 13.4; cam.lookAt(0, w.umbrella ? 0.8 : hat ? 0 : -0.2, 0);   // room for the umbrella / hat
+      ant.visible = !(w.party || w.nightcap || w.santa);
+      var hat = w.party || w.nightcap || w.santa; cam.position.z = w.umbrella ? 17.2 : hat ? 14.2 : 13.4; cam.lookAt(0, w.umbrella ? 0.8 : hat ? 0 : -0.2, 0);   // room for the umbrella / hat
     }
     function pose(t, dt, busy){
       sm.think += ((busy ? 1 : 0) - sm.think) * Math.min(1, dt * 3.5);
@@ -21990,6 +21992,128 @@ html body:not(.corp) #page-settings .card .btn-primary:not(#_):active{ transform
   };
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
   window.addEventListener('load', function(){ setTimeout(mark, 300); });
+})();
+</script>
+<style id="fest-v338">
+.fest-snow{ position:absolute; left:0; top:0; width:100%; height:calc(100% + 512px); pointer-events:none; background-repeat:repeat; will-change:transform; animation:festSnow linear infinite; }
+@keyframes festSnow{ from{ transform:translate3d(0,-512px,0); } to{ transform:translate3d(0,0,0); } }
+.fest-snowwrap{ inset:0; overflow:hidden; animation:festSway 7s ease-in-out infinite alternate; }
+@keyframes festSway{ from{ transform:translateX(-14px); } to{ transform:translateX(14px); } }
+.fest-fw{ left:0; top:0; width:100%; height:65%; }
+.fest-lan{ width:16px; height:20px; will-change:transform,opacity; }
+.fest-lan i{ position:absolute; inset:0; border-radius:42% 42% 30% 30% / 46% 46% 28% 28%;
+  background:radial-gradient(60% 55% at 50% 70%, #FFF3C4, #FFB347 55%, #E8641B); box-shadow:0 0 14px 4px rgba(255,160,60,.55), 0 0 30px 10px rgba(255,120,40,.22);
+  animation:festFlick 1.7s ease-in-out infinite alternate; }
+@keyframes festFlick{ from{ opacity:.82; } to{ opacity:1; } }
+@media (prefers-reduced-motion: reduce){ .fest-snow, .fest-snowwrap, .fest-lan i{ animation:none !important; } }
+</style>
+<script>
+// v338: festival skies — Christmas snow (Dec 24–26), New Year fireworks at
+// night (Dec 31 – Jan 1), Loy Krathong lanterns rising on its night. Only in
+// the sky themes, never in battery-saver / reduced-motion. Fireworks and
+// lanterns are created per burst and removed (no idle cost). The robot's
+// Santa / party hats live in the robot script. Test: window.__fest = 'xmas'.
+(function(){
+  'use strict';
+  // Loy Krathong (full moon of the 12th Thai lunar month) moves every year —
+  // listed explicitly, not computed. Add next years here.
+  var LOY = { 2026:'11-24' };
+  var st = { kind:'', snow:null, fwT:0, lanT:0 };
+  function now(){ return typeof _ilWall === 'function' ? _ilWall() : new Date(); }
+  function fest(){
+    if(window.__fest !== undefined) return window.__fest || '';
+    var n = now(), md = (n.getMonth() + 1) * 100 + n.getDate(), mmdd = ('0' + (n.getMonth() + 1)).slice(-2) + '-' + ('0' + n.getDate()).slice(-2);
+    if(md >= 1224 && md <= 1226) return 'xmas';
+    if(md === 1231 || md === 101) return 'newyear';
+    if(LOY[n.getFullYear()] === mmdd) return 'loy';
+    return '';
+  }
+  function ok(){ var b = document.body; return b && b.classList.contains('sky') && !document.hidden && !window.__rudyLite && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) && document.getElementById('sky-scene'); }
+  function dark(){ var p = document.body.getAttribute('data-sky'); return p === 'night' || p === 'dusk'; }
+  // ── snow ──
+  function snowTile(n, r0, r1, a0){
+    var c = document.createElement('canvas'); c.width = c.height = 512; var x = c.getContext('2d');
+    for(var i = 0; i < n; i++){ var px = Math.random() * 512, py = Math.random() * 512, r = r0 + Math.random() * (r1 - r0), g = x.createRadialGradient(px, py, 0, px, py, r);
+      g.addColorStop(0, 'rgba(255,255,255,' + (a0 + Math.random() * (1 - a0)).toFixed(2) + ')'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, Math.PI * 2); x.fill(); }
+    return c.toDataURL('image/png');
+  }
+  function snowOn(){
+    if(st.snow) return;
+    var sc = document.getElementById('sky-scene'), w = document.createElement('div'); w.className = 'fest-snowwrap';
+    [[60, 1.2, 2.6, .45, 26], [26, 2.6, 4.6, .6, 15]].forEach(function(L){ var d = document.createElement('div'); d.className = 'fest-snow';
+      d.style.backgroundImage = 'url(' + snowTile(L[0], L[1], L[2], L[3]) + ')'; d.style.backgroundSize = '512px 512px'; d.style.animationDuration = L[4] + 's'; w.appendChild(d); });
+    var after = sc.querySelector('.sky-starc'); sc.insertBefore(w, after ? after.nextSibling : null); st.snow = w;
+  }
+  function snowOff(){ if(st.snow){ try { st.snow.remove(); } catch(e){} st.snow = null; } }
+  // ── fireworks (one burst = one short-lived canvas) ──
+  var PAL = [['#FFD54A', '#FFF3B0'], ['#FF4F9A', '#FFC1DC'], ['#5FEFFF', '#D6FBFF'], ['#9B6BFF', '#E2D4FF'], ['#7CFF6B', '#E0FFD9'], ['#FF8A3D', '#FFD9BF']];
+  function burst(){
+    if(!ok() || !dark()) return;
+    var sc = document.getElementById('sky-scene'), c = document.createElement('canvas'); c.className = 'fest-fw';
+    var dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = Math.round(innerHeight * 0.65);
+    c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); sc.appendChild(c);
+    var x = c.getContext('2d'); x.scale(dpr, dpr);
+    var bx = W * (0.15 + Math.random() * 0.7), by = H * (0.18 + Math.random() * 0.35), col = PAL[Math.floor(Math.random() * PAL.length)];
+    var ps = [], N = 70 + Math.floor(Math.random() * 30), sp = 3.4 + Math.random() * 1.6;
+    for(var i = 0; i < N; i++){ var a = i / N * Math.PI * 2 + Math.random() * 0.1, v = sp * (0.65 + Math.random() * 0.45); ps.push({ x:bx, y:by, vx:Math.cos(a) * v, vy:Math.sin(a) * v, c:Math.random() < 0.25 ? col[1] : col[0] }); }
+    var t0 = performance.now(), rise = 650, life = 1700, ry = H + 10, DR = 0.965;
+    (function step(t){
+      var k = t - t0;
+      x.globalCompositeOperation = 'destination-out'; x.fillStyle = 'rgba(0,0,0,.22)'; x.fillRect(0, 0, W, H);
+      x.globalCompositeOperation = 'lighter';
+      if(k < rise){   // rocket trail going up
+        var q = k / rise, yy = ry + (by - ry) * (1 - Math.pow(1 - q, 2));
+        x.fillStyle = 'rgba(255,230,180,.9)'; x.beginPath(); x.arc(bx, yy, 1.8, 0, Math.PI * 2); x.fill();
+      } else {
+        // time-based (not per-frame) so the burst is the same size on slow and fast phones
+        var e = (k - rise) / life, al = Math.max(0, 1 - e * e), n = (k - rise) / 16.7, sp2 = (1 - Math.pow(DR, n)) / (1 - DR), fall = 0.012 * n * n;
+        ps.forEach(function(p){ var px = bx + p.vx * sp2, py = by + p.vy * sp2 + fall;
+          x.globalAlpha = al * (0.6 + Math.random() * 0.4); x.fillStyle = p.c; x.beginPath(); x.arc(px, py, 1.7, 0, Math.PI * 2); x.fill(); });
+        x.globalAlpha = 1;
+        if(e < 0.08){ x.fillStyle = 'rgba(255,255,255,' + (0.35 * (1 - e / 0.08)).toFixed(2) + ')'; x.beginPath(); x.arc(bx, by, 9, 0, Math.PI * 2); x.fill(); }
+      }
+      if(k < rise + life + 300 && c.isConnected) requestAnimationFrame(step); else try { c.remove(); } catch(_){}
+    })(t0);
+  }
+  window.__festBurst = burst;
+  // ── Loy Krathong lanterns ──
+  function lantern(pre){
+    if(!ok() || !dark()) return;
+    var sc = document.getElementById('sky-scene'); if(sc.querySelectorAll('.fest-lan').length > 9) return;
+    var e = document.createElement('div'); e.className = 'fest-lan'; e.innerHTML = '<i></i>';
+    if(!e.animate) return;
+    var W = innerWidth, H = innerHeight, z = 0.55 + Math.random() * 0.75, x0 = W * (0.05 + Math.random() * 0.9), drift = (Math.random() - 0.4) * W * 0.35, ms = (26000 + Math.random() * 12000) / z;
+    e.style.left = x0.toFixed(0) + 'px'; e.style.top = '0px'; e.style.opacity = '0';
+    sc.appendChild(e);
+    var a = e.animate([
+      { transform:'translate(0,' + (H + 30) + 'px) scale(' + z.toFixed(2) + ')', opacity:0 },
+      { opacity:Math.min(1, 0.55 + z * 0.4), offset:0.08 },
+      { transform:'translate(' + (drift * 0.5).toFixed(0) + 'px,' + (H * 0.45).toFixed(0) + 'px) scale(' + (z * 0.85).toFixed(2) + ')', offset:0.5 },
+      { opacity:Math.min(1, 0.45 + z * 0.4), offset:0.85 },
+      { transform:'translate(' + drift.toFixed(0) + 'px,-40px) scale(' + (z * 0.6).toFixed(2) + ')', opacity:0 }
+    ], { duration:ms, easing:'linear' });
+    var skip = pre ? ms * (0.15 + Math.random() * 0.55) : 0; if(skip) a.currentTime = skip;   // first batch already mid-sky
+    var gone = false; function rm(){ if(!gone){ gone = true; try { e.remove(); } catch(_){} } }
+    a.onfinish = rm; setTimeout(rm, ms - skip + 500);
+  }
+  window.__festLantern = lantern;
+  function loop(){
+    clearTimeout(st.fwT); clearTimeout(st.lanT);
+    if(st.kind === 'newyear') (function f(){ st.fwT = setTimeout(function(){ burst(); if(Math.random() < 0.35) setTimeout(burst, 250 + Math.random() * 500); f(); }, 2500 + Math.random() * 5000); })();
+    if(st.kind === 'loy') (function f(){ st.lanT = setTimeout(function(){ lantern(); f(); }, 3500 + Math.random() * 5000); })();
+  }
+  function update(){
+    try {
+      var k = fest(), on = ok();
+      if(k === 'xmas' && on) snowOn(); else snowOff();
+      if(k !== st.kind){ st.kind = k; st.pre = false; loop(); }
+      if(k === 'loy' && on && dark() && !st.pre){ st.pre = true; for(var i = 0; i < 6; i++) lantern(true); }   // open to a sky already full of lanterns
+    } catch(e){ console.warn('[fest]', e); }
+  }
+  window.__festUpdate = update;
+  document.addEventListener('visibilitychange', update);
+  function boot(){ setTimeout(update, 2500); setInterval(update, 60000); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
 <style id="wx-v337">
