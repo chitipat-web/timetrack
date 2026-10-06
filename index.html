@@ -6865,7 +6865,7 @@ function renderHome(){
     return `<div class="rec-item card-enter" style="animation-delay:${i*0.06}s">
       <div class="rec-num">${i+1}</div>
       <div class="rec-times">
-        <div class="rec-time">${r.checkIn} → ${r.checkOut||'...'}</div>
+        <div class="rec-time">${r.checkIn} → ${r.checkOut||'<span class="rec-now">ตอนนี้</span>'}</div>
         <div class="rec-badges">
           <span class="badge badge-green">${fmtHMt(hrs*60)}</span>
           ${r.isLate?'<span class="badge badge-red">⚠ สาย</span>':'<span class="badge badge-blue">✓ ตรงเวลา</span>'}
@@ -11110,7 +11110,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v338';
+const APP_VERSION = 'v339';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -22126,7 +22126,10 @@ html body:not(.corp) #page-settings .card .btn-primary:not(#_):active{ transform
 @keyframes wxFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-4px); } }
 .hq-wx-txt{ display:flex; flex-direction:column; min-width:0; }
 .hq-wx-lbl{ font-size:11.5px; font-weight:600; color:var(--text2, var(--ink-3)); }
-.hq-wx-t{ font-size:24px; font-weight:800; line-height:1.15; color:var(--ink); font-variant-numeric:tabular-nums; }
+.hq-wx-t{ font-size:24px; font-weight:800; line-height:1.15; color:var(--ink); font-variant-numeric:tabular-nums; white-space:nowrap; }
+#hq-wx-t2{ font-size:20px; }
+.hq-wx-s{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.hq-wx-ic{ width:52px; height:52px; }
 .hq-wx-s{ font-size:11.5px; color:var(--text3, var(--ink-4)); line-height:1.35; }
 .hq-wx-tip{ grid-column:1 / -1; font-size:13px; font-weight:600; line-height:1.45; padding:8px 11px; border-radius:12px; background:rgba(127,127,127,.12); color:var(--ink); }
 .hq-wx-tip:empty{ display:none; }
@@ -22167,7 +22170,7 @@ body.lite .hq-wx-ic img{ animation:none !important; }
       document.getElementById('hq-wx-s').textContent = DESC[k] + ' · ' + r0(today.max) + '°/' + r0(today.min) + '°';
       document.getElementById('hq-wx-ic2').innerHTML = ic(k2);
       document.getElementById('hq-wx-t2').textContent = r0(tom.max) + '°/' + r0(tom.min) + '°';
-      document.getElementById('hq-wx-s2').textContent = DESC[k2] + (tom.pop ? ' · โอกาสฝน ' + Math.round(tom.pop) + '%' : '');
+      document.getElementById('hq-wx-s2').textContent = DESC[k2] + (tom.pop >= 20 ? ' · ฝน ' + Math.round(tom.pop) + '%' : '');
       document.getElementById('hq-wx-tip').textContent = tip(tom, k2);
       card.style.display = '';
     } catch(e){ console.warn('[wx card]', e); }
@@ -22551,6 +22554,37 @@ body.lite .hq-wx-ic img{ animation:none !important; }
   document.addEventListener('keydown', function(e){ if(ov && ov.classList.contains('on')){ if(e.key === 'Escape') close(); else if(e.key === 'ArrowRight') go(cur + 1); else if(e.key === 'ArrowLeft') go(cur - 1); } });
 })();
 </script>
+<style id="polish-v339">
+/* v339 polish ─ 1) glass over a bright day / dawn / dusk sky: a thin navy
+   veil under every card (on top of the transparency-slider tint) + a soft
+   text shadow, so small grey text stays readable over white clouds. */
+body.lg.lg.lg.dark.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]){
+  --g-card:var(--g-sheen), linear-gradient(rgba(10,26,64,0.22), rgba(10,26,64,0.22)), linear-gradient(var(--g-tint), var(--g-tint));
+  --ink-3:rgba(244,246,250,0.88); --ink-4:rgba(244,246,250,0.74);
+}
+body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) #app-shell .page,
+body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) #app-shell .home-hero{ text-shadow:0 1px 2px rgba(0,22,60,0.30); }
+body.lg.lg.lg.sky #app-shell :is(.ha-week-val, .ha-week-val *, .hw-countdown-time, .dm-title, .wc-name-gradient, #wc-name){ text-shadow:none !important; }   /* gradient text: a shadow would show through the clear fill */
+body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) #ha-greet-name{ color:#fff !important; -webkit-text-fill-color:#fff !important; text-shadow:0 1px 10px rgba(120,190,255,0.75), 0 1px 2px rgba(0,22,60,0.35); }
+body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .more-sec,
+body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .section-title{ color:rgba(255,255,255,0.92) !important; text-shadow:0 1px 3px rgba(0,22,60,0.45); }
+/* 2) toasts: compact dark glass with a coloured edge, above the tab bar */
+html body #toast.toast{ bottom:calc(env(safe-area-inset-bottom,0px) + 104px); max-width:min(360px, calc(100vw - 40px)); width:max-content;
+  padding:11px 16px 11px 18px; border-radius:18px; font-size:14px; font-weight:600; line-height:1.4; text-align:left;
+  background:rgba(22,24,40,0.86) !important; color:#fff !important; border:1px solid rgba(255,255,255,0.14) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(1.5); backdrop-filter:blur(18px) saturate(1.5);
+  box-shadow:inset 4px 0 0 var(--t-c, #8E9BFF), 0 12px 32px rgba(0,0,0,0.32) !important; }
+html body #toast.toast.success{ --t-c:#34D173; } html body #toast.toast.error{ --t-c:#FF6159; } html body #toast.toast.warning{ --t-c:#FFA53D; }
+/* 3) today's open session: live "ตอนนี้" + numbered chip */
+.rec-now{ color:var(--sys-green, #1FA35A); font-weight:700; }
+.rec-now::before{ content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:currentColor; margin:0 5px 1px 0; vertical-align:middle; animation:recNow 1.6s ease-in-out infinite; }
+@keyframes recNow{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.35; transform:scale(.7); } }
+#today-list .rec-times{ flex:1; min-width:0; align-items:center; flex-wrap:wrap; row-gap:4px; }
+#today-list .rec-time{ white-space:nowrap; }
+#today-list .rec-num{ min-width:22px; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:none;
+  background:rgba(127,127,127,0.16); color:var(--ink-3); font-size:11px; font-weight:700; }
+@media (prefers-reduced-motion: reduce){ .rec-now::before{ animation:none; } }
+</style>
 <script>
 // v332: long-press the AI robot for a trick (dance / spin / giggle). A normal
 // tap still opens the assistant; only the click right after a long-press is
