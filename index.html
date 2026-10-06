@@ -11098,7 +11098,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v332';
+const APP_VERSION = 'v333';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18680,6 +18680,17 @@ body.sky-gl .sky-moonc{ display:block; }
 .sky-ltglow{ inset:0; display:none; opacity:0; mix-blend-mode:screen; }
 #ltn-veil{ position:fixed; inset:0; z-index:60; pointer-events:none; opacity:0; display:none; background:radial-gradient(120% 80% at 50% 10%, rgba(210,225,255,.9), rgba(180,200,255,.35) 60%, rgba(160,180,255,.15)); mix-blend-mode:screen; }
 body.sky-gl .sky-dropc{ display:block; }
+/* v333: night shooting stars + dawn/dusk birds and golden light. Stars and
+   birds are created per event and removed when done (no idle cost). */
+.sky-shoot{ width:130px; height:2px; border-radius:2px; transform-origin:100% 50%; opacity:0; will-change:transform,opacity;
+  background:linear-gradient(90deg, rgba(255,255,255,0), rgba(190,215,255,.35) 55%, rgba(255,255,255,.95)); }
+.sky-shoot::after{ content:''; position:absolute; right:-2px; top:-2px; width:6px; height:6px; border-radius:50%; background:#fff; box-shadow:0 0 8px 3px rgba(200,225,255,.85); }
+.sky-birds{ top:0; left:0; width:0; height:0; will-change:transform; }
+.sky-birds i{ position:absolute; display:block; }
+.sky-birds svg{ display:block; transform-origin:50% 60%; animation:skyFlap .62s ease-in-out infinite; }
+@keyframes skyFlap{ 0%,100%{ transform:scaleY(1) } 50%{ transform:scaleY(-.45) } }
+.sky-gold{ inset:0; display:none; opacity:0; transition:opacity 2s; }
+body.sky-gl .sky-gold.on{ display:block; }
 body.sky-gl .sky-starc{ display:block; }
 /* v261: Liquid Glass (Phase D, opt-in) paints a fixed canvas at the same z-index,
    appended later in the DOM, so it would cover the sky. Sky mode wins. */
@@ -19454,6 +19465,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       parts.ltglow = el('sky-ltglow'); scene.insertBefore(parts.ltglow, parts.starc);
       parts.boltc = document.createElement('canvas'); parts.boltc.className = 'sky-boltc'; scene.insertBefore(parts.boltc, parts.starc);
       parts.moonc = document.createElement('canvas'); parts.moonc.className = 'sky-moonc'; scene.appendChild(parts.moonc);
+      parts.gold = el('sky-gold'); scene.insertBefore(parts.gold, parts.starc);
       parts.clouds = [];
       var cfg = [[9,95,-35],[27,140,-95],[40,115,-20],[17,170,-140]];  // top vh, seconds, start offset
       cfg.forEach(function(c){ var d = el('sky-cloud'); d.style.top = c[0]+'vh'; d.style.animationDuration = c[1]+'s'; d.style.animationDelay = c[2]+'s'; parts.clouds.push(d); });
@@ -19736,6 +19748,67 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       if(!GL.st || !GL.st.storm) return;
       LT.timer = setTimeout(function(){ ltStrike(); ltSchedule(); }, 3000 + Math.random() * 9000);
     }
+    // v333: shooting stars (clear nights) and a small flock of birds (dawn/dusk)
+    var FX = { shoot:0, bird:0 };
+    function fxOk(){ return GL.ok && GL.st && scene && !document.hidden && !window.__rudyLite && !GL.st.still && document.body.classList.contains('sky'); }
+    function fxDone(e, a, ms){ var gone = false; function rm(){ if(!gone){ gone = true; try { e.remove(); } catch(_){} } } if(a) a.onfinish = rm; setTimeout(rm, ms + 400); }
+    function shootStar(){
+      if(!fxOk() || !(GL.st.stars > 0.3)) return;
+      var e = document.createElement('div'); e.className = 'sky-shoot';
+      if(!e.animate) return;
+      var W = innerWidth, H = innerHeight, dir = Math.random() < 0.5 ? -1 : 1;
+      var ang = (16 + Math.random() * 22) * Math.PI / 180, len = Math.min(W * 0.75, 170 + Math.random() * 150);
+      var x0 = W * (dir > 0 ? 0.02 + Math.random() * 0.45 : 0.5 + Math.random() * 0.45) - 130, y0 = H * (0.04 + Math.random() * 0.24);
+      var dx = Math.cos(ang) * len * dir, dy = Math.sin(ang) * len, deg = (Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1), ms = 800 + Math.random() * 600;
+      e.style.left = x0.toFixed(0) + 'px'; e.style.top = y0.toFixed(0) + 'px';
+      scene.appendChild(e);
+      var a = e.animate([
+        { transform:'translate(0,0) rotate(' + deg + 'deg) scaleX(.15)', opacity:0 },
+        { transform:'translate(' + (dx * .15).toFixed(1) + 'px,' + (dy * .15).toFixed(1) + 'px) rotate(' + deg + 'deg) scaleX(.8)', opacity:1, offset:.15 },
+        { transform:'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) rotate(' + deg + 'deg) scaleX(.5)', opacity:0 }
+      ], { duration:ms, easing:'cubic-bezier(.25,.1,.5,1)' });
+      fxDone(e, a, ms);
+    }
+    window.__skyShoot = shootStar;   // manual trigger (testing / demo)
+    function birds(){
+      if(!fxOk() || !GL.st.low || GL.st.rain > 0) return;
+      var g = document.createElement('div'); g.className = 'sky-birds';
+      if(!g.animate) return;
+      var W = innerWidth, H = innerHeight, dir = Math.random() < 0.5 ? -1 : 1, n = 3 + Math.floor(Math.random() * 4), html = '';
+      var col = GL.st.ph === 'dusk' ? 'rgba(52,30,58,.62)' : 'rgba(58,40,70,.55)';
+      for(var i = 0; i < n; i++){   // loose V: leader in front, the rest trail on alternating sides
+        var rank = Math.ceil(i / 2), side = i % 2 ? 1 : -1, sz = 18 + Math.random() * 7;
+        html += '<i style="left:' + (-rank * 32 - Math.random() * 7).toFixed(0) + 'px;top:' + (side * rank * 15 + Math.random() * 6).toFixed(0) + 'px">'
+          + '<svg viewBox="0 0 24 10" width="' + sz.toFixed(0) + '" height="' + (sz * 0.42).toFixed(0) + '" style="animation-duration:' + (0.5 + Math.random() * 0.25).toFixed(2) + 's;animation-delay:-' + Math.random().toFixed(2) + 's">'
+          + '<path d="M1 3.5 Q6.5 0 12 6.5 Q17.5 0 23 3.5" fill="none" stroke="' + col + '" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></i>';
+      }
+      g.innerHTML = html;
+      var y0 = H * (0.1 + Math.random() * 0.2), x0 = dir > 0 ? -40 : W + 170, dist = W + 260, ms = 15000 + Math.random() * 7000;
+      g.style.left = x0 + 'px'; g.style.top = y0.toFixed(0) + 'px';
+      scene.insertBefore(g, parts.starc);
+      var fl = dir > 0 ? '' : ' scaleX(-1)';
+      var a = g.animate([
+        { transform:'translate(0,0)' + fl },
+        { transform:'translate(' + (dir * dist * .5).toFixed(0) + 'px,' + (-H * .03).toFixed(0) + 'px)' + fl },
+        { transform:'translate(' + (dir * dist).toFixed(0) + 'px,' + (-H * .07).toFixed(0) + 'px)' + fl }
+      ], { duration:ms, easing:'linear' });
+      fxDone(g, a, ms);
+    }
+    window.__skyBirds = birds;
+    function fxSchedule(){
+      clearTimeout(FX.shoot); clearTimeout(FX.bird);
+      if(!GL.st) return;
+      if(GL.st.stars > 0.3) (function loop(){ FX.shoot = setTimeout(function(){ shootStar(); if(Math.random() < 0.15) setTimeout(shootStar, 300 + Math.random() * 500); loop(); }, 6000 + Math.random() * 14000); })();
+      if(GL.st.low && !GL.st.rain) (function loop(first){ FX.bird = setTimeout(function(){ birds(); loop(false); }, first ? 4000 + Math.random() * 5000 : 22000 + Math.random() * 30000); })(true);
+    }
+    function goldSet(){
+      if(!parts.gold || !GL.st) return;
+      var on = GL.st.low && GL.st.sun >= 0.75, x = GL.st.ph === 'dusk' ? 80 : 20;
+      if(on) parts.gold.style.background = 'radial-gradient(85% 55% at ' + x + '% 100%, rgba(255,186,98,.42), rgba(255,150,92,.16) 45%, rgba(255,140,90,0) 75%),'
+        + 'radial-gradient(60% 40% at ' + x + '% 100%, rgba(255,226,170,.22), rgba(255,226,170,0) 70%)';
+      parts.gold.classList.toggle('on', on);
+      parts.gold.style.opacity = on ? '1' : '0';
+    }
     function glInit(){
       if(GL.ok || GL.dead) return GL.ok;
       try {
@@ -19831,12 +19904,13 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         stars: night && !wet ? Math.max(0, 1 - (COVER[kind]||0)*.6) : 0,
         moon: night ? (wet || kind === 'overcast' ? 0 : 1) : 0,
         rain: wet ? (kind === 'storm' ? 1 : .8) : 0,
-        phase: moonPhase(), still: !!mq, storm: kind === 'storm'
+        phase: moonPhase(), still: !!mq, storm: kind === 'storm', low: low, ph: ph
       };
       document.body.classList.add('sky-gl');
       try { if(parts.moonc){ drawMoon(parts.moonc, GL.st.phase); parts.moonc.style.opacity = String(GL.st.moon); } } catch(_){}
       try { if(parts.starc){ if(GL.st.stars > 0) drawStars(parts.starc); parts.starc.style.opacity = String(GL.st.stars); } } catch(_){}
       try { ltSchedule(); } catch(_){}
+      try { fxSchedule(); goldSet(); } catch(_){}
       try { if(parts.dropc){ if(GL.st.rain > 0 && !window.__rudyLite) drawDrops(parts.dropc); parts.dropc.style.opacity = GL.st.rain > 0 ? '1' : '0'; } } catch(_){}
       glKick();
     }
