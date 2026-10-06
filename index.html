@@ -3834,6 +3834,12 @@ body.dark .slide-action{
       <span class="hq-pay-txt"><span class="hq-pay-lbl" id="hq-pay-lbl">ค่าแรงเดือนนี้ (ประมาณ)</span><span class="hq-pay-amt" id="hq-pay-amt">₪0</span><span class="hq-pay-sub" id="hq-pay-sub">—</span></span>
       <span class="hq-pay-chev">›</span>
     </button>
+    <!-- v337: weather now + tomorrow (3D icons, Open-Meteo forecast) -->
+    <div class="card home-a-card hq-wx" id="hq-wx" style="display:none">
+      <div class="hq-wx-col"><span class="hq-wx-ic" id="hq-wx-ic"></span><span class="hq-wx-txt"><span class="hq-wx-lbl">ตอนนี้ · Tsofar</span><span class="hq-wx-t" id="hq-wx-t">--°</span><span class="hq-wx-s" id="hq-wx-s"></span></span></div>
+      <div class="hq-wx-col hq-wx-tom"><span class="hq-wx-ic" id="hq-wx-ic2"></span><span class="hq-wx-txt"><span class="hq-wx-lbl">พรุ่งนี้</span><span class="hq-wx-t" id="hq-wx-t2">--°</span><span class="hq-wx-s" id="hq-wx-s2"></span></span></div>
+      <div class="hq-wx-tip" id="hq-wx-tip"></div>
+    </div>
     <div id="hw-container" style="display:flex;flex-direction:column;gap:10px;margin:14px 0"></div>
     <div class="card home-a-card">
       <div class="section-title">บันทึกเวลาวันนี้</div>
@@ -11104,7 +11110,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v336';
+const APP_VERSION = 'v337';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19998,7 +20004,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       var wx = readWx(), today = israelNow().date;
       if(!force && wx && wx.date === today && (Date.now() - wx.ts) < WX_TTL) return;
       var url = 'https://api.open-meteo.com/v1/forecast?latitude='+LAT+'&longitude='+LON+
-        '&current=weather_code,is_day,cloud_cover,temperature_2m&daily=sunrise,sunset&timezone=Asia%2FJerusalem&forecast_days=1';
+        '&current=weather_code,is_day,cloud_cover,temperature_2m&daily=sunrise,sunset,weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FJerusalem&forecast_days=2';
       fetch(url, { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
         if(!j || !j.daily) return;
         var rec = {
@@ -20009,9 +20015,12 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
           code: j.current ? j.current.weather_code : null,
           isDay: j.current ? j.current.is_day : null,
           cloud: j.current ? j.current.cloud_cover : null,
-          temp: j.current ? j.current.temperature_2m : null
+          temp: j.current ? j.current.temperature_2m : null,
+          days: [0, 1].map(function(i){ var d = j.daily, g = function(k){ return d[k] && d[k][i] != null ? d[k][i] : null; };   // v337 today + tomorrow
+            return { date:g('time'), code:g('weather_code'), max:g('temperature_2m_max'), min:g('temperature_2m_min'), pop:g('precipitation_probability_max') }; })
         };
         try { localStorage.setItem(WX_KEY, JSON.stringify(rec)); } catch(e){}
+        try { window.dispatchEvent(new Event('rudywx')); } catch(e){}
         if(skyBg()) paint();
       }).catch(function(){ /* offline: keep last cached / fallback times */ });
     }
@@ -20022,6 +20031,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
     };
     window.skyApply = apply;
+    window.__wx = { read:readWx, kind:wxKind, fetch:fetchWx };   // v337: home weather card
     // v280: keep the corporate status-bar colour in step with light/dark
     if(typeof window.toggleDark === 'function' && !window._corpOrigToggleDark){
       window._corpOrigToggleDark = window.toggleDark;
@@ -21385,6 +21395,44 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       var plate = new T.Mesh(new T.BoxGeometry(0.42, 0.1, 0.02), gold); plate.position.set(0, -0.56, 0.32); tr.add(plate);
       [-1, 1].forEach(function(sd){ var h = new T.Mesh(new T.TorusGeometry(0.22, 0.045, 10, 24, Math.PI), gold); h.position.set(sd * 0.6, 0.62, 0); h.rotation.z = sd > 0 ? -Math.PI / 2 : Math.PI / 2; tr.add(h); });
       tr.rotation.y = -0.3; tr.position.y = 0.05; shot('trophy', tr);
+      // v337: weather icons (home weather card)
+      try {
+        var cloudM = new T.MeshPhysicalMaterial({ color:0xF4F6FF, roughness:0.45, clearcoat:0.6, envMapIntensity:0.7 });
+        var greyM = new T.MeshPhysicalMaterial({ color:0xA9B3C9, roughness:0.5, clearcoat:0.4, envMapIntensity:0.6 });
+        var darkM = new T.MeshPhysicalMaterial({ color:0x5D6782, roughness:0.5, clearcoat:0.4, envMapIntensity:0.5 });
+        var sunM = new T.MeshStandardMaterial({ color:0xFFC21A, emissive:0xFF8A00, emissiveIntensity:0.55, roughness:0.35, metalness:0.1 });
+        var rayM = new T.MeshStandardMaterial({ color:0xFFB000, emissive:0xFF7A00, emissiveIntensity:0.5, roughness:0.4 });
+        var dropM = new T.MeshPhysicalMaterial({ color:0x3EA8FF, emissive:0x0F5FB0, emissiveIntensity:0.3, roughness:0.08, clearcoat:1, envMapIntensity:1.1 });
+        var boltM = new T.MeshStandardMaterial({ color:0xFFD43B, emissive:0xFFA000, emissiveIntensity:0.7, roughness:0.3 });
+        var moonM = new T.MeshStandardMaterial({ color:0xFFF1B8, emissive:0xC9A23A, emissiveIntensity:0.35, roughness:0.45 });
+        var cloud = function(m, sc){ var g = new T.Group();
+          [[-0.5, -0.08, 0.5], [0.05, 0.18, 0.66], [0.6, -0.06, 0.48], [0.05, -0.22, 0.52], [-0.22, 0.02, 0.5]].forEach(function(q){ var b = new T.Mesh(new T.SphereGeometry(q[2], 28, 20), m); b.position.set(q[0], q[1], 0); b.scale.z = 0.8; g.add(b); });
+          g.scale.setScalar(sc || 1); return g; };
+        var sun = function(sc){ var g = new T.Group(); g.add(new T.Mesh(new T.SphereGeometry(0.56, 32, 24), sunM));
+          for(var i = 0; i < 10; i++){ var a = i / 10 * Math.PI * 2, r = new T.Mesh(new T.ConeGeometry(0.1, 0.32, 12), rayM); r.position.set(Math.cos(a) * 0.86, Math.sin(a) * 0.86, 0); r.rotation.z = a - Math.PI / 2; g.add(r); }
+          g.scale.setScalar(sc || 1); return g; };
+        var drops = function(){ var g = new T.Group(); [[-0.45, -0.85], [0.05, -1.05], [0.52, -0.82]].forEach(function(q){ var d = new T.Mesh(new T.SphereGeometry(0.12, 16, 12), dropM); d.scale.set(1, 1.7, 1); d.position.set(q[0], q[1], 0.15); d.rotation.z = 0.25; g.add(d); }); return g; };
+        var bolt = function(){ var sh = new T.Shape(); [[0.12, 0.5], [-0.22, -0.05], [0.0, -0.05], [-0.16, -0.55], [0.26, 0.08], [0.04, 0.08], [0.2, 0.5]].forEach(function(q, i){ if(i) sh.lineTo(q[0], q[1]); else sh.moveTo(q[0], q[1]); });
+          var m = new T.Mesh(new T.ExtrudeGeometry(sh, { depth:0.12, bevelEnabled:true, bevelThickness:0.03, bevelSize:0.03, bevelSegments:2 }), boltM); m.position.set(0, -0.78, 0.2); m.scale.setScalar(1.15); return m; };
+        var moon = function(){ var c1 = [0, 0, 0.7], c2 = [0.36, 0.14, 0.6], a = Math.atan2(c2[1], c2[0]) + Math.PI, pts = [], i, th, x, y;
+          for(i = -90; i <= 90; i++){ th = a + i / 90 * Math.PI; x = Math.cos(th) * c1[2]; y = Math.sin(th) * c1[2]; if(Math.hypot(x - c2[0], y - c2[1]) > c2[2]) pts.push(new T.Vector2(x, y)); }
+          for(i = 90; i >= -90; i--){ th = a + i / 90 * Math.PI; x = c2[0] + Math.cos(th) * c2[2]; y = c2[1] + Math.sin(th) * c2[2]; if(Math.hypot(x, y) < c1[2]) pts.push(new T.Vector2(x, y)); }
+          var m = new T.Mesh(new T.ExtrudeGeometry(new T.Shape(pts), { depth:0.22, bevelEnabled:true, bevelThickness:0.07, bevelSize:0.06, bevelSegments:4, curveSegments:24 }), moonM);
+          var g = new T.Group(); m.position.z = -0.11; g.add(m);
+          [[0.62, 0.55, 0.09], [0.85, -0.1, 0.06], [0.35, 0.85, 0.05]].forEach(function(q){ var st2 = new T.Mesh(new T.OctahedronGeometry(q[2]), moonM); st2.position.set(q[0], q[1], 0.1); g.add(st2); });
+          return g; };
+        var W3 = {};
+        W3.clear = function(){ var g = sun(1.05); return g; };
+        W3.night = function(){ var g = moon(); g.rotation.z = -0.25; return g; };
+        W3.few = function(){ var g = new T.Group(), s1 = sun(0.9); s1.position.set(-0.35, 0.32, -0.3); g.add(s1); var c = cloud(cloudM, 0.72); c.position.set(0.3, -0.3, 0.3); g.add(c); return g; };
+        W3.cloudy = function(){ var g = new T.Group(), s1 = sun(0.7); s1.position.set(-0.5, 0.5, -0.4); g.add(s1); var c = cloud(cloudM, 1.0); c.position.set(0.1, -0.1, 0.2); g.add(c); return g; };
+        W3.overcast = function(){ var g = new T.Group(), c0 = cloud(greyM, 0.85); c0.position.set(-0.35, 0.35, -0.3); g.add(c0); var c = cloud(cloudM, 1.0); c.position.set(0.15, -0.15, 0.2); g.add(c); return g; };
+        W3.fog = function(){ var g = new T.Group(), c = cloud(cloudM, 0.9); c.position.y = 0.25; g.add(c);
+          [[-0.15, -0.55, 1.5], [0.15, -0.82, 1.3], [-0.05, -1.08, 1.1]].forEach(function(q){ var b = new T.Mesh(roundedBox(q[2], 0.13, 0.13, 0.06, 0.03), greyM); b.position.set(q[0], q[1], 0.25); g.add(b); }); return g; };
+        W3.rain = function(){ var g = new T.Group(), c = cloud(greyM, 1.0); c.position.y = 0.3; g.add(c); var d = drops(); d.position.y = 0.3; g.add(d); return g; };
+        W3.storm = function(){ var g = new T.Group(), c = cloud(darkM, 1.0); c.position.y = 0.3; g.add(c); var b = bolt(); b.position.y += 0.3; g.add(b); return g; };
+        Object.keys(W3).forEach(function(k){ var o = W3[k](); o.rotation.x += 0.12; o.rotation.y = -0.15; shot('wx_' + k, o); });
+      } catch(e){ console.warn('[3D icons] weather', e); }
       // v334: achievement medals (one per ACH_DEFS entry: tier metal + embossed face + ribbon)
       try {
         var TIER = {
@@ -21942,6 +21990,74 @@ html body:not(.corp) #page-settings .card .btn-primary:not(#_):active{ transform
   };
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
   window.addEventListener('load', function(){ setTimeout(mark, 300); });
+})();
+</script>
+<style id="wx-v337">
+.hq-wx{ display:grid; grid-template-columns:1fr 1fr; gap:10px 8px; margin:14px 0 0 !important; padding:14px 14px 12px !important; color:var(--ink); }
+.hq-wx-col{ display:flex; align-items:center; gap:8px; min-width:0; }
+.hq-wx-tom{ border-left:1px solid rgba(127,127,127,.22); padding-left:10px; }
+.hq-wx-ic{ width:58px; height:58px; flex:none; display:flex; align-items:center; justify-content:center; font-size:38px; }
+.hq-wx-ic img{ width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 6px 10px rgba(0,0,0,.22)); }
+.hq-wx-col:first-child .hq-wx-ic img{ animation:wxFloat 4s ease-in-out infinite; }
+@keyframes wxFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-4px); } }
+.hq-wx-txt{ display:flex; flex-direction:column; min-width:0; }
+.hq-wx-lbl{ font-size:11.5px; font-weight:600; color:var(--text2, var(--ink-3)); }
+.hq-wx-t{ font-size:24px; font-weight:800; line-height:1.15; color:var(--ink); font-variant-numeric:tabular-nums; }
+.hq-wx-s{ font-size:11.5px; color:var(--text3, var(--ink-4)); line-height:1.35; }
+.hq-wx-tip{ grid-column:1 / -1; font-size:13px; font-weight:600; line-height:1.45; padding:8px 11px; border-radius:12px; background:rgba(127,127,127,.12); color:var(--ink); }
+.hq-wx-tip:empty{ display:none; }
+@media (prefers-reduced-motion: reduce){ .hq-wx-col:first-child .hq-wx-ic img{ animation:none; } }
+body.lite .hq-wx-ic img{ animation:none !important; }
+</style>
+<script>
+// v337: home weather card — now + tomorrow with baked 3D icons and a tip for
+// the next work morning (rain, heat, cold). Data from the sky's Open-Meteo
+// fetch (cached 30 min), so no extra requests.
+(function(){
+  'use strict';
+  var DESC = { clear:'ท้องฟ้าแจ่มใส', few:'มีเมฆบางส่วน', cloudy:'เมฆเป็นส่วนมาก', overcast:'ครึ้มฟ้า', fog:'มีหมอก', rain:'ฝนตก', storm:'พายุฝนฟ้าคะนอง', night:'ท้องฟ้าโปร่ง' };
+  var EMO = { clear:'☀️', few:'🌤', cloudy:'⛅', overcast:'☁️', fog:'🌫', rain:'🌧', storm:'⛈', night:'🌙' };
+  function ic(k){ var I = window.RB_ICONS; return I && I['wx_' + k] ? '<img src="' + I['wx_' + k] + '" alt="">' : EMO[k] || '☀️'; }
+  function r0(v){ return v == null || !isFinite(v) ? '--' : String(Math.round(v)); }
+  function tip(t, k){
+    if(!t) return '';
+    var mx = t.max, mn = t.min, pop = t.pop || 0;
+    if(k === 'storm') return '⛈ พรุ่งนี้อาจมีพายุฝนฟ้าคะนอง — ระวังตอนทำงานกลางแจ้ง';
+    if(k === 'rain' || pop >= 50) return '☔ พรุ่งนี้มีโอกาสฝน ' + Math.round(pop) + '% — พกร่มไปด้วยนะ';
+    if(mx != null && mx >= 38) return '🥵 พรุ่งนี้ร้อนจัด ' + r0(mx) + '° — เตรียมน้ำเยอะๆ และหมวกกันแดด';
+    if(mx != null && mx >= 33) return '💧 พรุ่งนี้ร้อน ' + r0(mx) + '° — ดื่มน้ำบ่อยๆ ระหว่างวัน';
+    if(mn != null && mn <= 8) return '🧥 เช้าพรุ่งนี้หนาว ' + r0(mn) + '° — ใส่เสื้อกันหนาวตอนเข้างาน';
+    if(mn != null && mn <= 13) return '🧣 เช้าพรุ่งนี้เย็น ' + r0(mn) + '° — มีเสื้อคลุมติดไปสักตัว';
+    return '👍 พรุ่งนี้อากาศดี เหมาะกับการทำงาน';
+  }
+  function render(){
+    try {
+      var card = document.getElementById('hq-wx'), W = window.__wx; if(!card || !W) return;
+      var wx = W.read();
+      if(!wx || !wx.days || !wx.days[1]){ card.style.display = 'none'; return; }
+      var today = wx.days[0] || {}, tom = wx.days[1];
+      var k = W.kind(wx.code); if(wx.isDay === 0 && (k === 'clear' || k === 'few')) k = 'night';
+      var k2 = W.kind(tom.code);
+      document.getElementById('hq-wx-ic').innerHTML = ic(k);
+      document.getElementById('hq-wx-t').textContent = r0(wx.temp) + '°';
+      document.getElementById('hq-wx-s').textContent = DESC[k] + ' · ' + r0(today.max) + '°/' + r0(today.min) + '°';
+      document.getElementById('hq-wx-ic2').innerHTML = ic(k2);
+      document.getElementById('hq-wx-t2').textContent = r0(tom.max) + '°/' + r0(tom.min) + '°';
+      document.getElementById('hq-wx-s2').textContent = DESC[k2] + (tom.pop ? ' · โอกาสฝน ' + Math.round(tom.pop) + '%' : '');
+      document.getElementById('hq-wx-tip').textContent = tip(tom, k2);
+      card.style.display = '';
+    } catch(e){ console.warn('[wx card]', e); }
+  }
+  function refresh(){
+    try { var W = window.__wx; if(!W) return; var wx = W.read(); W.fetch(!wx || !wx.days); } catch(e){}
+    render();
+  }
+  window.hqWxRender = render;
+  window.addEventListener('rudywx', render);
+  window.addEventListener('rbicons', render);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) refresh(); });
+  function boot(){ setTimeout(refresh, 1500); setInterval(refresh, 10 * 60 * 1000); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
 <style id="ach-v334">
