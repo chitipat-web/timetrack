@@ -4521,6 +4521,9 @@ body.dark .slide-action{
         <span class="more-row-ic mi mi-gray"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span><span class="more-row-lbl">ตั้งค่า</span><span class="more-row-chev">›</span>
       </button>
     </div>
+    <!-- v334: achievements showcase (filled by the achievements script) -->
+    <div class="more-sec">เหรียญรางวัล <span id="ach-count"></span></div>
+    <div class="card ach-card" id="ach-grid"></div>
     <!-- v291: shortcuts that used to be hard to find -->
     <div class="more-sec">ทางลัด</div>
     <div class="card" style="padding:6px 0">
@@ -11098,7 +11101,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v333';
+const APP_VERSION = 'v334';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21325,6 +21328,37 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       var plate = new T.Mesh(new T.BoxGeometry(0.42, 0.1, 0.02), gold); plate.position.set(0, -0.56, 0.32); tr.add(plate);
       [-1, 1].forEach(function(sd){ var h = new T.Mesh(new T.TorusGeometry(0.22, 0.045, 10, 24, Math.PI), gold); h.position.set(sd * 0.6, 0.62, 0); h.rotation.z = sd > 0 ? -Math.PI / 2 : Math.PI / 2; tr.add(h); });
       tr.rotation.y = -0.3; tr.position.y = 0.05; shot('trophy', tr);
+      // v334: achievement medals (one per ACH_DEFS entry: tier metal + embossed face + ribbon)
+      try {
+        var TIER = {
+          bronze:{ c:0xC77B3A, e:0x3A1A00, f:['#F6C08E', '#B0652A'], t:'#6E3A12', r:['#2BA88C', '#8EE3C9'] },
+          silver:{ c:0xD5DCE8, e:0x1A1E26, f:['#FFFFFF', '#A9B4C6'], t:'#566176', r:['#E5427F', '#FFB3CF'] },
+          gold:  { c:0xFFB81C, e:0x4A2E00, f:['#FFE58A', '#D9A21E'], t:'#8E6200', r:['#3B5BDB', '#8FB0FF'] },
+          purple:{ c:0x9B6BFF, e:0x24104F, f:['#E2D4FF', '#7B4BE0'], t:'#3A1A86', r:['#FFC857', '#FFF0B8'] }
+        };
+        (window.ACH_DEFS || []).forEach(function(d){
+          var tr2 = TIER[d.tier] || TIER.gold;
+          var mc = document.createElement('canvas'); mc.width = mc.height = 256; var mx = mc.getContext('2d');
+          var mg = mx.createRadialGradient(96, 84, 16, 128, 128, 150); mg.addColorStop(0, tr2.f[0]); mg.addColorStop(1, tr2.f[1]); mx.fillStyle = mg; mx.fillRect(0, 0, 256, 256);
+          mx.strokeStyle = 'rgba(0,0,0,0.18)'; mx.lineWidth = 8; mx.beginPath(); mx.arc(128, 128, 108, 0, Math.PI * 2); mx.stroke();
+          mx.strokeStyle = 'rgba(255,255,255,0.35)'; mx.lineWidth = 3; mx.beginPath(); mx.arc(128, 128, 96, 0, Math.PI * 2); mx.stroke();
+          mx.textAlign = 'center'; mx.textBaseline = 'middle';
+          var fs = d.big.length >= 3 ? 92 : d.big.length === 2 ? 112 : 130;
+          mx.font = '800 ' + fs + 'px -apple-system, "SF Pro Display", Arial, sans-serif';
+          mx.fillStyle = 'rgba(255,255,255,0.55)'; mx.fillText(d.big, 131, 116); mx.fillStyle = tr2.t; mx.fillText(d.big, 128, 112);
+          mx.font = '700 30px -apple-system, "Noto Sans Thai", Tahoma, sans-serif'; mx.fillStyle = tr2.t; mx.fillText(d.small, 128, 186);
+          var mt = new T.CanvasTexture(mc); mt.encoding = T.sRGBEncoding; mt.center.set(0.5, 0.5); mt.rotation = Math.PI / 2;
+          var metal = new T.MeshStandardMaterial({ color:tr2.c, emissive:tr2.e, emissiveIntensity:0.35, metalness:0.85, roughness:0.26, envMapIntensity:1.0 });
+          var face = new T.MeshStandardMaterial({ map:mt, metalness:0.55, roughness:0.3, emissive:tr2.e, emissiveIntensity:0.2, envMapIntensity:1.1 });
+          var md = new T.Group();
+          var disc = new T.Mesh(new T.CylinderGeometry(0.78, 0.78, 0.16, 64), [metal, face, face]); disc.rotation.set(Math.PI / 2 - 0.22, 0, 0); disc.position.y = -0.32; md.add(disc);
+          var rim = new T.Mesh(new T.TorusGeometry(0.78, 0.07, 12, 64), metal); rim.rotation.x = -0.22; rim.position.y = -0.32; md.add(rim);
+          var rm = new T.MeshStandardMaterial({ map:stripeTex(tr2.r[0], tr2.r[1], 5), roughness:0.7, envMapIntensity:0.3 });
+          [-1, 1].forEach(function(sd){ var rb = new T.Mesh(new T.BoxGeometry(0.4, 1.05, 0.03), rm); rb.position.set(sd * 0.22, 0.62, -0.2); rb.rotation.set(-0.22, 0, sd * 0.38); md.add(rb); });
+          var ring = new T.Mesh(new T.TorusGeometry(0.12, 0.04, 8, 20), metal); ring.position.set(0, 0.5, -0.06); ring.rotation.x = -0.22; md.add(ring);
+          md.rotation.y = -0.18; md.position.y = 0.02; md.scale.setScalar(1.05); shot('medal_' + d.id, md);
+        });
+      } catch(e){ console.warn('[3D icons] medals', e); }
       // v327: the robot itself as an illustration (mid-wave), for empty states
       try {
         var tw = 30, w0 = waveOff; waveOff = ((4.25 - tw) % 7 + 7) % 7;
@@ -21851,6 +21885,152 @@ html body:not(.corp) #page-settings .card .btn-primary:not(#_):active{ transform
   };
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
   window.addEventListener('load', function(){ setTimeout(mark, 300); });
+})();
+</script>
+<style id="ach-v334">
+.ach-card{ padding:14px 10px 10px; }
+.ach-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px 6px; }
+.ach-it{ display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; padding:4px 2px; color:var(--ink); font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.ach-it .ach-m{ width:74px; height:74px; display:block; transition:transform .25s; filter:drop-shadow(0 6px 10px rgba(0,0,0,.28)); }
+.ach-it:active .ach-m{ transform:scale(.92); }
+.ach-it.lock .ach-m{ filter:grayscale(1) brightness(.8); opacity:.42; }
+.ach-it .ach-n{ font-size:11.5px; font-weight:700; line-height:1.25; text-align:center; color:var(--ink); }
+.ach-it.lock .ach-n{ opacity:.6; }
+.ach-bar{ width:52px; height:4px; border-radius:2px; background:rgba(127,127,127,.25); overflow:hidden; }
+.ach-bar i{ display:block; height:100%; border-radius:2px; }
+.ach-css{ border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; box-shadow:inset 0 -4px 8px rgba(0,0,0,.25), inset 0 3px 6px rgba(255,255,255,.6); }
+.ach-info{ margin:10px 4px 2px; padding:9px 12px; border-radius:12px; background:rgba(127,127,127,.12); font-size:13px; line-height:1.45; color:var(--ink); display:none; }
+.ach-info.on{ display:block; }
+#ach-count{ font-weight:600; opacity:.7; }
+#ach-toast{ position:fixed; left:50%; top:calc(env(safe-area-inset-top,0px) + 10px); z-index:99999; display:flex; align-items:center; gap:12px; min-width:250px; max-width:calc(100vw - 32px);
+  padding:10px 18px 10px 10px; border-radius:22px; background:rgba(28,24,64,.82); -webkit-backdrop-filter:blur(18px) saturate(1.6); backdrop-filter:blur(18px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.18); box-shadow:0 14px 40px rgba(0,0,0,.35); color:#fff; transform:translate(-50%, -140%); transition:transform .55s cubic-bezier(.34,1.56,.64,1); cursor:pointer; overflow:hidden; }
+#ach-toast.on{ transform:translate(-50%, 0); }
+#ach-toast img, #ach-toast .ach-css{ width:56px; height:56px; flex:none; }
+#ach-toast.on img, #ach-toast.on .ach-css{ animation:achSpin 1.1s cubic-bezier(.2,.8,.3,1) .15s both; }
+@keyframes achSpin{ from{ transform:perspective(300px) rotateY(-540deg) scale(.4); } to{ transform:perspective(300px) rotateY(0) scale(1); } }
+#ach-toast::after{ content:''; position:absolute; top:0; bottom:0; width:40%; left:-50%; background:linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.28), rgba(255,255,255,0)); transform:skewX(-18deg); }
+#ach-toast.on::after{ animation:achShine 1.2s ease .9s; }
+@keyframes achShine{ to{ left:130%; } }
+#ach-toast .ach-t1{ font-size:11.5px; font-weight:700; letter-spacing:.3px; color:#FFD87A; }
+#ach-toast .ach-t2{ font-size:15px; font-weight:800; line-height:1.3; color:#fff; }
+#ach-toast .ach-t3{ font-size:12px; opacity:.8; color:#fff; }
+@media (prefers-reduced-motion: reduce){ #ach-toast.on img, #ach-toast.on .ach-css, #ach-toast.on::after{ animation:none; } }
+</style>
+<script>
+// v334: achievements — medals earned from your own records. Computed locally,
+// unlocked ids kept in localStorage (tt_ach_<uid>). A new medal shows a small
+// toast at the top (non-blocking, auto-hides); all medals live in อื่นๆ.
+(function(){
+  'use strict';
+  var DEFS = [
+    { id:'first',    tier:'bronze', big:'1',   small:'ครั้งแรก',  name:'ก้าวแรก',           desc:'ลงเวลาเข้างานครั้งแรก',                        goal:1,   key:'days' },
+    { id:'early10',  tier:'bronze', big:'06',  small:'ก่อนเวลา',    name:'นกตัวแรก',          desc:'เข้างานก่อน 05:55 ครบ 10 วัน',                 goal:10,  key:'early' },
+    { id:'streak7',  tier:'silver', big:'7',   small:'วันติด',    name:'ตรงเวลา 7 วันติด',  desc:'เข้างานไม่สายติดต่อกัน 7 วันทำงาน',             goal:7,   key:'streak' },
+    { id:'h100',     tier:'silver', big:'100', small:'ชั่วโมง',   name:'ร้อยชั่วโมง',        desc:'ทำงานครบ 100 ชม. ในเดือนเดียว',                goal:100, key:'monthH',  unit:'ชม.' },
+    { id:'ot20',     tier:'purple', big:'OT',  small:'20 ชม.',    name:'นักสู้ OT',          desc:'OT รวม 20 ชม. ในเดือนเดียว',                   goal:20,  key:'monthOT', unit:'ชม.' },
+    { id:'streak30', tier:'gold',   big:'30',  small:'วันติด',    name:'ตรงเวลา 30 วันติด', desc:'เข้างานไม่สายติดต่อกัน 30 วันทำงาน',            goal:30,  key:'streak' },
+    { id:'perfect',  tier:'gold',   big:'✓',   small:'ทั้งเดือน', name:'เดือนไร้สาย',        desc:'ทั้งเดือนไม่มาสายเลย (อย่างน้อย 15 วันทำงาน) — นับเมื่อจบเดือน', goal:15, key:'perfect' },
+    { id:'h200',     tier:'gold',   big:'200', small:'ชั่วโมง',   name:'สองร้อยชั่วโมง',     desc:'ทำงานครบ 200 ชม. ในเดือนเดียว',                goal:200, key:'monthH',  unit:'ชม.' },
+    { id:'d100',     tier:'purple', big:'100', small:'วันทำงาน',  name:'ร้อยวัน',            desc:'ทำงานครบ 100 วัน',                             goal:100, key:'days' }
+  ];
+  var TC = { bronze:['#F6C08E', '#B0652A', '#6E3A12'], silver:['#FFFFFF', '#A9B4C6', '#566176'], gold:['#FFE58A', '#D9A21E', '#8E6200'], purple:['#E2D4FF', '#7B4BE0', '#3A1A86'] };
+  window.ACH_DEFS = DEFS;
+  function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+  function stats(){
+    if(typeof curUser === 'undefined' || !curUser || !curUser.id || typeof records === 'undefined' || !Array.isArray(records)) return null;
+    var me = curUser.id, byD = {};
+    records.forEach(function(r){ if(r && r.empId === me && r.date && r.checkIn) (byD[r.date] = byD[r.date] || []).push(r); });
+    var dates = Object.keys(byD).sort(), st = { days:dates.length, early:0, streak:0, monthH:0, monthOT:0, perfect:0 }, run = 0, mon = {}, cfg = null;
+    try { cfg = getPayCfg(); } catch(e){}
+    var curM = ''; try { curM = todayStr().slice(0, 7); } catch(e){}
+    dates.forEach(function(d){
+      var rs = byD[d].slice().sort(function(a, b){ return _tm(a.checkIn) - _tm(b.checkIn); }), late = !!rs[0].isLate;
+      if(_tm(rs[0].checkIn) < 355) st.early++;
+      run = late ? 0 : run + 1; if(run > st.streak) st.streak = run;
+      var M = mon[d.slice(0, 7)] || (mon[d.slice(0, 7)] = { min:0, ot:0, days:0, late:0 });
+      M.days++; if(late) M.late++;
+      var done = rs.filter(function(r){ return r.checkOut; }), pm = -1;
+      try { if(cfg && done.length){ var dp = _dayPaidMin(d, done.map(function(r){ return [_tm(r.checkIn), _tm(r.checkOut)]; }), cfg, _isPackDay(me, d)); pm = dp ? dp.min : 0; } else if(!done.length) pm = 0; } catch(e){ pm = -1; }
+      if(pm < 0) pm = done.reduce(function(a, r){ return a + calcHours(r.checkIn, r.checkOut) * 60; }, 0);
+      M.min += pm; M.ot += done.reduce(function(a, r){ return a + (+r.otMin || 0); }, 0);
+    });
+    Object.keys(mon).forEach(function(m){ var M = mon[m];
+      st.monthH = Math.max(st.monthH, M.min / 60); st.monthOT = Math.max(st.monthOT, M.ot / 60);
+      if(curM && m < curM && M.days >= 15 && !M.late) st.perfect = 15; });
+    if(st.perfect < 15){ var C = mon[curM]; st.perfect = C && !C.late ? Math.min(14, C.days) : 0; }   // progress only — counts once the month is over
+    return st;
+  }
+  function medal(d, cls){
+    var I = window.RB_ICONS, src = I && I['medal_' + d.id];
+    if(src) return '<img class="' + cls + '" src="' + src + '" alt="">';
+    var c = TC[d.tier] || TC.gold;
+    return '<span class="' + cls + ' ach-css" style="background:radial-gradient(circle at 35% 30%,' + c[0] + ',' + c[1] + ');color:' + c[2] + '">' + esc(d.big) + '</span>';
+  }
+  var last = null, sel = '';
+  function render(){
+    var g = document.getElementById('ach-grid'); if(!g) return;
+    var st = last || stats(); if(!st) return;
+    var have = got(), n = 0;
+    var html = '<div class="ach-grid">' + DEFS.map(function(d){
+      var v = st[d.key] || 0, on = have.indexOf(d.id) >= 0 || v >= d.goal; if(on) n++;
+      var pct = Math.max(0, Math.min(100, v / d.goal * 100)), c = TC[d.tier] || TC.gold;
+      return '<button type="button" class="ach-it' + (on ? '' : ' lock') + '" data-ach="' + d.id + '">' + medal(d, 'ach-m') + '<span class="ach-n">' + esc(d.name) + '</span>'
+        + (on ? '' : '<span class="ach-bar"><i style="width:' + pct.toFixed(0) + '%;background:' + c[1] + '"></i></span>') + '</button>';
+    }).join('') + '</div><div class="ach-info" id="ach-info"></div>';
+    g.innerHTML = html;
+    var cnt = document.getElementById('ach-count'); if(cnt) cnt.textContent = '· ' + n + '/' + DEFS.length;
+    if(sel) info(sel);
+  }
+  function info(id){
+    var d = DEFS.filter(function(x){ return x.id === id; })[0], el = document.getElementById('ach-info'); if(!d || !el) return;
+    var st = last || stats() || {}, v = st[d.key] || 0, on = got().indexOf(d.id) >= 0 || v >= d.goal;
+    var prog = on ? 'ได้แล้ว 🎉' : 'ตอนนี้ ' + (d.unit ? (Math.floor(v * 10) / 10) + ' / ' + d.goal + ' ' + d.unit : Math.floor(v) + ' / ' + d.goal);
+    el.innerHTML = '<b>' + esc(d.name) + '</b> — ' + esc(d.desc) + '<br><span style="opacity:.75">' + esc(prog) + '</span>';
+    el.classList.add('on'); sel = id;
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target && e.target.closest && e.target.closest('.ach-it'); if(!b) return;
+    info(b.getAttribute('data-ach'));
+  });
+  function key(){ return 'tt_ach_' + curUser.id; }
+  function got(){ try { return JSON.parse(localStorage.getItem(key()) || '[]') || []; } catch(e){ return []; } }
+  // toast queue
+  var Q = [], showing = false;
+  function toast(d, extra){
+    var t = document.getElementById('ach-toast');
+    if(!t){ t = document.createElement('div'); t.id = 'ach-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t);
+      t.addEventListener('click', function(){ t.classList.remove('on'); try { showPage('more', document.querySelector('.nav-btn[data-page=more]')); } catch(e){} }); }
+    t.innerHTML = medal(d, '') + '<div><div class="ach-t1">' + (extra ? 'เหรียญรางวัลของคุณ' : 'ปลดล็อกเหรียญใหม่!') + '</div><div class="ach-t2">' + esc(extra || d.name) + '</div><div class="ach-t3">' + esc(extra ? 'แตะเพื่อดูทั้งหมด' : d.desc) + '</div></div>';
+    t.classList.remove('on'); void t.offsetWidth; t.classList.add('on');
+    try { if(typeof haptic === 'function') haptic('success'); } catch(_){}
+    setTimeout(function(){ t.classList.remove('on'); setTimeout(next, 650); }, 4200);
+  }
+  function next(){ var x = Q.shift(); if(!x){ showing = false; return; } showing = true; toast(x[0], x[1]); }
+  function push(d, extra){ Q.push([d, extra]); if(!showing) next(); }
+  function check(){
+    try {
+      var ready = true; try { ready = _recordsLoadedFromFB !== false; } catch(e){}   // flag missing → don't block
+      if(!ready) return;
+      var st = stats(); if(!st) return; last = st;
+      var raw = null; try { raw = localStorage.getItem(key()); } catch(e){}
+      var had = null; try { had = raw ? JSON.parse(raw) : null; } catch(e){}
+      var now = DEFS.filter(function(d){ return (st[d.key] || 0) >= d.goal; }).map(function(d){ return d.id; });
+      var fresh = had ? now.filter(function(id){ return had.indexOf(id) < 0; }) : now;
+      if(!had || fresh.length){ try { localStorage.setItem(key(), JSON.stringify((had || []).concat(fresh))); } catch(e){} }
+      if(!had){ if(fresh.length){ var top = DEFS.filter(function(d){ return fresh.indexOf(d.id) >= 0; }).pop(); push(top, 'มีแล้ว ' + fresh.length + ' เหรียญ'); } }
+      else fresh.forEach(function(id){ push(DEFS.filter(function(d){ return d.id === id; })[0]); });
+      var pg = document.getElementById('page-more'); if(pg && pg.classList.contains('active')) render();
+    } catch(e){ try { console.warn('[ach]', e); } catch(_){} }
+  }
+  window.achCheck = check;
+  function boot(){
+    var pg = document.getElementById('page-more');
+    if(pg && window.MutationObserver) new MutationObserver(function(){ if(pg.classList.contains('active')){ last = null; render(); } }).observe(pg, { attributes:true, attributeFilter:['class'] });
+    setTimeout(check, 6000); setInterval(check, 30000);
+    window.addEventListener('rbicons', function(){ render(); });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
 <script>
