@@ -11101,7 +11101,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v334';
+const APP_VERSION = 'v335';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20066,6 +20066,13 @@ body.sky #more-dark-row{ display:none !important; }
 .hq-pay-amt{ font-size:24px; font-weight:800; letter-spacing:-.01em; color:var(--green, #30D158); font-variant-numeric:tabular-nums; }
 .hq-pay-sub{ font-size:12px; color:var(--text3, var(--ink-4)); }
 .hq-pay-chev{ font-size:24px; color:var(--text3, var(--ink-4)); }
+/* v335 coin rain over the pay card */
+.coin-rain{ position:fixed; z-index:60; pointer-events:none; overflow:hidden; }
+.coin-c{ position:absolute; top:0; display:flex; align-items:center; justify-content:center; border-radius:50%; will-change:transform,opacity; opacity:0;
+  font-weight:800; color:#8E6200; filter:drop-shadow(0 3px 4px rgba(0,0,0,.3)); }
+span.coin-c{ background:radial-gradient(circle at 35% 30%, #FFE58A, #D9A21E); box-shadow:inset 0 -2px 4px rgba(0,0,0,.25); }
+.coin-tag{ position:absolute; left:50%; top:96px; transform:translate(-50%,0); opacity:0; white-space:nowrap; padding:7px 14px; border-radius:16px;
+  background:linear-gradient(135deg, #FFD54A, #F5A623); color:#4A2E00; font-weight:800; font-size:15px; box-shadow:0 8px 20px rgba(245,166,35,.45); }
 </style>
 <script>
 // v291: home pay card + online dot + version row. Sandboxed.
@@ -20086,8 +20093,55 @@ body.sky #more-dark-row{ display:none !important; }
         document.getElementById('hq-pay-amt').textContent = money(actual || st.pay);
         document.getElementById('hq-pay-sub').textContent = !st.days ? 'ยังไม่มีวันที่ออกงานครบเดือนนี้ · แตะดูรายละเอียด' : st.days + ' วัน · ชม.คิดเงิน ' + (typeof fmtHMt === 'function' ? fmtHMt(st.paidH * 60) : st.paidH.toFixed(1) + ' ชม.') + ' · แตะดูรายละเอียด';
         card.style.display = '';
+        if(!actual) coinMilestone(card, st.pay, y, m);
       } catch(e){ console.warn('[v291] pay card', e); }
     }
+    // v335: ₪ coin rain when this month's estimate crosses another ₪1,000.
+    // Celebrated once per milestone (tt_coin_<uid>_<yyyy-mm>); only while the
+    // card is on screen, and never before the records have loaded.
+    function coinMilestone(card, pay, y, m){
+      var ready = true; try { ready = _recordsLoadedFromFB !== false; } catch(e){}
+      if(!ready || !(pay > 0)) return;
+      var ms = Math.floor(pay / 1000), k = 'tt_coin_' + curUser.id + '_' + y + '-' + ('0' + (m + 1)).slice(-2), had = null;
+      try { had = localStorage.getItem(k); } catch(e){}
+      if(had === null){ try { localStorage.setItem(k, String(ms)); } catch(e){} return; }   // first sight this month: just remember
+      if(ms <= (parseInt(had, 10) || 0)) return;
+      var r = card.getBoundingClientRect(), home = document.getElementById('page-home');
+      if(document.hidden || !r.height || r.bottom < 60 || r.top > innerHeight - 60 || (home && !home.classList.contains('active'))) return;   // not on screen → celebrate later
+      try { localStorage.setItem(k, String(ms)); } catch(e){}
+      coinRain(card, ms * 1000);
+    }
+    function coinRain(card, amt){
+      var amtEl = document.getElementById('hq-pay-amt');
+      var still = window.__rudyLite || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+      try { if(typeof haptic === 'function') haptic('success'); } catch(_){}
+      var r = card.getBoundingClientRect(), H = r.height + 150;
+      var box = document.createElement('div'); box.className = 'coin-rain';
+      box.style.cssText = 'left:' + r.left + 'px;top:' + (r.top - 150) + 'px;width:' + r.width + 'px;height:' + H + 'px';
+      var tag = document.createElement('div'); tag.className = 'coin-tag'; tag.textContent = 'ทะลุ ₪' + amt.toLocaleString('th-TH') + ' แล้ว! 🎉'; box.appendChild(tag);
+      document.body.appendChild(box);
+      if(box.animate) tag.animate([{ transform:'translate(-50%,16px) scale(.6)', opacity:0 }, { transform:'translate(-50%,0) scale(1.06)', opacity:1, offset:.18 }, { transform:'translate(-50%,0) scale(1)', opacity:1, offset:.8 }, { transform:'translate(-50%,-10px) scale(1)', opacity:0 }], { duration:2600, easing:'ease-out', fill:'forwards' });
+      if(amtEl && amtEl.animate) amtEl.animate([{ transform:'scale(1)' }, { transform:'scale(1.18)', offset:.3 }, { transform:'scale(.96)', offset:.6 }, { transform:'scale(1)' }], { duration:900, delay:500, easing:'ease-out' });
+      if(!still && box.animate){
+        var I = window.RB_ICONS, src = I && I.coin, n = 22;
+        for(var i = 0; i < n; i++){
+          var c = document.createElement(src ? 'img' : 'span'), sz = 22 + Math.random() * 18;
+          if(src){ c.src = src; c.alt = ''; } else c.textContent = '₪';
+          c.className = 'coin-c'; c.style.width = c.style.height = sz.toFixed(0) + 'px'; c.style.fontSize = (sz * 0.55).toFixed(0) + 'px';
+          c.style.left = (Math.random() * (r.width - sz)).toFixed(0) + 'px';
+          box.appendChild(c);
+          var dur = 1100 + Math.random() * 700, sp = (Math.random() < 0.5 ? -1 : 1) * (360 + Math.random() * 540), drift = (Math.random() - 0.5) * 40;
+          c.animate([
+            { transform:'translate(0,-50px) rotate(0deg) rotateY(0deg)', opacity:0 },
+            { opacity:1, offset:.12 },
+            { transform:'translate(' + drift.toFixed(0) + 'px,' + (H - 10).toFixed(0) + 'px) rotate(' + (sp * 0.3).toFixed(0) + 'deg) rotateY(' + sp.toFixed(0) + 'deg)', opacity:1, offset:.88 },
+            { transform:'translate(' + drift.toFixed(0) + 'px,' + (H + 10).toFixed(0) + 'px) rotate(' + (sp * 0.3).toFixed(0) + 'deg) rotateY(' + sp.toFixed(0) + 'deg)', opacity:0 }
+          ], { duration:dur, delay:Math.random() * 800, easing:'cubic-bezier(.45,.05,.75,.6)', fill:'both' });
+        }
+      }
+      setTimeout(function(){ try { box.remove(); } catch(_){} }, 3000);
+    }
+    window.__coinRain = function(){ var c = document.getElementById('hq-pay'); if(c) coinRain(c, 3000); };   // testing / demo
     function netDot(){
       try { var c = document.querySelector('#app-shell .topbar .user-chip'); if(c) c.classList.toggle('offline', navigator.onLine === false); } catch(e){}
     }
