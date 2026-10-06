@@ -11110,7 +11110,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v340';
+const APP_VERSION = 'v341';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21035,7 +21035,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
 
   function build(T, fab){
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var CSS = 66, DPR = Math.min(window.devicePixelRatio || 1, 2), PX = Math.round(CSS * DPR);
+    var CSS = 66, DPR = Math.min(window.devicePixelRatio || 1, 3), PX = Math.round(CSS * DPR);   // v341: 3× on iPhone (66 px canvas, cheap)
     var renderer = new T.WebGLRenderer({ antialias:true, alpha:true, powerPreference:'low-power' });
     renderer.setPixelRatio(1); renderer.setSize(PX, PX, false);
     renderer.outputEncoding = T.sRGBEncoding;
@@ -21359,7 +21359,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     // renderer, keep them as PNGs, then hand the canvas back to the robot.
     // No ongoing cost: these are plain images after the first second.
     function bakeIcons(){
-      var S2 = 160, out = {};
+      var S2 = 256, out = {}, Q = [];   // v341: 256px (sharp on 3× iPhone screens), baked one per task
       var bs = new T.Scene(); bs.environment = scene.environment;
       bs.add(new T.HemisphereLight(0xffffff, 0x554a80, 0.45));
       var k2 = new T.DirectionalLight(0xfff4e6, 1.15); k2.position.set(3, 5, 6); bs.add(k2);
@@ -21367,7 +21367,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       var bc = new T.PerspectiveCamera(30, 1, 0.1, 50); bc.position.set(0, 0.6, 6); bc.lookAt(0, 0, 0);
       var gold = new T.MeshStandardMaterial({ color:0xFFB81C, emissive:0x4A2E00, emissiveIntensity:0.35, metalness:0.85, roughness:0.28, envMapIntensity:1.0 });
       var ex0 = renderer.toneMappingExposure;
-      function shot(name, obj){ bs.add(obj); renderer.setSize(S2, S2, false); renderer.toneMappingExposure = 0.85; renderer.render(bs, bc); renderer.toneMappingExposure = ex0; out[name] = cv.toDataURL('image/png'); bs.remove(obj); }
+      function shot(name, obj){ Q.push([name, obj]); }   // queued; drained below a few at a time so the UI never stalls
+      function shoot(j){ bs.add(j[1]); renderer.setSize(S2, S2, false); renderer.toneMappingExposure = 0.85; renderer.render(bs, bc); renderer.toneMappingExposure = ex0; out[j[0]] = cv.toDataURL('image/png'); bs.remove(j[1]); renderer.setSize(PX, PX, false); }
       // sprout in a little terracotta pot (reads as a plant on the green button)
       var sp = new T.Group();
       var potM = new T.MeshStandardMaterial({ color:0xC4552A, roughness:0.7, envMapIntensity:0.3 });
@@ -21481,15 +21482,24 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
           md.rotation.y = -0.18; md.position.y = 0.02; md.scale.setScalar(1.05); shot('medal_' + d.id, md);
         });
       } catch(e){ console.warn('[3D icons] medals', e); }
-      // v327: the robot itself as an illustration (mid-wave), for empty states
-      try {
-        var tw = 30, w0 = waveOff; waveOff = ((4.25 - tw) % 7 + 7) % 7;
-        pose(tw, 0.033, false); renderer.setSize(220, 220, false); renderer.render(scene, cam);
-        out.robot = cv.toDataURL('image/png'); waveOff = w0; prevTilt = null;
-      } catch(e){}
-      renderer.setSize(PX, PX, false);
-      window.RB_ICONS = out;
-      try { window.dispatchEvent(new Event('rbicons')); } catch(e){}
+      function finish(){
+        // v327: the robot itself as an illustration (mid-wave), for empty states (v341: 440px for the Wrapped story)
+        try {
+          var tw = 30, w0 = waveOff; waveOff = ((4.25 - tw) % 7 + 7) % 7;
+          pose(tw, 0.033, false); renderer.setSize(440, 440, false); renderer.render(scene, cam);
+          out.robot = cv.toDataURL('image/png'); waveOff = w0; prevTilt = null;
+        } catch(e){}
+        renderer.setSize(PX, PX, false);
+        window.RB_ICONS = out;
+        try { window.dispatchEvent(new Event('rbicons')); } catch(e){}
+      }
+      // one icon per task, yielding between them: frames and taps keep flowing
+      (function step(){
+        var j = Q.shift();
+        if(!j){ finish(); return; }
+        try { shoot(j); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] ' + j[0], e); }
+        setTimeout(step, 30);
+      })();
     }
     try { bakeIcons(); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] bake failed', e); }
     window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose,
