@@ -11098,7 +11098,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v330';
+const APP_VERSION = 'v331';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18676,6 +18676,9 @@ body.sky-gl .sky-stars, body.sky-gl .sky-twwrap, body.sky-gl .sky-moon, body.sky
 body.sky-gl .sky-moonc{ display:block; }
 .sky-starc{ top:0; left:0; width:100%; height:100%; display:none; opacity:0; transition:opacity 1.2s; }
 .sky-dropc{ top:0; left:0; width:100%; height:100%; display:none; opacity:0; transition:opacity 1.5s; }
+.sky-boltc{ top:0; left:0; width:100%; height:100%; display:none; opacity:0; }
+.sky-ltglow{ inset:0; display:none; opacity:0; mix-blend-mode:screen; }
+#ltn-veil{ position:fixed; inset:0; z-index:60; pointer-events:none; opacity:0; display:none; background:radial-gradient(120% 80% at 50% 10%, rgba(210,225,255,.9), rgba(180,200,255,.35) 60%, rgba(160,180,255,.15)); mix-blend-mode:screen; }
 body.sky-gl .sky-dropc{ display:block; }
 body.sky-gl .sky-starc{ display:block; }
 /* v261: Liquid Glass (Phase D, opt-in) paints a fixed canvas at the same z-index,
@@ -19448,6 +19451,8 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       parts.moon = el('sky-moon');
       parts.starc = document.createElement('canvas'); parts.starc.className = 'sky-starc'; scene.appendChild(parts.starc);
       parts.dropc = document.createElement('canvas'); parts.dropc.className = 'sky-dropc'; scene.appendChild(parts.dropc);
+      parts.ltglow = el('sky-ltglow'); scene.insertBefore(parts.ltglow, parts.starc);
+      parts.boltc = document.createElement('canvas'); parts.boltc.className = 'sky-boltc'; scene.insertBefore(parts.boltc, parts.starc);
       parts.moonc = document.createElement('canvas'); parts.moonc.className = 'sky-moonc'; scene.appendChild(parts.moonc);
       parts.clouds = [];
       var cfg = [[9,95,-35],[27,140,-95],[40,115,-20],[17,170,-140]];  // top vh, seconds, start offset
@@ -19495,7 +19500,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       parts.tint.style.background = (kind === 'rain' || kind === 'storm') ? '#1E3150' : '';   // v330
       op(parts.tint, (kind === 'rain' || kind === 'storm') ? .26 : (TINT_AMT[kind] || 0));
       parts.rain.style.display = (kind === 'rain' || kind === 'storm') ? 'block' : 'none';
-      parts.flash.classList.toggle('on', kind === 'storm');
+      parts.flash.classList.toggle('on', kind === 'storm' && !document.body.classList.contains('sky-gl'));
       document.body.setAttribute('data-sky-wx', kind);
       if(window.__skyNoGL !== true){ try { glUpdate(ph, kind); } catch(e){ glKill(e && e.message); } }
     }
@@ -19668,6 +19673,68 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         ctx.restore();
       }
     }
+    // ── v331 lightning: procedural branching bolt (full-res, behind the cards),
+    // clouds lit from inside in the GL sky, a faint wash over the whole app,
+    // real double/triple flicker. Storm only; off in battery saver / reduced motion.
+    var LT = { v:0, x:.5, y:.8, timer:0, veil:null, seq:[] };
+    function ltBolt(cv, x0, y0, y1){
+      var dpr = Math.min(window.devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
+      var cw = Math.round(W * dpr), ch = Math.round(H * dpr); if(cv.width !== cw || cv.height !== ch){ cv.width = cw; cv.height = ch; }   // no realloc per strike
+      var ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      function path(ax, ay, bx, by, rough, depth){   // midpoint displacement
+        var pts = [[ax, ay], [bx, by]];
+        for(var it = 0; it < depth; it++){
+          var np = [pts[0]];
+          for(var i = 0; i < pts.length - 1; i++){
+            var a = pts[i], b = pts[i + 1], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+            np.push([(a[0] + b[0]) / 2 + (Math.random() - 0.5) * len * rough, (a[1] + b[1]) / 2 + (Math.random() - 0.5) * len * rough * 0.25]); np.push(b);
+          }
+          pts = np;
+        }
+        return pts;
+      }
+      function stroke(pts, w, a){
+        [[w * 9, a * 0.10, '150,180,255'], [w * 4, a * 0.28, '185,205,255'], [w * 1.8, a * 0.75, '228,236,255'], [w * 0.8, a, '255,255,255']].forEach(function(L){
+          ctx.strokeStyle = 'rgba(' + L[2] + ',' + L[1] + ')'; ctx.lineWidth = L[0]; ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+          for(var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke();
+        });
+      }
+      var main = path(x0, y0, x0 + (Math.random() - 0.5) * W * 0.25, y1, 0.55, 7);
+      stroke(main, 2.8, 1);
+      var nb = 3 + Math.floor(Math.random() * 4);
+      for(var k = 0; k < nb; k++){   // branches fork off downward and fade
+        var idx = 6 + Math.floor(Math.random() * (main.length * 0.7)), st0 = main[Math.min(idx, main.length - 2)];
+        var dir = Math.random() < 0.5 ? -1 : 1, bl = H * (0.06 + Math.random() * 0.14);
+        var br = path(st0[0], st0[1], st0[0] + dir * bl * (0.5 + Math.random() * 0.6), st0[1] + bl, 0.6, 5);
+        stroke(br, 1.1, 0.55);
+        if(Math.random() < 0.5){ var s2 = br[Math.floor(br.length * 0.5)]; stroke(path(s2[0], s2[1], s2[0] + dir * bl * 0.4, s2[1] + bl * 0.5, 0.6, 4), 0.7, 0.35); }
+      }
+    }
+    function ltSet(sky, bolt){ LT.v = sky * 0.8; if(parts.ltglow) parts.ltglow.style.opacity = String(sky); if(LT.veil) LT.veil.style.opacity = String(Math.min(0.14, sky * 0.14)); if(parts.boltc) parts.boltc.style.opacity = String(bolt); }   // the GL loop picks up LT.v on its next frame
+    function ltStrike(){
+      if(!GL.ok || !GL.st || !GL.st.storm || document.hidden || window.__rudyLite || GL.st.still) return;
+      if(!LT.veil){ LT.veil = document.createElement('div'); LT.veil.id = 'ltn-veil'; document.body.appendChild(LT.veil); }
+      var W = innerWidth, H = innerHeight, bolt = Math.random() < 0.6;
+      var bx = W * (0.15 + Math.random() * 0.7), by0 = -10, by1 = H * (0.28 + Math.random() * 0.2);   // ends in the open sky above the cards
+      LT.x = bx / W; LT.y = bolt ? 1 - (by1 * 0.35) / H : 0.7 + Math.random() * 0.25;
+      LT.veil.style.display = 'block';                    // layers exist only during a strike (no idle compositing cost)
+      if(parts.ltglow){ parts.ltglow.style.display = 'block'; parts.ltglow.style.background = 'radial-gradient(60% 45% at ' + (LT.x * 100).toFixed(1) + '% ' + ((1 - LT.y) * 100).toFixed(1) + '%, rgba(215,228,255,.95), rgba(170,195,255,.45) 45%, rgba(150,175,255,.18) 75%, rgba(140,165,255,.10))'; }
+      if(parts.boltc) parts.boltc.style.display = bolt ? 'block' : 'none';
+      if(bolt && parts.boltc){ try { ltBolt(parts.boltc, bx, by0, by1); } catch(e){} }
+      else if(parts.boltc){ parts.boltc.style.opacity = '0'; }
+      // flicker: strike → dim → restrike → (maybe a third) → fade
+      // [ms, sky flash, bolt] — the bolt lingers after the sky flash dies, like the real thing
+      var third = Math.random() < 0.5;
+      var seq = [[0, 1, 1], [70, .25, .9], [130, .85, 1], [210, .3, .9], [290, third ? .6 : .15, third ? 1 : .75], [380, .12, .6], [520, .04, .3], [680, 0, .1], [820, 0, 0]];
+      LT.seq.forEach(clearTimeout); LT.seq = seq.map(function(q){ return setTimeout(function(){ ltSet(bolt ? q[1] : q[1] * 0.7, bolt ? q[2] : 0); if(q[0] === 820){ if(parts.boltc){ parts.boltc.getContext('2d').clearRect(0, 0, parts.boltc.width, parts.boltc.height); parts.boltc.style.display = 'none'; } if(LT.veil) LT.veil.style.display = 'none'; if(parts.ltglow) parts.ltglow.style.display = 'none'; } }, q[0]); });
+    }
+    window.__skyStrike = ltStrike;   // manual trigger (testing / demo)
+    function ltSchedule(){
+      clearTimeout(LT.timer);
+      if(!GL.st || !GL.st.storm) return;
+      LT.timer = setTimeout(function(){ ltStrike(); ltSchedule(); }, 3000 + Math.random() * 9000);
+    }
     function glInit(){
       if(GL.ok || GL.dead) return GL.ok;
       try {
@@ -19763,11 +19830,12 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         stars: night && !wet ? Math.max(0, 1 - (COVER[kind]||0)*.6) : 0,
         moon: night ? (wet || kind === 'overcast' ? 0 : 1) : 0,
         rain: wet ? (kind === 'storm' ? 1 : .8) : 0,
-        phase: moonPhase(), still: !!mq
+        phase: moonPhase(), still: !!mq, storm: kind === 'storm'
       };
       document.body.classList.add('sky-gl');
       try { if(parts.moonc){ drawMoon(parts.moonc, GL.st.phase); parts.moonc.style.opacity = String(GL.st.moon); } } catch(_){}
       try { if(parts.starc){ if(GL.st.stars > 0) drawStars(parts.starc); parts.starc.style.opacity = String(GL.st.stars); } } catch(_){}
+      try { ltSchedule(); } catch(_){}
       try { if(parts.dropc){ if(GL.st.rain > 0 && !window.__rudyLite) drawDrops(parts.dropc); parts.dropc.style.opacity = GL.st.rain > 0 ? '1' : '0'; } } catch(_){}
       glKick();
     }
