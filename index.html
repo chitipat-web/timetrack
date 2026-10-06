@@ -11098,7 +11098,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v329';
+const APP_VERSION = 'v330';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18675,6 +18675,8 @@ body.sky-gl .sky-stars, body.sky-gl .sky-twwrap, body.sky-gl .sky-moon, body.sky
 .sky-moonc{ width:50px; height:50px; top:calc(env(safe-area-inset-top,0px) + 14px); right:22px; display:none; opacity:0; transition:opacity 1.2s; }
 body.sky-gl .sky-moonc{ display:block; }
 .sky-starc{ top:0; left:0; width:100%; height:100%; display:none; opacity:0; transition:opacity 1.2s; }
+.sky-dropc{ top:0; left:0; width:100%; height:100%; display:none; opacity:0; transition:opacity 1.5s; }
+body.sky-gl .sky-dropc{ display:block; }
 body.sky-gl .sky-starc{ display:block; }
 /* v261: Liquid Glass (Phase D, opt-in) paints a fixed canvas at the same z-index,
    appended later in the DOM, so it would cover the sky. Sky mode wins. */
@@ -19445,6 +19447,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       el('sky-stars tw', parts.tw).style.boxShadow = starShadows(28, 99, 1);
       parts.moon = el('sky-moon');
       parts.starc = document.createElement('canvas'); parts.starc.className = 'sky-starc'; scene.appendChild(parts.starc);
+      parts.dropc = document.createElement('canvas'); parts.dropc.className = 'sky-dropc'; scene.appendChild(parts.dropc);
       parts.moonc = document.createElement('canvas'); parts.moonc.className = 'sky-moonc'; scene.appendChild(parts.moonc);
       parts.clouds = [];
       var cfg = [[9,95,-35],[27,140,-95],[40,115,-20],[17,170,-140]];  // top vh, seconds, start offset
@@ -19489,7 +19492,8 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         op(c, i < nClouds ? cloudOp : 0);
       });
       var fog = kind === 'fog' ? 1 : 0; op(parts.fog1, fog); op(parts.fog2, fog*.8);
-      op(parts.tint, TINT_AMT[kind] || 0);
+      parts.tint.style.background = (kind === 'rain' || kind === 'storm') ? '#1E3150' : '';   // v330
+      op(parts.tint, (kind === 'rain' || kind === 'storm') ? .26 : (TINT_AMT[kind] || 0));
       parts.rain.style.display = (kind === 'rain' || kind === 'storm') ? 'block' : 'none';
       parts.flash.classList.toggle('on', kind === 'storm');
       document.body.setAttribute('data-sky-wx', kind);
@@ -19540,11 +19544,15 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       ' col+=uSunCol*uSun*.12*exp(-length(p-sunP)*2.5);',
       ' return vec4(col*d,d);',
       '}',
-      'float rainLayer(vec2 p, float sc, float spd, float seed){',
-      ' vec2 q=p*vec2(sc,sc*.09); q.x+=q.y*.9; q.y+=uTime*spd;',
-      ' vec2 id=floor(q); float h=hash(id+seed); vec2 f=fract(q);',
-      ' float x=abs(f.x-.2-.6*hash(id+seed+4.));',
-      ' return step(.72,h)*smoothstep(.1,.0,x)*smoothstep(0.,.25,f.y)*smoothstep(1.,.45,f.y);',
+      '// v330 rain: wind-slanted streaks, bright leading drop + fading tail, ~1.3px wide at any resolution',
+      'float rainLayer(vec2 p, float sc, float spd, float seed, float len, float wpx){',
+      ' vec2 q=vec2(p.x+p.y*.2, p.y)*vec2(sc, sc/len); q.y+=uTime*spd;',
+      ' vec2 id=floor(q); float h=hash(id+seed); if(h<.55) return 0.;',
+      ' vec2 f=fract(q); float cx=.15+.7*hash(id+seed+4.);',
+      ' float w=wpx*sc/uRes.y; float x=abs(f.x-cx);',
+      ' float core=smoothstep(w,0.,x);',
+      ' float head=smoothstep(0.,.05,f.y), tail=pow(max(0.,1.-f.y),2.2);',
+      ' return core*head*tail*(.45+.55*h);',
       '}',
       'void main(){',
       ' vec2 uv=gl_FragCoord.xy/uRes; float asp=uRes.x/uRes.y; vec2 p=vec2(uv.x*asp,uv.y);',
@@ -19573,10 +19581,12 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       ' col=col*(1.-far.a*uCloudA)+far.rgb*uCloudA;',
       ' col=col*(1.-mid.a*uCloudA)+mid.rgb*uCloudA;',
       ' col=col*(1.-near.a*uCloudA)+near.rgb*uCloudA;',
-      ' // rain streaks in three depths',
+      ' // v330 rain: moody top, three parallax depths, ground mist',
       ' if(uRain>0.){',
-      '  float r=rainLayer(p,70.,9.,1.)*.35+rainLayer(p,45.,11.,7.)*.5+rainLayer(p,28.,14.,19.)*.7;',
-      '  col=mix(col,vec3(.82,.87,.93),r*uRain);',
+      '  col*=1.-uRain*.16*smoothstep(.4,1.,uv.y);',
+      '  float r=rainLayer(p,95.,6.5,1.,.30,1.)*.30+rainLayer(p,60.,8.5,7.,.42,1.2)*.45+rainLayer(p,34.,11.5,19.,.62,1.6)*.65;',
+      '  col+=vec3(.78,.86,1.)*r*uRain*.75;',
+      '  col=mix(col, vec3(.58,.66,.78), uRain*.28*smoothstep(.42,0.,uv.y));',
       ' }',
       ' gl_FragColor=vec4(col,1.);',
       '}'
@@ -19633,6 +19643,29 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
           ctx.fillStyle = g; ctx.fillRect(x - 4.5, y - 4.5, 9, 9); }
         ctx.fillStyle = 'rgba(' + col + ',' + a.toFixed(3) + ')';
         ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // v330: raindrops resting on the glass — drawn once at full resolution
+    function drawDrops(cv){
+      var dpr = Math.min(window.devicePixelRatio || 1, 3), W = innerWidth, H = innerHeight;
+      var key = W + 'x' + H + '@' + dpr; if(cv._k === key) return; cv._k = key;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      var ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      var r = rng(4242), n = Math.round(W * H / 2600);
+      for(var i = 0; i < n; i++){
+        var x = r() * W, y = r() * H, big = r() < 0.12, rad = big ? 5 + r() * 5 : 1.2 + r() * 3.2, sq = 0.82 + r() * 0.3;
+        if(big && r() < 0.7){   // a short wet trail above the bigger drops
+          var tl = 18 + r() * 60, g0 = ctx.createLinearGradient(x, y - tl, x, y);
+          g0.addColorStop(0, 'rgba(210,228,255,0)'); g0.addColorStop(1, 'rgba(210,228,255,0.16)');
+          ctx.fillStyle = g0; ctx.beginPath(); ctx.moveTo(x - rad * 0.28, y); ctx.quadraticCurveTo(x - rad * 0.1, y - tl * 0.5, x, y - tl); ctx.quadraticCurveTo(x + rad * 0.1, y - tl * 0.5, x + rad * 0.28, y); ctx.fill();
+        }
+        ctx.save(); ctx.translate(x, y); ctx.scale(1, sq);
+        ctx.fillStyle = 'rgba(6,14,32,0.22)'; ctx.beginPath(); ctx.arc(rad * 0.12, rad * 0.32, rad, 0, Math.PI * 2); ctx.fill();          // contact shadow
+        var g = ctx.createRadialGradient(-rad * 0.3, -rad * 0.35, rad * 0.1, 0, 0, rad);
+        g.addColorStop(0, 'rgba(255,255,255,0.30)'); g.addColorStop(0.55, 'rgba(190,212,245,0.10)'); g.addColorStop(0.86, 'rgba(225,238,255,0.20)'); g.addColorStop(1, 'rgba(255,255,255,0.42)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fill();                                                // lens + bright rim
+        ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(-rad * 0.36, -rad * 0.42, rad * 0.26, rad * 0.17, -0.6, 0, Math.PI * 2); ctx.fill();   // specular
+        ctx.restore();
       }
     }
     function glInit(){
@@ -19713,8 +19746,12 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       var wet = kind === 'rain' || kind === 'storm', grey = wet || kind === 'overcast';
       // owner's choice: clouds always present (cover ≥ .36), heavier with real weather
       var COVER = { clear:.36, few:.42, cloudy:.56, overcast:.8, fog:.6, rain:.86, storm:.9 };
-      var lit = night ? [.42,.46,.58] : grey ? [.78,.8,.84] : low ? (ph === 'dusk' ? [1,.78,.62] : [1,.84,.8]) : [1,1,1];
-      var shade = night ? [.12,.14,.22] : grey ? [.4,.43,.5] : low ? [.4,.3,.44] : [.52,.62,.78];
+      var lit = night ? [.42,.46,.58] : wet ? [.66,.74,.86] : grey ? [.78,.8,.84] : low ? (ph === 'dusk' ? [1,.78,.62] : [1,.84,.8]) : [1,1,1];
+      var shade = night ? [.12,.14,.22] : wet ? [.24,.31,.45] : grey ? [.4,.43,.5] : low ? [.4,.3,.44] : [.52,.62,.78];
+      // v330: rain/storm skies go deep stormy blue instead of flat grey
+      if(wet){ var STORM = night ? ['#070C1C','#0F1A33','#1C2A45'] : ['#1D3354','#3A5A80','#7E98B8'];
+        var mx = function(a, b, k){ var A = hex3(a), B = hex3(b); return '#' + [0,1,2].map(function(i){ return ('0' + Math.round((A[i] + (B[i] - A[i]) * k) * 255).toString(16)).slice(-2); }).join(''); };
+        c = [mx(c[0], STORM[0], .75), mx(c[1], STORM[1], .75), mx(c[2], STORM[2], .75)]; }
       var sunAmt = wet ? 0 : (kind === 'overcast' || kind === 'fog') ? .45 : 1;
       var mq = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
       GL.st = {
@@ -19731,11 +19768,12 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       document.body.classList.add('sky-gl');
       try { if(parts.moonc){ drawMoon(parts.moonc, GL.st.phase); parts.moonc.style.opacity = String(GL.st.moon); } } catch(_){}
       try { if(parts.starc){ if(GL.st.stars > 0) drawStars(parts.starc); parts.starc.style.opacity = String(GL.st.stars); } } catch(_){}
+      try { if(parts.dropc){ if(GL.st.rain > 0 && !window.__rudyLite) drawDrops(parts.dropc); parts.dropc.style.opacity = GL.st.rain > 0 ? '1' : '0'; } } catch(_){}
       glKick();
     }
     document.addEventListener('visibilitychange', function(){ if(!document.hidden) glKick(); });
     var _starRz = 0;   // v316: keep the star canvas sharp after a rotation / resize
-    window.addEventListener('resize', function(){ clearTimeout(_starRz); _starRz = setTimeout(function(){ try { if(parts.starc && GL.st && GL.st.stars > 0) drawStars(parts.starc); } catch(_){} }, 300); });
+    window.addEventListener('resize', function(){ clearTimeout(_starRz); _starRz = setTimeout(function(){ try { if(parts.starc && GL.st && GL.st.stars > 0) drawStars(parts.starc); if(parts.dropc && GL.st && GL.st.rain > 0) drawDrops(parts.dropc); } catch(_){} }, 300); });
     function paint(){
       var b = document.body; if(!b) return;
       var ph = (window.__skyForcePhase) || phaseAt(israelNow().min, sunTimes());
@@ -21127,7 +21165,7 @@ body.dark #rb-bubble::after{ border-color:rgba(180,160,255,0.28); }
     try { var u = (typeof curUser !== 'undefined' && curUser) || null; var n = u && u.name ? String(u.name).trim() : ''; return n ? n.split(/\s+/)[0] : ''; } catch(e){ return ''; }
   }
   function greeting(){
-    var h = new Date().getHours(), n = firstName(), k = n ? ' คุณ' + n : '';
+    var h = (typeof _ilWall === 'function' ? _ilWall() : new Date()).getHours(), n = firstName(), k = n ? ' คุณ' + n : '';   // v330: Israel time
     if(h >= 5 && h < 11)  return 'อรุณสวัสดิ์' + k + ' ☀️';
     if(h >= 11 && h < 13) return 'สวัสดีตอนเที่ยง' + k + ' 🍱 อย่าลืมพักกินข้าวนะ';
     if(h >= 13 && h < 17) return 'สวัสดีตอนบ่าย' + k + ' 💪 สู้ๆ นะ';
