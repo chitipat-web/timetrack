@@ -11098,7 +11098,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v331';
+const APP_VERSION = 'v332';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19502,6 +19502,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       parts.rain.style.display = (kind === 'rain' || kind === 'storm') ? 'block' : 'none';
       parts.flash.classList.toggle('on', kind === 'storm' && !document.body.classList.contains('sky-gl'));
       document.body.setAttribute('data-sky-wx', kind);
+      try { var _tp = (readWx() || {}).temp; if(_tp != null) document.body.setAttribute('data-sky-temp', String(Math.round(_tp))); } catch(_){}
       if(window.__skyNoGL !== true){ try { glUpdate(ph, kind); } catch(e){ glKill(e && e.message); } }
     }
 
@@ -19917,7 +19918,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       var wx = readWx(), today = israelNow().date;
       if(!force && wx && wx.date === today && (Date.now() - wx.ts) < WX_TTL) return;
       var url = 'https://api.open-meteo.com/v1/forecast?latitude='+LAT+'&longitude='+LON+
-        '&current=weather_code,is_day,cloud_cover&daily=sunrise,sunset&timezone=Asia%2FJerusalem&forecast_days=1';
+        '&current=weather_code,is_day,cloud_cover,temperature_2m&daily=sunrise,sunset&timezone=Asia%2FJerusalem&forecast_days=1';
       fetch(url, { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
         if(!j || !j.daily) return;
         var rec = {
@@ -19927,7 +19928,8 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
           sunset: hhmmToMin(j.daily.sunset && j.daily.sunset[0]),
           code: j.current ? j.current.weather_code : null,
           isDay: j.current ? j.current.is_day : null,
-          cloud: j.current ? j.current.cloud_cover : null
+          cloud: j.current ? j.current.cloud_cover : null,
+          temp: j.current ? j.current.temperature_2m : null
         };
         try { localStorage.setItem(WX_KEY, JSON.stringify(rec)); } catch(e){}
         if(skyBg()) paint();
@@ -21015,6 +21017,59 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     var act = { type:'', t0:-99, dur:0 }, actEyes = 1, peekT = 0, pk = 0, sleepT = 0, sl = 0, sleepChk = -99, yawnAt = 8;
     var drop = new T.Mesh(new T.SphereGeometry(0.17, 16, 12), new T.MeshPhysicalMaterial({ color:0x38B6FF, emissive:0x1A7FD0, emissiveIntensity:0.35, roughness:0.05, clearcoat:1, envMapIntensity:1.2 }));
     drop.scale.set(0.8, 1.15, 0.8); drop.visible = false; head.add(drop);
+    // v332 accessories — chosen from weather / time / holidays, re-checked every minute
+    function stripeTex(c1, c2, n){ var c = document.createElement('canvas'); c.width = 128; c.height = 16; var x = c.getContext('2d');
+      for(var i = 0; i < n; i++){ x.fillStyle = i % 2 ? c2 : c1; x.fillRect(i * 128 / n, 0, 128 / n + 1, 16); } var tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding; return tx; }
+    var ACC = {};
+    (function(){
+      // sunglasses
+      var g = new T.Group(), fm = new T.MeshPhysicalMaterial({ color:0xFF4F9A, roughness:0.25, clearcoat:1, envMapIntensity:0.8 });
+      var gm = new T.MeshPhysicalMaterial({ color:0x2A1450, emissive:0x6A2AB0, emissiveIntensity:0.25, roughness:0.05, metalness:0.3, clearcoat:1, envMapIntensity:1.6 });
+      var hl = new T.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.75 });
+      [-0.44, 0.44].forEach(function(x){
+        var f = new T.Mesh(roundedBox(0.78, 0.54, 0.07, 0.22, 0.03), fm); f.position.set(x, 0.1, 1.11); g.add(f);   // bright frame so it reads on the dark visor
+        var l = new T.Mesh(roundedBox(0.64, 0.4, 0.06, 0.16, 0.03), gm); l.position.set(x, 0.1, 1.15); g.add(l);
+        var h = new T.Mesh(new T.PlaneGeometry(0.07, 0.36), hl); h.position.set(x - 0.1, 0.12, 1.185); h.rotation.z = -0.6; g.add(h);
+      });
+      var br2 = new T.Mesh(new T.BoxGeometry(0.2, 0.06, 0.06), fm); br2.position.set(0, 0.2, 1.12); g.add(br2);
+      g.visible = false; head.add(g); ACC.shades = g;
+      // scarf (around the neck, with a tail)
+      var sm2 = new T.MeshStandardMaterial({ map:stripeTex('#E5427F', '#FFC8DD', 10), roughness:0.8, envMapIntensity:0.3 });
+      var sc2 = new T.Group(), ring = new T.Mesh(new T.TorusGeometry(0.78, 0.2, 14, 32), sm2); ring.rotation.x = Math.PI / 2; sc2.add(ring);
+      var tail = new T.Mesh(roundedBox(0.34, 0.8, 0.12, 0.1, 0.03), sm2); tail.position.set(0.42, -0.42, 0.72); tail.rotation.z = 0.15; sc2.add(tail);
+      sc2.position.y = 0.02; sc2.visible = false; headP.add(sc2); ACC.scarf = sc2;
+      // night cap (with pom-pom) and party hat — both replace the antenna
+      function hat(tex, col){ var h = new T.Group();
+        var cone = new T.Mesh(new T.ConeGeometry(0.66, 1.0, 32, 1, true), new T.MeshStandardMaterial({ map:tex, roughness:0.6, side:T.DoubleSide, envMapIntensity:0.4 }));
+        cone.position.y = 0.47; h.add(cone);
+        var band = new T.Mesh(new T.TorusGeometry(0.66, 0.1, 10, 32), new T.MeshStandardMaterial({ color:0xffffff, roughness:0.9 })); band.rotation.x = Math.PI / 2; h.add(band);
+        var pom = new T.Mesh(new T.SphereGeometry(0.17, 16, 12), new T.MeshStandardMaterial({ color:col || 0xffffff, roughness:0.9 })); pom.position.y = 0.98; h.add(pom);
+        h.position.set(0.12, 0.98, 0); h.rotation.z = -0.3; h.visible = false; head.add(h); return h; }
+      ACC.nightcap = hat(stripeTex('#2F3FC8', '#5B6CF5', 8));
+      ACC.party = hat(stripeTex('#FFC857', '#7444EE', 12), 0xFF4F9A);
+      // umbrella held in the left hand
+      var u = new T.Group(), um = new T.MeshStandardMaterial({ map:stripeTex('#7444EE', '#5FEFFF', 8), roughness:0.45, side:T.DoubleSide, envMapIntensity:0.5 });
+      var dome = new T.Mesh(new T.SphereGeometry(1.6, 32, 10, 0, Math.PI * 2, 0, Math.PI * 0.4), um); dome.scale.y = 0.6; dome.position.y = 2.75; u.add(dome);
+      var shaft = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 3.6, 8), new T.MeshStandardMaterial({ color:0x2B2160, roughness:0.4 })); shaft.position.y = 1.65; u.add(shaft);
+      var tip = new T.Mesh(new T.SphereGeometry(0.09, 10, 8), new T.MeshStandardMaterial({ color:0xFFC857, roughness:0.3 })); tip.position.y = 3.72; u.add(tip);
+      var hook = new T.Mesh(new T.TorusGeometry(0.14, 0.04, 8, 16, Math.PI), new T.MeshStandardMaterial({ color:0x2B2160, roughness:0.4 })); hook.position.set(0.14, -0.05, 0); hook.rotation.z = Math.PI; u.add(hook);
+      u.position.set(0, -0.15, 0.08); u.visible = false; arms[0].wr.add(u); ACC.umbrella = u;
+    })();
+    var uQ = new T.Quaternion(), uUp = new T.Quaternion(), uE = new T.Euler();
+    var accWant = { shades:false, scarf:false, nightcap:false, party:false, umbrella:false }, accChk = -99;
+    function accPick(){
+      var b = document.body, wx = b.getAttribute('data-sky-wx') || '', ph = b.getAttribute('data-sky') || '', tp = parseFloat(b.getAttribute('data-sky-temp'));
+      var n = (typeof _ilWall === 'function' ? _ilWall() : new Date()), md = (n.getMonth() + 1) * 100 + n.getDate(), hh = n.getHours();
+      var holiday = md === 1231 || md === 101 || (md >= 413 && md <= 415);   // New Year, Songkran
+      var w = { party:holiday, nightcap:!holiday && (hh >= 22 || hh < 4), umbrella:wx === 'rain' || wx === 'storm' };
+      w.shades = !w.umbrella && !w.nightcap && ph === 'day' && (wx === 'clear' || wx === 'few' || wx === '');
+      w.scarf = isFinite(tp) && tp < 14;
+      if(window.__rbAcc) w = Object.assign({ shades:false, scarf:false, nightcap:false, party:false, umbrella:false }, window.__rbAcc);   // testing override
+      accWant = w;
+      Object.keys(ACC).forEach(function(k){ ACC[k].visible = !!w[k]; });
+      ant.visible = !(w.party || w.nightcap);
+      var hat = w.party || w.nightcap; cam.position.z = w.umbrella ? 17.2 : hat ? 14.2 : 13.4; cam.lookAt(0, w.umbrella ? 0.8 : hat ? 0 : -0.2, 0);   // room for the umbrella / hat
+    }
     function pose(t, dt, busy){
       sm.think += ((busy ? 1 : 0) - sm.think) * Math.min(1, dt * 3.5);
       sm.lx += (look.x - sm.lx) * 0.06; sm.ly += (look.y - sm.ly) * 0.06;   // torso/neck follow slowly
@@ -21032,7 +21087,11 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       var aa = t - act.t0, ae = (aa >= 0 && aa < act.dur) ? ss(0, 0.22, aa) * (1 - ss(act.dur - 0.45, act.dur, aa)) : 0;
       var cheer = act.type === 'cheer' ? ae : 0, sweat = act.type === 'sweat' ? ae : 0;
       var hop = cheer ? Math.abs(Math.sin(aa * Math.PI * 2.3)) * 0.26 * cheer : 0;   // 2–3 hops, feet leave the ground
-      actEyes = Math.min(1 - cheer * 0.55, 1 - sl * 0.6 + yawn * 0.5 * sl);
+      if(t - accChk > 60 || t < accChk){ accChk = t; try { accPick(); } catch(e){} }
+      var dance = act.type === 'dance' ? ae : 0, giggle = act.type === 'giggle' ? ae : 0, spinA = (act.type === 'spin' && aa >= 0 && aa < act.dur) ? Math.min(1, aa / 1.05) : -1;
+      if(dance) hop += Math.abs(Math.sin(aa * 7)) * 0.1 * dance;
+      if(spinA >= 0) hop += Math.sin(spinA * Math.PI) * 0.3;
+      actEyes = Math.min(1 - cheer * 0.55 - giggle * 0.55 - dance * 0.3, 1 - sl * 0.6 + yawn * 0.5 * sl);
       if(ae > 0 && act.type !== 'bye'){ wv *= 1 - ae; }            // no idle wave during a reaction
       // pelvis + spine (counter-balance)
       hips.position.x = sway * 0.06 * (1 - sl * 0.6); hips.position.y = HIP_Y + bob * 0.07 * (1 - sl * 0.5) - th * 0.03 + hop - cheer * 0.04 - sl * 0.03;
@@ -21041,7 +21100,9 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       spine.rotation.x = 0.03 + br * 0.015 + th * 0.07 - cheer * 0.1 + sweat * 0.06;
       spine.rotation.y = Math.sin(t * 0.6 + 0.8) * 0.08 + sm.lx * 0.25;
       root.rotation.y = Math.sin(t * 0.6) * 0.16 * (1 - pk) + sm.lx * 0.25 - pk * 0.55;
-      spine.rotation.z += pk * 0.12;
+      spine.rotation.z += pk * 0.12 + Math.sin(aa * 7) * 0.14 * dance + Math.sin(aa * 34) * 0.035 * giggle;
+      hips.position.x += Math.sin(aa * 7) * 0.16 * dance; hips.rotation.z += Math.sin(aa * 7) * 0.12 * dance;
+      if(spinA >= 0) root.rotation.y += (spinA < .5 ? 2 * spinA * spinA : 1 - Math.pow(-2 * spinA + 2, 2) / 2) * Math.PI * 2;
       bodyG.scale.set(1 + br * 0.018, 1 + br * 0.012, 1 + br * 0.018);
       legs.forEach(legIK);
       // neck + head
@@ -21051,7 +21112,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       headP.rotation.z += sweat * Math.sin(aa * 2.2) * 0.08;
       headP.rotation.x += sl * (0.2 + Math.sin(t * 0.7) * 0.05) - yawn * sl * 0.35;   // nodding off / yawn tilts back
       head.rotation.y = sm.hx * 0.35 - pk * 0.3; head.rotation.x = sm.hy * 0.4;
-      headP.rotation.z += pk * 0.24;
+      headP.rotation.z += pk * 0.24 + Math.sin(aa * 7 + 1) * 0.2 * dance + giggle * 0.16;
       // arms: shoulder leads, elbow and wrist follow a beat later (overlap)
       arms.forEach(function(A){
         var s = A.s;
@@ -21081,9 +21142,16 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
           zW = mix(zW, fan * 0.55, sweat); xW = mix(xW, -0.3, sweat);
         }
         if(pk > 0.01){ zS = mix(zS, s > 0 ? 1.15 : -0.35, pk); xE = mix(xE, s > 0 ? -1.1 : -0.6, pk); }   // grabs the edge
+        if(dance > 0){ var dz = Math.sin(aa * 7 + (s > 0 ? 0 : Math.PI)); zS = mix(zS, s * (1.6 + dz * 0.9), dance); zE = mix(zE, s * (0.5 + dz * 0.3), dance); xE = mix(xE, 0, dance); }
+        if(giggle > 0){ zS = mix(zS, s * 0.55, giggle); xS = mix(xS, -1.1, giggle); xE = mix(xE, -1.9, giggle); }   // hands up to the mouth
+        if(s < 0 && accWant.umbrella && !dance && !cheer){ zS = -0.85 + Math.sin(t * 1.3) * 0.04; xS = -0.25; xE = -0.2; zE = -1.25; xW = 0; zW = 0; }   // holds the umbrella out to the side
         A.sh.position.y = A.y0 + br * 0.02 + yS;
         A.sh.rotation.set(xS, 0, zS); A.el.rotation.set(xE, 0, zE); A.wr.rotation.set(xW, 0, zW);
       });
+      if(ACC.umbrella.visible){                                    // keep the canopy upright, leaning over the head
+        arms[0].wr.updateWorldMatrix(true, false); arms[0].wr.getWorldQuaternion(uQ);
+        uQ.invert().multiply(uUp.setFromEuler(uE.set(-0.12, root.rotation.y, -0.42 + Math.sin(t * 1.3) * 0.03))); ACC.umbrella.quaternion.copy(uQ);
+      }
       // antenna: damped spring dragged by the head's motion (follow-through)
       var tilt = hips.rotation.z + spine.rotation.z + headP.rotation.z;
       if(prevTilt === null) prevTilt = tilt;
@@ -21196,7 +21264,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     try { bakeIcons(); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] bake failed', e); }
     window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose,
       peek:function(on){ peekT = on ? 1 : 0; kick(); },   // v322
-      act:function(type){ var t = (performance.now() - t0) / 1000; act = { type:type, t0:t, dur:type === 'cheer' ? 2.4 : 2.8 };
+      act:function(type){ var t = (performance.now() - t0) / 1000; act = { type:type, t0:t, dur:({ cheer:2.4, dance:2.9, spin:1.3, giggle:1.6 })[type] || 2.8 };
         if(type === 'bye'){ var w = (t + waveOff) % 7; if(w < 3.0 || w > 5.7) waveOff = ((3.0 - t) % 7 + 7) % 7; }
         kick(); return t; },   // v320
       wave:function(){ var t = (performance.now() - t0) / 1000, w = (t + waveOff) % 7; if(w < 3.0 || w > 5.7) waveOff = ((3.0 - t) % 7 + 7) % 7; },   // v314: wave now (greeting)
@@ -21711,5 +21779,34 @@ html body:not(.corp) #page-settings .card .btn-primary:not(#_):active{ transform
   window.addEventListener('load', function(){ setTimeout(mark, 300); });
 })();
 </script>
+<script>
+// v332: long-press the AI robot for a trick (dance / spin / giggle). A normal
+// tap still opens the assistant; only the click right after a long-press is
+// swallowed.
+(function(){
+  'use strict';
+  var timer = 0, fired = false, sx = 0, sy = 0, last = '';
+  var LINES = { dance:'ดูท่าเต้นนี้สิ 💃', spin:'วี้~ หมุนติ้ว 🌀', giggle:'ฮิๆ จั๊กจี้ 😆' };
+  function fab(){ return document.getElementById('ai-fab'); }
+  document.addEventListener('pointerdown', function(e){
+    var f = fab(); if(!f || !f.contains(e.target)) return;
+    fired = false; sx = e.clientX; sy = e.clientY; clearTimeout(timer);
+    timer = setTimeout(function(){
+      fired = true;
+      var opts = ['dance', 'spin', 'giggle'].filter(function(k){ return k !== last; }), k = opts[Math.floor(Math.random() * opts.length)]; last = k;
+      try { if(window.rb3d && rb3d.act) rb3d.act(k); } catch(_){}
+      try { if(window.rbSay) rbSay(LINES[k]); } catch(_){}
+      try { if(typeof haptic === 'function') haptic('light'); } catch(_){}
+    }, 520);
+  }, { passive:true, capture:true });
+  document.addEventListener('pointermove', function(e){ if(timer && (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10)){ clearTimeout(timer); timer = 0; } }, { passive:true, capture:true });
+  ['pointerup', 'pointercancel'].forEach(function(ev){ document.addEventListener(ev, function(){ clearTimeout(timer); timer = 0; }, { passive:true, capture:true }); });
+  document.addEventListener('click', function(e){
+    var f = fab(); if(fired && f && f.contains(e.target)){ fired = false; e.stopPropagation(); e.preventDefault(); }
+  }, true);
+  document.addEventListener('contextmenu', function(e){ var f = fab(); if(f && f.contains(e.target)) e.preventDefault(); }, true);
+})();
+</script>
+<style id="rb-press-v332">#ai-fab{ -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }</style>
 </body>
 </html>
