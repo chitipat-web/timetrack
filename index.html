@@ -11112,7 +11112,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v346';
+const APP_VERSION = 'v347';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -22286,6 +22286,90 @@ body.lite .hq-wx-ic img{ animation:none !important; }
   window.addEventListener('rbicons', render);
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) refresh(); });
   function boot(){ setTimeout(refresh, 1500); setInterval(refresh, 10 * 60 * 1000); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+<style id="island-v347">
+/* v347: Dynamic-Island style status pill — your work timer on every page */
+#rudy-island{ position:fixed; left:50%; top:calc(env(safe-area-inset-top,0px) + 9px); z-index:55; transform:translateX(-50%);
+  display:none; align-items:center; gap:8px; height:30px; padding:0 13px 0 11px; border-radius:16px; overflow:hidden; cursor:pointer;
+  background:rgba(4,6,14,0.88); -webkit-backdrop-filter:blur(14px) saturate(1.4); backdrop-filter:blur(14px) saturate(1.4);
+  box-shadow:0 6px 20px rgba(0,0,0,0.35), inset 0 0 0 0.5px rgba(255,255,255,0.12); color:#fff;
+  font:600 13px/1 -apple-system, "SF Pro Text", "Noto Sans Thai", sans-serif; font-variant-numeric:tabular-nums; white-space:nowrap;
+  transition:height .42s cubic-bezier(.3,1.35,.5,1), width .42s cubic-bezier(.3,1.35,.5,1), border-radius .42s, padding .3s; -webkit-tap-highlight-color:transparent; }
+#rudy-island.show{ display:flex; animation:islIn .5s cubic-bezier(.3,1.4,.5,1) both; }
+@keyframes islIn{ from{ transform:translateX(-50%) scale(.6); opacity:0; } to{ transform:translateX(-50%) scale(1); opacity:1; } }
+#rudy-island .isl-dot{ width:8px; height:8px; border-radius:50%; background:#34D173; box-shadow:0 0 8px #34D173; flex:none; animation:islPulse 1.8s ease-in-out infinite; }
+#rudy-island.ot .isl-dot{ background:#FF9F0A; box-shadow:0 0 8px #FF9F0A; }
+@keyframes islPulse{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
+#rudy-island .isl-lbl{ opacity:.7; font-weight:500; }
+#rudy-island .isl-row1{ display:flex; align-items:center; gap:8px; }
+#rudy-island .isl-big{ display:none; }
+#rudy-island.open{ height:86px; border-radius:28px; padding:0 18px; align-items:stretch; flex-direction:column; justify-content:center; gap:7px; width:min(320px, calc(100vw - 32px)); }
+#rudy-island.open .isl-row1{ display:none; }
+#rudy-island.open .isl-big{ display:block; }
+.isl-big .isl-top{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+.isl-big .isl-t{ font-size:24px; font-weight:800; letter-spacing:-.02em; }
+.isl-big .isl-s{ font-size:12px; opacity:.72; font-weight:500; }
+.isl-big .isl-bar{ height:5px; border-radius:3px; background:rgba(255,255,255,.16); overflow:hidden; }
+.isl-big .isl-bar i{ display:block; height:100%; border-radius:3px; background:linear-gradient(90deg,#5FEFFF,#3D7BFF); }
+#rudy-island.ot .isl-bar i{ background:linear-gradient(90deg,#FFC24A,#FF5A3D); }
+@media (prefers-reduced-motion: reduce){ #rudy-island, #rudy-island.show{ animation:none; transition:none; } #rudy-island .isl-dot{ animation:none; } }
+body.lite #rudy-island .isl-dot{ animation:none; }
+</style>
+<script>
+// v347: the island shows only while you're clocked in, on every page except
+// home (home already shows the clock card). Tap to expand / collapse.
+(function(){
+  'use strict';
+  var el = null, closeT = 0;
+  function hm(v){ var q = String(v || '').split(':').map(Number); return (q[0] || 0) * 60 + (q[1] || 0); }
+  function dur(m){ m = Math.max(0, Math.round(m)); return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
+  function build(){
+    el = document.createElement('div'); el.id = 'rudy-island'; el.setAttribute('role', 'status');
+    el.innerHTML = '<div class="isl-row1"><span class="isl-dot"></span><span class="isl-a"></span><span class="isl-lbl"></span></div>'
+      + '<div class="isl-big"><div class="isl-top"><span class="isl-t"></span><span class="isl-s isl-s1"></span></div><div class="isl-bar"><i></i></div><div class="isl-s isl-s2"></div></div>';
+    document.body.appendChild(el);
+    el.addEventListener('click', function(){
+      el.classList.toggle('open'); clearTimeout(closeT);
+      if(el.classList.contains('open')) closeT = setTimeout(function(){ el.classList.remove('open'); }, 5000);
+    });
+  }
+  function update(){
+    try {
+      if(typeof curUser === 'undefined' || !curUser || typeof records === 'undefined' || typeof todayStr !== 'function'){ hide(); return; }
+      var home = document.getElementById('page-home');
+      var shell = document.getElementById('app-shell');
+      if(!shell || shell.style.display === 'none' || (home && home.classList.contains('active'))){ hide(); return; }
+      var today = todayStr(), mine = records.filter(function(r){ return r && r.empId === curUser.id && r.date === today && r.checkIn; });
+      var open = mine.filter(function(r){ return !r.checkOut; });
+      if(!open.length){ hide(); return; }
+      var n = typeof _ilWall === 'function' ? _ilWall() : new Date(), now = n.getHours() * 60 + n.getMinutes();
+      var first = mine.reduce(function(a, r){ return Math.min(a, hm(r.checkIn)); }, 1e9);
+      var worked = mine.reduce(function(a, r){ var b = r.checkOut ? hm(r.checkOut) : now; return a + Math.max(0, b - hm(r.checkIn)); }, 0);
+      var endMin = hm(typeof getOTStart === 'function' ? getOTStart() : '16:30'), startMin = hm(typeof getWorkStart === 'function' ? getWorkStart() : '06:00');
+      var ot = 0; try { if(typeof dayOTMin === 'function') ot = dayOTMin(curUser.id, today, ('0' + n.getHours()).slice(-2) + ':' + ('0' + n.getMinutes()).slice(-2)) || 0; } catch(e){}
+      if(!el) build();
+      var isOT = ot > 0;
+      el.classList.toggle('ot', isOT);
+      el.querySelector('.isl-a').textContent = isOT ? 'OT ' + dur(ot) : dur(worked);
+      el.querySelector('.isl-lbl').textContent = isOT ? 'ทำงานล่วงเวลา' : 'กำลังทำงาน';
+      el.querySelector('.isl-t').textContent = isOT ? 'OT ' + dur(ot) : dur(worked) + ' ชม.';
+      el.querySelector('.isl-s1').textContent = 'เข้า ' + ('0' + Math.floor(first / 60)).slice(-2) + ':' + ('0' + (first % 60)).slice(-2);
+      el.querySelector('.isl-s2').textContent = isOT ? 'อย่าลืมกดออกงานเมื่อเสร็จ' : (now < endMin ? 'อีก ' + dur(endMin - now) + ' ชม. ถึงเวลาเลิกงาน' : 'ใกล้ครบเวลาแล้ว');
+      var pct = isOT ? 100 : Math.max(0, Math.min(100, (now - startMin) / Math.max(1, endMin - startMin) * 100));
+      el.querySelector('.isl-bar i').style.width = pct.toFixed(1) + '%';
+      if(!el.classList.contains('show')) el.classList.add('show');
+    } catch(e){ hide(); }
+  }
+  function hide(){ if(el){ el.classList.remove('show', 'open'); } }
+  window.rudyIslandUpdate = update;
+  function boot(){
+    setTimeout(update, 2500); setInterval(update, 30000);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) update(); });
+    var obs = window.MutationObserver && new MutationObserver(function(){ update(); });
+    document.querySelectorAll('.page').forEach(function(pg){ if(obs) obs.observe(pg, { attributes:true, attributeFilter:['class'] }); });
+  }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
