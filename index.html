@@ -11112,7 +11112,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v344';
+const APP_VERSION = 'v345';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19902,9 +19902,14 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         if(GL.frames > 15 && gap < 1000){
           GL.slow = gap > 75 ? GL.slow + 1 : Math.max(0, GL.slow - 1);
           if(GL.slow > 40){
-            if((GL.q || .38) > .26){ GL.q = .25; GL.slow = 0; try{ console.warn('[SKY] lowering WebGL resolution'); }catch(_){} }
+            var q0 = GL.q || .38;
+            if(q0 > .4){ GL.q = .38; GL.slow = 0; GL.upNo = true; try{ console.warn('[SKY] back to normal WebGL resolution'); }catch(_){} }   // v345: step back from sharp mode first
+            else if(q0 > .26){ GL.q = .25; GL.slow = 0; GL.upNo = true; try{ console.warn('[SKY] lowering WebGL resolution'); }catch(_){} }
             else { glKill('too slow'); return; }
           }
+          // v345: sharper clouds when the phone keeps a steady frame rate for ~6 s
+          GL.fast = gap < 50 ? (GL.fast || 0) + 1 : 0;
+          if(GL.fast > 150 && !GL.upNo && !window.__rudyLite && (GL.q || .38) < .4){ GL.q = .5; GL.fast = 0; GL.upNo = true; GL.slow = 0; }
         }
       }
       if(!GL.st || !GL.st.still) GL.raf = requestAnimationFrame(glLoop);
@@ -21140,6 +21145,24 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     sx.fillStyle = gr; sx.fillRect(0, 0, 64, 64);
     var shadow = new T.Mesh(new T.PlaneGeometry(3.4, 3.4), new T.MeshBasicMaterial({ map:new T.CanvasTexture(sc), transparent:true, depthWrite:false }));
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = -2.5; scene.add(shadow);
+    // v345: real soft self-shadows (arms on the body, head on the neck) — only
+    // on 3× screens with 4+ cores, never in battery-saver; switched off by
+    // itself if the render ever gets slow (see frame()).
+    var shOn = false, shCost = 0, shN = 0;
+    function shadowsSet(on){
+      shOn = !!on; renderer.shadowMap.enabled = shOn;
+      scene.traverse(function(o){ if(o.isMesh && o !== shadow && o.material && o.material.toneMapped !== false && !o.material.transparent){ o.castShadow = shOn; o.receiveShadow = shOn; if(o.material.needsUpdate !== undefined) o.material.needsUpdate = true; } });
+    }
+    try {
+      if(!window.__rudyLite && DPR >= 3 && (navigator.hardwareConcurrency || 4) >= 4 || window.__rbShadow){
+        renderer.shadowMap.type = T.PCFSoftShadowMap;
+        key.castShadow = true; key.shadow.mapSize.set(512, 512); key.shadow.radius = 4;
+        key.shadow.bias = -0.0015; key.shadow.normalBias = 0.03;
+        var sc2 = key.shadow.camera; sc2.left = -3.2; sc2.right = 3.2; sc2.top = 3.6; sc2.bottom = -3.2; sc2.near = 1; sc2.far = 20; sc2.updateProjectionMatrix();
+        window.__rbShadowsSet = shadowsSet;
+        setTimeout(function(){ shadowsSet(true); }, 0);
+      }
+    } catch(e){}
 
     // mount
     // canvases go in now, but the SVG robot is only hidden after the first
@@ -21345,7 +21368,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
         else if(t <= blinkAt) eyes.forEach(function(e){ if(e.scale.y < 1) e.scale.y = 1; });
         var ex = (busy ? Math.sin(t * 6) * 0.07 : 0) - pk * 0.09; eyes[0].position.x = -0.43 + ex; eyes[1].position.x = 0.43 + ex;
       }
-      renderer.render(scene, cam);
+      if(shOn){ var rt0 = performance.now(); renderer.render(scene, cam); shCost += performance.now() - rt0; if(++shN >= 90){ if(shCost / shN > 7) { shadowsSet(false); console.warn('[3D robot] shadows off (slow)'); } shCost = 0; shN = 0; } }
+      else renderer.render(scene, cam);
       if(!shown){ shown = true; fab.classList.add('rb3d'); if(orb) orb.classList.add('rb3d'); }
       if(octx && modal && modal.classList.contains('open')){ octx.clearRect(0, 0, PX, PX); octx.drawImage(cv, 0, 0); }
     }
