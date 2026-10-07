@@ -11115,7 +11115,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v352';
+const APP_VERSION = 'v353';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -22408,9 +22408,12 @@ body.lite .hq-wx-ic img{ animation:none !important; }
 /* v351 Ultra graphics (opt-in): floating light particles + sun rays */
 .ultra-dust{ left:0; top:0; width:100%; height:100%; pointer-events:none; }
 .ultra-rays{ width:260vmax; height:260vmax; left:calc(var(--rx,86%) - 130vmax); top:calc(var(--ry,6%) - 130vmax); pointer-events:none; opacity:0; transition:opacity 2s; mix-blend-mode:screen;
-  background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,246,220,.2) 0deg 3.5deg, rgba(255,246,220,0) 5deg 10deg);
-  -webkit-mask-image:radial-gradient(circle at 50% 50%, #000 0%, rgba(0,0,0,.7) 9%, transparent 24%); mask-image:radial-gradient(circle at 50% 50%, #000 0%, rgba(0,0,0,.7) 9%, transparent 24%);
-  transform-origin:50% 50%; animation:ultraRays 90s linear infinite; }
+  /* v353: soft, uneven beams (feathered edges, two interleaved periods) instead of hard spokes */
+  background:
+    repeating-conic-gradient(from 3deg at 50% 50%, rgba(255,247,222,0) 0deg, rgba(255,247,222,.075) 5deg, rgba(255,247,222,0) 11deg, rgba(255,247,222,0) 23deg),
+    repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,240,205,0) 0deg, rgba(255,240,205,.05) 3deg, rgba(255,240,205,0) 7deg, rgba(255,240,205,0) 17deg);
+  -webkit-mask-image:radial-gradient(circle at 50% 50%, #000 0%, rgba(0,0,0,.55) 5%, rgba(0,0,0,.18) 11%, transparent 19%); mask-image:radial-gradient(circle at 50% 50%, #000 0%, rgba(0,0,0,.55) 5%, rgba(0,0,0,.18) 11%, transparent 19%);
+  transform-origin:50% 50%; animation:ultraRays 180s linear infinite; }
 .ultra-rays.on{ opacity:1; }
 @keyframes ultraRays{ to{ transform:rotate(360deg); } }
 </style>
