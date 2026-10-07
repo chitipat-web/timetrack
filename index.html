@@ -6263,7 +6263,7 @@ function renderProductivityTrend(empId){
         <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%">
           <div style="font-family:var(--mono);font-size:10px;font-weight:600;color:${i===2?'var(--accent)':'var(--text2)'}">${fmtHMt(m.h*60)}</div>
           <div style="flex:1;display:flex;align-items:flex-end;width:100%">
-            <div style="width:100%;height:${(m.h/max*100)}%;min-height:2px;background:${i===2?'linear-gradient(180deg,var(--accent2),var(--accent))':'rgba(255,255,255,.12)'};border-radius:4px 4px 0 0;${i===2?'box-shadow:0 0 10px var(--accent)':''};transition:height .8s var(--ease-out-expo)"></div>
+            <div style="width:100%;height:${(m.h/max*100)}%;min-height:2px;background:${i===2?'linear-gradient(180deg,var(--accent2),var(--accent))':'linear-gradient(180deg,rgba(140,165,255,.62),rgba(140,165,255,.28))'};border-radius:8px 8px 3px 3px;${i===2?'box-shadow:0 0 10px var(--accent)':''};transition:height .8s var(--ease-out-expo)"></div>
           </div>
           <div style="font-size:10px;color:var(--text3)">${m.label}</div>
         </div>
@@ -11112,7 +11112,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v343';
+const APP_VERSION = 'v344';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -22721,6 +22721,13 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
 .hi-tile.wknd{ background:linear-gradient(160deg,#5FC8FF,#2F7BE8); }
 .hi-tile.hol{ background:linear-gradient(160deg,#FFC25A,#F0761E); }
 .hi-head-txt .hi-day-lbl{ margin-left:0; display:block; margin-top:2px; }
+/* v344 stats: readable punctuality score, goal ring no longer crowds its labels */
+.punct-ring-text{ color:var(--ink) !important; font-size:32px !important; }
+.progress-ring-wrap{ gap:18px; justify-content:flex-start !important; padding:0 4px; }
+.progress-ring-wrap .progress-ring{ width:116px; height:116px; flex:none; }
+.progress-ring-wrap .progress-info{ flex:1; min-width:0; margin-top:0; gap:8px; }
+.progress-ring-wrap .progress-info-row{ gap:8px; font-size:13px; }
+.progress-ring-wrap .progress-info-val{ white-space:nowrap; }
 /* 3) today's open session: live "ตอนนี้" + numbered chip */
 .rec-now{ color:var(--sys-green, #1FA35A); font-weight:700; }
 .rec-now::before{ content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:currentColor; margin:0 5px 1px 0; vertical-align:middle; animation:recNow 1.6s ease-in-out infinite; }
