@@ -11112,7 +11112,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v345';
+const APP_VERSION = 'v346';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -22287,6 +22287,53 @@ body.lite .hq-wx-ic img{ animation:none !important; }
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) refresh(); });
   function boot(){ setTimeout(refresh, 1500); setInterval(refresh, 10 * 60 * 1000); }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+<style id="vt-v346">
+/* v346: native page transitions (Safari 18+ View Transitions). The leaving
+   page drifts back and fades, the new one slides in, and the large title
+   morphs between pages. The old CSS page animations are switched off only
+   where this runs (html.vt-ok); older iOS keeps them. */
+html.vt-ok .page.active, html.vt-ok .page.glitch-active, html.vt-ok .page.slide-in-right, html.vt-ok .page.slide-in-left{ animation:none !important; }
+html.vt-ok .page.active{ view-transition-name:rudy-page; }
+html.vt-ok .page.active > .page-header .page-title{ view-transition-name:rudy-title; }
+html.vt-ok .page.active > .page-header .ph3d{ view-transition-name:rudy-ph3d; }
+::view-transition-old(root), ::view-transition-new(root){ animation:none; }
+::view-transition-old(rudy-page){ animation:vtOut .24s cubic-bezier(.4,0,.2,1) both; }
+::view-transition-new(rudy-page){ animation:vtIn .38s cubic-bezier(.2,.85,.25,1) both; }
+html.vt-back::view-transition-old(rudy-page){ animation-name:vtOutB; }
+html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
+::view-transition-group(rudy-title), ::view-transition-group(rudy-ph3d){ animation-duration:.38s; animation-timing-function:cubic-bezier(.2,.85,.25,1); }
+@keyframes vtOut{ to{ opacity:0; transform:translateX(-36px) scale(.97); } }
+@keyframes vtIn{ from{ opacity:0; transform:translateX(56px) scale(.98); } }
+@keyframes vtOutB{ to{ opacity:0; transform:translateX(36px) scale(.97); } }
+@keyframes vtInB{ from{ opacity:0; transform:translateX(-56px) scale(.98); } }
+</style>
+<script>
+// v346: wrap showPage in a View Transition when the browser has it
+(function(){
+  'use strict';
+  try {
+    if(typeof document.startViewTransition !== 'function' || typeof showPage !== 'function') return;
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduce || window.__rudyLite) return;
+    var base = showPage, busy = false, req = null, ORDER = ['home','calendar','history','stats','summary','salary','team','more','settings','announce'];
+    document.documentElement.classList.add('vt-ok');
+    window.showPage = showPage = function(id, btn){
+      var cur = document.querySelector('.page.active'), curId = cur ? cur.id.replace('page-', '') : '';
+      // a tap while a transition is still pending: its update will apply the latest target
+      if(busy && req && !req.ran){ req.self = this; req.args = arguments; return; }
+      if(busy || !cur || curId === id || document.hidden){ return base.apply(this, arguments); }
+      var back = ORDER.indexOf(id) < ORDER.indexOf(curId), html = document.documentElement;
+      html.classList.toggle('vt-back', back);
+      busy = true; req = { self:this, args:arguments, ran:false };
+      try {
+        var r = req, t = document.startViewTransition(function(){ r.ran = true; base.apply(r.self, r.args); });
+        var done = function(){ busy = false; html.classList.remove('vt-back'); };
+        t.finished.then(done, done);
+      } catch(e){ busy = false; if(!req.ran){ req.ran = true; base.apply(req.self, req.args); } }
+    };
+  } catch(e){ console.warn('[vt]', e); }
 })();
 </script>
 <style id="ph3d-v343">
