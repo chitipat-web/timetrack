@@ -3160,6 +3160,7 @@ window.ICO = (function(){ var P = {clock:'<circle cx="12" cy="12" r="9"/><path d
 </script>
 <script>
 // v323 battery saver: read once, before any heavy effect starts
+(function(){ try { if(localStorage.getItem('tt_ultra') === '1' && localStorage.getItem('tt_lite') !== '1' && sessionStorage.getItem('tt_ultra_off') !== '1'){ window.__rudyUltra = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('ultra'); }); } } catch(e){} })();   // v351 Ultra graphics
 (function(){ try { if(localStorage.getItem('tt_lite') === '1'){ window.__rudyLite = true; window.__skyNoGL = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('lite','cinema-off'); }); } } catch(e){} })();
 </script>
 <!-- INIT LOADING OVERLAY (load-D-motion: underwater theme) -->
@@ -4216,6 +4217,7 @@ body.dark .slide-action{
         <input type="range" id="lg-level" min="0" max="100" step="1" value="15" oninput="lgSetLevel(this.value)" onchange="lgSetLevel(this.value, true)">
         <div class="lg-level-ends"><span>ใสสุด</span><span>ทึบ / ย้อมสี</span></div>
       </div>
+      <button class="btn-secondary" onclick="rudyToggleUltra()" id="ultra-btn" style="width:100%;margin-bottom:8px">✨ กราฟิกสูงสุด (Ultra): ปิด</button>
       <button class="btn-secondary" onclick="rudyToggleTilt()" id="tilt-btn" style="width:100%;margin-bottom:8px">📱 ท้องฟ้าเอียงตามมือ: ปิด</button>
       <button class="btn-secondary" onclick="rudyToggleLite()" id="lite-btn" style="width:100%;margin-bottom:8px">🔋 โหมดประหยัดแบต: ปิด</button>
       <button class="btn-primary" onclick="toggleDark()" id="theme-btn">เปลี่ยนเป็นโหมดสว่าง</button>
@@ -11113,7 +11115,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v350';
+const APP_VERSION = 'v351';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19867,7 +19869,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       try { console.warn('[SKY] WebGL off → CSS scenery:', why); } catch(_){}
     }
     function glResize(){
-      var dpr = Math.min(window.devicePixelRatio || 1, 2), sc = (GL.q || .38) * dpr;   // reduced res: clouds are soft
+      var dpr = Math.min(window.devicePixelRatio || 1, 2), sc = (GL.q || (window.__rudyUltra ? .72 : .38)) * dpr;   // reduced res: clouds are soft (v351 Ultra: .72)
       var w = Math.max(1, Math.round(innerWidth*sc)), h = Math.max(1, Math.round(innerHeight*sc));
       if(GL.cvs.width !== w || GL.cvs.height !== h){ GL.cvs.width = w; GL.cvs.height = h; GL.gl.viewport(0,0,w,h); }
     }
@@ -19895,7 +19897,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
     function glLoop(now){
       GL.raf = 0;
       if(!GL.ok || !document.body.classList.contains('sky') || document.hidden) return;
-      if(now - GL.last >= 40){                         // ≤25 fps: clouds drift slowly
+      if(now - GL.last >= (window.__rudyUltra ? 33 : 40)){   // ≤25 fps: clouds drift slowly (Ultra ≤30)
         var gap = GL.last ? now - GL.last : 40;
         glDraw(now); GL.last = now; GL.frames++;
         // GPU overload shows up as long gaps between frames. Sustained: first
@@ -19903,14 +19905,14 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         if(GL.frames > 15 && gap < 1000){
           GL.slow = gap > 75 ? GL.slow + 1 : Math.max(0, GL.slow - 1);
           if(GL.slow > 40){
-            var q0 = GL.q || .38;
+            var q0 = GL.q || (window.__rudyUltra ? .72 : .38);
             if(q0 > .4){ GL.q = .38; GL.slow = 0; GL.upNo = true; try{ console.warn('[SKY] back to normal WebGL resolution'); }catch(_){} }   // v345: step back from sharp mode first
             else if(q0 > .26){ GL.q = .25; GL.slow = 0; GL.upNo = true; try{ console.warn('[SKY] lowering WebGL resolution'); }catch(_){} }
             else { glKill('too slow'); return; }
           }
           // v345: sharper clouds when the phone keeps a steady frame rate for ~6 s
           GL.fast = gap < 50 ? (GL.fast || 0) + 1 : 0;
-          if(GL.fast > 150 && !GL.upNo && !window.__rudyLite && (GL.q || .38) < .4){ GL.q = .5; GL.fast = 0; GL.upNo = true; GL.slow = 0; }
+          if(GL.fast > 150 && !GL.upNo && !window.__rudyLite && !window.__rudyUltra && (GL.q || .38) < .4){ GL.q = .5; GL.fast = 0; GL.upNo = true; GL.slow = 0; }
         }
       }
       if(!GL.st || !GL.st.still) GL.raf = requestAnimationFrame(glLoop);
@@ -21156,7 +21158,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       scene.traverse(function(o){ if(o.isMesh && o !== shadow && o.material && o.material.toneMapped !== false && !o.material.transparent){ o.castShadow = shOn; o.receiveShadow = shOn; if(o.material.needsUpdate !== undefined) o.material.needsUpdate = true; } });
     }
     try {
-      if(!window.__rudyLite && DPR >= 3 && (navigator.hardwareConcurrency || 4) >= 4 || window.__rbShadow){
+      if(!window.__rudyLite && DPR >= 3 && (navigator.hardwareConcurrency || 4) >= 4 || window.__rbShadow || window.__rudyUltra){
         renderer.shadowMap.type = T.PCFSoftShadowMap;
         key.castShadow = true; key.shadow.mapSize.set(512, 512); key.shadow.radius = 4;
         key.shadow.bias = -0.0015; key.shadow.normalBias = 0.03;
@@ -21357,7 +21359,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       raf = 0; if(!alive) return;
       if(document.hidden || !fab.offsetWidth){ setTimeout(kick, 800); return; }   // (offsetParent is always null for a fixed element)
       raf = requestAnimationFrame(frame);
-      if(now - last < 32) return; last = now;
+      if(now - last < (window.__rudyUltra ? 15 : 32)) return; last = now;   // v351 Ultra: 60 fps robot
       var t = (now - t0) / 1000, busy = modal && modal.classList.contains('ai-busy');
       if(!reduce){
         if(now > look.until){ look.tx *= 0.9; look.ty *= 0.9; }
@@ -22340,6 +22342,101 @@ body.lite .hq-wx-ic img{ animation:none !important; }
   window.soundPage = function(){ if(!on()) return; bell(1760, 0, 0.09, 0.012); };
   // the old functions were global declarations; rebind the names too
   try { soundCheckIn = window.soundCheckIn; soundCheckOut = window.soundCheckOut; soundSuccess = window.soundSuccess; soundError = window.soundError; soundNotification = window.soundNotification; soundClick = window.soundClick; } catch(e){}
+})();
+</script>
+<style id="ultra-v351">
+/* v351 Ultra graphics (opt-in): floating light particles + sun rays */
+.ultra-dust{ left:0; top:0; width:100%; height:100%; pointer-events:none; }
+.ultra-rays{ width:260vmax; height:260vmax; left:calc(var(--rx,86%) - 130vmax); top:calc(var(--ry,6%) - 130vmax); pointer-events:none; opacity:0; transition:opacity 2s; mix-blend-mode:screen;
+  background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,246,220,.2) 0deg 3.5deg, rgba(255,246,220,0) 5deg 10deg);
+  -webkit-mask-image:radial-gradient(circle at 50% 50%, #000 0%, rgba(0,0,0,.7) 9%, transparent 24%); mask-image:radial-gradient(circle at 50% 50%, #000 0%, rgba(0,0,0,.7) 9%, transparent 24%);
+  transform-origin:50% 50%; animation:ultraRays 90s linear infinite; }
+.ultra-rays.on{ opacity:1; }
+@keyframes ultraRays{ to{ transform:rotate(360deg); } }
+</style>
+<script>
+// v351: Ultra mode effects + safety net (drops back to normal for this session
+// if the phone can't keep up), and the Settings toggle.
+(function(){
+  'use strict';
+  function btn(){ var b = document.getElementById('ultra-btn'); if(b){ var w = false; try { w = localStorage.getItem('tt_ultra') === '1'; } catch(e){} b.textContent = '✨ กราฟิกสูงสุด (Ultra): ' + (w ? (window.__rudyUltra ? 'เปิด' : 'เปิด (พักไว้ — เครื่องช้า)') : 'ปิด'); } }
+  window.rudyToggleUltra = function(){
+    var w = false; try { w = localStorage.getItem('tt_ultra') === '1'; } catch(e){}
+    if(!w && window.__rudyLite){ if(typeof showToast === 'function') showToast('ปิดโหมดประหยัดแบตก่อน', 'warning'); return; }
+    try { localStorage.setItem('tt_ultra', w ? '0' : '1'); sessionStorage.removeItem('tt_ultra_off'); } catch(e){}
+    if(typeof showToast === 'function') showToast(w ? 'ปิด Ultra — กำลังโหลดใหม่…' : '✨ เปิด Ultra — กำลังโหลดใหม่…');
+    setTimeout(function(){ location.reload(); }, 900);
+  };
+  var P = [], cv = null, cx = null, rays = null, raf = 0, last = 0, W = 0, H = 0, dpr = 1, mode = '';
+  function phase(){ return document.body.getAttribute('data-sky') || 'day'; }
+  function wet(){ var k = document.body.getAttribute('data-sky-wx') || ''; return k === 'rain' || k === 'storm'; }
+  function seed(){
+    var ph = phase(), n = ph === 'night' ? 34 : 46; mode = ph; P = [];
+    for(var i = 0; i < n; i++) P.push({ x:Math.random(), y:Math.random(), r:ph === 'night' ? 1.2 + Math.random() * 2.2 : 0.6 + Math.random() * 1.8,
+      vx:(Math.random() - .5) * .006, vy:-(0.004 + Math.random() * .012), tw:Math.random() * 6.28, ts:.6 + Math.random() * 1.6, z:.4 + Math.random() * .8 });
+  }
+  function size(){ dpr = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  function col(ph){ return ph === 'night' ? [190, 255, 170] : (ph === 'dawn' || ph === 'dusk') ? [255, 214, 150] : [255, 252, 236]; }
+  function draw(now){
+    raf = 0;
+    if(!window.__rudyUltra || document.hidden || !document.body.classList.contains('sky')){ return; }
+    raf = requestAnimationFrame(draw);
+    if(now - last < 33) return; var dt = Math.min(3, (now - last) / 33); last = now;
+    if(phase() !== mode) seed();
+    var ph = mode, c = col(ph), t = now / 1000; cx.clearRect(0, 0, W, H);
+    if(wet()) return;
+    for(var i = 0; i < P.length; i++){
+      var p = P[i];
+      p.x += (p.vx + Math.sin(t * .3 + i) * .0015) * dt * .1; p.y += p.vy * dt * .1 * (ph === 'night' ? .5 : 1);
+      if(p.y < -0.05){ p.y = 1.05; p.x = Math.random(); } if(p.x < -0.05) p.x = 1.05; if(p.x > 1.05) p.x = -0.05;
+      var a = (ph === 'night' ? .25 + .75 * Math.max(0, Math.sin(t * p.ts + p.tw)) : .35 + .35 * Math.sin(t * p.ts + p.tw)) * p.z;
+      var x = p.x * W, y = p.y * H, r = p.r * (ph === 'night' ? 1 : p.z);
+      var g = cx.createRadialGradient(x, y, 0, x, y, r * 4);
+      g.addColorStop(0, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (a * .9).toFixed(3) + ')'); g.addColorStop(.35, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (a * .35).toFixed(3) + ')'); g.addColorStop(1, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0)');
+      cx.fillStyle = g; cx.fillRect(x - r * 4, y - r * 4, r * 8, r * 8);
+    }
+  }
+  function setup(){
+    var sc = document.getElementById('sky-scene'); if(!sc || !window.__rudyUltra) return false;
+    if(!cv){ cv = document.createElement('canvas'); cv.className = 'ultra-dust'; cx = cv.getContext('2d'); var st = sc.querySelector('.sky-starc'); sc.insertBefore(cv, st ? st.nextSibling : null); size(); seed(); window.addEventListener('resize', function(){ if(cv) size(); }); }
+    if(!rays){ rays = document.createElement('div'); rays.className = 'ultra-rays'; sc.insertBefore(rays, cv); }
+    return true;
+  }
+  function update(){
+    if(!window.__rudyUltra){ if(cv){ cv.remove(); cv = null; } if(rays){ rays.remove(); rays = null; } return; }
+    if(!setup()) return;
+    var ph = phase(), k = document.body.getAttribute('data-sky-wx') || 'clear', sunny = (k === 'clear' || k === 'few') && ph !== 'night';
+    rays.style.setProperty('--rx', ph === 'dawn' ? '18%' : ph === 'dusk' ? '82%' : '86%'); rays.style.setProperty('--ry', ph === 'day' ? '6%' : '30%');
+    rays.classList.toggle('on', sunny);
+    if(!raf) raf = requestAnimationFrame(draw);
+  }
+  // safety net: sustained slow frames → Ultra off for this session
+  var gaps = [], prev = 0, badWin = 0;
+  function watch(now){
+    if(!window.__rudyUltra) return;
+    if(!document.hidden && prev){ gaps.push(now - prev); }
+    prev = document.hidden ? 0 : now;
+    if(gaps.length >= 180){
+      gaps.sort(function(a, b){ return a - b; }); var med = gaps[90]; gaps = [];
+      badWin = med > 42 ? badWin + 1 : 0;
+      if(badWin >= 2){
+        window.__rudyUltra = false; document.body.classList.remove('ultra');
+        try { sessionStorage.setItem('tt_ultra_off', '1'); } catch(e){}
+        update(); btn();
+        if(typeof showToast === 'function') showToast('เครื่องเริ่มหน่วง — ลดกราฟิกเป็นปกติชั่วคราว', 'warning');
+        return;
+      }
+    }
+    requestAnimationFrame(watch);
+  }
+  function boot(){
+    btn();
+    if(!window.__rudyUltra) return;
+    setTimeout(update, 2500); setInterval(update, 30000);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden){ prev = 0; update(); } });
+    setTimeout(function(){ requestAnimationFrame(watch); }, 8000);   // let startup work finish first
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
 <style id="tilt-v349">
