@@ -11112,7 +11112,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v347';
+const APP_VERSION = 'v348';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -22287,6 +22287,62 @@ body.lite .hq-wx-ic img{ animation:none !important; }
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) refresh(); });
   function boot(){ setTimeout(refresh, 1500); setInterval(refresh, 10 * 60 * 1000); }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+<style id="cine-v348">
+/* v348: cinematic check-in — light burst at the slider, the time flies into
+   the "เข้าครั้งแรก" chip. ~1.5 s, never blocks taps. */
+.cin-layer{ position:fixed; inset:0; z-index:58; pointer-events:none; overflow:hidden; }
+.cin-ring{ position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; border:4px solid #B8FFDC; box-shadow:0 0 28px rgba(60,255,160,.95), inset 0 0 20px rgba(60,255,160,.7); }
+.cin-flash{ position:absolute; width:260px; height:260px; margin:-130px 0 0 -130px; border-radius:50%; background:radial-gradient(circle, #fff, rgba(150,255,205,.85) 30%, rgba(60,230,150,.35) 52%, rgba(60,230,150,0) 70%); }
+.cin-spark{ position:absolute; width:16px; height:16px; margin:-8px 0 0 -8px; background:#fff; clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%); }
+.cin-spark.g{ background:#FFD54A; }
+.cin-time{ position:absolute; left:0; top:0; font:800 30px/1 -apple-system,"SF Pro Display",sans-serif; color:#fff; text-shadow:0 0 18px rgba(90,255,180,.9), 0 2px 6px rgba(0,0,0,.35); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.ha-chip.cin-pop{ animation:cinPop .7s cubic-bezier(.3,1.6,.5,1); }
+@keyframes cinPop{ 0%{ transform:scale(1); } 35%{ transform:scale(1.14); box-shadow:0 0 0 2px rgba(90,255,180,.7), 0 0 26px rgba(90,255,180,.6); } 100%{ transform:scale(1); } }
+</style>
+<script>
+(function(){
+  'use strict';
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function openRec(){ try { var d = todayStr(); return records.find(function(r){ return r.empId === curUser.id && r.date === d && !r.checkOut; }) || null; } catch(e){ return null; } }
+  function vis(el){ if(!el) return null; var r = el.getBoundingClientRect(); return (r.width && r.bottom > 0 && r.top < innerHeight) ? r : null; }
+  function play(from, time){
+    if(reduce || window.__rudyLite || !document.body.animate) return;
+    var L = document.createElement('div'); L.className = 'cin-layer'; document.body.appendChild(L);
+    var cx = from.left + from.width / 2, cy = from.top + from.height / 2;
+    function add(cls){ var e = document.createElement('div'); e.className = cls; e.style.left = cx + 'px'; e.style.top = cy + 'px'; L.appendChild(e); return e; }
+    add('cin-flash').animate([{ transform:'scale(.2)', opacity:1 }, { transform:'scale(1.4)', opacity:0 }], { duration:650, easing:'cubic-bezier(.2,.8,.3,1)', fill:'forwards' });
+    [0, 140].forEach(function(d){ add('cin-ring').animate([{ transform:'scale(.4)', opacity:1 }, { transform:'scale(5)', opacity:0 }], { duration:800, delay:d, easing:'cubic-bezier(.15,.7,.3,1)', fill:'both' }); });
+    for(var i = 0; i < 14; i++){
+      var a = i / 14 * Math.PI * 2 + Math.random() * .3, dist = 60 + Math.random() * 70, sc = .6 + Math.random() * .9;
+      add('cin-spark' + (i % 3 ? '' : ' g')).animate([{ transform:'translate(0,0) scale(' + sc + ') rotate(0)', opacity:1 }, { transform:'translate(' + (Math.cos(a) * dist).toFixed(0) + 'px,' + (Math.sin(a) * dist).toFixed(0) + 'px) scale(0) rotate(180deg)', opacity:.9 }],
+        { duration:700 + Math.random() * 300, easing:'cubic-bezier(.1,.7,.3,1)', fill:'forwards' });
+    }
+    var chip = document.getElementById('s-firstin'), to = vis(chip);
+    if(time && to){
+      var t = document.createElement('div'); t.className = 'cin-time'; t.textContent = time; L.appendChild(t);
+      var tw = 80, x0 = cx - tw / 2, y0 = cy - 50, x1 = to.left + 2, y1 = to.top - 4;
+      t.animate([
+        { transform:'translate(' + x0 + 'px,' + (y0 + 20) + 'px) scale(.4)', opacity:0 },
+        { transform:'translate(' + x0 + 'px,' + y0 + 'px) scale(1.25)', opacity:1, offset:.28 },
+        { transform:'translate(' + ((x0 + x1) / 2) + 'px,' + (Math.min(y0, y1) - 40) + 'px) scale(.9)', opacity:1, offset:.62 },
+        { transform:'translate(' + x1 + 'px,' + y1 + 'px) scale(.55)', opacity:0 }
+      ], { duration:1250, delay:150, easing:'cubic-bezier(.45,0,.25,1)', fill:'both' });
+      setTimeout(function(){ var c = chip.closest('.ha-chip'); if(c){ c.classList.remove('cin-pop'); void c.offsetWidth; c.classList.add('cin-pop'); setTimeout(function(){ c.classList.remove('cin-pop'); }, 800); } }, 1300);
+    }
+    setTimeout(function(){ try { L.remove(); } catch(_){} }, 1800);
+  }
+  window.__cinePlay = function(){ var r = vis(document.getElementById('slide-thumb')) || { left:innerWidth / 2 - 30, top:innerHeight / 2, width:60, height:60 }; play(r, '05:52'); };
+  function install(){
+    var orig = window.doCheckIn; if(typeof orig !== 'function') return;
+    window.doCheckIn = function(){
+      var before = openRec(), from = vis(document.getElementById('slide-thumb')), res = orig.apply(this, arguments);
+      try { var now = openRec(); if(!before && now && from) play(from, now.checkIn); } catch(e){}
+      return res;
+    };
+  }
+  if(document.readyState === 'complete') setTimeout(install, 0); else window.addEventListener('load', function(){ setTimeout(install, 0); });
 })();
 </script>
 <style id="island-v347">
