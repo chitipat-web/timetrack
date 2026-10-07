@@ -7093,9 +7093,11 @@ function renderHistory(resetPage){
     const totalOT=rs.reduce((s,r)=>s+(r.otMin||0),0);
     const hasLate=rs.some(r=>r.isLate);
     const holiday=isHoliday(date);
+    const tileK=date===todayStr()?' today':holiday?' hol':(d.getDay()===5||d.getDay()===6)?' wknd':'';   // v342 calendar tile
     return `<div class="history-item">
       <div class="hi-header">
-        <div><div class="hi-date-lbl">${parseInt(dd)} ${mons[parseInt(m)-1]}</div><div class="hi-day-lbl">วัน${dayNames[d.getDay()]} ${holiday?'🏖 '+getHolidays()[date]:''}${rs.some(r=>r.place==='pack')?' · <span class="pack-tag">'+ICO('box',12)+'โรงแพ็ค</span>':''}</div></div>
+        <div class="hi-tile${tileK}" aria-hidden="true"><b>${parseInt(dd)}</b><span>${['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'][d.getDay()]}</span></div>
+        <div class="hi-head-txt"><div class="hi-date-lbl">${parseInt(dd)} ${mons[parseInt(m)-1]}</div><div class="hi-day-lbl">วัน${dayNames[d.getDay()]} ${holiday?'🏖 '+getHolidays()[date]:''}${rs.some(r=>r.place==='pack')?' · <span class="pack-tag">'+ICO('box',12)+'โรงแพ็ค</span>':''}</div></div>
         <div style="text-align:right">
           <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--green)">${fmtHMt(totalH*60)}</div>
           ${totalOT>0?`<div style="font-size:11px;color:var(--yellow)">⚡ OT ${fmtHMt(totalOT)}</div>`:''}
@@ -11110,7 +11112,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v341';
+const APP_VERSION = 'v342';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21359,7 +21361,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     // renderer, keep them as PNGs, then hand the canvas back to the robot.
     // No ongoing cost: these are plain images after the first second.
     function bakeIcons(){
-      var S2 = 256, out = {}, Q = [];   // v341: 256px (sharp on 3× iPhone screens), baked one per task
+      var S2 = 256, out = {}, Q = [], jobs = [];   // v341: 256px (sharp on 3× iPhone screens), baked one per task
       var bs = new T.Scene(); bs.environment = scene.environment;
       bs.add(new T.HemisphereLight(0xffffff, 0x554a80, 0.45));
       var k2 = new T.DirectionalLight(0xfff4e6, 1.15); k2.position.set(3, 5, 6); bs.add(k2);
@@ -21369,6 +21371,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       var ex0 = renderer.toneMappingExposure;
       function shot(name, obj){ Q.push([name, obj]); }   // queued; drained below a few at a time so the UI never stalls
       function shoot(j){ bs.add(j[1]); renderer.setSize(S2, S2, false); renderer.toneMappingExposure = 0.85; renderer.render(bs, bc); renderer.toneMappingExposure = ex0; out[j[0]] = cv.toDataURL('image/png'); bs.remove(j[1]); renderer.setSize(PX, PX, false); }
+      jobs.push(function(){   // v342: models are built lazily, one group per task
       // sprout in a little terracotta pot (reads as a plant on the green button)
       var sp = new T.Group();
       var potM = new T.MeshStandardMaterial({ color:0xC4552A, roughness:0.7, envMapIntensity:0.3 });
@@ -21413,6 +21416,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       var plate = new T.Mesh(new T.BoxGeometry(0.42, 0.1, 0.02), gold); plate.position.set(0, -0.56, 0.32); tr.add(plate);
       [-1, 1].forEach(function(sd){ var h = new T.Mesh(new T.TorusGeometry(0.22, 0.045, 10, 24, Math.PI), gold); h.position.set(sd * 0.6, 0.62, 0); h.rotation.z = sd > 0 ? -Math.PI / 2 : Math.PI / 2; tr.add(h); });
       tr.rotation.y = -0.3; tr.position.y = 0.05; shot('trophy', tr);
+      });
+      jobs.push(function(){   // v342: models are built lazily, one group per task
       // v337: weather icons (home weather card)
       try {
         var cloudM = new T.MeshPhysicalMaterial({ color:0xF4F6FF, roughness:0.45, clearcoat:0.6, envMapIntensity:0.7 });
@@ -21451,6 +21456,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
         W3.storm = function(){ var g = new T.Group(), c = cloud(darkM, 1.0); c.position.y = 0.3; g.add(c); var b = bolt(); b.position.y += 0.3; g.add(b); return g; };
         Object.keys(W3).forEach(function(k){ var o = W3[k](); o.rotation.x += 0.12; o.rotation.y = -0.15; shot('wx_' + k, o); });
       } catch(e){ console.warn('[3D icons] weather', e); }
+      });
+      jobs.push(function(){   // v342: models are built lazily, one group per task
       // v334: achievement medals (one per ACH_DEFS entry: tier metal + embossed face + ribbon)
       try {
         var TIER = {
@@ -21482,6 +21489,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
           md.rotation.y = -0.18; md.position.y = 0.02; md.scale.setScalar(1.05); shot('medal_' + d.id, md);
         });
       } catch(e){ console.warn('[3D icons] medals', e); }
+      });
       function finish(){
         // v327: the robot itself as an illustration (mid-wave), for empty states (v341: 440px for the Wrapped story)
         try {
@@ -21496,12 +21504,18 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       // one icon per task, yielding between them: frames and taps keep flowing
       (function step(){
         var j = Q.shift();
-        if(!j){ finish(); return; }
+        if(!j){
+          var job = jobs.shift();
+          if(!job){ finish(); return; }
+          try { job(); } catch(e){ console.warn('[3D icons] group', e); }   // builds a group of models → queues their shots
+          setTimeout(step, 30); return;
+        }
         try { shoot(j); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] ' + j[0], e); }
         setTimeout(step, 30);
       })();
     }
-    try { bakeIcons(); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] bake failed', e); }
+    // v342: let the robot's first frames render before any icon work starts
+    setTimeout(function(){ try { bakeIcons(); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] bake failed', e); } }, 600);
     window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose,
       peek:function(on){ peekT = on ? 1 : 0; kick(); },   // v322
       act:function(type){ var t = (performance.now() - t0) / 1000; act = { type:type, t0:t, dur:({ cheer:2.4, dance:2.9, spin:1.3, giggle:1.6 })[type] || 2.8 };
@@ -22625,6 +22639,24 @@ html body #toast.toast.success{ --t-c:#34D173; } html body #toast.toast.error{ -
 .hw-compare-tag{ font-size:11px !important; padding:3px 8px !important; }
 .hw-compare-tag.neutral{ background:rgba(127,140,170,0.22) !important; color:var(--ink) !important; opacity:.85; }
 @media (prefers-reduced-motion: reduce){ .hwc-ring.ot .arc{ animation:none; } }
+/* v342 history: same glass as every other card (was its own pale-blue blur),
+   rows inside without a second backdrop blur (smoother scrolling), and a
+   calendar tile per day */
+body.lg.lg.lg .history-item{ background:var(--g-card) !important; -webkit-backdrop-filter:var(--g-blur) !important; backdrop-filter:var(--g-blur) !important;
+  border:1px solid var(--g-stroke) !important; border-radius:var(--r-lg) !important; box-shadow:var(--g-shadow), var(--g-hi) !important; padding:12px 12px 8px !important; margin-bottom:12px !important; }
+body.lg.lg.lg .history-item .hi-rec{ -webkit-backdrop-filter:none !important; backdrop-filter:none !important; background:rgba(255,255,255,0.08) !important;
+  border:0.5px solid rgba(255,255,255,0.16) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.12) !important; border-radius:16px !important; }
+body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35) !important; }
+.hi-header{ gap:10px; }
+.hi-head-txt{ flex:1; min-width:0; }
+.hi-tile{ width:44px; height:48px; flex:none; border-radius:13px; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1;
+  background:linear-gradient(160deg,#6C8CFF,#7444EE); color:#fff; box-shadow:0 6px 14px rgba(80,70,220,.35), inset 0 1px 0 rgba(255,255,255,.45); text-shadow:none !important; }
+.hi-tile b{ font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
+.hi-tile span{ font-size:10px; font-weight:700; opacity:.9; margin-top:3px; }
+.hi-tile.today{ background:linear-gradient(160deg,#4FE08C,#14A35A); box-shadow:0 6px 14px rgba(20,160,90,.35), inset 0 1px 0 rgba(255,255,255,.45); }
+.hi-tile.wknd{ background:linear-gradient(160deg,#5FC8FF,#2F7BE8); }
+.hi-tile.hol{ background:linear-gradient(160deg,#FFC25A,#F0761E); }
+.hi-head-txt .hi-day-lbl{ margin-left:0; display:block; margin-top:2px; }
 /* 3) today's open session: live "ตอนนี้" + numbered chip */
 .rec-now{ color:var(--sys-green, #1FA35A); font-weight:700; }
 .rec-now::before{ content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:currentColor; margin:0 5px 1px 0; vertical-align:middle; animation:recNow 1.6s ease-in-out infinite; }
