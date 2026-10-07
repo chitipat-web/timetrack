@@ -11115,7 +11115,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v351';
+const APP_VERSION = 'v352';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19572,18 +19572,31 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       'const mat2 M=mat2(1.6,1.2,-1.2,1.6);',
       'float fbm3(vec2 p){float v=0.,a=.5;for(int i=0;i<3;i++){v+=a*noise(p);p=M*p;a*=.5;}return v;}',
       'float fbm5(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p=M*p;a*=.5;}return v;}',
+      '#ifdef ULTRA',
+      'float fbm6(vec2 p){float v=0.,a=.5;for(int i=0;i<6;i++){v+=a*noise(p);p=M*p;a*=.5;}return v;}',
+      '#endif',
       '// one cloud layer: returns premultiplied colour (rgb) + coverage (a)',
       'vec4 cloudLayer(vec2 p, float sc, float spd, float th, vec2 sunP, float shadows){',
       ' vec2 q=p*sc+vec2(uTime*spd,0.);',
       ' vec2 wq=q+.9*vec2(fbm3(q*.6+3.1+uTime*.01),fbm3(q*.6+7.4));',
+      '#ifdef ULTRA',
+      ' float n=fbm6(wq);',
+      '#else',
       ' float n=fbm5(wq);',
+      '#endif',
       ' float d=smoothstep(th,th+.07,n);',
       ' if(d<.002) return vec4(0.);',
       ' // self-shadowing: march a few steps toward the sun through the density field',
       ' vec2 dir=normalize(sunP-p+vec2(1e-4))*.07;',
+      '#ifdef ULTRA',
+      ' // v352 Ultra: 5-step light march (Beer) + powder term → soft volumetric shading',
+      ' float occ=0.; for(int k=1;k<=5;k++){ float fk=float(k); occ+=smoothstep(th,th+.1,fbm5(wq+dir*fk*1.15))*(1.08-fk*.13); }',
+      ' float light=exp(-occ*.62); light*=mix(1.,1.-exp(-d*4.),.45)*1.18;',
+      '#else',
       ' float occ=smoothstep(th,th+.1,fbm5(wq+dir));',
       ' if(shadows>.5){ occ+=smoothstep(th,th+.1,fbm5(wq+dir*2.2)); occ+=.7*smoothstep(th,th+.1,fbm3(wq+dir*3.8)); }',
       ' float light=exp(-occ*(shadows>.5?.75:1.3));',
+      '#endif',
       ' // flat, darker cloud bases',
       ' float base=smoothstep(th,th+.3,fbm3(wq+vec2(0.,.12)));',
       ' light*=mix(.72,1.,base);',
@@ -19631,6 +19644,13 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       ' col=col*(1.-far.a*uCloudA)+far.rgb*uCloudA;',
       ' col=col*(1.-mid.a*uCloudA)+mid.rgb*uCloudA;',
       ' col=col*(1.-near.a*uCloudA)+near.rgb*uCloudA;',
+      '#ifdef ULTRA',
+      ' // v352 Ultra: a big soft foreground layer for depth + forward scattering glow toward the sun',
+      ' vec4 fg=cloudLayer(p+vec2(15.3,.0), .82, .045, .74-cov*.42, sp, 1.); fg*=.8*mix(.2,1.,fadeLow);',
+      ' col=col*(1.-fg.a*uCloudA)+fg.rgb*uCloudA;',
+      ' float cl=max(max(far.a,mid.a),max(near.a,fg.a));',
+      ' col+=uSunCol*uSun*cl*.18*exp(-d*3.2);',
+      '#endif',
       ' // v330 rain: moody top, three parallax depths, ground mist',
       ' if(uRain>0.){',
       '  col*=1.-uRain*.16*smoothstep(.4,1.,uv.y);',
@@ -19850,7 +19870,8 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         if(!gl) throw new Error('no webgl');
         function sh(type, src){ var o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o);
           if(!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
-        var pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
+        var pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); var fsh; try { fsh = sh(gl.FRAGMENT_SHADER, (window.__rudyUltra ? '#define ULTRA\n' : '') + FS); } catch(eU){ if(!window.__rudyUltra) throw eU; console.warn('[SKY] ultra shader failed, normal one', eU); fsh = sh(gl.FRAGMENT_SHADER, FS); }
+        gl.attachShader(pr, fsh);
         gl.linkProgram(pr); if(!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr));
         gl.useProgram(pr);
         var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -19869,7 +19890,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       try { console.warn('[SKY] WebGL off → CSS scenery:', why); } catch(_){}
     }
     function glResize(){
-      var dpr = Math.min(window.devicePixelRatio || 1, 2), sc = (GL.q || (window.__rudyUltra ? .72 : .38)) * dpr;   // reduced res: clouds are soft (v351 Ultra: .72)
+      var dpr = Math.min(window.devicePixelRatio || 1, 2), sc = (GL.q || (window.__rudyUltra ? 1 : .38)) * dpr;   // reduced res: clouds are soft (v351 Ultra: .72)
       var w = Math.max(1, Math.round(innerWidth*sc)), h = Math.max(1, Math.round(innerHeight*sc));
       if(GL.cvs.width !== w || GL.cvs.height !== h){ GL.cvs.width = w; GL.cvs.height = h; GL.gl.viewport(0,0,w,h); }
     }
@@ -19905,7 +19926,9 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         if(GL.frames > 15 && gap < 1000){
           GL.slow = gap > 75 ? GL.slow + 1 : Math.max(0, GL.slow - 1);
           if(GL.slow > 40){
-            var q0 = GL.q || (window.__rudyUltra ? .72 : .38);
+            var q0 = GL.q || (window.__rudyUltra ? 1 : .38);
+            if(q0 > .8){ GL.q = .6; GL.slow = 0; try{ console.warn('[SKY] ultra → 0.6 resolution'); }catch(_){} }
+            else
             if(q0 > .4){ GL.q = .38; GL.slow = 0; GL.upNo = true; try{ console.warn('[SKY] back to normal WebGL resolution'); }catch(_){} }   // v345: step back from sharp mode first
             else if(q0 > .26){ GL.q = .25; GL.slow = 0; GL.upNo = true; try{ console.warn('[SKY] lowering WebGL resolution'); }catch(_){} }
             else { glKill('too slow'); return; }
@@ -21167,6 +21190,42 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
         setTimeout(function(){ shadowsSet(true); }, 0);
       }
     } catch(e){}
+    // v352 Ultra: selective bloom — eyes, chest light, cheeks and antenna glow
+    // (glow-only render with black occluders → 2-pass blur at half size → added on top)
+    var bloom = null;
+    function bloomInit(){
+      var H2 = Math.max(32, Math.round(PX / 2)), opt = { minFilter:T.LinearFilter, magFilter:T.LinearFilter };
+      var rtG = new T.WebGLRenderTarget(H2, H2, opt), rtA = new T.WebGLRenderTarget(H2, H2, opt), rtB = new T.WebGLRenderTarget(H2, H2, opt);
+      var black = new T.MeshBasicMaterial({ color:0x000000 });
+      scene.traverse(function(o){ if(o.isMesh && o.material && (o.material.toneMapped === false || o.material === mBall)) o.layers.enable(1); });
+      var qs = new T.Scene(), qc = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1), quad = new T.Mesh(new T.PlaneGeometry(2, 2)); qs.add(quad);
+      var blur = new T.ShaderMaterial({ uniforms:{ t:{ value:null }, dir:{ value:new T.Vector2() } }, depthTest:false, depthWrite:false,
+        vertexShader:'varying vec2 v;void main(){v=uv;gl_Position=vec4(position.xy,0.,1.);}',
+        fragmentShader:'uniform sampler2D t;uniform vec2 dir;varying vec2 v;void main(){vec4 c=texture2D(t,v)*.227;c+=(texture2D(t,v+dir*1.38)+texture2D(t,v-dir*1.38))*.316;c+=(texture2D(t,v+dir*3.23)+texture2D(t,v-dir*3.23))*.07;gl_FragColor=c;}' });
+      var comp = new T.ShaderMaterial({ uniforms:{ t:{ value:rtB.texture }, k:{ value:1.35 } }, depthTest:false, depthWrite:false, transparent:true,
+        blending:T.CustomBlending, blendEquation:T.AddEquation, blendSrc:T.OneFactor, blendDst:T.OneFactor, blendSrcAlpha:T.OneFactor, blendDstAlpha:T.OneFactor,
+        vertexShader:'varying vec2 v;void main(){v=uv;gl_Position=vec4(position.xy,0.,1.);}',
+        fragmentShader:'uniform sampler2D t;uniform float k;varying vec2 v;void main(){vec3 g=texture2D(t,v).rgb*k;gl_FragColor=vec4(g,max(g.r,max(g.g,g.b)));}' });
+      bloom = { rtG:rtG, rtA:rtA, rtB:rtB, black:black, qs:qs, qc:qc, quad:quad, blur:blur, comp:comp, px:1 / H2 };
+    }
+    function bloomPass(){
+      if(!bloom) bloomInit();
+      var B = bloom, ac = renderer.autoClear, cc = new T.Color(), ca = renderer.getClearAlpha(); renderer.getClearColor(cc);
+      var shm = renderer.shadowMap.enabled; renderer.shadowMap.enabled = false;
+      renderer.setRenderTarget(B.rtG); renderer.setClearColor(0x000000, 1); renderer.clear();
+      scene.overrideMaterial = B.black; var bgShadow = shadow.visible; shadow.visible = false;
+      renderer.render(scene, cam);                                   // occluders (depth) in black
+      scene.overrideMaterial = null; renderer.autoClear = false; cam.layers.set(1);
+      renderer.render(scene, cam);                                   // only the glowing parts
+      cam.layers.set(0); shadow.visible = bgShadow;
+      B.quad.material = B.blur;
+      B.blur.uniforms.t.value = B.rtG.texture; B.blur.uniforms.dir.value.set(B.px, 0); renderer.setRenderTarget(B.rtA); renderer.render(B.qs, B.qc);
+      B.blur.uniforms.t.value = B.rtA.texture; B.blur.uniforms.dir.value.set(0, B.px); renderer.setRenderTarget(B.rtB); renderer.render(B.qs, B.qc);
+      B.blur.uniforms.t.value = B.rtB.texture; B.blur.uniforms.dir.value.set(B.px * 2, 0); renderer.setRenderTarget(B.rtA); renderer.render(B.qs, B.qc);
+      B.blur.uniforms.t.value = B.rtA.texture; B.blur.uniforms.dir.value.set(0, B.px * 2); renderer.setRenderTarget(B.rtB); renderer.render(B.qs, B.qc);
+      renderer.setRenderTarget(null); B.quad.material = B.comp; renderer.render(B.qs, B.qc);   // add on top of the frame
+      renderer.autoClear = ac; renderer.setClearColor(cc, ca); renderer.shadowMap.enabled = shm;
+    }
 
     // mount
     // canvases go in now, but the SVG robot is only hidden after the first
@@ -21374,6 +21433,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       }
       if(shOn){ var rt0 = performance.now(); renderer.render(scene, cam); shCost += performance.now() - rt0; if(++shN >= 90){ if(shCost / shN > 7) { shadowsSet(false); console.warn('[3D robot] shadows off (slow)'); } shCost = 0; shN = 0; } }
       else renderer.render(scene, cam);
+      if(window.__rudyUltra && !window.__rbNoBloom){ try { bloomPass(); } catch(eB){ window.__rbNoBloom = true; console.warn('[3D robot] bloom off', eB); } }
       if(!shown){ shown = true; fab.classList.add('rb3d'); if(orb) orb.classList.add('rb3d'); }
       if(octx && modal && modal.classList.contains('open')){ octx.clearRect(0, 0, PX, PX); octx.drawImage(cv, 0, 0); }
     }
