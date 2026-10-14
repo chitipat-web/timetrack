@@ -3764,8 +3764,8 @@ body.dark .slide-action{
       <div class="clock-time" id="clock-display" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">00:00:00</div>
       <div class="clock-date" id="clock-date">—</div>
 
-      <!-- v298: today's workplace — โรงแพ็ค days get the packing-house pay
-           formula (breaks deducted) without a lunch scan -->
+      <!-- v298: today's workplace (สวน / โรงแพ็ค). v354: pay is the same rule for
+           both unless the old packing-house rule (packBrk) is switched on -->
       <div class="place-switch" id="place-switch" role="radiogroup" aria-label="ที่ทำงานวันนี้" style="display:none">
         <button type="button" class="place-opt field" data-place="field" role="radio" onclick="placeSet('field')">
           <span class="place-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8.5"/><path d="M12 12.5c0-4.4 3-7.5 8.5-7.5 0 5.4-3.3 8.4-8.5 7.5z"/><path d="M12 15c0-3.3-2.6-6-7.5-6 0 4.3 2.7 6.9 7.5 6z"/><path d="M7.5 21h9"/></svg></span>
@@ -3776,7 +3776,7 @@ body.dark .slide-action{
           <span class="place-lbl">โรงแพ็ค</span>
         </button>
       </div>
-      <div class="place-hint" id="place-hint" style="display:none">หักเวลาพักให้อัตโนมัติ — ไม่ต้องสแกนออก-เข้าตอนพัก</div>
+      <div class="place-hint" id="place-hint" style="display:none">คิดเงินเหมือนวันสวน — ไม่ต้องสแกนออก-เข้าตอนพัก</div>
       <!-- v230 slide-to-act control. The two original buttons are kept
            in DOM (sr-only) because renderHome()/CKG guard/etc. set their
            .disabled to drive state. Slider reads from those and, on
@@ -4155,9 +4155,10 @@ body.dark .slide-action{
             <div class="form-group"><label class="form-label">หักวันปกติ (ชม.)</label><input type="number" step="0.25" min="0" id="cfg-dn" class="form-inp" onchange="savePayCfg()"/></div>
             <div class="form-group"><label class="form-label">หักวันสั้น (ชม.) ศุกร์/เลิกก่อน 14:00</label><input type="number" step="0.25" min="0" id="cfg-df" class="form-inp" onchange="savePayCfg()"/></div>
           </div>
-          <div class="form-group"><label class="form-label">เวลาพักโรงแพ็ค (วันที่สแกนออกพักแล้วเข้าใหม่ — ไม่หักเวลาเดินทาง)</label><input type="text" id="cfg-brk" class="form-inp" placeholder="09:00-09:20, 12:20-13:00" onchange="savePayCfg()"/></div>
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--text2);margin-bottom:6px"><input type="checkbox" id="cfg-pack" onchange="savePayCfg()" style="margin-top:2px"/> <span>กฎโรงแพ็คแบบเดิม: วันที่สแกนพักเที่ยง/วันโรงแพ็ค หักแค่ช่วงพัก (สลิป ก.ย. 69 ไม่ได้คิดแบบนี้ — ปิดไว้)</span></label>
+          <div class="form-group"><label class="form-label">ช่วงพัก (ใช้เมื่อเปิดกฎโรงแพ็คแบบเดิม)</label><input type="text" id="cfg-brk" class="form-inp" placeholder="09:00-09:20, 12:20-13:00" onchange="savePayCfg()"/></div>
           <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text2)"><input type="checkbox" id="cfg-start" onchange="savePayCfg()"/> เริ่มนับจากชั่วโมงเต็มถัดไป (เข้า 05:46 → นับ 06:00)</label>
-          <div style="font-size:11px;color:var(--text3);margin-top:6px">ชม.ที่เกินเกณฑ์: 2 ชม.แรก ×125% · ที่เหลือ ×150% · สูตรนี้ประมาณจากใบเวลา+ใบเงินเดือน ส.ค./พ.ค. 2569 (คลาด ±₪15)</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">ชม.ที่เกินเกณฑ์: 2 ชม.แรก ×125% · ที่เหลือ ×150% · นับจากเข้างานแรกถึงออกงานสุดท้ายของวัน แล้วหักตามด้านบน (สแกนพักเที่ยงหรือไม่ก็คิดเท่ากัน) · เทียบใบเวลา+ใบเงินเดือน พ.ค./ส.ค./ก.ย. 2569 คลาดไม่เกิน 1%</div>
           <button class="btn-secondary" style="margin-top:8px;font-size:12px" onclick="resetPayCfg()">↺ ค่าเริ่มต้น</button>
         </details>
         <!-- Real-time salary preview -->
@@ -7492,9 +7493,13 @@ function renderTeamSummary(){
 // base rate up to 8.6h, then 2h at 125% and the rest at 150%. All values editable,
 // stored per user under the synced tt_sal_ prefix.
 // v267: packing house — a day clocked in two parts (out at lunch, back in at 13:00)
-// is a packing-house day: no travel deduction; only the break windows (brk) that
-// overlap the clocked time are removed. Single-session days keep the field rule.
-const PAY_DEFAULT={rate:35.40,dN:180,dF:0,otAfter:8.6,fromStart:true,brk:'09:00-09:20, 12:20-13:00'};
+// was treated as a packing-house day: only the break windows (brk) removed.
+// v354: the Sep 2026 sheet disproves that: the whole team is paid ₪26.9–29.0 per
+// clock hour (the break-window rule would give ~₪34), and first-in → last-out
+// minus the same 3:00 on every normal day fits card 25 for May/Aug/Sep (7,684 vs
+// 7,699 · 7,162 vs 7,148 · 8,251 vs 8,330). So lunch scans / โรงแพ็ค no longer
+// change pay; the old break-window rule stays available as packBrk (off).
+const PAY_DEFAULT={rate:35.40,dN:180,dF:0,otAfter:8.6,fromStart:true,brk:'09:00-09:20, 12:20-13:00',packBrk:false};
 function _parseBrk(v){
   const out=[]; String(v||'').split(',').forEach(p=>{ const m=p.trim().match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/); if(!m) return;
     const a=+m[1]*60+ +m[2], b=+m[3]*60+ +m[4]; if(b>a&&b<=1440) out.push([a,b]); });
@@ -7506,6 +7511,7 @@ function getPayCfg(){
   const o=Object.assign({},PAY_DEFAULT,c);
   ['rate','dN','dF','otAfter'].forEach(k=>{ const v=Number(o[k]); o[k]=isFinite(v)&&v>=0?v:PAY_DEFAULT[k]; });
   o.fromStart=o.fromStart!==false;
+  o.packBrk=o.packBrk===true;
   if(typeof o.brk!=='string') o.brk=PAY_DEFAULT.brk;
   o.breaks=_parseBrk(o.brk);
   return o;
@@ -7514,7 +7520,7 @@ function _hm(m){ return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60
 function _tm(v){ if(!v) return 0; const [h,m]=String(v).split(':').map(Number); return (h||0)*60+(m||0); }
 function savePayCfg(){
   const g=id=>document.getElementById(id);
-  const c={rate:parseFloat(g('cfg-rate').value),otAfter:parseFloat(g('cfg-ot').value),dN:Math.round((parseFloat(g('cfg-dn').value)||0)*60),dF:Math.round((parseFloat(g('cfg-df').value)||0)*60),fromStart:!!g('cfg-start').checked,brk:_parseBrk(g('cfg-brk').value).map(([a,b])=>_hm(a)+'-'+_hm(b)).join(', ')};
+  const c={rate:parseFloat(g('cfg-rate').value),otAfter:parseFloat(g('cfg-ot').value),dN:Math.round((parseFloat(g('cfg-dn').value)||0)*60),dF:Math.round((parseFloat(g('cfg-df').value)||0)*60),fromStart:!!g('cfg-start').checked,packBrk:!!(g('cfg-pack')&&g('cfg-pack').checked),brk:_parseBrk(g('cfg-brk').value).map(([a,b])=>_hm(a)+'-'+_hm(b)).join(', ')};
   localStorage.setItem(`tt_sal_cfg_${curUser.id}`,JSON.stringify(c));
   renderSalary();
 }
@@ -7523,7 +7529,8 @@ function fillPayCfgUI(){
   const c=getPayCfg(), g=id=>document.getElementById(id); if(!g('cfg-rate')) return;
   g('cfg-rate').value=c.rate.toFixed(2); g('cfg-ot').value=c.otAfter; g('cfg-dn').value=+(c.dN/60).toFixed(2); g('cfg-df').value=+(c.dF/60).toFixed(2);
   g('cfg-start').checked=c.fromStart;
-  if(g('cfg-brk')) g('cfg-brk').value=c.brk;
+  if(g('cfg-pack')) g('cfg-pack').checked=c.packBrk;
+  if(g('cfg-brk')){ g('cfg-brk').value=c.brk; g('cfg-brk').disabled=!c.packBrk; }
 }
 // Month pay for one employee under the formula. netH (= paid hours) kept for older callers.
 // One day under the pay formula. ss = [[inMin,outMin],...] clocked sessions.
@@ -7535,18 +7542,19 @@ function _dayPaidMin(date,ss,c,forcePack){
   let raw=0; seg.forEach(x=>{ raw+=x[1]-x[0]; });
   if(c.fromStart) seg[0][0]=Math.min(Math.ceil(seg[0][0]/60)*60,seg[0][1]);   // next full hour
   let min;
-  const pack=seg.length>1||!!forcePack;                // v298: or the day is marked โรงแพ็ค
-  if(pack){                                             // packing house (split day)
+  const pack=seg.length>1||!!forcePack;                // v298: or the day is marked โรงแพ็ค (counted for display)
+  if(pack&&c.packBrk){                                  // old packing-house rule (opt-in): only break windows removed
     min=0;
     seg.forEach(([a,b])=>{ min+=b-a; c.breaks.forEach(([x,y])=>{ min-=Math.max(0,Math.min(b,y)-Math.max(a,x)); }); });
-  } else {                                              // field
-    const short=fri||seg[0][1]<=14*60;                  // Friday / half day
-    min=seg[0][1]-seg[0][0]-(short?c.dF:c.dN);
+  } else {                                              // v354: every day — first in → last out, minus the daily deduction
+    const end=seg[seg.length-1][1];
+    const short=fri||end<=14*60;                        // Friday / half day
+    min=end-seg[0][0]-(short?c.dF:c.dN);
   }
   return {min:Math.max(0,min),raw,fri,pack};
 }
-// v298: a day marked โรงแพ็ค (record.place==='pack', chosen on the home card)
-// uses the packing-house formula — breaks deducted — even with no lunch scan.
+// v298: a day marked โรงแพ็ค (record.place==='pack', chosen on the home card).
+// v354: only changes pay when the old packing-house rule (packBrk) is on.
 function _isPackDay(empId,date,arr){ return (arr||records).some(r=>r&&r.empId===empId&&r.date===date&&r.place==='pack'); }
 // v277: ONE OT rule app-wide = the pay formula (owner's choice): OT is paid
 // time above otAfter hours in a day, not clock time after 16:30.
@@ -11115,7 +11123,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v353';
+const APP_VERSION = 'v354';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20711,7 +20719,9 @@ body.corp.dark #place-switch .place-opt:not(.active){ background:rgba(255,255,25
         var on = b.getAttribute('data-place') === p;
         b.classList.toggle('active', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
       });
-      if(h) h.style.display = p === 'pack' ? '' : 'none';
+      if(h){ h.style.display = p === 'pack' ? '' : 'none';
+        var pb = false; try { pb = getPayCfg().packBrk; } catch(e){}
+        h.textContent = pb ? 'หักเวลาพักให้อัตโนมัติ — ไม่ต้องสแกนออก-เข้าตอนพัก' : 'คิดเงินเหมือนวันสวน — ไม่ต้องสแกนออก-เข้าตอนพัก'; }
       var mp = $('man-place'); if(mp && !mp.dataset.touched) mp.value = p;
     }
     window.placeRender = render;
