@@ -11123,7 +11123,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v354';
+const APP_VERSION = 'v355';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18685,10 +18685,14 @@ body.sky #sky-scene{ display:block; }
   filter:blur(2.5px) drop-shadow(0 10px 14px var(--cloud-shade, rgba(40,60,90,.12)));
   animation:skyDrift linear infinite; transition:opacity 1.2s; }
 .sky-rays{ width:760px; height:760px; top:-350px; right:-330px; border-radius:50%;
-  background:repeating-conic-gradient(from 0deg, rgba(255,246,215,.09) 0deg 5deg, transparent 5deg 15deg);
+  /* v355: the same soft, feathered beams as the Ultra rays (v353) — this CSS sky shows in
+     battery-saver mode and whenever WebGL is off, and its hard 5° spokes looked cartoonish */
+  background:
+    repeating-conic-gradient(from 3deg, rgba(255,247,222,0) 0deg, rgba(255,247,222,.075) 5deg, rgba(255,247,222,0) 11deg, rgba(255,247,222,0) 23deg),
+    repeating-conic-gradient(from 0deg, rgba(255,240,205,0) 0deg, rgba(255,240,205,.05) 3deg, rgba(255,240,205,0) 7deg, rgba(255,240,205,0) 17deg);
   -webkit-mask-image:radial-gradient(circle, #000 8%, rgba(0,0,0,.55) 30%, transparent 62%);
   mask-image:radial-gradient(circle, #000 8%, rgba(0,0,0,.55) 30%, transparent 62%);
-  animation:skySpin 120s linear infinite; transition:opacity 1.2s; }
+  animation:skySpin 180s linear infinite; transition:opacity 1.2s; }
 @keyframes skySpin{ to{ transform:rotate(360deg) } }
 @keyframes skyDrift{ from{ transform:translateX(-420px) } to{ transform:translateX(calc(100vw + 60px)) } }
 .sky-fog{ left:-50%; width:200%; height:45%; filter:blur(30px);
@@ -22417,14 +22421,18 @@ body.lite .hq-wx-ic img{ animation:none !important; }
 <style id="ultra-v351">
 /* v351 Ultra graphics (opt-in): floating light particles + sun rays */
 .ultra-dust{ left:0; top:0; width:100%; height:100%; pointer-events:none; }
-.ultra-rays{ width:260vmax; height:260vmax; left:calc(var(--rx,86%) - 130vmax); top:calc(var(--ry,6%) - 130vmax); pointer-events:none; opacity:0; transition:opacity 2s; mix-blend-mode:screen;
+.ultra-rays{ width:72vmax; height:72vmax; left:calc(var(--rx,86%) - 36vmax); top:calc(var(--ry,6%) - 36vmax); pointer-events:none; opacity:0; transition:opacity 2s; mix-blend-mode:screen;
   /* v353: soft, uneven beams (feathered edges, two interleaved periods) instead of hard spokes */
+  /* v355: same beams in a 72vmax layer (was 260vmax ≈ 6,600 px square on a 3× iPhone — a huge
+     masked, blended, rotating layer). The mask keeps the old radii via closest-side (36vmax). */
   background:
     repeating-conic-gradient(from 3deg at 50% 50%, rgba(255,247,222,0) 0deg, rgba(255,247,222,.075) 5deg, rgba(255,247,222,0) 11deg, rgba(255,247,222,0) 23deg),
     repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,240,205,0) 0deg, rgba(255,240,205,.05) 3deg, rgba(255,240,205,0) 7deg, rgba(255,240,205,0) 17deg);
-  -webkit-mask-image:radial-gradient(circle at 50% 50%, #000 0%, rgba(0,0,0,.55) 5%, rgba(0,0,0,.18) 11%, transparent 19%); mask-image:radial-gradient(circle at 50% 50%, #000 0%, rgba(0,0,0,.55) 5%, rgba(0,0,0,.18) 11%, transparent 19%);
+  -webkit-mask-image:radial-gradient(circle closest-side at 50% 50%, #000 0%, rgba(0,0,0,.55) 25.5%, rgba(0,0,0,.18) 56.2%, transparent 97%); mask-image:radial-gradient(circle closest-side at 50% 50%, #000 0%, rgba(0,0,0,.55) 25.5%, rgba(0,0,0,.18) 56.2%, transparent 97%);
   transform-origin:50% 50%; animation:ultraRays 180s linear infinite; }
 .ultra-rays.on{ opacity:1; }
+/* v355: without WebGL the CSS sun has its own rays (.sky-rays) — don't stack a second set */
+body.sky:not(.sky-gl) .ultra-rays{ display:none; }
 @keyframes ultraRays{ to{ transform:rotate(360deg); } }
 </style>
 <script>
@@ -22478,10 +22486,21 @@ body.lite .hq-wx-ic img{ animation:none !important; }
   function update(){
     if(!window.__rudyUltra){ if(cv){ cv.remove(); cv = null; } if(rays){ rays.remove(); rays = null; } return; }
     if(!setup()) return;
-    var ph = phase(), k = document.body.getAttribute('data-sky-wx') || 'clear', sunny = (k === 'clear' || k === 'few') && ph !== 'night';
-    rays.style.setProperty('--rx', ph === 'dawn' ? '18%' : ph === 'dusk' ? '82%' : '86%'); rays.style.setProperty('--ry', ph === 'day' ? '6%' : '30%');
+    // v355: rays only while the sun is high (like the CSS sky's rays). At dawn/dusk
+    // the sky shader puts the sun on the horizon (bottom corner, under the golden
+    // glow), and the old 18%/82% × 30% centre drew a starburst in empty sky.
+    // Centre stays on the day sun: uSunPos .86/.94 → 86% / 6% (CSS defaults).
+    var ph = phase(), k = document.body.getAttribute('data-sky-wx') || 'clear', sunny = (k === 'clear' || k === 'few') && ph === 'day';
     rays.classList.toggle('on', sunny);
     if(!raf) raf = requestAnimationFrame(draw);
+  }
+  // v355: theme / phase / weather changes apply at once (was: the next 30 s tick —
+  // after switching themes the light particles froze and the rays lagged up to 30 s)
+  function follow(){
+    var b = document.body;
+    function skyKey(){ return (b.classList.contains('sky') ? 1 : 0) + '|' + (b.getAttribute('data-sky') || '') + '|' + (b.getAttribute('data-sky-wx') || ''); }
+    var key = skyKey();
+    try { new MutationObserver(function(){ var k = skyKey(); if(k !== key){ key = k; update(); } }).observe(b, { attributes:true, attributeFilter:['class', 'data-sky', 'data-sky-wx'] }); } catch(e){}
   }
   // safety net: sustained slow frames → Ultra off for this session
   var gaps = [], prev = 0, badWin = 0;
@@ -22505,7 +22524,7 @@ body.lite .hq-wx-ic img{ animation:none !important; }
   function boot(){
     btn();
     if(!window.__rudyUltra) return;
-    setTimeout(update, 2500); setInterval(update, 30000);
+    setTimeout(function(){ update(); follow(); }, 2500); setInterval(update, 30000);
     document.addEventListener('visibilitychange', function(){ if(!document.hidden){ prev = 0; update(); } });
     setTimeout(function(){ requestAnimationFrame(watch); }, 8000);   // let startup work finish first
   }
@@ -22580,12 +22599,20 @@ body.tilt #sky-scene .fest-snowwrap{ translate:calc(var(--tlx) * -1.1) calc(var(
 <style id="cine-v348">
 /* v348: cinematic check-in — light burst at the slider, the time flies into
    the "เข้าครั้งแรก" chip. ~1.5 s, never blocks taps. */
+/* v355: theme colours — the burst was white-on-white in the light (องค์กร) theme.
+   :root = light, body.dark = dark + both sky themes (values unchanged there). */
+:root{ --cin-ring:#22C55E; --cin-ring-glow:rgba(34,197,94,.5); --cin-ring-in:rgba(34,197,94,.3); --cin-spark:#16A34A; --cin-gold:#F59E0B; --cin-ink:#15803D;
+  --cin-flash:radial-gradient(circle, rgba(74,222,128,.6), rgba(34,197,94,.3) 34%, rgba(34,197,94,.1) 54%, rgba(34,197,94,0) 70%);
+  --cin-shadow:0 0 3px #fff, 0 0 12px rgba(255,255,255,.95), 0 0 22px rgba(34,197,94,.4); }
+body.dark{ --cin-ring:#B8FFDC; --cin-ring-glow:rgba(60,255,160,.95); --cin-ring-in:rgba(60,255,160,.7); --cin-spark:#fff; --cin-gold:#FFD54A; --cin-ink:#fff;
+  --cin-flash:radial-gradient(circle, #fff, rgba(150,255,205,.85) 30%, rgba(60,230,150,.35) 52%, rgba(60,230,150,0) 70%);
+  --cin-shadow:0 0 18px rgba(90,255,180,.9), 0 2px 6px rgba(0,0,0,.35); }
 .cin-layer{ position:fixed; inset:0; z-index:58; pointer-events:none; overflow:hidden; }
-.cin-ring{ position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; border:4px solid #B8FFDC; box-shadow:0 0 28px rgba(60,255,160,.95), inset 0 0 20px rgba(60,255,160,.7); }
-.cin-flash{ position:absolute; width:260px; height:260px; margin:-130px 0 0 -130px; border-radius:50%; background:radial-gradient(circle, #fff, rgba(150,255,205,.85) 30%, rgba(60,230,150,.35) 52%, rgba(60,230,150,0) 70%); }
-.cin-spark{ position:absolute; width:16px; height:16px; margin:-8px 0 0 -8px; background:#fff; clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%); }
-.cin-spark.g{ background:#FFD54A; }
-.cin-time{ position:absolute; left:0; top:0; font:800 30px/1 -apple-system,"SF Pro Display",sans-serif; color:#fff; text-shadow:0 0 18px rgba(90,255,180,.9), 0 2px 6px rgba(0,0,0,.35); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.cin-ring{ position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; border:4px solid var(--cin-ring); box-shadow:0 0 28px var(--cin-ring-glow), inset 0 0 20px var(--cin-ring-in); }
+.cin-flash{ position:absolute; width:260px; height:260px; margin:-130px 0 0 -130px; border-radius:50%; background:var(--cin-flash); }
+.cin-spark{ position:absolute; width:16px; height:16px; margin:-8px 0 0 -8px; background:var(--cin-spark); clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%); }
+.cin-spark.g{ background:var(--cin-gold); }
+.cin-time{ position:absolute; left:0; top:0; font:800 30px/1 -apple-system,"SF Pro Display",sans-serif; color:var(--cin-ink); text-shadow:var(--cin-shadow); font-variant-numeric:tabular-nums; white-space:nowrap; }
 .ha-chip.cin-pop{ animation:cinPop .7s cubic-bezier(.3,1.6,.5,1); }
 @keyframes cinPop{ 0%{ transform:scale(1); } 35%{ transform:scale(1.14); box-shadow:0 0 0 2px rgba(90,255,180,.7), 0 0 26px rgba(90,255,180,.6); } 100%{ transform:scale(1); } }
 </style>
