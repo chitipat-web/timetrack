@@ -11123,7 +11123,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v355';
+const APP_VERSION = 'v356';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19891,7 +19891,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         var loc = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
         ['uRes','uTime','uTop','uMid','uBot','uLit','uShade','uSunCol','uCover','uCloudA','uSun','uStars','uMoon','uPhase','uMoonR','uRain','uSunPos','uMoonPos']
           .forEach(function(n){ GL.u[n] = gl.getUniformLocation(pr, n); });
-        cvs.addEventListener('webglcontextlost', function(e){ e.preventDefault(); glKill('context lost'); });
+        cvs.addEventListener('webglcontextlost', function(e){ e.preventDefault(); glKill('context lost'); glRevive(); });
         GL.gl = gl; GL.cvs = cvs; GL.prog = pr; GL.ok = true; GL.t0 = performance.now();
         return true;
       } catch(e){ glKill(e && e.message); return false; }
@@ -19900,6 +19900,28 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       GL.dead = true; GL.ok = false; if(GL.raf) cancelAnimationFrame(GL.raf); GL.raf = 0;
       document.body.classList.remove('sky-gl');
       try { console.warn('[SKY] WebGL off → CSS scenery:', why); } catch(_){}
+    }
+    // v356: iOS drops WebGL contexts (memory pressure, a long time in the background).
+    // The sky then stayed on the cartoon CSS scenery for the rest of the session; now
+    // it rebuilds on a fresh canvas once the app is visible again — 2 tries per
+    // session, so a GPU that keeps failing settles on the CSS sky.
+    var reviveN = 0;
+    function glRevive(){
+      if(reviveN >= 2) return;
+      function go(){
+        if(document.hidden) return;
+        document.removeEventListener('visibilitychange', go);
+        setTimeout(function(){
+          if(!GL.dead || reviveN >= 2) return;
+          reviveN++;
+          try { if(GL.cvs) GL.cvs.remove(); } catch(_){}
+          GL.dead = false; GL.ok = false; GL.gl = null; GL.cvs = null; GL.prog = null; GL.u = {}; GL.slow = 0; GL.frames = 0; GL.last = 0;
+          sceneKey = '';                                    // renderScene() skips an unchanged phase|weather
+          if(document.body.classList.contains('sky')) paint();
+          try { console.warn('[SKY] WebGL rebuilt after context loss (' + reviveN + '/2)'); } catch(_){}
+        }, 1500);
+      }
+      if(document.hidden) document.addEventListener('visibilitychange', go); else go();
     }
     function glResize(){
       var dpr = Math.min(window.devicePixelRatio || 1, 2), sc = (GL.q || (window.__rudyUltra ? 1 : .38)) * dpr;   // reduced res: clouds are soft (v351 Ultra: .72)
@@ -22537,7 +22559,12 @@ body.sky:not(.sky-gl) .ultra-rays{ display:none; }
 body.tilt #sky-scene{ --tlx:0px; --tly:0px; }
 body.tilt #sky-gl{ transform:translate3d(calc(var(--tlx) * -0.45), calc(var(--tly) * -0.45), 0) scale(1.06); }
 body.tilt #sky-scene .sky-starc{ transform:translate3d(calc(var(--tlx) * -0.8), calc(var(--tly) * -0.8), 0) scale(1.04); }
-body.tilt #sky-scene .sky-moonc{ transform:translate3d(calc(var(--tlx) * -1.3), calc(var(--tly) * -1.3), 0); }
+/* v356: layers pinned to a spot in the WebGL sky move exactly like #sky-gl (shift + scale 1.06
+   about the screen centre = an extra 6% of their distance from it). The moon disc used to move
+   1.3× on its own and split from its halo (a dark "ghost" circle beside the crescent), and the
+   Ultra rays stayed put while the sun moved. Moon centre: right 47px, top safe+39px; sun: 86% / 6%. */
+body.tilt #sky-scene .sky-moonc{ transform:translate3d(calc(var(--tlx) * -0.45 + 3vw - 2.82px), calc(var(--tly) * -0.45 + env(safe-area-inset-top, 0px) * 0.06 + 2.34px - 3vh), 0) scale(1.06); }
+body.tilt #sky-scene .ultra-rays{ translate:calc(var(--tlx) * -0.45 + 2.16vw) calc(var(--tly) * -0.45 - 2.64vh); }
 body.tilt #sky-scene .fest-snowwrap{ translate:calc(var(--tlx) * -1.1) calc(var(--tly) * -0.6); }
 </style>
 <script>
