@@ -3177,7 +3177,9 @@ window.ICO = (function(){ var P = {clock:'<circle cx="12" cy="12" r="9"/><path d
        MIN_LOADING_MS = 8500 to let it play through (v268: 2000 — video is cut by the fade).
        v236: the SW now bypasses this .mp4 / Range requests so iOS gets a
        proper 206 and the video renders (a cached full-200 left it black). -->
-  <video id="splash-video" class="splash-video" autoplay muted playsinline webkit-playsinline preload="auto" disableRemotePlayback>
+  <!-- v357: disablepictureinpicture — the splash can never pop out as a floating
+       video window (iOS shows a hidden one as a dark "›" tab on the screen edge) -->
+  <video id="splash-video" class="splash-video" autoplay muted playsinline webkit-playsinline preload="auto" disableRemotePlayback disablepictureinpicture>
     <source src="./splash.mp4" type="video/mp4">
   </video>
   <script>
@@ -3192,7 +3194,7 @@ window.ICO = (function(){ var P = {clock:'<circle cx="12" cy="12" r="9"/><path d
   (function(){
     var v = document.getElementById('splash-video');
     if(!v) return;
-    try { v.muted = true; v.defaultMuted = true; } catch(e){}
+    try { v.muted = true; v.defaultMuted = true; v.disablePictureInPicture = true; } catch(e){}
     // v268: owner wants the whole splash video in a set time. The file is ~8.1s,
     // so play it faster: rate = duration / target (capped 1..4).
     // v271: target 6.9s (7s splash) -> ~1.17x.
@@ -11123,7 +11125,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v356';
+const APP_VERSION = 'v357';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21273,14 +21275,15 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
 
     // look toward taps
     var look = { x:0, y:0, tx:0, ty:0, until:0 };
-    document.addEventListener('pointerdown', function(e){
+    function onDown(e){
       try {
         var r = fab.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
         look.tx = Math.max(-0.7, Math.min(0.7, (e.clientX - cx) / 260));
         look.ty = Math.max(-0.35, Math.min(0.35, (e.clientY - cy) / 520));
         look.until = performance.now() + 1600;
       } catch(_){}
-    }, { passive:true });
+    }
+    document.addEventListener('pointerdown', onDown, { passive:true });
 
     // ── motion: layered, phase-offset, eased — like a body, not a toy ──
     function ss(a, b, x){ x = Math.max(0, Math.min(1, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
@@ -21474,12 +21477,15 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       if(octx && modal && modal.classList.contains('open')){ octx.clearRect(0, 0, PX, PX); octx.drawImage(cv, 0, 0); }
     }
     function kick(){ if(alive && !raf) raf = requestAnimationFrame(frame); }
-    document.addEventListener('visibilitychange', function(){ if(!document.hidden) kick(); });
+    function onVis(){ if(!document.hidden) kick(); }
+    document.addEventListener('visibilitychange', onVis);
     cv.addEventListener('webglcontextlost', function(e){
       e.preventDefault(); alive = false;
       fab.classList.remove('rb3d'); if(orb) orb.classList.remove('rb3d');
       try { cv.remove(); if(oc) oc.remove(); } catch(_){}
+      document.removeEventListener('pointerdown', onDown, { passive:true }); document.removeEventListener('visibilitychange', onVis);   // v357: this robot is done
       console.warn('[3D robot] context lost — back to SVG');
+      rebuild(fab);
     });
     // ── v325: bake 3D icons once (sprout, box, ₪ coin, trophy) with this same
     // renderer, keep them as PNGs, then hand the canvas back to the robot.
@@ -21678,7 +21684,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       })();
     }
     // v342: let the robot's first frames render before any icon work starts
-    setTimeout(function(){ try { bakeIcons(); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] bake failed', e); } }, 600);
+    // v357: a rebuilt robot (after a lost context) keeps the icons already baked
+    if(!window.RB_ICONS) setTimeout(function(){ try { bakeIcons(); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] bake failed', e); } }, 600);
     window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose,
       peek:function(on){ peekT = on ? 1 : 0; kick(); },   // v322
       act:function(type){ var t = (performance.now() - t0) / 1000; act = { type:type, t0:t, dur:({ cheer:2.4, dance:2.9, spin:1.3, giggle:1.6 })[type] || 2.8 };
@@ -21690,6 +21697,26 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     kick();
   }
 
+  // v357: iOS drops WebGL contexts (memory pressure, a long time in the background).
+  // The robot then stayed the flat SVG one for the rest of the session; now a fresh
+  // 3D robot is built once the app is visible again — 2 rebuilds per session, so a
+  // GPU that keeps failing settles on the SVG robot.
+  var rebuilt = 0;
+  function rebuild(fab){
+    if(rebuilt >= 2) return;
+    function go(){
+      if(document.hidden) return;
+      document.removeEventListener('visibilitychange', go);
+      setTimeout(function(){
+        if(rebuilt >= 2 || window.__rudyLite || !window.THREE) return;
+        if(document.hidden){ document.addEventListener('visibilitychange', go); return; }   // backgrounded again — wait
+        rebuilt++;
+        try { build(window.THREE, fab); console.warn('[3D robot] rebuilt after context loss (' + rebuilt + '/2)'); }
+        catch(e){ console.warn('[3D robot] rebuild failed — keeping SVG', e); }
+      }, 2000);
+    }
+    if(document.hidden) document.addEventListener('visibilitychange', go); else go();
+  }
   function boot(){ setTimeout(function(){ if('requestIdleCallback' in window) requestIdleCallback(start, { timeout:4000 }); else start(); }, 2500); }
   if(document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
 })();
