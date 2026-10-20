@@ -1,7 +1,7 @@
-name: Firebase Hosting (rudy.web.app)
+name: Firebase Hosting (rudyhr.web.app)
 
 # Publishes the app to Firebase Hosting next to GitHub Pages, so it also lives at
-# https://rudy.web.app (site id in firebase.json). Same files, same Firebase data;
+# https://rudyhr.web.app (site id in firebase.json; "rudy" is taken). Same files, same Firebase data;
 # GitHub Pages keeps serving the old link.
 # Runs on every push to main that touches the web files or this setup, or by
 # hand (Actions → Run workflow). The site is created on the first run if it
@@ -40,7 +40,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Service account
         env:

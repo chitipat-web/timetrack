@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "rudy",
+    "site": "rudyhr",
     "public": "_site",
     "ignore": ["**/.*"],
     "headers": [
