@@ -3,9 +3,9 @@ name: Firebase Hosting (rudy.web.app)
 # Publishes the app to Firebase Hosting next to GitHub Pages, so it also lives at
 # https://rudy.web.app (site id in firebase.json). Same files, same Firebase data;
 # GitHub Pages keeps serving the old link.
-# Runs on every push to main that touches the web files, or by hand
-# (Actions → Run workflow). "create_site" creates the Hosting site first — only
-# needed once, when setting up a new site id.
+# Runs on every push to main that touches the web files or this setup, or by
+# hand (Actions → Run workflow). The site is created on the first run if it
+# doesn't exist yet.
 # Needs FIREBASE_SERVICE_KEY (the same service-account JSON the email scripts use);
 # that account must be allowed to deploy Hosting (role: Firebase Hosting Admin).
 
@@ -20,12 +20,9 @@ on:
       - 'splash.mp4'
       - '*.png'
       - '*.html'
-  workflow_dispatch:      # also use this after changing firebase.json or this file
-    inputs:
-      create_site:
-        description: 'Hosting site id to create first (empty = just deploy)'
-        required: false
-        default: ''
+      - 'firebase.json'
+      - '.github/workflows/firebase-hosting.yml'
+  workflow_dispatch:
 
 concurrency:
   group: firebase-hosting
@@ -53,13 +50,15 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_KEY" > "$RUNNER_TEMP/sa.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
 
-      - name: Create site (first time only)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_site != '' }}
-        env:
-          SITE: ${{ inputs.create_site }}
+      - name: Make sure the site exists
         run: |
-          if ! printf '%s' "$SITE" | grep -Eq '^[a-z0-9][a-z0-9-]{0,29}$'; then echo "❌ Bad site id: $SITE"; exit 1; fi
-          npx --yes "$FIREBASE_CLI" hosting:sites:create "$SITE" --project "$PROJECT" --non-interactive
+          SITE="$(node -p "require('./firebase.json').hosting.site")"
+          if npx --yes "$FIREBASE_CLI" hosting:sites:get "$SITE" --project "$PROJECT" --non-interactive; then
+            echo "✅ site $SITE exists"
+          else
+            echo "site $SITE not found in $PROJECT — creating it"
+            npx --yes "$FIREBASE_CLI" hosting:sites:create "$SITE" --project "$PROJECT" --non-interactive
+          fi
 
       - name: Collect web files
         run: |
