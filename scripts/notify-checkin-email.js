@@ -65,7 +65,7 @@ function buildEmailHTML({ employee, content }) {
     <div class="greeting">สวัสดี ${employee.name} 👋</div>
     <div class="content">${bodyHTML}</div>
     <div class="cta">
-      <a href="https://chitipat-web.github.io/timetrack/" class="btn">เปิด RUDY 🚀</a>
+      <a href="https://rudyhr.web.app/" class="btn">เปิด RUDY 🚀</a>
     </div>
     <div class="footer">
       RUDY — Smart HR & Time-tracking<br>

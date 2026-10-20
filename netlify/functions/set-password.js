@@ -16,9 +16,12 @@ const admin = require('firebase-admin');
 const DB_URL =
   'https://timetrack-63654-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-// Which origins may call this function (the PWA on GitHub Pages).
+// Which origins may call this function (the PWA on GitHub Pages, and the same
+// app on Firebase Hosting since Oct 2026).
 const ALLOWED_ORIGINS = [
   'https://chitipat-web.github.io',
+  'https://rudyhr.web.app',
+  'https://rudyhr.firebaseapp.com',
   'capacitor://localhost', // the future iOS app
 ];
 

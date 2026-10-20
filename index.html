@@ -11125,7 +11125,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v357';
+const APP_VERSION = 'v358';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -23205,7 +23205,7 @@ html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
         x.font = '600 36px ' + F; x.globalAlpha = 0.85; x.fillText(tl[1], cx + 36, cy + 166); x.globalAlpha = 1;
       });
       if(rob) x.drawImage(rob, 760, 1080, 260, 260);
-      x.font = '600 34px ' + F; x.globalAlpha = 0.8; x.fillText('chitipat-web.github.io/timetrack', 80, 1290); x.globalAlpha = 1;
+      x.font = '600 34px ' + F; x.globalAlpha = 0.8; x.fillText('rudyhr.web.app', 80, 1290); x.globalAlpha = 1;
       c.toBlob(function(b){
         if(!b) return;
         var name = 'rudy-wrapped-' + W.y + '-' + ('0' + (W.m + 1)).slice(-2) + '.png';

@@ -283,7 +283,7 @@ function buildEmailHTML({ employee, stats, weekDates, weekKey }) {
 '    </table>\n' +
 '\n' +
 '    <div class="cta">\n' +
-'      <a href="https://chitipat-web.github.io/timetrack/" class="btn">เปิด RUDY 🚀</a>\n' +
+'      <a href="https://rudyhr.web.app/" class="btn">เปิด RUDY 🚀</a>\n' +
 '    </div>\n' +
 '\n' +
 '    <div class="footer">\n' +
