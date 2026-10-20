@@ -1,0 +1,77 @@
+name: Firebase Hosting (rudy.web.app)
+
+# Publishes the app to Firebase Hosting next to GitHub Pages, so it also lives at
+# https://rudy.web.app (site id in firebase.json). Same files, same Firebase data;
+# GitHub Pages keeps serving the old link.
+# Runs on every push to main that touches the web files, or by hand
+# (Actions → Run workflow). "create_site" creates the Hosting site first — only
+# needed once, when setting up a new site id.
+# Needs FIREBASE_SERVICE_KEY (the same service-account JSON the email scripts use);
+# that account must be allowed to deploy Hosting (role: Firebase Hosting Admin).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'sw.js'
+      - 'version.json'
+      - 'manifest.json'
+      - 'splash.mp4'
+      - '*.png'
+      - '*.html'
+  workflow_dispatch:      # also use this after changing firebase.json or this file
+    inputs:
+      create_site:
+        description: 'Hosting site id to create first (empty = just deploy)'
+        required: false
+        default: ''
+
+concurrency:
+  group: firebase-hosting
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FIREBASE_CLI: firebase-tools@15.32.1
+      PROJECT: timetrack-63654
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Service account
+        env:
+          FIREBASE_SERVICE_KEY: ${{ secrets.FIREBASE_SERVICE_KEY }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_KEY" ]; then echo "❌ Missing required secrets: FIREBASE_SERVICE_KEY"; exit 1; fi
+          printf '%s' "$FIREBASE_SERVICE_KEY" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Create site (first time only)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_site != '' }}
+        env:
+          SITE: ${{ inputs.create_site }}
+        run: |
+          if ! printf '%s' "$SITE" | grep -Eq '^[a-z0-9][a-z0-9-]{0,29}$'; then echo "❌ Bad site id: $SITE"; exit 1; fi
+          npx --yes "$FIREBASE_CLI" hosting:sites:create "$SITE" --project "$PROJECT" --non-interactive
+
+      - name: Collect web files
+        run: |
+          mkdir -p _site
+          cp index.html sw.js version.json manifest.json splash.mp4 _site/
+          cp icon-*.png _site/
+          for f in privacy.html cache-clear.html force-resubscribe.html; do
+            if [ -f "$f" ]; then cp "$f" _site/; fi
+          done
+          ls -la _site
+
+      - name: Deploy
+        run: |
+          MSG="$(git log -1 --pretty=%s | cut -c1-100)"
+          npx --yes "$FIREBASE_CLI" deploy --only hosting --project "$PROJECT" --non-interactive --message "$MSG"
