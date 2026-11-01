@@ -4153,6 +4153,7 @@ body.dark .slide-action{
           <summary style="cursor:pointer;font-weight:700;color:var(--text2)">⚙️ สูตรคิดเงิน (แก้ได้)</summary>
           <div class="modal-grid" style="margin-top:10px">
             <div class="form-group"><label class="form-label">ค่าแรง/ชม. (₪)</label><input type="number" step="0.01" id="cfg-rate" class="form-inp" onchange="savePayCfg()"/></div>
+            <div class="form-group"><label class="form-label">ค่าโอที/ชม. (₪) · 0 = ×125%/×150%</label><input type="number" step="0.01" min="0" id="cfg-otrate" class="form-inp" onchange="savePayCfg()"/></div>
             <div class="form-group"><label class="form-label">โอทีเมื่อเกิน (ชม./วัน)</label><input type="number" step="0.1" id="cfg-ot" class="form-inp" onchange="savePayCfg()"/></div>
             <div class="form-group"><label class="form-label">หักวันปกติ (ชม.)</label><input type="number" step="0.25" min="0" id="cfg-dn" class="form-inp" onchange="savePayCfg()"/></div>
             <div class="form-group"><label class="form-label">หักวันสั้น (ชม.) ศุกร์/เลิกก่อน 14:00</label><input type="number" step="0.25" min="0" id="cfg-df" class="form-inp" onchange="savePayCfg()"/></div>
@@ -4160,7 +4161,7 @@ body.dark .slide-action{
           <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--text2);margin-bottom:6px"><input type="checkbox" id="cfg-pack" onchange="savePayCfg()" style="margin-top:2px"/> <span>กฎโรงแพ็คแบบเดิม: วันที่สแกนพักเที่ยง/วันโรงแพ็ค หักแค่ช่วงพัก (สลิป ก.ย. 69 ไม่ได้คิดแบบนี้ — ปิดไว้)</span></label>
           <div class="form-group"><label class="form-label">ช่วงพัก (ใช้เมื่อเปิดกฎโรงแพ็คแบบเดิม)</label><input type="text" id="cfg-brk" class="form-inp" placeholder="09:00-09:20, 12:20-13:00" onchange="savePayCfg()"/></div>
           <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text2)"><input type="checkbox" id="cfg-start" onchange="savePayCfg()"/> เริ่มนับจากชั่วโมงเต็มถัดไป (เข้า 05:46 → นับ 06:00)</label>
-          <div style="font-size:11px;color:var(--text3);margin-top:6px">ชม.ที่เกินเกณฑ์: 2 ชม.แรก ×125% · ที่เหลือ ×150% · นับจากเข้างานแรกถึงออกงานสุดท้ายของวัน แล้วหักตามด้านบน (สแกนพักเที่ยงหรือไม่ก็คิดเท่ากัน) · เทียบใบเวลา+ใบเงินเดือน พ.ค./ส.ค./ก.ย. 2569 คลาดไม่เกิน 1%</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">ค่าแรงด้านบนใช้ตั้งแต่ พ.ย. 2569 (ตามกรม: ชม.ละ ₪35 · โอทีทุกชม. ₪44) · เดือนก่อนหน้าคิดแบบเดิม ₪35.40 + โอที 2 ชม.แรก ×125% ที่เหลือ ×150% · นับจากเข้างานแรกถึงออกงานสุดท้ายของวัน แล้วหักตามด้านบน (สแกนพักเที่ยงหรือไม่ก็คิดเท่ากัน) · เทียบใบเวลา+ใบเงินเดือน พ.ค./ส.ค./ก.ย. 2569 คลาดไม่เกิน 1%</div>
           <button class="btn-secondary" style="margin-top:8px;font-size:12px" onclick="resetPayCfg()">↺ ค่าเริ่มต้น</button>
         </details>
         <!-- Real-time salary preview -->
@@ -7501,28 +7502,38 @@ function renderTeamSummary(){
 // minus the same 3:00 on every normal day fits card 25 for May/Aug/Sep (7,684 vs
 // 7,699 · 7,162 vs 7,148 · 8,251 vs 8,330). So lunch scans / โรงแพ็ค no longer
 // change pay; the old break-window rule stays available as packBrk (off).
-const PAY_DEFAULT={rate:35.40,dN:180,dF:0,otAfter:8.6,fromStart:true,brk:'09:00-09:20, 12:20-13:00',packBrk:false};
+// v359: from Nov 2026 pay follows the department (กรม) rates: ₪35 an hour and ₪44 for
+// every OT hour (owner, 1 Nov 2026). Months before keep the rates their payslips were
+// fitted to (₪35.40; OT ×125% for 2 h, then ×150%), so past estimates don't move.
+// otRate 0 = the old ×125%/×150% steps.
+const PAY_DEFAULT={rate:35,otRate:44,dN:180,dF:0,otAfter:8.6,fromStart:true,brk:'09:00-09:20, 12:20-13:00',packBrk:false};
+const PAY_FROM=2026*12+10;                 // Nov 2026 (months counted from 0)
+const PAY_OLD={rate:35.40,otRate:0};       // every month before PAY_FROM
 function _parseBrk(v){
   const out=[]; String(v||'').split(',').forEach(p=>{ const m=p.trim().match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/); if(!m) return;
     const a=+m[1]*60+ +m[2], b=+m[3]*60+ +m[4]; if(b>a&&b<=1440) out.push([a,b]); });
   return out;
 }
-function getPayCfg(){
+// y, m (0-11) → the rates of that month; without them → the current rates.
+function getPayCfg(y,m){
   let c={};
   try{ c=JSON.parse(localStorage.getItem(`tt_sal_cfg_${curUser.id}`)||'{}')||{}; }catch(e){ c={}; }
+  if(!(c.v>=2)) delete c.rate;               // v359: a rate saved before Nov 2026 was the old ₪35.40
   const o=Object.assign({},PAY_DEFAULT,c);
-  ['rate','dN','dF','otAfter'].forEach(k=>{ const v=Number(o[k]); o[k]=isFinite(v)&&v>=0?v:PAY_DEFAULT[k]; });
+  ['rate','otRate','dN','dF','otAfter'].forEach(k=>{ const v=Number(o[k]); o[k]=isFinite(v)&&v>=0?v:PAY_DEFAULT[k]; });
   o.fromStart=o.fromStart!==false;
   o.packBrk=o.packBrk===true;
   if(typeof o.brk!=='string') o.brk=PAY_DEFAULT.brk;
   o.breaks=_parseBrk(o.brk);
+  o.old=y!=null&&m!=null&&(y*12+m)<PAY_FROM;
+  if(o.old) Object.assign(o,PAY_OLD);
   return o;
 }
 function _hm(m){ return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
 function _tm(v){ if(!v) return 0; const [h,m]=String(v).split(':').map(Number); return (h||0)*60+(m||0); }
 function savePayCfg(){
   const g=id=>document.getElementById(id);
-  const c={rate:parseFloat(g('cfg-rate').value),otAfter:parseFloat(g('cfg-ot').value),dN:Math.round((parseFloat(g('cfg-dn').value)||0)*60),dF:Math.round((parseFloat(g('cfg-df').value)||0)*60),fromStart:!!g('cfg-start').checked,packBrk:!!(g('cfg-pack')&&g('cfg-pack').checked),brk:_parseBrk(g('cfg-brk').value).map(([a,b])=>_hm(a)+'-'+_hm(b)).join(', ')};
+  const c={v:2,rate:parseFloat(g('cfg-rate').value),otRate:g('cfg-otrate')?parseFloat(g('cfg-otrate').value):PAY_DEFAULT.otRate,otAfter:parseFloat(g('cfg-ot').value),dN:Math.round((parseFloat(g('cfg-dn').value)||0)*60),dF:Math.round((parseFloat(g('cfg-df').value)||0)*60),fromStart:!!g('cfg-start').checked,packBrk:!!(g('cfg-pack')&&g('cfg-pack').checked),brk:_parseBrk(g('cfg-brk').value).map(([a,b])=>_hm(a)+'-'+_hm(b)).join(', ')};
   localStorage.setItem(`tt_sal_cfg_${curUser.id}`,JSON.stringify(c));
   renderSalary();
 }
@@ -7531,6 +7542,7 @@ function fillPayCfgUI(){
   const c=getPayCfg(), g=id=>document.getElementById(id); if(!g('cfg-rate')) return;
   g('cfg-rate').value=c.rate.toFixed(2); g('cfg-ot').value=c.otAfter; g('cfg-dn').value=+(c.dN/60).toFixed(2); g('cfg-df').value=+(c.dF/60).toFixed(2);
   g('cfg-start').checked=c.fromStart;
+  if(g('cfg-otrate')) g('cfg-otrate').value=c.otRate.toFixed(2);
   if(g('cfg-pack')) g('cfg-pack').checked=c.packBrk;
   if(g('cfg-brk')){ g('cfg-brk').value=c.brk; g('cfg-brk').disabled=!c.packBrk; }
 }
@@ -7593,7 +7605,7 @@ function _normDayOT(arr,empId){
 const _otTouched=new Set();
 function _otTouch(empId){ if(empId) _otTouched.add(empId); }
 function salMonthStats(empId,month,year){
-  const c=getPayCfg(), T=c.otAfter;
+  const c=getPayCfg(year,month), T=c.otAfter;   // v359: that month's rates
   const mr=records.filter(r=>{const[y,m]=(r.date||'').split('-').map(Number);return r.empId===empId&&y===year&&m===month+1&&r.checkIn&&r.checkOut});
   const byDate={};
   mr.forEach(r=>{ (byDate[r.date]=byDate[r.date]||[]).push([_tm(r.checkIn),_tm(r.checkOut)]); });
@@ -7605,9 +7617,9 @@ function salMonthStats(empId,month,year){
     const h=d.min/60;
     paidH+=h; regH+=Math.min(h,T); o125H+=Math.min(Math.max(h-T,0),2); o150H+=Math.max(h-T-2,0);
   });
-  const pay=c.rate*(regH+1.25*o125H+1.5*o150H);
+  const pay=c.otRate>0 ? c.rate*regH+c.otRate*(o125H+o150H) : c.rate*(regH+1.25*o125H+1.5*o150H);   // v359: flat ₪/h OT, or the old steps
   const otMin=mr.reduce((s,r)=>s+(r.otMin||0),0);
-  return {days,fridays,packDays,rawH,paidH,netH:paidH,regH,o125H,o150H,pay,rate:c.rate,otMin};
+  return {days,fridays,packDays,rawH,paidH,netH:paidH,regH,o125H,o150H,pay,rate:c.rate,otRate:c.otRate,otMin};
 }
 // v264: switching month/year must LOAD that month's pay, not save the box's
 // old value into the newly selected month (it used to copy pay across months).
@@ -7677,12 +7689,12 @@ function renderSalary(){
 
 // v266: shareable monthly pay card under the employer pay formula.
 function salPayCard(o){
-  const st=o.st, c=getPayCfg();
+  const st=o.st, flat=st.otRate>0;   // v359: flat ₪/h OT from Nov 2026
   const money=v=>'₪'+v.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
   const rows=[['วันทำงาน',`${st.days} วัน (ศุกร์ ${st.fridays}${st.packDays?` · โรงแพ็ค ${st.packDays}`:''})`],['ชม.ตามบัตร',fmtHMt(st.rawH*60)],
     ['ชม.ที่คิดเงิน (หลังหัก)',fmtHMt(st.paidH*60)],[`ชม.ปกติ ×100%`,fmtHMt(st.regH*60)],
-    ['ล่วงเวลา ×125%',fmtHMt(st.o125H*60)],['ล่วงเวลา ×150%',fmtHMt(st.o150H*60)],
-    ['ค่าแรง/ชม.',money(c.rate)],[o.actual?'เงินตามสูตร':'รายได้ (ประมาณ)',money(st.pay)]];
+    ...(flat?[[`ล่วงเวลา (${money(st.otRate)}/ชม.)`,fmtHMt((st.o125H+st.o150H)*60)]]:[['ล่วงเวลา ×125%',fmtHMt(st.o125H*60)],['ล่วงเวลา ×150%',fmtHMt(st.o150H*60)]]),
+    ['ค่าแรง/ชม.',money(st.rate)],[o.actual?'เงินตามสูตร':'รายได้ (ประมาณ)',money(st.pay)]];
   if(o.actual){ rows.push(['ได้จริง',money(o.actual)]); rows.push(['ต่าง',(o.actual-st.pay>=0?'+':'−')+money(Math.abs(o.actual-st.pay))]); }
   const text=[o.title.replace(/^\S+\s/,''),(curUser&&curUser.name)||'',...rows.map(r=>r[0]+': '+r[1])].join('\n');
   window._salShareText=text;
@@ -7695,7 +7707,9 @@ function salPayCard(o){
       <div class="sal3d-lbl">${o.actual?'เงินตามสูตร':'รายได้ประมาณ'}</div>
       <div class="sal3d-amt">${money(st.pay)}</div>
       <div class="sal3d-sub">${st.days} วัน · คิดเงิน ${fmtHMt(st.paidH*60)}</div>
-      ${_tH>0?`<div class="sal3d-bar"><i class="b100" style="width:${_pc(st.regH).toFixed(1)}%"></i><i class="b125" style="width:${_pc(st.o125H).toFixed(1)}%"></i><i class="b150" style="width:${_pc(st.o150H).toFixed(1)}%"></i></div>
+      ${_tH>0&&flat?`<div class="sal3d-bar"><i class="b100" style="width:${_pc(st.regH).toFixed(1)}%"></i><i class="b125" style="width:${_pc(st.o125H+st.o150H).toFixed(1)}%"></i></div>
+      <div class="sal3d-leg"><span><b class="d100"></b>ปกติ ${fmtHMt(st.regH*60)}</span><span><b class="d125"></b>โอที ${fmtHMt((st.o125H+st.o150H)*60)}</span></div>`:''}
+      ${_tH>0&&!flat?`<div class="sal3d-bar"><i class="b100" style="width:${_pc(st.regH).toFixed(1)}%"></i><i class="b125" style="width:${_pc(st.o125H).toFixed(1)}%"></i><i class="b150" style="width:${_pc(st.o150H).toFixed(1)}%"></i></div>
       <div class="sal3d-leg"><span><b class="d100"></b>ปกติ ${fmtHMt(st.regH*60)}</span><span><b class="d125"></b>×125% ${fmtHMt(st.o125H*60)}</span><span><b class="d150"></b>×150% ${fmtHMt(st.o150H*60)}</span></div>`:''}
     </div>`;
   return `<div class="card" id="sal-pay-card">
@@ -7822,7 +7836,7 @@ function exportXLSX(){
   data.push(['สรุป','','','รวม', fmtHMt(totalH*60), fmtHMt(totalOT),'','']);
   const sal=getSalInput(month,year);
   if(sal){
-    const ph = getPayCfg().rate;   // v266: base rate of the pay formula
+    const ph = getPayCfg(year,month).rate;   // v266: base rate of the pay formula (v359: that month's)
     data.push(['เงินเดือน','','','', parseFloat(sal),'','','']);
     data.push(['ค่าแรง/ชม.','','','', Number(ph.toFixed(2)),'','','']);
   }
@@ -7874,7 +7888,7 @@ function exportCSV(){
   const totalOT=mr.reduce((s,r)=>s+(r.otMin||0),0);
   csv+=`\nสรุป,,,,${fmtHMt(totalH*60)},${fmtHMt(totalOT)},,\n`;
   const sal=getSalInput(month,year);
-  if(sal){const ph=getPayCfg().rate;csv+=`เงินเดือน (₪),,,,${parseFloat(sal)},,\nค่าแรง/ชม. (₪),,,,${ph.toFixed(2)},,\n`}   // v265: no thousands comma — it split the CSV cell
+  if(sal){const ph=getPayCfg(year,month).rate;csv+=`เงินเดือน (₪),,,,${parseFloat(sal)},,\nค่าแรง/ชม. (₪),,,,${ph.toFixed(2)},,\n`}   // v265: no thousands comma — it split the CSV cell
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=`RUDY_${curUser.name}_${mons[month]}${year+543}.csv`;a.click();
@@ -7894,7 +7908,7 @@ function exportPDF(){
   const totalOT=comp.reduce((s,r)=>s+(r.otMin||0),0);
   const lateCount=Object.values(byDate).filter(rs=>rs.some(r=>r.isLate)).length;
   const sal=getSalInput(month,year);
-  const perH=getPayCfg().rate.toFixed(2);   // v266: base rate of the pay formula
+  const perH=getPayCfg(year,month).rate.toFixed(2);   // v266: base rate of the pay formula (v359: that month's)
 
   // Build print window
   const rows=Object.keys(byDate).sort().map(date=>{
@@ -11125,7 +11139,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v358';
+const APP_VERSION = 'v359';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
