@@ -10653,7 +10653,7 @@ function haptic(type='light') {
           else if(typeof _syncFirebaseInBackground === 'function') await _syncFirebaseInBackground({uid: curUser?.id});
           updateTodayStatus();
           if(document.getElementById('page-home').classList.contains('active')) renderHome();
-          showToast('✅ รีเฟรชแล้ว', 'success');
+          showToast('✅ รีเฟรชแล้ว', 'success', true);
         } catch(e) {}
         indicator.classList.remove('visible');
         if(ptrSpinner) ptrSpinner.style.display = 'none';
@@ -10779,9 +10779,12 @@ function showSkeleton(containerId, rows=3) {
 }
 
 // ========== TOAST ==========
-function showToast(msg,type='success'){
+// v360: silent=true → no sound (refresh and auto-sync toasts — the owner didn't
+// want a bell every time the app refreshes).
+function showToast(msg,type='success',silent){
   const t=document.getElementById('toast');t.textContent=msg;t.className=`toast show ${type}`;
   setTimeout(()=>t.className='toast',3200);
+  if(silent) return;
   // Play matching sound
   if(typeof soundSuccess === 'function'){
     if(type === 'error') soundError();
@@ -10986,7 +10989,7 @@ function animateStatsIn(container) {
         // v167: success haptic after the refresh actually completes — gives
         // a "done" beat distinct from the "released" medium pulse above.
         if (typeof haptic === 'function') haptic('success');
-        if (typeof showToast === 'function') showToast('รีเฟรชแล้ว ✓', 'success');
+        if (typeof showToast === 'function') showToast('รีเฟรชแล้ว ✓', 'success', true);
       }, 1100);
     } else if (ind) {
       ind.classList.remove('visible','ready');
@@ -11139,7 +11142,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v359';
+const APP_VERSION = 'v360';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -12210,7 +12213,7 @@ function initPullToRefreshWater() {
         ptrEl.style.display='none';
         if(labelEl) labelEl.textContent = 'ดึงเพื่อรีเฟรช';
         if(fbConn && typeof syncDown==='function') syncDown();
-        showToast('🔄 รีเฟรชแล้ว','success');
+        showToast('🔄 รีเฟรชแล้ว','success',true);
       }, 800);
     } else {
       ptrEl.style.display = 'none';
@@ -14035,7 +14038,7 @@ if('serviceWorker' in navigator) {
     } else if (!off && lastOffline === true){
       removeBanner();
       try {
-        if (typeof showToast === 'function') showToast('✅ ออนไลน์ — sync แล้ว', 'success');
+        if (typeof showToast === 'function') showToast('✅ ออนไลน์ — sync แล้ว', 'success', true);
         if (typeof haptic === 'function') haptic('success');
       } catch(_){}
     }
@@ -14165,7 +14168,7 @@ if('serviceWorker' in navigator) {
       db.ref().update(updates).then(function(){
         // Listener will fire next and dequeue confirmed ids.
         try {
-          if (typeof showToast === 'function') showToast('✅ Sync แล้ว ' + pushed + ' รายการ', 'success');
+          if (typeof showToast === 'function') showToast('✅ Sync แล้ว ' + pushed + ' รายการ', 'success', true);
           if (typeof haptic === 'function') haptic('success');
         } catch(_){}
       }).catch(function(e){ console.warn('[OQ] drain failed:', e); });
