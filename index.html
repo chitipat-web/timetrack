@@ -7892,7 +7892,7 @@ function exportCSV(){
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=`RUDY_${curUser.name}_${mons[month]}${year+543}.csv`;a.click();
-  URL.revokeObjectURL(url);showToast('✅ Export CSV สำเร็จ','success');
+  setTimeout(function(){ URL.revokeObjectURL(url); },60000);showToast('✅ Export CSV สำเร็จ','success');   // v361: revoke later (as XLSX does) — iOS WebKit reads the blob after click(); revoking at once failed the download (WebKit bug 211234)
 }
 
 function exportPDF(){
@@ -11142,7 +11142,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v360';
+const APP_VERSION = 'v361';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18007,7 +18007,7 @@ body.dark [class*="tab"] .label{
             db.ref('errorlogs').update(updates).catch(function(){});
           }
         });
-      }, function(){});
+      }, function(){}).catch(function(){});   // v361: once() also rejects its promise — unhandled, it re-logged itself as an error
     });
   }
 
@@ -18148,7 +18148,7 @@ body.dark [class*="tab"] .label{
         });
       }, function(){
         box.innerHTML = '<div style="color:#FF453A">โหลด log ไม่ได้</div>';
-      });
+      }).catch(function(){});   // v361: see prune above
     });
   };
 
