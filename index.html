@@ -11142,7 +11142,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v361';
+const APP_VERSION = 'v362';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -11489,33 +11489,43 @@ function setupRealtimeListeners() {
       //   to resolve, then dequeue (their write currently wins; user can
       //   re-push their version through the conflict modal).
       // - If FB doesn't have the id -> still pending offline, keep local.
+      // v362: an entry now leaves the queue only when the SERVER confirms the
+      // write (rudyQueueAck from saveRec / the drain). Firebase echoes a local
+      // write to this listener at once, even offline, so dequeuing on the echo
+      // emptied the queue immediately: a check-in or check-out made without
+      // signal was lost if the app was closed before the signal came back, and
+      // the next snapshot put the server's older copy back. While queued, our
+      // copy wins when it is newer than the server's (kept in place, so the
+      // order of the day's records doesn't change).
       let pendingLocal = [];
+      const keepLocal = {};
       const newConflicts = [];
       try {
-        if (typeof window.rudyQueueGetIds === 'function') {
-          const fbById = {};
+        const queue = (typeof window.rudyQueueGetAll === 'function') ? window.rudyQueueGetAll() : [];
+        if (queue.length) {
+          const fbById = {}, localById = {};
           fbRecords.forEach(r => { if (r && r.id) fbById[r.id] = r; });
-          const queueIds = window.rudyQueueGetIds();
-          queueIds.forEach(id => {
-            const fbRec = fbById[id];
+          (records || []).forEach(r => { if (r && r.id) localById[r.id] = r; });
+          queue.forEach(entry => {
+            const id = entry.id, fbRec = fbById[id], mine = localById[id];
             if (fbRec) {
-              const entry = (typeof window.rudyQueueGetEntry === 'function') ? window.rudyQueueGetEntry(id) : null;
-              const sentTs = entry && entry.sentTs ? entry.sentTs : 0;
+              const sentTs = entry.sentTs || 0;
               const fbTs = fbRec.lastEditedTs || 0;
               // 1s tolerance for clock skew / write echo timing
               if (sentTs && fbTs > sentTs + 1000) {
-                const mine = (records || []).find(r => r && r.id === id);
                 if (mine) newConflicts.push({ id: id, mine: { ...mine }, theirs: { ...fbRec } });
+                try { window.rudyQueueRemove(id); } catch(_){}
+              } else if (mine && (mine.lastEditedTs || 0) > fbTs) {
+                keepLocal[id] = mine;
               }
-              try { window.rudyQueueRemove(id); } catch(_){}
-            } else {
-              const localCopy = (records || []).find(r => r && r.id === id);
-              if (localCopy) pendingLocal.push(localCopy);
+            } else if (mine) {
+              pendingLocal.push(mine);
             }
           });
         }
       } catch(e){ console.warn('[OQ] listener merge:', e); }
-      records = fbRecords.concat(pendingLocal);
+      records = fbRecords.map(r => (r && keepLocal[r.id]) || r).concat(pendingLocal);
+      try { records.forEach(r => { if (r && r.id) _recSeenTs.set(r.id, r.lastEditedTs || 0); }); } catch(_){}
       localStorage.setItem('tt_rec', JSON.stringify(records));
       // Hand any detected conflicts to the v172 UI (separate IIFE).
       if (newConflicts.length > 0 && typeof window.rudyShowConflicts === 'function') {
@@ -11617,6 +11627,11 @@ function setupRealtimeListeners() {
 // Save record to Firebase — SAFE per-record update (never overwrites root)
 const _origSaveRec = window.saveRec || function(){};
 let _lastSyncedRecordIds = new Set();
+// v362: version (lastEditedTs) of each record this device has already queued or
+// received from the server. saveRec queues only records that changed since, so
+// the offline queue holds real pending edits, not every record pushed.
+const _recSeenTs = new Map();
+try { (records || []).forEach(r => { if (r && r.id) _recSeenTs.set(r.id, r.lastEditedTs || 0); }); } catch(_){}
 window.saveRec = function() {
   // v277: keep own OT on the pay-formula rule before every save
   try {
@@ -11635,6 +11650,7 @@ window.saveRec = function() {
   // Per-record update — only writes the records we have, doesn't delete others
   const updates = {};
   const currentIds = new Set();
+  const changed = {}, pushedTs = {};
   records.forEach(r => {
     if (!r || !r.id) return;
     // v242: non-admins push ONLY their own records. Firebase rules now reject
@@ -11645,24 +11661,32 @@ window.saveRec = function() {
     if (!isAdmin() && (!curUser || r.empId !== curUser.id)) return;
     updates['records/' + r.id] = r;
     currentIds.add(r.id);
-    // v169 offline queue + v172 conflict detection: enqueue id with the
-    // lastEditedTs we're pushing. The listener compares against
-    // fbRec.lastEditedTs — same -> confirmed synced; FB newer -> remote
-    // wrote after us, surface as a conflict for the user to resolve.
-    try { if (typeof window.rudyQueueAdd === 'function') window.rudyQueueAdd(r.id, r.lastEditedTs || 0); } catch(_){}
+    // v169 offline queue + v172 conflict detection: enqueue a new or changed
+    // record with the lastEditedTs we're pushing. The listener keeps our copy
+    // while it's queued and flags a conflict if FB gets a newer one (v362: only
+    // changed records are queued; see _recSeenTs).
+    const ts = r.lastEditedTs || 0;
+    pushedTs[r.id] = ts;
+    if (_recSeenTs.get(r.id) !== ts) { changed[r.id] = ts; _recSeenTs.set(r.id, ts); }
   });
 
   // Detect deletions: records that were in last sync but not in current array
   _lastSyncedRecordIds.forEach(id => {
     if (!currentIds.has(id)) {
       updates['records/' + id] = null;  // null = delete this specific record
+      pushedTs[id] = Infinity;
     }
   });
 
   _lastSyncedRecordIds = currentIds;
 
+  try { if (typeof window.rudyQueueAddMany === 'function') window.rudyQueueAddMany(changed); } catch(_){}
   if (Object.keys(updates).length > 0) {
-    db.ref().update(updates).catch(e => console.log('FB write err:', e));
+    // v362: the promise resolves only when the server has the write — that,
+    // not the listener's instant echo, is what takes records off the queue.
+    db.ref().update(updates)
+      .then(() => { try { if (typeof window.rudyQueueAck === 'function') window.rudyQueueAck(pushedTs); } catch(_){} })
+      .catch(e => console.log('FB write err:', e));
   }
 };
 
@@ -14073,29 +14097,25 @@ if('serviceWorker' in navigator) {
 //
 // FLOW (full chain):
 //   1. doCheckIn/doCheckOut push to records[] and call saveRec().
-//   2. saveRec() — overridden at ~line 10021 — writes localStorage and
-//      enqueues every record id via window.rudyQueueAdd. It also
-//      attempts db.ref().update(). If offline, that promise hangs/fails
-//      silently but the localStorage queue holds the id.
-//   3. When fbConn flips true (this module polls every 2s), we call
-//      window.rudyQueueDrain which builds an update({records/ID: rec})
-//      payload from current records[] for every queued id and pushes.
-//   4. Firebase echoes the write back via the .on('value') listener.
-//      That listener (patched at ~line 9923) walks the queue and
-//      removes ids that are now present in fbData — at which point
-//      they're confirmed synced.
-//   5. Listener also preserves records whose ids are queued but NOT
-//      in fbData (still-pending offline writes), so the
-//      "records = sanitizeRecords(fbData)" line no longer wipes them.
+//   2. saveRec() (the window.saveRec override) writes localStorage,
+//      enqueues every NEW or CHANGED record (v362: by lastEditedTs, see
+//      _recSeenTs) via rudyQueueAddMany, and calls db.ref().update().
+//   3. Only when that update() promise resolves — i.e. the server has the
+//      write — does rudyQueueAck take the entries off (v362). Before v362
+//      the listener dequeued as soon as Firebase echoed the record, but the
+//      SDK echoes local writes instantly even offline, so the queue was
+//      always empty and a check-in/out made offline was lost if the app was
+//      closed before the signal came back.
+//   4. The records listener keeps our copy of a queued record when it is
+//      newer than the server's (an offline check-out) or missing there (an
+//      offline check-in), and flags a conflict when the server's is newer.
+//   5. rudyQueueDrain re-sends queued records: on every offline→online edge
+//      and once per session after the first snapshot (v362; it had also not
+//      pushed anything since v172 — it read the {id,sentTs} entries as ids).
 //
 // SCOPE LIMITS (documented honestly):
-//   - Handles ADDITIONS reliably (the common offline case: check-in
-//     while in a cell-dead zone).
-//   - Offline EDITS of an already-synced record may be overwritten by
-//     the next listener-merge because we can't tell whether FB's copy
-//     or local's copy is newer without a lastEditedTs field on each
-//     record. Full edit-protection requires schema work and lands in
-//     the conflict-resolution commit (v172).
+//   - Edits that don't bump lastEditedTs aren't queued (all check-in/out
+//     and edit paths do bump it).
 //   - DELETES while offline go through the existing saveRec path
 //     (writes records/ID = null to FB). Not covered here.
 // ════════════════════════════════════════════════════════════════════
@@ -14146,45 +14166,85 @@ if('serviceWorker' in navigator) {
     return loadQ().find(function(e){ return e && e.id === id; }) || null;
   };
   window.rudyQueueClear = function(){ saveQ([]); };
+  // v362: batch versions — one localStorage read/write per save, not one per record.
+  window.rudyQueueGetAll = function(){ return loadQ(); };
+  window.rudyQueueAddMany = function(map){          // { id: lastEditedTs being written }
+    var ids = Object.keys(map || {});
+    if (!ids.length) return;
+    var q = loadQ(), at = {};
+    q.forEach(function(e, i){ at[e.id] = i; });
+    ids.forEach(function(id){
+      var ts = map[id] || 0, i = at[id];
+      if (i === undefined) { var e = { id: id }; if (ts) e.sentTs = ts; at[id] = q.length; q.push(e); }
+      else if (ts && (!q[i].sentTs || ts > q[i].sentTs)) q[i].sentTs = ts;
+    });
+    saveQ(q);
+  };
+  // v362: the server confirmed a write — drop the entries it covered. An entry
+  // whose queued version is newer than what was written stays for the next one.
+  window.rudyQueueAck = function(map){              // { id: lastEditedTs written } (Infinity = deleted)
+    if (!map) return;
+    var q = loadQ();
+    var keep = q.filter(function(e){
+      return !Object.prototype.hasOwnProperty.call(map, e.id) || (e.sentTs || 0) > map[e.id];
+    });
+    if (keep.length !== q.length) saveQ(keep);
+  };
 
-  window.rudyQueueDrain = function(){
+  var draining = false;
+  window.rudyQueueDrain = function(quiet){
     if (typeof db === 'undefined') return;
     if (typeof records === 'undefined' || !Array.isArray(records)) return;
-    var ids = loadQ();
-    if (ids.length === 0) return;
-    var updates = {};
+    if (draining) return;
+    var q = loadQ();
+    if (q.length === 0) return;
+    var updates = {}, written = {}, gone = {};
     var pushed = 0;
-    ids.forEach(function(id){
+    q.forEach(function(e){
+      // v362: entries are {id, sentTs} objects since v172 — this loop still
+      // compared them to record ids as plain strings, so it never pushed anything.
+      var id = e && e.id;
+      if (!id) return;
       var r = records.find(function(x){ return x && x.id === id; });
       // v242: same ownership scoping as saveRec — a queue persisted from an
       // older version may still hold teammates' record ids; pushing them would
       // be rejected by rules and atomically sink the whole drain batch.
-      if (r && typeof isAdmin === 'function' && !isAdmin() &&
-          (typeof curUser === 'undefined' || !curUser || r.empId !== curUser.id)) return;
-      if (r){ updates['records/' + id] = r; pushed++; }
+      // v362: those, and ids with no record left on this device, leave the queue.
+      if (!r || (typeof isAdmin === 'function' && !isAdmin() &&
+          (typeof curUser === 'undefined' || !curUser || r.empId !== curUser.id))) { gone[id] = Infinity; return; }
+      updates['records/' + id] = r; written[id] = r.lastEditedTs || 0; pushed++;
     });
+    window.rudyQueueAck(gone);
     if (pushed === 0) return;
+    draining = true;
     try {
       db.ref().update(updates).then(function(){
-        // Listener will fire next and dequeue confirmed ids.
+        draining = false;
+        window.rudyQueueAck(written);
+        if (quiet) return;
         try {
           if (typeof showToast === 'function') showToast('✅ Sync แล้ว ' + pushed + ' รายการ', 'success', true);
           if (typeof haptic === 'function') haptic('success');
         } catch(_){}
-      }).catch(function(e){ console.warn('[OQ] drain failed:', e); });
-    } catch(e){ console.warn('[OQ] drain threw:', e); }
+      }).catch(function(e){ draining = false; console.warn('[OQ] drain failed:', e); });
+    } catch(e){ draining = false; console.warn('[OQ] drain threw:', e); }
   };
 
   // Watch fbConn for offline→online transition. Don't drain on the
   // initial true (boot case) — only after we've observed a false→true edge.
-  var sawOffline = false;
+  // v362: plus once per session when the first records snapshot is in — a
+  // write the app could not deliver before it was closed is otherwise only
+  // re-sent with the next save. That one is quiet (no toast).
+  var sawOffline = false, drainedAtStart = false;
   setInterval(function(){
     var cur = (typeof fbConn !== 'undefined') ? fbConn : false;
     if (!cur) { sawOffline = true; return; }
-    if (cur && sawOffline){
-      sawOffline = false;
+    if (typeof _recordsLoadedFromFB !== 'undefined' && !_recordsLoadedFromFB) return;
+    if (sawOffline || !drainedAtStart){
+      var quiet = !sawOffline;
+      sawOffline = false; drainedAtStart = true;
       // small delay so any in-flight FB writes from this session finish first
-      setTimeout(function(){ try { window.rudyQueueDrain(); } catch(_){} }, 1500);
+      setTimeout(function(){ try { window.rudyQueueDrain(quiet); } catch(_){} }, 1500);
     }
   }, 2000);
 })();
