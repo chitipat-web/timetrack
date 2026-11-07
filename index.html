@@ -11142,7 +11142,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v363';
+const APP_VERSION = 'v364';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -11526,6 +11526,11 @@ function setupRealtimeListeners() {
       } catch(e){ console.warn('[OQ] listener merge:', e); }
       records = fbRecords.map(r => (r && keepLocal[r.id]) || r).concat(pendingLocal);
       try { records.forEach(r => { if (r && r.id) _recSeenTs.set(r.id, r.lastEditedTs || 0); }); } catch(_){}
+      // v364: what the server holds now — except our copies still waiting to reach it
+      try {
+        const waiting = new Set(Object.keys(keepLocal).concat(pendingLocal.map(r => r && r.id)));
+        records.forEach(r => { if (!r || !r.id) return; if (waiting.has(r.id)) _recSentJson.delete(r.id); else _recSentJson.set(r.id, JSON.stringify(r)); });
+      } catch(_){}
       localStorage.setItem('tt_rec', JSON.stringify(records));
       // Hand any detected conflicts to the v172 UI (separate IIFE).
       if (newConflicts.length > 0 && typeof window.rudyShowConflicts === 'function') {
@@ -11632,6 +11637,17 @@ let _lastSyncedRecordIds = new Set();
 // the offline queue holds real pending edits, not every record pushed.
 const _recSeenTs = new Map();
 try { (records || []).forEach(r => { if (r && r.id) _recSeenTs.set(r.id, r.lastEditedTs || 0); }); } catch(_){}
+// v364: content (JSON) of each record as the server is known to hold it. saveRec
+// sends only records that differ — it used to send every record it may write on
+// every save (for the admin: everyone's), so a phone that had been offline put
+// its stale copies back over newer ones when the signal returned (e.g. a
+// teammate's check-out made in the meantime). Records still in the offline
+// queue are left out, so they are sent with the next save as well as the drain.
+const _recSentJson = new Map();
+try {
+  const _q0 = new Set((JSON.parse(localStorage.getItem('tt_offline_queue_v1') || '[]') || []).map(e => e && (e.id || e)));
+  (records || []).forEach(r => { if (r && r.id && !_q0.has(r.id)) _recSentJson.set(r.id, JSON.stringify(r)); });
+} catch(_){}
 window.saveRec = function() {
   // v277: keep own OT on the pay-formula rule before every save
   try {
@@ -11659,8 +11675,11 @@ window.saveRec = function() {
     // currentIds is scoped the same way, so deletion detection below can
     // never emit deletes for teammates' records either.
     if (!isAdmin() && (!curUser || r.empId !== curUser.id)) return;
-    updates['records/' + r.id] = r;
     currentIds.add(r.id);
+    const j = JSON.stringify(r);
+    if (_recSentJson.get(r.id) === j) return;   // v364: unchanged — the server already has it
+    updates['records/' + r.id] = r;
+    _recSentJson.set(r.id, j);
     // v169 offline queue + v172 conflict detection: enqueue a new or changed
     // record with the lastEditedTs we're pushing. The listener keeps our copy
     // while it's queued and flags a conflict if FB gets a newer one (v362: only
@@ -11675,6 +11694,7 @@ window.saveRec = function() {
     if (!currentIds.has(id)) {
       updates['records/' + id] = null;  // null = delete this specific record
       pushedTs[id] = Infinity;
+      _recSentJson.delete(id);
     }
   });
 
@@ -11686,7 +11706,7 @@ window.saveRec = function() {
     // not the listener's instant echo, is what takes records off the queue.
     db.ref().update(updates)
       .then(() => { try { if (typeof window.rudyQueueAck === 'function') window.rudyQueueAck(pushedTs); } catch(_){} })
-      .catch(e => console.log('FB write err:', e));
+      .catch(e => { Object.keys(pushedTs).forEach(id => _recSentJson.delete(id)); console.log('FB write err:', e); });   // v364: rejected — send again next save
   }
 };
 
