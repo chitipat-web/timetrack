@@ -9186,6 +9186,19 @@ function _urlBase64ToUint8Array(base64String) {
   for(let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
   return arr;
 }
+// v365: true when the browser subscription was made with another VAPID key
+// (several were tried in May 2026) — such a phone can never receive our pushes.
+// false when the browser doesn't expose the key.
+function _subKeyDiffers(sub){
+  try {
+    const k = sub && sub.options && sub.options.applicationServerKey;
+    if(!k) return false;
+    const have = new Uint8Array(k), want = _urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+    if(have.length !== want.length) return true;
+    for(let i = 0; i < want.length; i++) if(have[i] !== want[i]) return true;
+    return false;
+  } catch(_){ return false; }
+}
 
 // device id แต่ละเครื่อง — เก็บใน localStorage
 function _getDeviceId(){
@@ -9204,30 +9217,30 @@ function _subPath(){
 }
 
 async function subscribePush(){
-  alert('[DEBUG 1] เริ่ม subscribePush');
+  console.log('[Push debug 1] เริ่ม subscribePush');
   if(!('serviceWorker' in navigator) || !('PushManager' in window)){
-    alert('[DEBUG ERROR] ไม่รองรับ ServiceWorker หรือ PushManager');
+    console.log('[Push debug ERROR] ไม่รองรับ ServiceWorker หรือ PushManager');
     console.log('[Push] not supported');
     return null;
   }
   if(Notification.permission !== 'granted'){
-    alert('[DEBUG ERROR] permission ไม่ใช่ granted: ' + Notification.permission);
+    console.log('[Push debug ERROR] permission ไม่ใช่ granted: ' + Notification.permission);
     console.log('[Push] permission not granted');
     return null;
   }
   if(!curUser){
-    alert('[DEBUG ERROR] ไม่มี curUser');
+    console.log('[Push debug ERROR] ไม่มี curUser');
     console.log('[Push] no user');
     return null;
   }
-  alert('[DEBUG 2] ผ่านการเช็คเบื้องต้น curUser.id = ' + curUser.id);
+  console.log('[Push debug 2] ผ่านการเช็คเบื้องต้น curUser.id = ' + curUser.id);
 
   let reg;
   try {
     reg = await navigator.serviceWorker.ready;
-    alert('[DEBUG 3] ServiceWorker ready แล้ว');
+    console.log('[Push debug 3] ServiceWorker ready แล้ว');
   } catch(e){
-    alert('[DEBUG ERROR] ServiceWorker ready ล้มเหลว: ' + e.message);
+    console.log('[Push debug ERROR] ServiceWorker ready ล้มเหลว: ' + e.message);
     throw e;
   }
 
@@ -9235,35 +9248,40 @@ async function subscribePush(){
   let sub;
   try {
     sub = await reg.pushManager.getSubscription();
-    alert('[DEBUG 4] getSubscription สำเร็จ มี sub = ' + (sub ? 'YES' : 'NO'));
+    console.log('[Push debug 4] getSubscription สำเร็จ มี sub = ' + (sub ? 'YES' : 'NO'));
   } catch(e){
-    alert('[DEBUG ERROR] getSubscription ล้มเหลว: ' + e.message);
+    console.log('[Push debug ERROR] getSubscription ล้มเหลว: ' + e.message);
     throw e;
+  }
+  if(sub && _subKeyDiffers(sub)){   // v365: made with an old key — subscribe again
+    try { await sub.unsubscribe(); } catch(_){}
+    sub = null;
+    console.log('[Push] subscription used another key — subscribing again');
   }
 
   if(!sub){
     try {
-      alert('[DEBUG 5] กำลัง subscribe ใหม่ ด้วย VAPID key length = ' + VAPID_PUBLIC_KEY.length);
+      console.log('[Push debug 5] กำลัง subscribe ใหม่ ด้วย VAPID key length = ' + VAPID_PUBLIC_KEY.length);
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
-      alert('[DEBUG 6] subscribe สำเร็จ! endpoint = ' + sub.endpoint.substring(0, 50));
+      console.log('[Push debug 6] subscribe สำเร็จ! endpoint = ' + sub.endpoint.substring(0, 50));
       console.log('[Push] new subscription created');
     } catch(e){
-      alert('[DEBUG ERROR] subscribe ล้มเหลว: ' + e.name + ' - ' + e.message);
+      console.log('[Push debug ERROR] subscribe ล้มเหลว: ' + e.name + ' - ' + e.message);
       console.error('[Push] subscribe error:', e);
       throw e;
     }
   } else {
-    alert('[DEBUG 6] ใช้ sub ที่มีอยู่แล้ว');
+    console.log('[Push debug 6] ใช้ sub ที่มีอยู่แล้ว');
     console.log('[Push] existing subscription found');
   }
 
   // เก็บ subscription ลง Firebase
   const subJson = sub.toJSON();
   const path = _subPath();
-  alert('[DEBUG 7] path = ' + path + ' / fbConn = ' + fbConn);
+  console.log('[Push debug 7] path = ' + path + ' / fbConn = ' + fbConn);
   if(path && fbConn){
     const data = {
       endpoint: subJson.endpoint,
@@ -9276,14 +9294,14 @@ async function subscribePush(){
     };
     try {
       await db.ref(path).set(data);
-      alert('[DEBUG 8] บันทึก Firebase สำเร็จ! ✅');
+      console.log('[Push debug 8] บันทึก Firebase สำเร็จ! ✅');
       console.log('[Push] subscription saved to Firebase:', path);
     } catch(e){
-      alert('[DEBUG ERROR] บันทึก Firebase ล้มเหลว: ' + e.message);
+      console.log('[Push debug ERROR] บันทึก Firebase ล้มเหลว: ' + e.message);
       console.error('[Push] save to Firebase failed:', e);
     }
   } else {
-    alert('[DEBUG ERROR] ไม่ได้บันทึก เพราะ path หรือ fbConn ไม่มี');
+    console.log('[Push debug ERROR] ไม่ได้บันทึก เพราะ path หรือ fbConn ไม่มี');
   }
   return sub;
 }
@@ -9312,6 +9330,12 @@ async function _updatePushLastSeen(){
     const snap = await db.ref(path + '/endpoint').once('value');
     if(snap.exists()){
       await db.ref(path + '/lastSeen').set(Date.now());
+      // v365: subscribe again if this phone's subscription is gone or on an old key
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if(!sub || _subKeyDiffers(sub)) await subscribePush();
+      } catch(_){}
     } else {
       // มี permission แต่ไม่มี subscription → re-subscribe
       await subscribePush();
@@ -11142,7 +11166,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v364';
+const APP_VERSION = 'v365';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
