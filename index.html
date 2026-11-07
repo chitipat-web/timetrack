@@ -11142,7 +11142,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v362';
+const APP_VERSION = 'v363';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -13894,9 +13894,36 @@ if('serviceWorker' in navigator) {
     snapBack();
   }
 
+  // v363: the rest of a gesture is followed on window (capture phase) and
+  // matched by pointerId. On iPhone, WebKit doesn't reliably send pointermove /
+  // pointerup to the thumb once the finger is past it — typically when it
+  // overshoots the end (WebKit bug 220196; touch's implicit capture can also pin
+  // them to another element). The thumb's own listeners then never saw the
+  // release: it stayed at the right end, and the next tap fired with the old
+  // position. The end of the same touch (touchend/touchcancel) also ends it.
+  let _pid = null, _tid = null, _onWin = false;
+  function onTouchEnd(e){
+    if(!dragging || _tid == null) return;
+    const ch = e.changedTouches || [];
+    for(let i = 0; i < ch.length; i++){ if(ch[i].identifier === _tid){ onUp(e); return; } }
+  }
+  function followWindow(on){
+    if(on === _onWin) return;
+    _onWin = on;
+    const f = on ? window.addEventListener : window.removeEventListener;
+    f.call(window, 'pointermove', onMove, { capture:true, passive:false });
+    f.call(window, 'pointerup', onUp, true);
+    f.call(window, 'pointercancel', onUp, true);
+    f.call(window, 'touchend', onTouchEnd, true);
+    f.call(window, 'touchcancel', onTouchEnd, true);
+  }
+
   function onDown(e){
     if(!action || action.dataset.mode === 'idle') return;
+    if(dragging){ followWindow(false); snapBack(); }   // a gesture that never ended — start clean
     dragging = true;
+    dx = 0; _pendX = 0;                                // never act on a previous gesture's position
+    _pid = e.pointerId != null ? e.pointerId : null;
     action.classList.add('is-dragging');
     startX = (e.touches ? e.touches[0].clientX : e.clientX);
     const trackRect = action.getBoundingClientRect();
@@ -13905,17 +13932,21 @@ if('serviceWorker' in navigator) {
     if(thumb && thumb.setPointerCapture && e.pointerId != null){
       try { thumb.setPointerCapture(e.pointerId); } catch(_){}
     }
+    if(e.pointerId != null) followWindow(true);
   }
   function onMove(e){
     if(!dragging) return;
+    if(_pid != null && e.pointerId != null && e.pointerId !== _pid) return;   // another finger
     const x = (e.touches ? e.touches[0].clientX : e.clientX);
     _pendX = x - startX;
     if(!_raf) _raf = requestAnimationFrame(() => { _raf = 0; setX(_pendX); });
     if(e.cancelable) e.preventDefault();
   }
-  function onUp(){
+  function onUp(e){
     if(!dragging) return;
+    if(e && _pid != null && e.pointerId != null && e.pointerId !== _pid) return;
     dragging = false;
+    followWindow(false); _tid = null;
     if(_raf){ cancelAnimationFrame(_raf); _raf = 0; setX(_pendX); }   // apply the last move before deciding
     if(dx >= maxX - 4) fire();
     else snapBack();
@@ -13935,9 +13966,8 @@ if('serviceWorker' in navigator) {
     // Prefer Pointer Events (one path covers mouse, touch, pen)
     if(window.PointerEvent){
       thumb.addEventListener('pointerdown', onDown, { passive:true });
-      thumb.addEventListener('pointermove', onMove, { passive:false });
-      thumb.addEventListener('pointerup',   onUp,   { passive:true });
-      thumb.addEventListener('pointercancel', onUp, { passive:true });
+      // v363: moves and the release are followed on window from onDown (followWindow)
+      thumb.addEventListener('touchstart', e => { const t = e.changedTouches && e.changedTouches[0]; _tid = t ? t.identifier : null; }, { passive:true });
     } else {
       thumb.addEventListener('touchstart', onDown, { passive:true });
       thumb.addEventListener('touchmove',  onMove, { passive:false });
