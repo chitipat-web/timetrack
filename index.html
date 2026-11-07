@@ -11166,7 +11166,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v365';
+const APP_VERSION = 'v366';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18055,7 +18055,13 @@ body.dark [class*="tab"] .label{
   };
 
   // Write one error record to Firebase
-  function hlLogError(kind, message, where) {
+  // v366: errors that are not the app's bugs. Safari aborts IndexedDB
+  // transactions when the app goes to the background (WebKit bug 202705), and
+  // Firebase Auth's sign-in poll then rejects with this — the next poll works
+  // and the user stays signed in. Seen on Somphong's iPhone right after
+  // checking out (12:23, 14:04).
+  const HL_IOS_IDB_RE = /without an in-progress transaction|transaction was aborted/i;
+  function hlLogError(kind, message, where, noFlood) {
     hlSafe('logError', function() {
       const now = Date.now();
 
@@ -18064,7 +18070,7 @@ body.dark [class*="tab"] .label{
       // window in sessionStorage. Phase G's flood detector reads this
       // instead of querying Firebase — because the Firebase write below
       // is throttled/capped and would under-count a real error storm.
-      hlSafe('floodCounter', function(){
+      if (!noFlood) hlSafe('floodCounter', function(){   // v366: harmless kinds don't count
         const W = 5 * 60000;
         let arr = [];
         try {
@@ -18111,11 +18117,25 @@ body.dark [class*="tab"] .label{
 
   // Hook into global error events (augment, don't replace)
   window.addEventListener('error', function(e){
+    // v366: a failed image/script/media load also lands here (capture phase) as a
+    // plain Event with no message or file — it was logged as an empty js-error.
+    // Say which resource, and keep it out of the error-flood counter (offline it
+    // can come in bursts, and it isn't a code error).
+    const t = e && e.target;
+    if (t && t !== window && t.tagName && !(typeof ErrorEvent !== 'undefined' && e instanceof ErrorEvent)) {
+      const src = String(t.currentSrc || t.src || t.href || '').split('?')[0];
+      hlLogError('resource-error', t.tagName.toLowerCase() + ' โหลดไม่ได้: ' + (src.indexOf('data:') === 0 ? 'data-url' : (src.slice(-120) || '?')), 'resource', true);
+      return;
+    }
     hlLogError('js-error', e.message, (e.filename || '') + ':' + (e.lineno || ''));
   }, true);
   window.addEventListener('unhandledrejection', function(e){
     let reason = '';
     try { reason = (e.reason && e.reason.message) ? e.reason.message : String(e.reason); } catch(_){}
+    if (HL_IOS_IDB_RE.test(reason)) {   // v366: known Safari behaviour, harmless
+      hlLogError('ios-idb', reason + ' (Safari ตัด IndexedDB ตอนสลับแอป — ไม่มีผลต่อข้อมูล)', 'firebase-auth', true);
+      return;
+    }
     hlLogError('promise-rejection', reason, 'unhandledrejection');
   });
 
@@ -18267,12 +18287,17 @@ body.dark [class*="tab"] .label{
             const time = d.toLocaleString('th-TH', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
             const row = document.createElement('div');
             row.style.cssText = 'padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)';
+            // v366: not the app's bugs → grey with a note (older entries recognised too)
+            const oldRes = it.kind === 'js-error' && !it.message && (!it.where || it.where === ':');
+            const harmless = it.kind === 'ios-idb' || it.kind === 'resource-error' || oldRes ||
+                             (it.kind === 'promise-rejection' && HL_IOS_IDB_RE.test(String(it.message || '')));
             const head = document.createElement('div');
-            head.style.cssText = 'color:#FF9F0A;font-weight:700';
-            head.textContent = time + ' · ' + (it.kind || 'error');
+            head.style.cssText = 'color:' + (harmless ? 'var(--text3)' : '#FF9F0A') + ';font-weight:700';
+            head.textContent = time + ' · ' + (it.kind || 'error') + (harmless ? ' · ไม่ใช่บัคของแอป' : '');
             const msg = document.createElement('div');
-            msg.style.cssText = 'color:var(--ink);word-break:break-word';
-            msg.textContent = it.message || '(ไม่มีข้อความ)';
+            msg.style.cssText = 'color:' + (harmless ? 'var(--text2)' : 'var(--ink)') + ';word-break:break-word';
+            msg.textContent = oldRes ? 'ไฟล์/รูปโหลดไม่ได้ (ก่อน v366 ไม่ได้บันทึกว่าไฟล์ไหน)'
+                            : (it.message || '(ไม่มีข้อความ)') + (it.kind === 'promise-rejection' && harmless ? ' — Safari ตัด IndexedDB ตอนสลับแอป ไม่มีผลต่อข้อมูล' : '');
             const meta = document.createElement('div');
             meta.style.cssText = 'color:var(--text3);font-size:9px';
             meta.textContent = [it.user, it.page, it.where, it.device].filter(Boolean).join(' · ');
