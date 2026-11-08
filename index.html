@@ -11166,7 +11166,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v366';
+const APP_VERSION = 'v367';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -17048,19 +17048,30 @@ body.dark [class*="tab"] .label{
   // ═══════════════════════════════════════════════════════════════
   // 🛡️ LAYER 2: DEVICE CAPABILITY CHECK
   // ═══════════════════════════════════════════════════════════════
+  // v367: the WebGL part of the check is done once per session. It used to make
+  // a new WebGL context on every call — the Settings page calls this every 2 s,
+  // which cost ~0.5 s of main thread each time in tests (a stutter every 2 s).
+  let _lgGpuCheck = null;   // { ok, reason?, maxTex? }
   function lgCheckCapability() {
     return lgSafe('capability', function() {
-      // Check 1: WebGL support
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-      if (!gl) return { ok: false, reason: 'no-webgl' };
-
-      // Check 2: Extensions
-      const ext = gl.getExtension('WEBGL_lose_context');
-
-      // Check 3: Max texture size (must be >= 1024)
-      const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
-      if (maxTex < 1024) return { ok: false, reason: 'low-gpu' };
+      if (!_lgGpuCheck) {
+        // Check 1: WebGL support
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        if (!gl) {
+          _lgGpuCheck = { ok: false, reason: 'no-webgl' };
+        } else {
+          // Check 2: Extensions
+          const ext = gl.getExtension('WEBGL_lose_context');
+          // Check 3: Max texture size (must be >= 1024)
+          const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+          _lgGpuCheck = maxTex < 1024 ? { ok: false, reason: 'low-gpu' } : { ok: true, maxTex: maxTex };
+          // Cleanup test canvas (now on every path)
+          if (ext) ext.loseContext();
+        }
+      }
+      if (!_lgGpuCheck.ok) return { ok: false, reason: _lgGpuCheck.reason };
+      const maxTex = _lgGpuCheck.maxTex;
 
       // Check 4: iOS version (iOS 15+ recommended)
       const ua = navigator.userAgent;
@@ -17075,8 +17086,6 @@ body.dark [class*="tab"] .label{
         return { ok: false, reason: 'reduced-motion' };
       }
 
-      // Cleanup test canvas
-      if (ext) ext.loseContext();
       return { ok: true, maxTex: maxTex };
     }) || { ok: false, reason: 'check-failed' };
   }
@@ -21264,7 +21273,12 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
   var SRC = 'https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js';
   var started = false;
   function webglOK(){
-    try { var c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch(e){ return false; }
+    try {
+      var c = document.createElement('canvas'), g = c.getContext('webgl2') || c.getContext('webgl');
+      // v367: give the probe context back at once (iOS caps live WebGL contexts per page)
+      if(g){ var x = g.getExtension('WEBGL_lose_context'); if(x) x.loseContext(); }
+      return !!g;
+    } catch(e){ return false; }
   }
   function loadThree(cb){
     if(window.THREE && window.THREE.WebGLRenderer) return cb();
@@ -21845,19 +21859,57 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
         renderer.setSize(PX, PX, false);
         window.RB_ICONS = out;
         try { window.dispatchEvent(new Event('rbicons')); } catch(e){}
+        // v367: keep a clean fresh bake for the next start (not the robot picture —
+        // its accessories follow the day, so it is drawn every time)
+        if(!fromCache && bakeOK && SIG) try {
+          var keep = {}, n = 0; for(var k in out) if(k !== 'robot'){ keep[k] = out[k]; n++; }
+          if(n) caches.open(ICON_CACHE).then(function(c){
+            return c.keys().then(function(ks){ return Promise.all(ks.map(function(q){ return q.url.indexOf(SIG) < 0 ? c.delete(q) : null; })); })
+              .then(function(){ return c.put('./' + SIG, new Response(JSON.stringify(keep), { headers:{ 'Content-Type':'application/json' } })); });
+          }).catch(function(){});
+        } catch(e){}
       }
       // one icon per task, yielding between them: frames and taps keep flowing
-      (function step(){
+      function step(){
         var j = Q.shift();
         if(!j){
           var job = jobs.shift();
           if(!job){ finish(); return; }
-          try { job(); } catch(e){ console.warn('[3D icons] group', e); }   // builds a group of models → queues their shots
+          try { job(); } catch(e){ bakeOK = false; console.warn('[3D icons] group', e); }   // builds a group of models → queues their shots
           setTimeout(step, 30); return;
         }
-        try { shoot(j); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] ' + j[0], e); }
+        try { shoot(j); if(!(String(out[j[0]] || '').length > 100)) bakeOK = false; } catch(e){ bakeOK = false; try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] ' + j[0], e); }
         setTimeout(step, 30);
-      })();
+      }
+      // v367: the icons (all but the robot picture) come out the same on every
+      // start — fixed models, lights and size — so a bake is kept in Cache
+      // Storage and reused instead of building the models and compiling their
+      // shaders again in the first seconds after opening, when people slide to
+      // check in. The key follows the bake code and the medal list; the service
+      // worker clears caches on each update, so a new version bakes once.
+      var ICON_CACHE = 'rudy-icons', fromCache = false, bakeOK = true, SIG = '';
+      try {
+        var sigSrc = bakeIcons.toString() + JSON.stringify(window.ACH_DEFS || []), h = 0;
+        for(var si = 0; si < sigSrc.length; si++) h = (h * 31 + sigSrc.charCodeAt(si)) | 0;
+        SIG = 'rb-icons-' + (h >>> 0).toString(36);
+      } catch(e){ SIG = ''; }
+      var begun = false;
+      setTimeout(function(){ begin(null); }, 3000);   // the cache didn't answer — bake as before
+      function begin(cached){
+        if(begun) return; begun = true;
+        if(cached && cached.trophy && cached.coin){
+          fromCache = true; jobs.length = 0; Q.length = 0;
+          for(var ck in cached) if(ck !== 'robot') out[ck] = cached[ck];
+        }
+        step();
+      }
+      try {
+        if(SIG && window.caches && window.isSecureContext){
+          caches.open(ICON_CACHE).then(function(c){ return c.match('./' + SIG); })
+            .then(function(r){ return r ? r.json() : null; })
+            .then(begin, function(){ begin(null); });
+        } else begin(null);
+      } catch(e){ begin(null); }
     }
     // v342: let the robot's first frames render before any icon work starts
     // v357: a rebuilt robot (after a lost context) keeps the icons already baked
