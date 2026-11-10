@@ -11196,7 +11196,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v370';
+const APP_VERSION = 'v371';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -18856,6 +18856,18 @@ body.dark.sky .ha-chip{
   backdrop-filter:blur(24px) saturate(140%);
   box-shadow:0 8px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.14) !important;
 }
+/* v371 (owner's choice "B"): classic sky look only (not .lg). The history day cards and the stats
+   summary / chart cards were left out of the list above, so they kept the base 60px glass blur —
+   and every history row blurred a second time inside its day card. Now 24px like the other sky
+   cards (saturation unchanged); the rows keep their own background but don't blur again.
+   Liquid Glass (body.lg) already has 6px / none with !important and isn't matched here. */
+body.sky:not(.lg) .history-item,
+body.sky:not(.lg) .sum-card,
+body.sky:not(.lg) .chart-card{
+  -webkit-backdrop-filter:blur(24px) saturate(160%);
+  backdrop-filter:blur(24px) saturate(160%);
+}
+body.sky:not(.lg) .history-item .hi-rec{ -webkit-backdrop-filter:none; backdrop-filter:none; }
 body.dark.sky .card::before{ opacity:0.05; }
 body.dark.sky .ha-greet-name .accent{ color:#FFFFFF; -webkit-text-fill-color:#FFFFFF; }
 body.dark.sky .logo-text span{ color:rgba(255,255,255,0.85); }
