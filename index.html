@@ -1485,7 +1485,14 @@ body.dark .team-subtab:not(.active):hover{
 .card, .stat-box, .emp-card, .team-card, .announce-card, .poll-card, .report-card, .summary-card, .streak-card, .punct-card{
   transition:transform 0.2s var(--ease-spring), box-shadow 0.25s ease-out;
 }
-.card:active, .stat-box:active, .emp-card:active, .team-card:active, .announce-card:active, .poll-card:active, .report-card:active{
+/* v370: iOS sets :active on whatever is under the finger at touch-down and keeps it until the
+   finger lifts (WebKit bugs 138816, 255277), so starting a scroll on a card made it shrink and
+   glow — transform + box-shadow transitions on a blurred glass card at the start of every scroll.
+   The press now (1) starts 0.15 s after touch-down, like a native iOS list, and (2) is off from
+   the first scroll event of a touch until the finger lifts (html.rudy-scrolling, set by the script
+   at the end of the page). :where() adds no specificity, so the cascade is exactly as before. */
+:where(html:not(.rudy-scrolling)) .card:active, :where(html:not(.rudy-scrolling)) .stat-box:active, :where(html:not(.rudy-scrolling)) .emp-card:active, :where(html:not(.rudy-scrolling)) .team-card:active, :where(html:not(.rudy-scrolling)) .announce-card:active, :where(html:not(.rudy-scrolling)) .poll-card:active, :where(html:not(.rudy-scrolling)) .report-card:active{
+  transition-delay:.15s;
   transform:scale(0.975);
   /* On press: shadow recedes (card sinks toward surface) + focus ring +
      chromatic insets intensify briefly for a "squeezed glass" effect. */
@@ -1496,7 +1503,7 @@ body.dark .team-subtab:not(.active):hover{
     inset 2px 0 0 rgba(180,210,255,0.32),
     inset -2px 0 0 rgba(255,220,200,0.20);
 }
-body.dark .card:active, body.dark .stat-box:active, body.dark .emp-card:active, body.dark .team-card:active{
+:where(html:not(.rudy-scrolling)) body.dark .card:active, :where(html:not(.rudy-scrolling)) body.dark .stat-box:active, :where(html:not(.rudy-scrolling)) body.dark .emp-card:active, :where(html:not(.rudy-scrolling)) body.dark .team-card:active{
   box-shadow:
     0 6px 18px -4px rgba(0,0,0,0.45),
     0 0 0 2px rgba(94,200,250,0.55),
@@ -3478,6 +3485,10 @@ body.dark .slide-action{
   position:absolute; left:-9999px;
   width:1px; height:1px; overflow:hidden;
 }
+/* v370: the hidden originals kept running their shine (it animates `left`, so a layout on every
+   frame) and glow animations forever. Nothing of them can be seen inside the 1px box. */
+.sr-only-btns .btn-in::before, .sr-only-btns .btn-in::after,
+.sr-only-btns .btn-out::before, .sr-only-btns .btn-out::after{ animation:none; }
 
 @keyframes rudyStatusIn {
   from { opacity:0; }
@@ -5235,10 +5246,21 @@ function startClock(){
   // Israel offset is re-read once a second (Intl formatting is too costly
   // to run every frame); per frame we just add it to Date.now().
   let _ilOff=0, _ilOffAt=0;
+  // v370: "is the analog face on screen?" now comes from an IntersectionObserver. The old test,
+  // getBoundingClientRect() on every frame, forced a layout 60-120 times a second — also with the
+  // digital face (the default), and in the middle of every scroll. null = no observer: old test.
+  let _anaVis = null;
+  try {
+    const _ana = document.getElementById('clock-analog');
+    if(_ana && 'IntersectionObserver' in window){
+      _anaVis = false;
+      new IntersectionObserver(es => { _anaVis = !!es[es.length-1].isIntersecting; }).observe(_ana);
+    }
+  } catch(e){ _anaVis = null; }
   (function sweep(){
     try{
       const hS = document.getElementById('clock-hand-sec');
-      if(hS && !document.hidden && hS.getBoundingClientRect().width){
+      if(hS && !document.hidden && (_anaVis === null ? hS.getBoundingClientRect().width : _anaVis)){
         const now=Date.now();
         if(now-_ilOffAt>1000){ const w=_ilWall(); _ilOff=w.getTime()-now; _ilOffAt=now; }
         const n=new Date(now+_ilOff);
@@ -10585,6 +10607,9 @@ function showPage(id,btn){
   pg.classList.add('active');
   // Scroll to top when switching pages — fixes preserved scroll position from previous page
   window.scrollTo({top: 0, behavior: 'instant'});
+  // v370: the page scrolls inside the body element, so the line above did nothing and a new page
+  // opened as far down as the previous one was scrolled.
+  try { document.body.scrollTop = 0; } catch(_){}
   // Cinematic glitch transition (skip if disabled)
   if(!document.body.classList.contains('cinema-off')){
     pg.classList.add('glitch-active');
@@ -11171,7 +11196,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v369';
+const APP_VERSION = 'v370';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -15095,7 +15120,7 @@ if('serviceWorker' in navigator) {
     background:rgba(255,255,255,0.92);
     border-color:rgba(0,0,0,0.08);
   }
-  .hw-card:active{ transform:scale(0.98); }
+  :where(html:not(.rudy-scrolling)) .hw-card:active{ transition-delay:.15s; transform:scale(0.98); }   /* v370: not while scrolling — see "6. Card press" */
   .hw-title{
     font-size:11px;
     font-weight:600;
@@ -20098,7 +20123,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         ['uRes','uTime','uTop','uMid','uBot','uLit','uShade','uSunCol','uCover','uCloudA','uSun','uStars','uMoon','uPhase','uMoonR','uRain','uSunPos','uMoonPos']
           .forEach(function(n){ GL.u[n] = gl.getUniformLocation(pr, n); });
         cvs.addEventListener('webglcontextlost', function(e){ e.preventDefault(); glKill('context lost'); glRevive(); });
-        GL.gl = gl; GL.cvs = cvs; GL.prog = pr; GL.ok = true; GL.t0 = performance.now();
+        GL.gl = gl; GL.cvs = cvs; GL.prog = pr; GL.ok = true; GL.t0 = performance.now(); GL.pz = 0;
         return true;
       } catch(e){ glKill(e && e.message); return false; }
     }
@@ -20158,7 +20183,15 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
     function glLoop(now){
       GL.raf = 0;
       if(!GL.ok || !document.body.classList.contains('sky') || document.hidden) return;
-      if(now - GL.last >= (window.__rudyUltra ? 33 : 40)){   // ≤25 fps: clouds drift slowly (Ultra ≤30)
+      // v370: while the page is being scrolled the sky keeps its last frame. A full-screen shader
+      // pass in the same frames as the scroll (when the glass is re-blurred over moving content) is
+      // what makes a scroll hitch. On resume the time origin moves by the length of the hold, so the
+      // clouds carry on from where they stopped (no jump), and the hold isn't counted as a slow frame.
+      // Not in rain/storm: the falling rain is drawn by this shader and would visibly freeze.
+      var hold = !(GL.st && GL.st.rain > 0) && now - (window.__rudyScrollAt || -1e9) < 180;
+      if(hold){ if(!GL.pz) GL.pz = now; }
+      else if(GL.pz){ GL.t0 += now - GL.pz; GL.pz = 0; GL.last = 0; }
+      if(!hold && now - GL.last >= (window.__rudyUltra ? 33 : 40)){   // ≤25 fps: clouds drift slowly (Ultra ≤30)
         var gap = GL.last ? now - GL.last : 40;
         glDraw(now); GL.last = now; GL.frames++;
         // GPU overload shows up as long gaps between frames. Sustained: first
@@ -20215,6 +20248,9 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       glKick();
     }
     document.addEventListener('visibilitychange', function(){ if(!document.hidden) glKick(); });
+    // v370: when did the page last scroll? (capture: the page scrolls inside the body element, and
+    // panels scroll too.) Read by glLoop above and by the Ultra dust canvas.
+    document.addEventListener('scroll', function(){ window.__rudyScrollAt = performance.now(); }, { passive:true, capture:true });
     var _starRz = 0;   // v316: keep the star canvas sharp after a rotation / resize
     window.addEventListener('resize', function(){ clearTimeout(_starRz); _starRz = setTimeout(function(){ try { if(parts.starc && GL.st && GL.st.stars > 0) drawStars(parts.starc); if(parts.dropc && GL.st && GL.st.rain > 0) drawDrops(parts.dropc); } catch(_){} }, 300); });
     function paint(){
@@ -20360,7 +20396,7 @@ body.corp .page{ padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 150px) !
 body.sky #more-dark-row{ display:none !important; }
 /* home pay card */
 .hq-pay{ display:flex; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer; margin:14px 0 0 !important; padding:14px 16px !important; color:var(--ink); font:inherit; }
-.hq-pay:active{ transform:scale(.985); }
+:where(html:not(.rudy-scrolling)) .hq-pay:active{ transition-delay:.15s; transform:scale(.985); }   /* v370: not while scrolling — see "6. Card press" */
 .hq-pay-ic{ font-size:26px; flex-shrink:0; }
 .hq-pay-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .hq-pay-lbl{ font-size:12px; font-weight:600; color:var(--text2, var(--ink-3)); }
@@ -22754,7 +22790,7 @@ body.sky:not(.sky-gl) .ultra-rays{ display:none; }
     if(typeof showToast === 'function') showToast(w ? 'ปิด Ultra — กำลังโหลดใหม่…' : '✨ เปิด Ultra — กำลังโหลดใหม่…');
     setTimeout(function(){ location.reload(); }, 900);
   };
-  var P = [], cv = null, cx = null, rays = null, raf = 0, last = 0, W = 0, H = 0, dpr = 1, mode = '';
+  var P = [], cv = null, cx = null, rays = null, raf = 0, last = 0, W = 0, H = 0, dpr = 1, mode = '', hz = 0, off = 0;
   function phase(){ return document.body.getAttribute('data-sky') || 'day'; }
   function wet(){ var k = document.body.getAttribute('data-sky-wx') || ''; return k === 'rain' || k === 'storm'; }
   function seed(){
@@ -22768,9 +22804,13 @@ body.sky:not(.sky-gl) .ultra-rays{ display:none; }
     raf = 0;
     if(!window.__rudyUltra || document.hidden || !document.body.classList.contains('sky')){ return; }
     raf = requestAnimationFrame(draw);
+    // v370: the dust keeps its last frame while the page scrolls (same reason as the sky shader in
+    // glLoop). `off` = total time held, so the twinkle carries on from where it stopped.
+    if(now - (window.__rudyScrollAt || -1e9) < 180){ if(!hz) hz = now; return; }
+    if(hz){ off += now - hz; hz = 0; last = now - 33; }
     if(now - last < 33) return; var dt = Math.min(3, (now - last) / 33); last = now;
     if(phase() !== mode) seed();
-    var ph = mode, c = col(ph), t = now / 1000; cx.clearRect(0, 0, W, H);
+    var ph = mode, c = col(ph), t = (now - off) / 1000; cx.clearRect(0, 0, W, H);
     if(wet()) return;
     for(var i = 0; i < P.length; i++){
       var p = P[i];
@@ -23646,6 +23686,25 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
       if(now - t0 < DUR) requestAnimationFrame(step); else finish(now);
     });
   };
+})();
+</script>
+<script>
+// v370: "is a finger scrolling right now?" for the card-press rules (see "6. Card press" in the
+// CSS). html gets .rudy-scrolling from the first scroll event of a touch until the last finger
+// lifts; while it is set the :active press styles don't match, so a card under a scrolling finger
+// stays still. All listeners are passive; one class change per scroll gesture.
+(function(){
+  'use strict';
+  var root = document.documentElement, down = false, on = false;
+  function up(e){
+    if(e && e.touches && e.touches.length) return;   // another finger is still down
+    down = false;
+    if(on){ on = false; root.classList.remove('rudy-scrolling'); }
+  }
+  document.addEventListener('touchstart', function(){ down = true; }, { passive:true, capture:true });
+  document.addEventListener('scroll', function(){ if(down && !on){ on = true; root.classList.add('rudy-scrolling'); } }, { passive:true, capture:true });
+  document.addEventListener('touchend', up, { passive:true, capture:true });
+  document.addEventListener('touchcancel', up, { passive:true, capture:true });
 })();
 </script>
 </body>
