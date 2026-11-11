@@ -11196,7 +11196,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v371';
+const APP_VERSION = 'v372';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20559,15 +20559,20 @@ span.coin-c{ background:radial-gradient(circle at 35% 30%, #FFE58A, #D9A21E); bo
       });
     }
 
-    function transcribe(blob){
-      st.busy = true; setBtn('busy');
-      say('<div class="ai-thinking"><span></span><span></span><span></span> กำลังฟังเสียง…</div>');
+    // v372: shared with the tap-and-talk mic beside the robot (same prompt, same key)
+    function toText(blob){
       return toWav16k(blob).then(function(b64){
         var sys = 'Transcribe the speech in this audio exactly as spoken. It is usually Thai and may contain English names and numbers. ' +
                   'Write clock times as HH:MM digits (e.g. 17:30) and dates as spoken. Output ONLY the transcript text, no quotes or notes. If there is no speech, output an empty line.';
         return _callGemini(sys, 'Transcribe this audio.', { audio:{ mime:'audio/wav', data:b64 }, maxTokens:300, temperature:0 });
-      }).then(function(text){
-        text = String(text || '').trim();
+      }).then(function(text){ return String(text || '').trim(); });
+    }
+    window.aiTranscribeBlob = toText;
+
+    function transcribe(blob){
+      st.busy = true; setBtn('busy');
+      say('<div class="ai-thinking"><span></span><span></span><span></span> กำลังฟังเสียง…</div>');
+      return toText(blob).then(function(text){
         if(!text){ say('<div style="color:var(--yellow)">🎤 ไม่ได้ยินเสียง ลองพูดใกล้ไมค์อีกครั้ง</div>'); return; }
         var inp = $('ai-cmd-input'); if(inp){ inp.value = text; try { aiAutoGrow(inp); } catch(e){} }
         say('');
@@ -21996,7 +22001,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
         kick(); return t; },   // v320
       wave:function(){ var t = (performance.now() - t0) / 1000, w = (t + waveOff) % 7; if(w < 3.0 || w > 5.7) waveOff = ((3.0 - t) % 7 + 7) % 7; },   // v314: wave now (greeting)
       frame:function(){ last = 0; frame(performance.now()); },
-      look:function(x, y){ look.tx = Math.max(-1, Math.min(1, x)); look.ty = Math.max(-0.35, Math.min(0.35, y)); look.until = performance.now() + 500; kick(); } };   // v349 tilt
+      look:function(x, y, own){ var n = performance.now(); if(!own && n < (look.own || 0)) return; if(own) look.own = n + 600;   // v372: the mic holds the head (listening) — tilt can't pull it away
+        look.tx = Math.max(-1, Math.min(1, x)); look.ty = Math.max(-0.35, Math.min(0.35, y)); look.until = n + 500; kick(); } };   // v349 tilt
     kick();
   }
 
@@ -22066,23 +22072,32 @@ body.dark #rb-bubble::after{ border-color:rgba(180,160,255,0.28); }
     b.style.right = Math.max(8, window.innerWidth - r.right - 2) + 'px';
     b.style.bottom = Math.max(8, window.innerHeight - r.top + 4) + 'px';
   }
-  function hide(){ clearTimeout(hideT); if(b) b.classList.remove('show'); }
-  function say(text, noWave){
+  var hold = false;   // v372: a bubble the mic is using (listening / thinking) isn't replaced by greetings or tips
+  function hide(){ clearTimeout(hideT); hold = false; if(b) b.classList.remove('show'); }
+  // v372: o = { ms: hide after (0 = stay until replaced or hidden), html: trusted markup (escape any
+  // user or AI text first), long: wider bubble, force: may replace a held bubble, keep: hold it
+  // against greetings/tips until it hides (an answer being read) }
+  function say(text, noWave, o){
+    o = o || {};
     var fab = document.getElementById('ai-fab');
-    if(blocked(fab)) return false;
+    if(blocked(fab) || (hold && !o.force)) return false;
     if(!b){
       b = document.createElement('div'); b.id = 'rb-bubble'; b.setAttribute('role', 'status');
       b.addEventListener('click', function(){ hide(); try { openAIModal(); } catch(e){} });
       document.body.appendChild(b);
     }
-    b.textContent = text; place(fab);
+    if(o.html != null) b.innerHTML = o.html; else b.textContent = text;
+    b.classList.toggle('long', !!o.long);
+    place(fab);
     void b.offsetWidth; b.classList.add('show');
     if(!noWave){ try { if(window.rb3d && window.rb3d.wave) window.rb3d.wave(); } catch(e){} }
-    clearTimeout(hideT); hideT = setTimeout(hide, 6000);
+    hold = o.ms === 0 || !!o.keep;
+    clearTimeout(hideT); if(o.ms !== 0) hideT = setTimeout(hide, o.ms || 6000);
     shown++; return true;
   }
   // v320: other features can make the robot talk (doesn't use up the greeting quota)
-  window.rbSay = function(text){ var ok = say(text, true); if(ok) shown--; return ok; };
+  window.rbSay = function(text, o){ var ok = say(text, true, o); if(ok) shown--; return ok; };
+  window.rbHide = hide;   // v372
   function tick(){
     if(shown >= MAX) return;
     var text;
@@ -23717,6 +23732,261 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
   document.addEventListener('scroll', function(){ if(down && !on){ on = true; root.classList.add('rudy-scrolling'); } }, { passive:true, capture:true });
   document.addEventListener('touchend', up, { passive:true, capture:true });
   document.addEventListener('touchcancel', up, { passive:true, capture:true });
+})();
+</script>
+<style id="rb-mic-v372">
+/* v372: tap-and-talk mic beside the AI robot (every page). Solid button, so a fixed white icon in both themes. */
+#rb-mic{ position:fixed; z-index:45; left:0; top:0; width:44px; height:44px; margin:0; padding:0; border-radius:50%;
+  display:none; align-items:center; justify-content:center; cursor:pointer; color:#fff;
+  background:linear-gradient(135deg, rgba(99,102,241,.94), rgba(139,92,246,.94));
+  border:1.5px solid rgba(255,255,255,.55); box-shadow:0 6px 18px rgba(80,60,200,.45), inset 0 1px 0 rgba(255,255,255,.45);
+  -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; touch-action:manipulation;
+  transition:opacity .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1); }
+#rb-mic.on{ display:flex; }
+#rb-mic.away{ opacity:0; transform:scale(.5); pointer-events:none; }
+#rb-mic svg{ width:21px; height:21px; display:block; position:relative; pointer-events:none; }
+#rb-mic i{ position:absolute; inset:-2px; border-radius:50%; background:rgba(255,69,58,.4); opacity:0; pointer-events:none; }
+#rb-mic.listen{ background:linear-gradient(135deg, #FF6B5E, #FF375F); box-shadow:0 6px 20px rgba(255,55,95,.5); transform:scale(1.14); }
+#rb-mic.listen i{ animation:rbmRing 1.6s ease-out infinite; }
+#rb-mic.listen i + i{ animation-delay:.8s; }
+#rb-mic.think{ opacity:.8; }
+#rb-mic.think svg{ animation:rbmBlink 1s ease-in-out infinite; }
+#rb-mic:active{ transform:scale(.9); transition-duration:.1s; }
+@keyframes rbmRing{ 0%{ transform:scale(1); opacity:.9; } 100%{ transform:scale(2.1); opacity:0; } }
+@keyframes rbmBlink{ 50%{ opacity:.35; } }
+#rb-bubble.long{ max-width:min(290px, calc(100vw - 24px)); }
+#rb-bubble .rbm-txt{ display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:7; overflow:hidden; white-space:pre-wrap; }
+#rb-bubble .rbm-more{ display:none; margin-top:6px; font-size:12px; opacity:.7; }
+#rb-bubble .rbm-more.on{ display:block; }
+#rb-bubble .rbm-q{ font-weight:500; opacity:.75; margin-bottom:4px; }
+#rb-bubble .rbm-bars{ display:flex; align-items:center; gap:3px; height:22px; margin-top:6px; }
+#rb-bubble .rbm-bars span{ display:block; width:3px; height:22px; border-radius:2px; background:currentColor; opacity:.8; transform:scaleY(.18); transition:transform .09s linear; }
+@media (prefers-reduced-motion: reduce){ #rb-mic, #rb-mic.listen{ transition:opacity .2s; transform:none; } #rb-mic i, #rb-mic.think svg{ animation:none !important; } }
+</style>
+<script>
+// v372: tap-and-talk. A mic beside the AI robot on every page: one tap and speak; it sends by
+// itself ~1.3 s after you stop talking (or tap again to send now). The words take the same path
+// as the AI sheet (v292 Gemini transcribe, then aiCommandSubmit), so the answer is spoken (v293),
+// shows in the robot's bubble and stays in the AI sheet; data changes still need the confirm
+// dialog. The robot turns to listen, thinks (ai-busy) and waves + nods while it answers.
+// Sandboxed: if anything here fails the app works exactly as before.
+(function(){
+  'use strict';
+  try {
+    var md = navigator.mediaDevices;
+    if(!md || !md.getUserMedia || typeof MediaRecorder === 'undefined' || typeof window.aiTranscribeBlob !== 'function') return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    var MAX_MS = 15000, WAIT_MS = 6000, QUIET_MS = 1300, NBARS = 12;
+    var reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){}
+    var btn = null, fab = null, state = 'idle', S = null, held = false, talkT = 0, pend = 0;
+    var ICON = '<i></i><i></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+               '<rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3.5"/></svg>';
+
+    function esc(s){ try { return escHtml(s); } catch(e){ return String(s).replace(/[&<>"']/g, function(c){ return '&#' + c.charCodeAt(0) + ';'; }); } }
+    function robot(fn){ try { if(window.rb3d) fn(window.rb3d); } catch(e){} }
+    function busy(on){ var m = document.getElementById('ai-modal'); if(m) m.classList.toggle('ai-busy', on); }   // the robot's thinking pose reads this class
+    // the robot's bubble (v314); ms:0 keeps it up until the next state
+    function bubble(text, o){
+      o = Object.assign({ force:true, keep:true }, o || {});
+      var ok = false; try { ok = !!(window.rbSay && window.rbSay(text, o)); } catch(e){}
+      if(ok) held = o.ms === 0;
+      return ok;
+    }
+    function settle(){ if(held){ held = false; try { if(window.rbHide) window.rbHide(); } catch(e){} } }   // never leave a stale "listening/thinking" bubble
+    function q(sel){ return document.querySelector('#rb-bubble ' + sel); }
+
+    function place(){
+      // layout box, not getBoundingClientRect: the robot may be mid-transform (tuck spring, cheer pop)
+      var l = fab.offsetLeft, t = fab.offsetTop, w = fab.offsetWidth, h = fab.offsetHeight; if(!w) return;
+      btn.style.left = Math.round(l - 56) + 'px';       // lower-left of the robot
+      btn.style.top = Math.round(t + h - 48) + 'px';
+    }
+    function sync(){
+      if(!btn) return;
+      fab = fab || document.getElementById('ai-fab');
+      var vis = !!(fab && fab.offsetWidth) && !document.hidden, tucked = !!(fab && fab.classList.contains('fab-tuck')), active = state !== 'idle';
+      btn.classList.toggle('on', vis || active);
+      btn.classList.toggle('away', !active && (!vis || tucked));
+      if(vis) place();
+    }
+    function later(){ if(!pend) pend = requestAnimationFrame(function(){ pend = 0; sync(); }); }
+    function setState(s){
+      state = s;
+      if(!btn) return;
+      btn.classList.toggle('listen', s === 'listen');
+      btn.classList.toggle('think', s === 'think');
+      btn.setAttribute('aria-label', s === 'listen' ? 'กำลังฟัง — แตะเพื่อส่งเลย' : s === 'think' ? 'AI กำลังคิด' : 'แตะแล้วพูดกับ AI');
+      sync();
+    }
+
+    // ── listening: level meter + "has the person stopped talking?"
+    function level(my){
+      var an = my.an; if(!an) return -1;
+      var s = 0, n, i;
+      if(an.getFloatTimeDomainData){ var f = my.fb || (my.fb = new Float32Array(an.fftSize)); an.getFloatTimeDomainData(f); n = f.length; for(i = 0; i < n; i++) s += f[i] * f[i]; }
+      else { var u = my.ub || (my.ub = new Uint8Array(an.fftSize)); an.getByteTimeDomainData(u); n = u.length; for(i = 0; i < n; i++){ var v = (u[i] - 128) / 128; s += v * v; } }
+      var r = Math.sqrt(s / n);
+      if(r > 1e-6) my.live = true;                      // a working mic is never perfectly silent
+      return r;
+    }
+    function bars(my, v){
+      my.hist.push(v); if(my.hist.length > NBARS) my.hist.shift();
+      var els = my.bars;
+      if(!els || !els.length || !els[0].isConnected) els = my.bars = document.querySelectorAll('#rb-bubble .rbm-bars span');
+      for(var i = 0; i < els.length; i++){
+        var k = my.hist.length - els.length + i, x = k >= 0 ? my.hist[k] : 0;
+        els[i].style.transform = 'scaleY(' + (0.18 + 0.82 * x * (0.75 + 0.25 * Math.sin(i * 1.7 + my.n))).toFixed(3) + ')';
+      }
+    }
+    function tick(my){
+      if(S !== my || !my.rec || my.rec.state !== 'recording') return;
+      var now = performance.now(), el = now - my.t0;
+      // the screen went somewhere else (a sheet opened, app switched, signed out) — drop it quietly
+      if(document.hidden || !(fab && fab.offsetWidth) || document.querySelector('.modal-overlay.open')){ cancel(''); return; }
+      my.n++;
+      var gap = my.lastTick ? now - my.lastTick : 0; my.lastTick = now;
+      if(gap > 500 && my.heard) my.lastVoice += gap - 500;   // the page froze (not the person quiet): a stall counts at most 0.5 s of the pause
+      if(my.n % 6 === 1) robot(function(r){ if(r.look) r.look(-0.75, -0.08, true); });   // head turned to the mic: listening
+      var r = level(my);
+      if(r >= 0){
+        if(my.floor < 0) my.floor = r;
+        var on = Math.max(0.015, my.floor * 3), off = Math.max(0.009, my.floor * 1.8);
+        if(r > on){ if(++my.loud >= 2){ if(!my.heard){ my.heard = true; var h = q('.rbm-h'); if(h) h.textContent = '🎙️ ฟังอยู่… หยุดพูดแล้วจะส่งเอง'; } my.lastVoice = now; } }
+        else { my.loud = 0; if(my.heard && r > off) my.lastVoice = now; }
+        // learn the room's noise: falls fast, rises slowly (and only very slowly while it's loud)
+        if(r < my.floor) my.floor = my.floor * 0.8 + r * 0.2;
+        else my.floor = Math.min(0.05, my.floor + (r - my.floor) * (r < on ? 0.015 : 0.004));
+        bars(my, Math.min(1, Math.max(0, (r - my.floor) / (on * 2.5))));
+      }
+      if(my.heard && now - my.lastVoice > QUIET_MS){ finish(); return; }
+      if(!my.heard && my.live && el > WAIT_MS){ cancel('🎤 ไม่ได้ยินเสียงเลย แตะไมค์แล้วพูดใหม่อีกครั้งนะ'); return; }
+      if(!my.live && !my.hint && el > 2500){ my.hint = true; var h2 = q('.rbm-h'); if(h2) h2.textContent = '🎙️ พูดเสร็จแล้วแตะไมค์เพื่อส่ง'; }
+      if(el > MAX_MS) finish();
+    }
+
+    function start(){
+      var my = { chunks:[], hist:[], floor:-1, loud:0, n:0 };
+      S = my;
+      // inside the tap (iOS): stop an answer still being spoken, else unlock speech for the coming answer
+      try { var ss = window.speechSynthesis; if(ss){ if(ss.speaking || ss.pending) ss.cancel(); else { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; ss.speak(u); } } } catch(e){}
+      try { if(AC){ my.ac = new AC(); if(my.ac.state === 'suspended' && my.ac.resume) my.ac.resume().catch(function(){}); } } catch(e){ my.ac = null; }
+      clearInterval(talkT); talkT = 0;
+      setState('listen');
+      var sp = ''; for(var i = 0; i < NBARS; i++) sp += '<span></span>';
+      bubble('', { ms:0, long:true, html:'<div class="rbm-h">🎙️ กำลังฟัง… พูดได้เลย</div><div class="rbm-bars">' + sp + '</div>' });
+      try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+      md.getUserMedia({ audio:true }).then(function(stream){
+        if(S !== my || my.done){ try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e){} return; }
+        my.stream = stream;
+        var rec = my.rec = new MediaRecorder(stream);
+        rec.ondataavailable = function(ev){ if(ev.data && ev.data.size) my.chunks.push(ev.data); };
+        rec.onstop = function(){ onStopped(my); };
+        rec.onerror = function(){ if(S === my) cancel('🎤 ไมค์มีปัญหา ลองใหม่อีกครั้งนะ'); };
+        if(my.ac){ try {
+          if(my.ac.state !== 'running' && my.ac.resume) my.ac.resume().catch(function(){});   // iOS: 'suspended' or 'interrupted' once the mic takes the audio session
+          var an = my.ac.createAnalyser(); an.fftSize = 1024; my.ac.createMediaStreamSource(stream).connect(an); my.an = an;
+        } catch(e){ my.an = null; } }
+        rec.start();
+        my.t0 = performance.now();
+        my.timer = setInterval(function(){ tick(my); }, 60);
+      }).catch(function(err){
+        if(S !== my || my.done) return;
+        var n = String((err && (err.name || err.message)) || '');
+        my.cancel = true;
+        my.msg = /NotAllowed|Permission|Security/i.test(n) ? '🎤 ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดได้ที่ การตั้งค่า iPhone › Safari › ไมโครโฟน' : '🎤 เปิดไมค์ไม่ได้ ลองใหม่อีกครั้งนะ';
+        onStopped(my);
+      });
+    }
+    function stopRec(my){
+      clearInterval(my.timer); my.timer = 0;
+      if(my.stopping) return;                           // a second tap while the recorder is finishing
+      if(my.rec && my.rec.state !== 'inactive'){
+        try { my.stopping = true; my.rec.stop(); setTimeout(function(){ onStopped(my); }, 3000); return; }   // (safety: onstop never came)
+        catch(e){ my.stopping = false; }
+      }
+      onStopped(my);
+    }
+    function finish(){ var my = S; if(my && !my.stopping){ my.cancel = false; stopRec(my); } }   // never turns a cancel already under way into a send
+    function cancel(msg){ var my = S; if(my){ my.cancel = true; my.msg = msg; stopRec(my); } }
+    function onStopped(my){
+      if(my.done) return; my.done = true;
+      clearInterval(my.timer); my.timer = 0;
+      var blob = null;
+      try { blob = new Blob(my.chunks, { type:(my.rec && my.rec.mimeType) || 'audio/mp4' }); } catch(e){}
+      try { if(my.stream) my.stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e){}   // mic off before the answer is spoken
+      try { if(my.ac && my.ac.close) my.ac.close().catch(function(){}); } catch(e){}
+      my.stream = null; my.ac = null; my.an = null;
+      if(S === my) S = null;
+      if(my.cancel || !blob){ setState('idle'); if(!(my.msg && bubble(my.msg, { ms:6500 }))) settle(); return; }
+      if(blob.size < 1200){ setState('idle'); if(!bubble('🎤 สั้นไปนิด ลองแตะแล้วพูดใหม่อีกครั้งนะ', { ms:5000 })) settle(); return; }
+      think(blob);
+    }
+
+    // ── thinking → answer
+    function think(blob){
+      setState('think'); busy(true);
+      bubble('🤔 กำลังฟังที่พูด…', { ms:0 });
+      window.aiTranscribeBlob(blob).then(function(text){
+        if(!text){ bubble('🎤 ไม่ได้ยินชัด ลองพูดใกล้ไมค์อีกครั้งนะ', { ms:6000 }); return; }
+        bubble('', { ms:0, html:'<div class="rbm-q">“' + esc(text.length > 90 ? text.slice(0, 90) + '…' : text) + '”</div><div>🤔 กำลังคิด…</div>' });
+        var inp = document.getElementById('ai-cmd-input'); if(inp){ inp.value = text; try { aiAutoGrow(inp); } catch(e){} }
+        var r = document.getElementById('ai-cmd-result'); if(r) r.innerHTML = '';
+        return Promise.resolve(window.aiCommandSubmit()).then(answer);
+      }).catch(fail).then(function(){ busy(false); setState('idle'); settle(); });
+    }
+    function answer(){
+      var r = document.getElementById('ai-cmd-result'); if(!r) return;
+      // still a placeholder = the answer step hit the rate limit, and its auto-retry only runs while the AI sheet is open (v247)
+      if(r.querySelector('.ai-thinking') || /^\s*⏳\s*กำลังค้นข้อมูล/.test(r.innerText || '')){
+        r.innerHTML = '<div style="color:var(--yellow)">⏳ AI ใช้งานหนักช่วงนี้ (เกินโควตาฟรีของ Gemini) รอสักครู่แล้วลองใหม่</div>';
+        bubble('⏳ AI ใช้งานหนักอยู่ รอสักครู่แล้วลองใหม่นะ', { ms:7000 }); return;
+      }
+      var t = String(r.innerText || '').replace(/\n{3,}/g, '\n\n').trim(); if(!t) return;
+      if(!bubble('', { long:t.length > 60, ms:Math.max(7000, Math.min(22000, 4000 + t.length * 70)),
+        html:'<span class="rbm-txt">' + esc(t) + '</span><span class="rbm-more">แตะเพื่ออ่านทั้งหมด ›</span>' })) return;
+      var x = q('.rbm-txt'), m = q('.rbm-more');
+      if(x && m && x.scrollHeight > x.clientHeight + 2) m.classList.add('on');
+      talk();
+    }
+    function talk(){   // wave, then nod along while the answer is spoken
+      robot(function(r){ if(r.wave) r.wave(); });
+      if(reduce) return;
+      clearInterval(talkT); var k = 0, t0 = Date.now();
+      talkT = setInterval(function(){
+        var sp = false; try { var ss = window.speechSynthesis; sp = !!(ss && (ss.speaking || ss.pending)); } catch(e){}
+        if(state === 'listen' || (!sp && Date.now() - t0 > 2500) || Date.now() - t0 > 25000){ clearInterval(talkT); talkT = 0; return; }
+        k++; robot(function(r){ if(r.look) r.look(Math.sin(k * 0.9) * 0.16, k % 2 ? 0.1 : -0.05); });
+      }, 280);
+    }
+    function fail(e){
+      var msg = (e && e.message) || '', r = document.getElementById('ai-cmd-result'), adm = false;
+      try { if(r && typeof _aiShowError === 'function') _aiShowError(e, r, true); } catch(_){}   // the full message stays in the AI sheet
+      try { adm = isAdmin(); } catch(_){}
+      var quota = (e && e.status === 429) || /quota|exceeded|rate.?limit|resource_exhausted|retry in/i.test(msg);
+      bubble(msg === 'CANCELLED' || msg === 'NO_KEY' ? (adm ? '🔑 ยังไม่ได้ใส่ Gemini API Key — แตะฉันแล้วกด 🔑 เพื่อตั้งค่า' : '🔑 AI ยังไม่พร้อม — ให้แอดมินใส่ Gemini API Key ก่อนนะ')
+           : quota ? (/per.?day|daily/i.test(msg) ? '⛔ โควตา AI ฟรีของวันนี้หมดแล้ว จะรีเซ็ตราว 10:00 น. เวลาอิสราเอล' : '⏳ AI ใช้งานหนักอยู่ รอสักครู่แล้วลองใหม่นะ')
+           : '❌ ฟังเสียงไม่สำเร็จ ลองใหม่อีกครั้งนะ', { ms:7000 });
+    }
+
+    function onTap(){
+      if(state === 'listen'){ if(S && S.rec) finish(); else cancel(''); return; }   // tap again = send now (or stop asking)
+      if(state === 'think'){ bubble('🤔 กำลังคิดอยู่นะ รอแป๊บ…', { ms:0 }); return; }
+      start();
+    }
+    function init(){
+      fab = document.getElementById('ai-fab'); if(!fab || btn) return;
+      btn = document.createElement('button');
+      btn.id = 'rb-mic'; btn.type = 'button'; btn.innerHTML = ICON;
+      btn.addEventListener('click', onTap);
+      document.body.appendChild(btn);
+      setState('idle');
+      try { new MutationObserver(later).observe(fab, { attributes:true, attributeFilter:['class', 'style'] }); } catch(e){}
+      try { new MutationObserver(later).observe(document.body, { attributes:true, attributeFilter:['class'] }); } catch(e){}   // theme / look changes move the robot
+      window.addEventListener('resize', later);
+      document.addEventListener('visibilitychange', function(){ if(document.hidden && S) cancel(''); later(); });
+    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  } catch(e){ console.warn('[v372] mic init', e); }
 })();
 </script>
 </body>
