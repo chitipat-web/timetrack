@@ -4235,6 +4235,7 @@ body.dark .slide-action{
       <button class="btn-secondary" onclick="rudyToggleUltra()" id="ultra-btn" style="width:100%;margin-bottom:8px">✨ กราฟิกสูงสุด (Ultra): ปิด</button>
       <button class="btn-secondary" onclick="rudyToggleTilt()" id="tilt-btn" style="width:100%;margin-bottom:8px">📱 ท้องฟ้าเอียงตามมือ: ปิด</button>
       <button class="btn-secondary" onclick="rudyToggleLite()" id="lite-btn" style="width:100%;margin-bottom:8px">🔋 โหมดประหยัดแบต: ปิด</button>
+      <button class="btn-secondary" onclick="rbFabReset()" id="fab-reset-btn" style="width:100%;margin-bottom:8px;display:none">🤖 ย้ายหุ่นยนต์ AI กลับมุมขวาล่าง</button>
       <button class="btn-primary" onclick="toggleDark()" id="theme-btn">เปลี่ยนเป็นโหมดสว่าง</button>
     </div>
 
@@ -11293,7 +11294,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v375';
+const APP_VERSION = 'v376';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21659,7 +21660,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     }
     var sm = { think:0, lx:0, ly:0, hx:0, hy:0 }, antA = 0, antV = 0, prevTilt = null, waveOff = 0;
     // v320: one-shot reactions (check-in cheer, check-out bye, OT sweat)
-    var act = { type:'', t0:-99, dur:0 }, actEyes = 1, peekT = 0, pk = 0, sleepT = 0, sl = 0, sleepChk = -99, yawnAt = 8;
+    var act = { type:'', t0:-99, dur:0 }, actEyes = 1, peekT = 0, pk = 0, pkD = 1, sleepT = 0, sl = 0, sleepChk = -99, yawnAt = 8;
     var drop = new T.Mesh(new T.SphereGeometry(0.17, 16, 12), new T.MeshPhysicalMaterial({ color:0x38B6FF, emissive:0x1A7FD0, emissiveIntensity:0.35, roughness:0.05, clearcoat:1, envMapIntensity:1.2 }));
     drop.scale.set(0.8, 1.15, 0.8); drop.visible = false; head.add(drop);
     // v332 accessories — chosen from weather / time / holidays, re-checked every minute
@@ -21748,8 +21749,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       spine.rotation.z = -sway * 0.08 - wv * 0.06 + Math.sin(t * 1.3) * 0.015;
       spine.rotation.x = 0.03 + br * 0.015 + th * 0.07 - cheer * 0.1 + sweat * 0.06;
       spine.rotation.y = Math.sin(t * 0.6 + 0.8) * 0.08 + sm.lx * 0.25;
-      root.rotation.y = Math.sin(t * 0.6) * 0.16 * (1 - pk) + sm.lx * 0.25 - pk * 0.55;
-      spine.rotation.z += pk * 0.12 + Math.sin(aa * 7) * 0.14 * dance + Math.sin(aa * 34) * 0.035 * giggle;
+      root.rotation.y = Math.sin(t * 0.6) * 0.16 * (1 - pk) + sm.lx * 0.25 - pk * pkD * 0.55;   // v376: pkD mirrors the peek on the left edge
+      spine.rotation.z += pk * pkD * 0.12 + Math.sin(aa * 7) * 0.14 * dance + Math.sin(aa * 34) * 0.035 * giggle;
       hips.position.x += Math.sin(aa * 7) * 0.16 * dance; hips.rotation.z += Math.sin(aa * 7) * 0.12 * dance;
       if(spinA >= 0) root.rotation.y += (spinA < .5 ? 2 * spinA * spinA : 1 - Math.pow(-2 * spinA + 2, 2) / 2) * Math.PI * 2;
       bodyG.scale.set(1 + br * 0.018, 1 + br * 0.012, 1 + br * 0.018);
@@ -21760,8 +21761,8 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       headP.rotation.x = sm.ly * 0.5 - br * 0.02 - th * 0.1 - cheer * 0.09 + sweat * 0.05;
       headP.rotation.z += sweat * Math.sin(aa * 2.2) * 0.08;
       headP.rotation.x += sl * (0.2 + Math.sin(t * 0.7) * 0.05) - yawn * sl * 0.35;   // nodding off / yawn tilts back
-      head.rotation.y = sm.hx * 0.35 - pk * 0.3; head.rotation.x = sm.hy * 0.4;
-      headP.rotation.z += pk * 0.24 + Math.sin(aa * 7 + 1) * 0.2 * dance + giggle * 0.16;
+      head.rotation.y = sm.hx * 0.35 - pk * pkD * 0.3; head.rotation.x = sm.hy * 0.4;
+      headP.rotation.z += pk * pkD * 0.24 + Math.sin(aa * 7 + 1) * 0.2 * dance + giggle * 0.16;
       // arms: shoulder leads, elbow and wrist follow a beat later (overlap)
       arms.forEach(function(A){
         var s = A.s;
@@ -21790,7 +21791,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
           zE = mix(zE, -0.95 + fan * 0.12, sweat); xE = mix(xE, -0.2, sweat);
           zW = mix(zW, fan * 0.55, sweat); xW = mix(xW, -0.3, sweat);
         }
-        if(pk > 0.01){ zS = mix(zS, s > 0 ? 1.15 : -0.35, pk); xE = mix(xE, s > 0 ? -1.1 : -0.6, pk); }   // grabs the edge
+        if(pk > 0.01){ var gE = s * pkD > 0; zS = mix(zS, (gE ? 1.15 : -0.35) * pkD, pk); xE = mix(xE, gE ? -1.1 : -0.6, pk); }   // grabs the edge (v376: the hand on that side)
         if(dance > 0){ var dz = Math.sin(aa * 7 + (s > 0 ? 0 : Math.PI)); zS = mix(zS, s * (1.6 + dz * 0.9), dance); zE = mix(zE, s * (0.5 + dz * 0.3), dance); xE = mix(xE, 0, dance); }
         if(giggle > 0){ zS = mix(zS, s * 0.55, giggle); xS = mix(xS, -1.1, giggle); xE = mix(xE, -1.9, giggle); }   // hands up to the mouth
         if(s < 0 && accWant.umbrella && !dance && !cheer){ zS = -0.85 + Math.sin(t * 1.3) * 0.04; xS = -0.25; xE = -0.2; zE = -1.25; xW = 0; zW = 0; }   // holds the umbrella out to the side
@@ -21833,7 +21834,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
         if(t > blinkAt){ var k = t - blinkAt; var sy = k < 0.08 ? 1 - k / 0.08 * 0.9 : k < 0.16 ? 0.1 + (k - 0.08) / 0.08 * 0.9 : 1; eyes.forEach(function(e){ e.scale.y = sy; }); if(k > 0.16) blinkAt = t + 2.6 + Math.random() * 2.4; }
         if(actEyes < 1) eyes.forEach(function(e){ e.scale.y = Math.min(e.scale.y, actEyes); });
         else if(t <= blinkAt) eyes.forEach(function(e){ if(e.scale.y < 1) e.scale.y = 1; });
-        var ex = (busy ? Math.sin(t * 6) * 0.07 : 0) - pk * 0.09; eyes[0].position.x = -0.43 + ex; eyes[1].position.x = 0.43 + ex;
+        var ex = (busy ? Math.sin(t * 6) * 0.07 : 0) - pk * pkD * 0.09; eyes[0].position.x = -0.43 + ex; eyes[1].position.x = 0.43 + ex;
       }
       if(shOn){ var rt0 = performance.now(); renderer.render(scene, cam); shCost += performance.now() - rt0; if(++shN >= 90){ if(shCost / shN > 7) { shadowsSet(false); console.warn('[3D robot] shadows off (slow)'); } shCost = 0; shN = 0; } }
       else renderer.render(scene, cam);
@@ -22092,7 +22093,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     // v357: a rebuilt robot (after a lost context) keeps the icons already baked
     if(!window.RB_ICONS) setTimeout(function(){ try { bakeIcons(); } catch(e){ try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] bake failed', e); } }, 600);
     window.rb3d = { renderer:renderer, scene:scene, camera:cam, pose:pose,
-      peek:function(on){ peekT = on ? 1 : 0; kick(); },   // v322
+      peek:function(on, dir){ peekT = on ? 1 : 0; if(on) pkD = dir < 0 ? -1 : 1; kick(); },   // v322 · v376: dir -1 = peeking from the left edge
       act:function(type){ var t = (performance.now() - t0) / 1000; act = { type:type, t0:t, dur:({ cheer:2.4, dance:2.9, spin:1.3, giggle:1.6 })[type] || 2.8 };
         if(type === 'bye'){ var w = (t + waveOff) % 7; if(w < 3.0 || w > 5.7) waveOff = ((3.0 - t) % 7 + 7) % 7; }
         kick(); return t; },   // v320
@@ -22159,15 +22160,21 @@ body.dark #rb-bubble::after{ border-color:rgba(180,160,255,0.28); }
     if(h >= 17 && h < 21) return 'สวัสดีตอนเย็น' + k + ' 🌇 วันนี้เหนื่อยไหม';
     return 'ดึกแล้วนะ' + k + ' 🌙 พักผ่อนด้วย';
   }
-  var TIPS = ['มีอะไรให้ช่วยไหม? แตะฉันได้เลย 😊', 'ถามชั่วโมงทำงานหรือค่าแรงได้นะ 💰', 'กด 🎤 แล้วพูดกับฉันได้เลย', 'วันนี้ก็สู้ๆ นะ ✨', 'สงสัยอะไร ถามฉันได้ทุกเรื่อง 🤖'];
+  var TIPS = ['มีอะไรให้ช่วยไหม? แตะฉันได้เลย 😊', 'ถามชั่วโมงทำงานหรือค่าแรงได้นะ 💰', 'กด 🎤 แล้วพูดกับฉันได้เลย', 'วันนี้ก็สู้ๆ นะ ✨', 'สงสัยอะไร ถามฉันได้ทุกเรื่อง 🤖', 'ลากฉันไปไว้ตรงไหนของจอก็ได้นะ 👆'];   // v376: the last tip
   function blocked(fab){
     if(!fab || !fab.offsetWidth || document.hidden) return true;
     return !!document.querySelector('.modal-overlay.open');
   }
+  // v376: the robot can be dragged anywhere — the bubble grows toward the roomier side (to the right when
+  // the robot is on the left half) and sits under the robot when there's no room above it. Bottom-right as before.
   function place(fab){
-    var r = fab.getBoundingClientRect();
-    b.style.right = Math.max(8, window.innerWidth - r.right - 2) + 'px';
-    b.style.bottom = Math.max(8, window.innerHeight - r.top + 4) + 'px';
+    var r = fab.getBoundingClientRect(), W = window.innerWidth, H = window.innerHeight;
+    var lt = r.left + r.width / 2 < W / 2, bl = r.top < (b.offsetHeight || 60) + 60;
+    b.classList.toggle('rb-l', lt); b.classList.toggle('rb-b', bl);
+    b.style.left = lt ? Math.max(8, r.left - 2) + 'px' : 'auto';
+    b.style.right = lt ? 'auto' : Math.max(8, W - r.right - 2) + 'px';
+    b.style.top = bl ? Math.round(r.bottom + 4) + 'px' : 'auto';
+    b.style.bottom = bl ? 'auto' : Math.max(8, H - r.top + 4) + 'px';
   }
   var hold = false;   // v372: a bubble the mic is using (listening / thinking) isn't replaced by greetings or tips
   function hide(){ clearTimeout(hideT); hold = false; if(b) b.classList.remove('show'); }
@@ -22226,7 +22233,12 @@ html body #ai-fab#ai-fab.fab-tuck{ transform:translateX(70%) rotate(-10deg) !imp
 (function(){
   'use strict';
   var t = 0, fab = null, lastY = new WeakMap(), moved = 0;
-  function peek(on){ try { if(window.rb3d && window.rb3d.peek) window.rb3d.peek(on); } catch(e){} }
+  // v376: the robot can sit anywhere — it peeks from its own edge; in the middle of the screen it only fades (no peek pose).
+  // The side comes from the classes the drag code keeps on the robot (no layout read while the page scrolls).
+  function peek(on){ try {
+    var f = fab || document.getElementById('ai-fab'), ed = f && f.classList.contains('fab-left') ? 'left' : (f && f.classList.contains('fab-mid') ? 'mid' : 'right');
+    if(window.rb3d && window.rb3d.peek && (!on || ed !== 'mid')) window.rb3d.peek(on, ed === 'left' ? -1 : 1);
+  } catch(e){} }
   function onScroll(dy){
     fab = fab || document.getElementById('ai-fab'); if(!fab || !fab.offsetWidth) return;
     moved += Math.abs(dy);
@@ -23892,16 +23904,19 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
     function settle(){ if(held){ held = false; try { if(window.rbHide) window.rbHide(); } catch(e){} } }   // never leave a stale "listening/thinking" bubble
     function q(sel){ return document.querySelector('#rb-bubble ' + sel); }
 
+    var micSide = -1;                                   // v376: -1 = the mic sits left of the robot (default), 1 = right of it
     function place(){
       // layout box, not getBoundingClientRect: the robot may be mid-transform (tuck spring, cheer pop)
       var l = fab.offsetLeft, t = fab.offsetTop, w = fab.offsetWidth, h = fab.offsetHeight; if(!w) return;
-      btn.style.left = Math.round(l - 56) + 'px';       // lower-left of the robot
-      btn.style.top = Math.round(t + h - 48) + 'px';
+      var W = window.innerWidth, H = window.innerHeight;
+      micSide = l + w / 2 < W / 2 ? 1 : -1;             // v376: robot dragged to the left half → the mic goes on its right
+      btn.style.left = Math.round(Math.max(6, Math.min(W - 50, micSide > 0 ? l + w + 12 : l - 56))) + 'px';   // beside the robot, low
+      btn.style.top = Math.round(Math.max(6, Math.min(H - 50, t + h - 48))) + 'px';
     }
     function sync(){
       if(!btn) return;
       fab = fab || document.getElementById('ai-fab');
-      var vis = !!(fab && fab.offsetWidth) && !document.hidden, tucked = !!(fab && fab.classList.contains('fab-tuck')), active = state !== 'idle';
+      var vis = !!(fab && fab.offsetWidth) && !document.hidden, tucked = !!(fab && (fab.classList.contains('fab-tuck') || fab.classList.contains('fab-drag'))), active = state !== 'idle';   // v376: also away while the robot is dragged
       btn.classList.toggle('on', vis || active);
       btn.classList.toggle('away', !active && (!vis || tucked));
       if(vis) place();
@@ -23943,7 +23958,7 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
       my.n++;
       var gap = my.lastTick ? now - my.lastTick : 0; my.lastTick = now;
       if(gap > 500 && my.heard) my.lastVoice += gap - 500;   // the page froze (not the person quiet): a stall counts at most 0.5 s of the pause
-      if(my.n % 6 === 1) robot(function(r){ if(r.look) r.look(-0.75, -0.08, true); });   // head turned to the mic: listening
+      if(my.n % 6 === 1) robot(function(r){ if(r.look) r.look(0.75 * micSide, -0.08, true); });   // head turned to the mic (v376: whichever side it's on): listening
       var r = level(my);
       if(r >= 0){
         if(my.floor < 0) my.floor = r;
@@ -24241,6 +24256,139 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
       return r;
     };
   } catch(e){ console.warn('[v373] ai chat init', e); }
+})();
+</script>
+<style id="rb-drag-v376">
+/* v376: the AI robot can be dragged anywhere. touch-action:none = a finger on the robot moves the robot, not the page. */
+#ai-fab{ touch-action:none; }
+html body #ai-fab#ai-fab.fab-drag{ animation:none !important; transition:none !important; transform:scale(1.12) !important; cursor:grabbing; }
+/* hiding while the page scrolls follows where it was put: left edge → tucks to the left; middle → shrinks and fades */
+html body #ai-fab#ai-fab.fab-tuck.fab-left{ transform:translateX(-70%) rotate(10deg) !important; }
+html body #ai-fab#ai-fab.fab-tuck.fab-mid{ transform:scale(.55) !important; opacity:.3 !important; }
+@media (prefers-reduced-motion: reduce){
+  html body #ai-fab#ai-fab.fab-drag{ transform:none !important; }
+  html body #ai-fab#ai-fab.fab-tuck.fab-left, html body #ai-fab#ai-fab.fab-tuck.fab-mid{ transform:none !important; opacity:.4 !important; }
+}
+/* the speech bubble beside a robot on the left half (tail on the left) or near the top (bubble under it, tail on top) */
+#rb-bubble.rb-l{ border-radius:16px 16px 16px 6px; transform-origin:12% 120%; }
+#rb-bubble.rb-l::after{ right:auto; left:20px; }
+#rb-bubble.rb-b{ border-radius:16px 6px 16px 16px; transform-origin:88% -20%; }
+#rb-bubble.rb-b::after{ bottom:auto; top:-7px; transform:rotate(225deg); }
+#rb-bubble.rb-l.rb-b{ border-radius:6px 16px 16px 16px; transform-origin:12% -20%; }
+#rb-bubble.rb-b:not(.show){ transform:translateY(-6px) scale(.6); }
+</style>
+<script>
+// v376: drag the AI robot anywhere on the screen (owner's request). Move a finger more than 10 px on
+// the robot — the same distance that cancels the long-press trick (v332) — and it follows; let go
+// and it stays. Saved on this phone only ("rudy_fab_pos", not a synced tt_ key) as the robot's
+// centre in screen fractions, kept inside the screen and re-applied when the screen or the look
+// changes. A tap still opens the AI; the click that ends a drag is swallowed (as v332 does after a
+// trick). The robot's touches never reach the page's pull-to-refresh. Settings › ธีม gets "put it
+// back". Nothing changes until the robot is moved. Sandboxed.
+(function(){
+  'use strict';
+  try {
+    var KEY = 'rudy_fab_pos', fab = document.getElementById('ai-fab'); if(!fab) return;
+    var orig = { right:fab.style.getPropertyValue('right'), bottom:fab.style.getPropertyValue('bottom') };   // the default spot (inline)
+    var pos = null, st = null, raf = 0, pend = 0, swallow = 0, inset = { t:0, b:0 }, lastDisp = fab.style.display;
+    try { var v = JSON.parse(localStorage.getItem(KEY) || 'null'); if(v && isFinite(v.x) && isFinite(v.y)) pos = { x:+v.x, y:+v.y }; } catch(e){}
+    function readInsets(){
+      try {
+        var d = document.createElement('div');
+        d.style.cssText = 'position:fixed;left:0;top:0;width:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';
+        document.body.appendChild(d); var cs = getComputedStyle(d);
+        inset = { t:parseFloat(cs.paddingTop) || 0, b:parseFloat(cs.paddingBottom) || 0 }; d.remove();
+      } catch(e){}
+    }
+    // layout box (offset*), not getBoundingClientRect: the robot may be mid-transform (bob, tuck, pop)
+    function box(){ return { l:fab.offsetLeft, t:fab.offsetTop, w:fab.offsetWidth, h:fab.offsetHeight }; }
+    function clampL(l, w){ return Math.max(6, Math.min(window.innerWidth - w - 6, l)); }
+    function clampT(t, h){ return Math.max(inset.t + 6, Math.min(window.innerHeight - inset.b - h - 6, t)); }
+    function set(l, t){
+      fab.style.setProperty('left', Math.round(l) + 'px', 'important');
+      fab.style.setProperty('top', Math.round(t) + 'px', 'important');
+      fab.style.setProperty('right', 'auto', 'important');     // beats the inline default and body.corp's !important bottom
+      fab.style.setProperty('bottom', 'auto', 'important');
+    }
+    // which edge the robot sits on (for the scroll tuck / peek) and which half (for the mic and the bubble)
+    window.rbFabSide = function(){
+      var b = box(), W = window.innerWidth;
+      if(!b.w) return { edge:'right', half:'right' };
+      return { edge: b.l < 40 ? 'left' : (b.l + b.w > W - 40 ? 'right' : 'mid'), half: b.l + b.w / 2 < W / 2 ? 'left' : 'right' };
+    };
+    function mark(){ var s = window.rbFabSide(); fab.classList.toggle('fab-left', s.edge === 'left'); fab.classList.toggle('fab-mid', s.edge === 'mid'); }
+    function showReset(){ var r = document.getElementById('fab-reset-btn'); if(r) r.style.display = pos ? '' : 'none'; }
+    var tries = 0;
+    function apply(){
+      if(!pos || st) return;
+      var b = box();
+      if(!b.w){ if(fab.style.display !== 'none' && tries++ < 20) setTimeout(later, 500); return; }   // shown but a parent is still hidden: retry ≤10 s
+      tries = 0;
+      set(clampL(pos.x * window.innerWidth - b.w / 2, b.w), clampT(pos.y * window.innerHeight - b.h / 2, b.h));
+      mark(); showReset();
+    }
+    function later(){ if(!pend) pend = requestAnimationFrame(function(){ pend = 0; apply(); }); }
+
+    window.rbFabReset = function(){
+      pos = null; try { localStorage.removeItem(KEY); } catch(e){}
+      ['left', 'top', 'right', 'bottom'].forEach(function(k){ fab.style.removeProperty(k); });
+      if(orig.right) fab.style.setProperty('right', orig.right);
+      if(orig.bottom) fab.style.setProperty('bottom', orig.bottom);
+      fab.classList.remove('fab-left', 'fab-mid'); showReset();
+      try { showToast('ย้ายหุ่นยนต์กลับมุมขวาล่างแล้ว', 'success'); } catch(e){}
+    };
+
+    // the robot's own touches never reach the page (pull-to-refresh listens on document)
+    ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(function(t){ fab.addEventListener(t, function(e){ e.stopPropagation(); }, { passive:true }); });
+    fab.addEventListener('pointerdown', function(e){
+      if(e.button > 0 || st) return;
+      var b = box(); if(!b.w) return;
+      st = { id:e.pointerId, x0:e.clientX, y0:e.clientY, l0:b.l, t0:b.t, w:b.w, h:b.h, on:false, l:b.l, t:b.t };
+    }, { passive:true });
+    document.addEventListener('pointermove', function(e){
+      if(!st || e.pointerId !== st.id) return;
+      var dx = e.clientX - st.x0, dy = e.clientY - st.y0;
+      if(!st.on){
+        if(Math.abs(dx) <= 10 && Math.abs(dy) <= 10) return;   // still a tap / a long-press
+        st.on = true;
+        fab.classList.remove('fab-tuck'); fab.classList.add('fab-drag');   // grabbed while tucked: whole under the finger
+        try { if(window.rbHide) window.rbHide(); } catch(_){}
+        try { if(typeof haptic === 'function') haptic('light'); } catch(_){}
+        try { if(window.rb3d){ if(rb3d.peek) rb3d.peek(false); if(rb3d.act) rb3d.act('giggle'); } } catch(_){}   // picked up: giggles
+      }
+      st.l = clampL(st.l0 + dx, st.w); st.t = clampT(st.t0 + dy, st.h);
+      if(!raf) raf = requestAnimationFrame(function(){ raf = 0; if(st && st.on) set(st.l, st.t); });
+    }, { passive:true });
+    function up(e){
+      if(!st || e.pointerId !== st.id) return;
+      var s = st; st = null;
+      if(!s.on) return;                                 // a tap: the AI opens as usual
+      fab.classList.remove('fab-drag');
+      set(s.l, s.t);
+      var b = box();
+      pos = { x:(s.l + b.w / 2) / window.innerWidth, y:(s.t + b.h / 2) / window.innerHeight };
+      try { localStorage.setItem(KEY, JSON.stringify({ x:+pos.x.toFixed(4), y:+pos.y.toFixed(4) })); } catch(_){}
+      mark(); showReset();
+      swallow = performance.now() + 450;                // the click ending a drag is not a tap (iOS usually sends none after a move); monotonic clock
+      try {
+        if(!localStorage.getItem('rudy_fab_hint')){
+          localStorage.setItem('rudy_fab_hint', '1');
+          setTimeout(function(){ try { if(window.rbSay) window.rbSay('อยู่ตรงนี้นะ ✨ ย้ายกลับที่เดิมได้ที่ ตั้งค่า › ธีม', { ms:5500 }); } catch(_){} }, 350);
+        }
+      } catch(_){}
+    }
+    document.addEventListener('pointerup', up, { passive:true });
+    document.addEventListener('pointercancel', up, { passive:true });
+    document.addEventListener('click', function(e){
+      if(swallow && performance.now() < swallow && fab.contains(e.target)){ swallow = 0; e.stopPropagation(); e.preventDefault(); }
+    }, true);
+
+    window.addEventListener('resize', function(){ readInsets(); later(); });
+    window.addEventListener('orientationchange', function(){ setTimeout(function(){ readInsets(); later(); }, 300); });
+    try { new MutationObserver(function(){ if(fab.style.display !== lastDisp){ lastDisp = fab.style.display; later(); } }).observe(fab, { attributes:true, attributeFilter:['style'] }); } catch(e){}   // shown after sign-in
+    try { new MutationObserver(later).observe(document.body, { attributes:true, attributeFilter:['class'] }); } catch(e){}   // a look change can resize the robot
+    readInsets(); apply(); showReset();
+  } catch(e){ console.warn('[v376] robot drag init', e); }
 })();
 </script>
 </body>
