@@ -3166,8 +3166,12 @@ body:not(.dark) .ha-week-delta{ color:#1F9D40; }
 window.ICO = (function(){ var P = {clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', flame:'<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.6 1.2 2.6 2.2 3C11 9 11.5 6 12 3z"/>', target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>', box:'<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/>'}; return function(n, sz){ sz = sz || 15; return '<svg class="ico" viewBox="0 0 24 24" width="' + sz + '" height="' + sz + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (P[n] || '') + '</svg>'; }; })();
 </script>
 <script>
+// v378: "ลองหน้าตาใหม่" — the iPhone-style look, per device (rudy_ios is a local-only key, never synced).
+// Read before anything paints. While it is on, the heavy looks (sky, Ultra, Liquid Glass, cinematic
+// effects) stay off: the new look is built on the plain corporate theme underneath.
+(function(){ try { if(localStorage.getItem('rudy_ios') === '1'){ window.__rudyIOS = true; document.documentElement.classList.add('ios'); } } catch(e){} })();
 // v323 battery saver: read once, before any heavy effect starts
-(function(){ try { if(localStorage.getItem('tt_ultra') === '1' && localStorage.getItem('tt_lite') !== '1' && sessionStorage.getItem('tt_ultra_off') !== '1'){ window.__rudyUltra = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('ultra'); }); } } catch(e){} })();   // v351 Ultra graphics
+(function(){ try { if(!window.__rudyIOS && localStorage.getItem('tt_ultra') === '1' && localStorage.getItem('tt_lite') !== '1' && sessionStorage.getItem('tt_ultra_off') !== '1'){ window.__rudyUltra = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('ultra'); }); } } catch(e){} })();   // v351 Ultra graphics
 (function(){ try { if(localStorage.getItem('tt_lite') === '1'){ window.__rudyLite = true; window.__skyNoGL = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('lite','cinema-off'); }); } } catch(e){} })();
 </script>
 <!-- INIT LOADING OVERLAY (load-D-motion: underwater theme) -->
@@ -4221,6 +4225,7 @@ body.dark .slide-action{
 
     <div class="card">
       <div class="section-title"><svg class="st-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>ธีม</div>
+      <button class="btn-secondary" onclick="rudyToggleIOS()" id="ios-btn" style="width:100%;margin-bottom:10px">✨ ลองหน้าตาใหม่ (แบบ iPhone) · เฉพาะเครื่องนี้</button>
       <div class="theme-pick" id="theme-pick" role="radiogroup" aria-label="เลือกธีม">
         <button type="button" class="tp tp-glass" data-t="glass" onclick="themePick('glass')"><span class="tp-mock"><i></i><b></b><b></b></span><span class="tp-name">Liquid Glass</span></button>
         <button type="button" class="tp tp-corp" data-t="corp" onclick="themePick('corp')"><span class="tp-mock"><i></i><b></b><b></b></span><span class="tp-name">องค์กร</span></button>
@@ -11323,7 +11328,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v377';
+const APP_VERSION = 'v378';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -12457,7 +12462,7 @@ function initRound2Effects() {
 // ===== CINEMATIC BATCH A — JS =====
 
 // Cinematic toggle (default ON, can disable in settings)
-function isCinematicOn(){ return localStorage.getItem('tt_cinema') !== '0'; }
+function isCinematicOn(){ if(window.__rudyIOS) return false; return localStorage.getItem('tt_cinema') !== '0'; }   // v378: off in the iPhone look
 function toggleCinematic(){
   const on = !isCinematicOn();
   localStorage.setItem('tt_cinema', on ? '1' : '0');
@@ -17217,6 +17222,7 @@ body.dark [class*="tab"] .label{
   }
   function lgIsEmergencyDisabled() {
     try {
+      if (window.__rudyIOS) return true;   // v378: never in the iPhone look
       if (localStorage.getItem(LG_LS_DISABLED) === '1') return true;
       if (location.search.indexOf('nolg=1') !== -1) return true;
       const failed = parseInt(localStorage.getItem(LG_LS_FAILED) || '0', 10);
@@ -19841,7 +19847,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       night: ['#070B1C','#121A3A','#23305E','rgba(255,255,255,0.08)','rgba(255,255,255,0.12)','rgba(255,255,255,0.05)','rgba(18,26,56,0.95)']
     };
     // v280: the corporate theme is the default; the sky is opt-in (tt_sky='1')
-    function skyOn(){ try { return localStorage.getItem('tt_sky') === '1'; } catch(e){ return false; } }
+    function skyOn(){ if(window.__rudyIOS) return false; try { return localStorage.getItem('tt_sky') === '1'; } catch(e){ return false; } }   // v378: no sky in the iPhone look
     // v285: the weather sky is also the wallpaper of the Liquid Glass theme
     function skyBg(){ return skyOn() || uiTheme() === 'glass'; }
     function israelNow(){
@@ -20440,7 +20446,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       try { glKick(); } catch(_){}   // restart the GL loop after sky off→on
     }
     // v282: three looks — Liquid Glass (default), corporate, weather sky.
-    function uiTheme(){ try { return localStorage.getItem('tt_ui') === 'corp' ? 'corp' : 'glass'; } catch(e){ return 'glass'; } }
+    function uiTheme(){ if(window.__rudyIOS) return 'corp'; try { return localStorage.getItem('tt_ui') === 'corp' ? 'corp' : 'glass'; } catch(e){ return 'glass'; } }   // v378: the iPhone look sits on the corporate theme
     function updateBtn(){
       var btn = document.getElementById('sky-btn');
       var cur = skyOn() ? 'sky' : uiTheme();
@@ -20480,7 +20486,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       try {
         var m = document.querySelector('meta[name="theme-color"]');
         var dk = b.classList.contains('dark');
-        if(m){ if(m.dataset.orig == null) m.dataset.orig = m.getAttribute('content'); m.setAttribute('content', (!on || glass) ? m.dataset.orig : (dk ? '#0B1D33' : '#0B2545')); }
+        if(m){ if(m.dataset.orig == null) m.dataset.orig = m.getAttribute('content'); m.setAttribute('content', (!on || glass) ? m.dataset.orig : window.__rudyIOS ? (dk ? '#000000' : '#F2F2F7') : (dk ? '#0B1D33' : '#0B2545')); }
       } catch(e){}
     }
     function apply(){
@@ -24479,6 +24485,137 @@ html body #ai-fab#ai-fab.fab-tuck.fab-mid{ transform:scale(.55) !important; opac
     setInterval(function(){ if(pos && !st && !document.hidden) later(); }, 2000);
     readInsets(); apply(); showReset();
   } catch(e){ console.warn('[v376] robot drag init', e); }
+})();
+</script>
+<style id="ios-v378">
+/* v378 — "ลองหน้าตาใหม่": iPhone-style look, step 1 (palette, system font, rounded cards, controls,
+   floating glass tab bar). Everything here is scoped to html.ios, set in the first script of the page
+   only when this device turned the switch on; with it off none of these rules match.
+   It sits on the corporate theme (forced on in this look), so most of it is the corp palette re-tuned. */
+html.ios{ background:#F2F2F7; }
+html.ios:has(body.dark){ background:#000000; }
+html.ios body.corp{
+  --c-bg:#F2F2F7; --c-surface:#FFFFFF; --c-surface-2:#F2F2F7; --c-border:#E5E5EA; --c-border-2:#D1D1D6;
+  --c-ink:#000000; --c-ink-2:#1C1C1E; --c-ink-3:#3C3C43; --c-ink-4:#6C6C70;
+  --c-brand:#0066CC; --c-brand-2:#0052A3; --c-brand-tint:rgba(0,122,255,0.12);
+  --c-bar:#FFFFFF; --c-bar-2:#F2F2F7; --c-bar-ink:#000000;
+  --c-ok:#248A3D; --c-bad:#D70015; --c-warn:#C93400; --c-violet:#8944AB;
+  --ink-5:rgba(60,60,67,0.18);
+  --r-xs:8px; --r-sm:12px; --r:16px; --r-lg:24px; --r-xl:28px; --r-2xl:34px;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',system-ui,sans-serif;
+  --font-display:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',system-ui,sans-serif;
+  --font-mono:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;
+  --shadow-sm:none; --shadow:none; --shadow-lg:0 8px 24px rgba(0,0,0,0.12); --shadow-xl:0 20px 48px rgba(0,0,0,0.20);
+  --field-bg:rgba(118,118,128,0.12); --field-stroke:transparent;
+  --ios-fill:rgba(118,118,128,0.12); --ios-seg:#FFFFFF; --ios-tab-ink:#1C1C1E; --ios-tint-ink:#0058B0; --ios-btn:#0066CC;
+  --ios-glass:rgba(250,250,252,0.80); --ios-glass-edge:rgba(0,0,0,0.08); --ios-glass-shadow:0 10px 30px rgba(0,0,0,0.14); --ios-pill:rgba(0,0,0,0.06);
+  --ios-sep:#C6C6C8; --ios-bar:#D1D1D6;
+  font-variant-numeric:tabular-nums;
+}
+html.ios body.corp.dark{
+  --c-bg:#000000; --c-surface:#1C1C1E; --c-surface-2:#2C2C2E; --c-border:#38383A; --c-border-2:#48484A;
+  --c-ink:#FFFFFF; --c-ink-2:#EBEBF5; --c-ink-3:#AEAEB2; --c-ink-4:#98989F;
+  --c-brand:#0A84FF; --c-brand-2:#0071E3; --c-brand-tint:rgba(10,132,255,0.18);
+  --c-bar:#1C1C1E; --c-bar-2:#2C2C2E; --c-bar-ink:#FFFFFF;
+  --c-ok:#30D158; --c-bad:#FF453A; --c-warn:#FF9F0A; --c-violet:#BF5AF2;
+  --ink-5:rgba(235,235,245,0.18);
+  --shadow-sm:none; --shadow:none; --shadow-lg:0 8px 24px rgba(0,0,0,0.5); --shadow-xl:0 20px 48px rgba(0,0,0,0.6);
+  --field-bg:rgba(118,118,128,0.24);
+  --ios-fill:rgba(118,118,128,0.24); --ios-seg:#636366; --ios-tab-ink:#F2F2F7; --ios-tint-ink:#409CFF; --ios-btn:#0071E3;
+  --ios-glass:rgba(40,40,44,0.80); --ios-glass-edge:rgba(255,255,255,0.14); --ios-glass-shadow:0 10px 30px rgba(0,0,0,0.5); --ios-pill:rgba(255,255,255,0.12);
+  --ios-sep:#38383A; --ios-bar:#3A3A3C;
+}
+
+/* top bar: flat, same colour as the page, hairline under it */
+html.ios body.corp .topbar{ background:var(--c-bg) !important; border-bottom:0.5px solid var(--ios-sep) !important; box-shadow:none !important; color:var(--c-ink) !important; }
+html.ios body.corp .topbar .logo-text, html.ios body.corp .topbar .logo-text span{ color:var(--c-ink) !important; -webkit-text-fill-color:var(--c-ink) !important; }
+html.ios body.corp .topbar :is(.live-text, .user-chip-name, .logout-text){ color:var(--c-ink) !important; }
+html.ios body.corp .topbar :is(.icon-btn, .logout-btn, .user-chip, .live-badge, .admin-badge){ background:var(--ios-fill) !important; border:none !important; color:var(--c-ink) !important; }
+
+/* large titles */
+html.ios body.corp .page-title{ font-size:34px !important; font-weight:700 !important; letter-spacing:0 !important; line-height:1.2 !important; }
+html.ios body.corp .page-subtitle{ font-size:15px !important; color:var(--c-ink-4) !important; }
+html.ios body.corp :is(.section-title, .ha-section-title, .hw-title){ color:var(--c-ink) !important; font-weight:600 !important; }
+
+/* cards: rounded, no border, no shadow */
+html.ios body.corp :is(.card, .hw-card, .clock-hero, .ha-chip, .sum-card, .stat-box, .emp-card, .team-card, .announce-card, .poll-card, .report-card, .ha-week, .ha-streak, .ha-card, .sal-preview, .streak-card, .punct-card){
+  border:none !important; border-radius:var(--r-lg) !important; box-shadow:none !important; }
+html.ios body.corp :is(.ha-chip, .sum-card, .stat-box){ border-radius:20px !important; }
+html.ios body.corp .sal-hero{ background:var(--c-surface) !important; color:var(--c-ink) !important; border-radius:var(--r-xl) !important; }
+html.ios body.corp .sal-hero *{ color:inherit !important; }
+html.ios body.corp :is(.modal, .modal-sheet, .modal-content, .sheet){ border:none !important; border-radius:28px !important; }
+
+/* buttons: capsules */
+html.ios body.corp .btn-primary{ background:var(--ios-btn) !important; border:none !important; border-radius:999px !important; color:#FFFFFF !important; font-weight:600 !important; min-height:48px; }
+html.ios body.corp .btn-primary:active{ opacity:.8; }
+html.ios body.corp :is(.btn-secondary, .btn-ghost, .btn-outline){ background:var(--c-brand-tint) !important; border:none !important; border-radius:999px !important; color:var(--ios-tint-ink) !important; min-height:44px; }
+
+/* text fields */
+html.ios body.corp :is(.sel, .form-inp, .login-inp, .modal-inp, select, input[type=text], input[type=number], input[type=time], input[type=date], input[type=email], input[type=password], input[type=tel], textarea){
+  background:var(--field-bg) !important; border:none !important; border-radius:12px !important; color:var(--c-ink) !important; }
+html.ios body.corp :is(.sel, .form-inp, input, select, textarea):focus{ outline:2px solid var(--c-brand) !important; outline-offset:0; }
+
+/* segmented controls (page tabs, team tabs, leaderboard tabs) */
+html.ios body.corp :is(.seg-control, .team-subtabs, .hwc-lb-tabs){ background:var(--ios-fill) !important; border:none !important; border-radius:12px !important; padding:3px !important; gap:2px !important; }
+html.ios body.corp :is(.seg-tab, .team-subtab, .hwc-lb-tab){ border:none !important; border-radius:9px !important; margin:0 !important; background:transparent !important; color:var(--c-ink-2) !important; }
+html.ios body.corp :is(.seg-tab, .team-subtab, .hwc-lb-tab).active{ background:var(--ios-seg) !important; color:var(--c-ink) !important; box-shadow:0 2px 6px rgba(0,0,0,0.16) !important; }
+
+/* home: the hero sits on the page colour (the corp hero was a navy band with white text) */
+html.ios body.corp #page-home.hq .hq-hero{ background:transparent !important; color:var(--c-ink) !important; border-bottom:none !important; }
+html.ios body.corp #page-home.hq .hq-hero .ha-greet-hi{ color:var(--c-ink-4) !important; }
+html.ios body.corp #page-home.hq .hq-hero :is(.ha-greet-name, .ha-greet-name .accent){ color:var(--c-ink) !important; }
+html.ios body.corp .hq-status{ background:var(--ios-fill); border-color:transparent; color:var(--c-ink); }
+html.ios body.corp .ha-bar-fill{ background:var(--ios-bar) !important; }
+html.ios body.corp .ha-bar-fill.today{ background:var(--c-brand) !important; }
+/* summary month arrows: they had no text colour (black on the dark card, already in the old dark look) */
+html.ios body.corp .month-sel{ display:flex !important; align-items:center; justify-content:space-between; gap:8px; padding:6px !important; min-height:0 !important; }
+html.ios body.corp button.month-nav{ flex:none; display:flex !important; align-items:center; justify-content:center; width:40px; height:40px; padding:0 !important; margin:0 !important; border-radius:50% !important;
+  color:var(--c-ink) !important; background:var(--ios-fill) !important; border:none !important; box-shadow:none !important; font-size:22px; line-height:1; }
+html.ios body.corp .month-sel .month-lbl{ flex:1; text-align:center; font-weight:600; }
+
+/* bottom tab bar: floating glass capsule (the only blurred element of this look) */
+html.ios body.corp .nav{
+  left:14px !important; right:14px !important; bottom:calc(env(safe-area-inset-bottom, 0px) + 8px) !important; width:auto !important; max-width:none !important; transform:none !important;
+  border-radius:34px !important; border:0.5px solid var(--ios-glass-edge) !important; background:var(--ios-glass) !important; background-image:none !important;
+  -webkit-backdrop-filter:blur(24px) saturate(1.6) !important; backdrop-filter:blur(24px) saturate(1.6) !important;
+  box-shadow:var(--ios-glass-shadow) !important; padding:6px !important; gap:2px !important; }
+html.ios body.corp .nav-btn{ border-radius:28px !important; color:var(--ios-tab-ink) !important; padding:7px 2px 6px !important; font-size:11px !important; font-weight:500 !important; gap:3px !important; justify-content:center; }
+html.ios body.corp .nav-btn svg{ width:24px; height:24px; stroke-width:1.8; }
+html.ios body.corp .nav-btn.active{ background:var(--ios-pill) !important; color:var(--c-brand) !important; font-weight:600 !important; }
+html.ios body.corp .nav-btn.active::before{ display:none !important; }
+html.ios body.corp .page{ padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 112px) !important; }
+html.ios body.corp #ai-fab{ bottom:calc(env(safe-area-inset-bottom, 0px) + 100px) !important; }
+
+/* still, like iOS: the decorative loops stop in this look (several of them — glows, box-shadow pulses,
+   SVG wiggles — made the page restyle on every frame while idle). The robot keeps its bob. */
+html.ios :is(#clock-hero .hq-colon, #place-switch .place-ic, #place-switch .place-ic svg, .hwc-ring .arc, .hq-pay-ic, #slide-thumb .thumb-arrow, .nav-btn svg, .ha-bar-fill.today),
+html.ios #app-shell .topbar .user-chip::after{ animation:none !important; }
+
+/* settings: the old look pickers do nothing in this look */
+html.ios :is(#theme-pick, #sky-btn, #lg-level-wrap, #ultra-btn, #tilt-btn, #lg-card-section),
+html.ios #page-settings .card:has(> #cinema-btn){ display:none !important; }
+</style>
+<script>
+// v378: the switch for the iPhone-style look. Per device; a reload applies it cleanly, so the heavy
+// looks it turns off (sky, Ultra, Liquid Glass) are never started half-way.
+(function(){
+  'use strict';
+  function label(){ var b = document.getElementById('ios-btn'); if(b) b.textContent = window.__rudyIOS ? 'หน้าตาใหม่: เปิดอยู่ · แตะเพื่อกลับแบบเดิม' : '✨ ลองหน้าตาใหม่ (แบบ iPhone) · เฉพาะเครื่องนี้'; }
+  window.rudyToggleIOS = function(){
+    var on = !window.__rudyIOS;
+    try { if(on) localStorage.setItem('rudy_ios', '1'); else localStorage.removeItem('rudy_ios'); } catch(e){}
+    try { showToast(on ? 'เปิดหน้าตาใหม่ — กำลังโหลดใหม่' : 'กลับเป็นหน้าตาเดิม — กำลังโหลดใหม่', 'success'); } catch(e){}
+    setTimeout(function(){ location.reload(); }, 700);
+  };
+  if(window.__rudyIOS && typeof window.toggleDark === 'function'){
+    var td = window.toggleDark;   // keep the status-bar colour in step with light / dark
+    window.toggleDark = function(){
+      var r = td.apply(this, arguments);
+      try { var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content', document.body.classList.contains('dark') ? '#000000' : '#F2F2F7'); } catch(e){}
+      return r;
+    };
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', label); else label();
 })();
 </script>
 </body>
