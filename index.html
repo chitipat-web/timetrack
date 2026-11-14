@@ -4795,9 +4795,12 @@ function escHtml(s){
 // database. Falls back to device time if Intl/timeZone is unavailable —
 // so worst case is the old behavior, never a crash. Output format is
 // identical (YYYY-MM-DD and HH:MM), so all callers are unaffected.
+// v377: the two Israel-time formatters are built once. Creating an Intl.DateTimeFormat is the slow
+// part (these helpers run every second for the clock and on every render); the output is the same.
+let _ilFmtHM=null, _ilFmtHMS=null;
 function _ilParts(){
   try{
-    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+    const parts=(_ilFmtHM||(_ilFmtHM=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}))).formatToParts(new Date());
     const g=t=>{const p=parts.find(x=>x.type===t);return p?p.value:'';};
     let hh=g('hour'); if(hh==='24') hh='00'; // some engines emit 24 at midnight
     return {date:`${g('year')}-${g('month')}-${g('day')}`, time:`${hh}:${g('minute')}`};
@@ -4815,7 +4818,7 @@ function _ymdLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStar
 function _ilWall(){
   const n=new Date();
   try{
-    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(n);
+    const parts=(_ilFmtHMS||(_ilFmtHMS=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}))).formatToParts(n);
     const g=t=>{const p=parts.find(x=>x.type===t);return p?parseInt(p.value,10):0;};
     return new Date(g('year'),g('month')-1,g('day'),g('hour')%24,g('minute'),g('second'),n.getMilliseconds());
   }catch(e){ return n; }
@@ -5229,14 +5232,17 @@ function startClock(){
     if(hM) hM.setAttribute('transform', 'rotate('+(min*6)+' 100 100)');
     if(hS) hS.setAttribute('transform', 'rotate('+(sec*6)+' 100 100)');
     const cd = document.getElementById('clock-date');
-    if(cd) cd.textContent=`วัน${days[n.getDay()]}ที่ ${n.getDate()} ${mons[n.getMonth()]} ${n.getFullYear()+543}`;
+    // v377: the date line and the colour class are written only when they change (once a day / a few
+    // times a day), not every second.
+    const dTxt=`วัน${days[n.getDay()]}ที่ ${n.getDate()} ${mons[n.getMonth()]} ${n.getFullYear()+543}`;
+    if(cd && cd.textContent!==dTxt) cd.textContent=dTxt;
     // Neon color by hour
     const h = n.getHours();
     const neonClass = h>=5&&h<12 ? 'clock-neon-morning'
                     : h>=12&&h<17 ? 'clock-neon-afternoon'
                     : h>=17&&h<21 ? 'clock-neon-evening'
                     : 'clock-neon-night';
-    if(cl){
+    if(cl && !cl.classList.contains(neonClass)){
       cl.classList.remove('clock-neon-morning','clock-neon-afternoon','clock-neon-evening','clock-neon-night');
       cl.classList.add(neonClass);
     }
@@ -7011,6 +7017,20 @@ function toggleHoliday(dateStr){
 }
 
 // ========== STATS ==========
+let _statsChartJob=null, _statsChartWait=false;
+function _drawStatsCharts(){
+  const job=_statsChartJob; _statsChartJob=null;
+  try{
+    if(!job || typeof Chart==='undefined') return;
+    const pg=document.getElementById('page-stats');
+    if(!pg || !pg.classList.contains('active')) return;       // closed meanwhile: drawn when it is opened
+    if(chartH){ chartH.destroy(); chartH=null; }
+    if(chartOT){ chartOT.destroy(); chartOT=null; }
+    const cfg={responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(148,163,184,.15)'}}}};
+    chartH=new Chart(document.getElementById('chart-hours'),{type:'bar',data:{labels:job.labels,datasets:[{data:job.dataH,backgroundColor:'rgba(59,130,246,.6)',borderColor:'#3b82f6',borderWidth:1,borderRadius:4}]},options:hmChartOpts(cfg)});
+    chartOT=new Chart(document.getElementById('chart-ot'),{type:'bar',data:{labels:job.labels,datasets:[{data:job.dataOT,backgroundColor:'rgba(245,158,11,.6)',borderColor:'#f59e0b',borderWidth:1,borderRadius:4}]},options:hmChartOpts(cfg)});
+  }catch(e){ try{ console.warn('[stats] charts:', e); }catch(_){} }
+}
 function renderStats(){
   // v281: goal + leaderboard cards now sit on this page
   try { if(typeof window.renderHomeWidgets === 'function') setTimeout(window.renderHomeWidgets, 0); } catch(e){}
@@ -7083,11 +7103,20 @@ function renderStats(){
   // v241: Chart.js comes from CDN — on a cold start / cleared cache it may not
   // have loaded yet; without this guard renderStats throws and the page dies.
   if(typeof Chart !== 'undefined'){
-  if(chartH)chartH.destroy();
-  if(chartOT)chartOT.destroy();
-  const cfg={responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(148,163,184,.15)'}}}};
-  chartH=new Chart(document.getElementById('chart-hours'),{type:'bar',data:{labels,datasets:[{data:dataH,backgroundColor:'rgba(59,130,246,.6)',borderColor:'#3b82f6',borderWidth:1,borderRadius:4}]},options:hmChartOpts(cfg)});
-  chartOT=new Chart(document.getElementById('chart-ot'),{type:'bar',data:{labels,datasets:[{data:dataOT,backgroundColor:'rgba(245,158,11,.6)',borderColor:'#f59e0b',borderWidth:1,borderRadius:4}]},options:hmChartOpts(cfg)});
+  // v377: the two charts are drawn one frame after the page itself. Building them was the long
+  // pause when opening this page (the rest of the page waited for them); now the page appears
+  // first and the bars grow in right after, as before. They are also not built at all while this
+  // page is closed (edits made elsewhere re-rendered them unseen) — opening the page draws them.
+  if(chartH){ try{ chartH.destroy(); }catch(_){} chartH=null; }
+  if(chartOT){ try{ chartOT.destroy(); }catch(_){} chartOT=null; }
+  _statsChartJob={labels,dataH,dataOT};
+  if(!_statsChartWait){
+    _statsChartWait=true;
+    const run=()=>{ _statsChartWait=false; _drawStatsCharts(); };
+    // a hidden tab gets no animation frames — the timer is the fallback
+    let done=false; const once=()=>{ if(done) return; done=true; run(); };
+    requestAnimationFrame(()=>setTimeout(once,0)); setTimeout(once,400);
+  }
   }
 
   // Late list
@@ -11294,7 +11323,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v376';
+const APP_VERSION = 'v377';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -12812,7 +12841,21 @@ function makeFlipCard(frontEl, backHTML){
 function initBatch1Effects(){
   setTimeout(initMagneticButtons, 200);
   // Watch for new buttons
-  const obs = new MutationObserver(() => setTimeout(initMagneticButtons, 50));
+  // v377: look for new buttons only when an added element is or holds one, and with one timer at a
+  // time. Before, every change on the page (the clock, each second) re-scanned the whole document.
+  let magT = 0;
+  const obs = new MutationObserver(list => {
+    if(magT) return;
+    for(let i = 0; i < list.length; i++){
+      const add = list[i].addedNodes;
+      for(let j = 0; j < add.length; j++){
+        const nd = add[j];
+        if(nd.nodeType === 1 && (nd.matches('.btn-primary,.icon-btn') || nd.querySelector('.btn-primary,.icon-btn'))){
+          magT = setTimeout(() => { magT = 0; initMagneticButtons(); }, 50); return;
+        }
+      }
+    }
+  });
   obs.observe(document.body, {childList:true, subtree:true});
 }
 
@@ -13972,6 +14015,18 @@ if('serviceWorker' in navigator) {
 
   function el(id){ return document.getElementById(id); }
 
+  // v377: write only what actually changed. refreshMode runs on every body-class / button change and
+  // on a 4 s timer; rewriting the same mode, label and aria-label each time made the browser
+  // restyle the slider (and woke every observer watching the page) for nothing.
+  function putMode(mode, text){
+    if(action.dataset.mode !== mode) action.dataset.mode = mode;
+    if(label && label.textContent !== text) label.textContent = text;
+    if(thumb){
+      const a = label ? label.textContent : '';
+      if(thumb.getAttribute('aria-label') !== a) thumb.setAttribute('aria-label', a);
+    }
+  }
+
   function refreshMode(){
     if(!action) return;
     const btnIn  = el('btn-in');
@@ -13992,9 +14047,7 @@ if('serviceWorker' in navigator) {
       let pend = null;
       try { pend = typeof window.rudyCkgPending === 'function' ? window.rudyCkgPending() : null; } catch(_){}
       if(pend){
-        action.dataset.mode = 'idle';
-        if(label) label.textContent = pend === 'in' ? '⏳ กำลังบันทึกเข้างาน...' : '⏳ กำลังบันทึกออกงาน...';
-        if(thumb) thumb.setAttribute('aria-label', label ? label.textContent : '');
+        putMode('idle', pend === 'in' ? '⏳ กำลังบันทึกเข้างาน...' : '⏳ กำลังบันทึกออกงาน...');
         return;
       }
       let m = 'idle';
@@ -14004,23 +14057,15 @@ if('serviceWorker' in navigator) {
           m = records.some(r => r && r.empId === curUser.id && r.date === t && !r.checkOut) ? 'out' : 'in';
         }
       } catch(_){ m = 'idle'; }
-      action.dataset.mode = m;
-      if(label) label.textContent = m === 'in' ? 'เลื่อนเพื่อเข้างาน' : m === 'out' ? 'เลื่อนเพื่อออกงาน' : 'กำลังโหลด...';
-      if(thumb) thumb.setAttribute('aria-label', label ? label.textContent : '');
+      putMode(m, m === 'in' ? 'เลื่อนเพื่อเข้างาน' : m === 'out' ? 'เลื่อนเพื่อออกงาน' : 'กำลังโหลด...');
       return;
     }
     let mode = 'idle';
     if(!btnIn.disabled)       mode = 'in';
     else if(!btnOut.disabled) mode = 'out';
-    action.dataset.mode = mode;
-    if(label){
-      label.textContent = mode === 'in'  ? 'เลื่อนเพื่อเข้างาน'
-                        : mode === 'out' ? 'เลื่อนเพื่อออกงาน'
-                        : 'ปิดทำงานวันนี้แล้ว';
-    }
-    if(thumb){
-      thumb.setAttribute('aria-label', label ? label.textContent : '');
-    }
+    putMode(mode, mode === 'in'  ? 'เลื่อนเพื่อเข้างาน'
+                : mode === 'out' ? 'เลื่อนเพื่อออกงาน'
+                : 'ปิดทำงานวันนี้แล้ว');
   }
 
   // v303: smoother drag — fill moves by transform (no layout), and finger
@@ -14169,6 +14214,11 @@ if('serviceWorker' in navigator) {
     }
     // Also re-check after each interval-driven render (cheap belt-and-braces)
     setInterval(refreshMode, 4000);
+    // v377: the CKG guard asks for a refresh itself each time it runs. Until now the label followed
+    // the guard only because the guard rewrote the body class on every poll, which woke the observer
+    // above; that rewrite is gone, so the link is made explicit (refreshMode no longer writes when
+    // nothing changed, so this is cheap).
+    window.rudySlideRefresh = refreshMode;
     refreshMode();
   }
 
@@ -17974,8 +18024,11 @@ body.dark [class*="tab"] .label{
       const btnIn = document.getElementById('btn-in');
       const btnOut = document.getElementById('btn-out');
 
+      // v377: every write below is skipped when the value is already right. This function is polled
+      // (3×/s for the first 30 s, then every 2 s) and a classList/textContent write counts as a page
+      // change even when nothing changes, waking every observer on the page each time.
       if (ready) {
-        body.classList.remove('ckg-not-ready');
+        if (body.classList.contains('ckg-not-ready')) body.classList.remove('ckg-not-ready');
         // Restore: let renderHome() control disabled state normally again.
         // We only un-stash; we never force-enable (renderHome decides).
         if (btnIn && btnIn._ckgForcedEnable) {
@@ -17985,7 +18038,7 @@ body.dark [class*="tab"] .label{
           btnOut._ckgForcedEnable = false;
         }
       } else {
-        body.classList.add('ckg-not-ready');
+        if (!body.classList.contains('ckg-not-ready')) body.classList.add('ckg-not-ready');
         // CRITICAL: while loading, the disabled ATTRIBUTE blocks click
         // events entirely (capture handler can't even fire). So we
         // temporarily remove it — the capture handler becomes the sole
@@ -18002,17 +18055,21 @@ body.dark [class*="tab"] .label{
       // If we have a pending intent, show pending hint
       const hint = document.getElementById('ckg-hint');
       if (hint && ckgPendingIntent) {
-        hint.classList.add('ckg-pending');
-        hint.textContent = ckgPendingIntent === 'in'
+        const t = ckgPendingIntent === 'in'
           ? '✅ จะเข้างานให้อัตโนมัติเมื่อข้อมูลโหลดเสร็จ...'
           : '✅ จะออกงานให้อัตโนมัติเมื่อข้อมูลโหลดเสร็จ...';
+        if (!hint.classList.contains('ckg-pending')) hint.classList.add('ckg-pending');
+        if (hint.textContent !== t) hint.textContent = t;
         // force-show even if ready class removed
-        hint.style.display = 'block';
+        if (hint.style.display !== 'block') hint.style.display = 'block';
       } else if (hint && !ckgPendingIntent) {
-        hint.classList.remove('ckg-pending');
-        hint.textContent = '⏳ กำลังเตรียมข้อมูล... รอสักครู่';
-        hint.style.display = '';
+        const t = '⏳ กำลังเตรียมข้อมูล... รอสักครู่';
+        if (hint.classList.contains('ckg-pending')) hint.classList.remove('ckg-pending');
+        if (hint.textContent !== t) hint.textContent = t;
+        if (hint.style.display !== '') hint.style.display = '';
       }
+      // v377: the slide button follows this state (it used to be woken by the class rewrite above)
+      try { if (typeof window.rudySlideRefresh === 'function') window.rudySlideRefresh(); } catch (_) {}
     });
   }
 
@@ -20233,7 +20290,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
         ['uRes','uTime','uTop','uMid','uBot','uLit','uShade','uSunCol','uCover','uCloudA','uSun','uStars','uMoon','uPhase','uMoonR','uRain','uSunPos','uMoonPos']
           .forEach(function(n){ GL.u[n] = gl.getUniformLocation(pr, n); });
         cvs.addEventListener('webglcontextlost', function(e){ e.preventDefault(); glKill('context lost'); glRevive(); });
-        GL.gl = gl; GL.cvs = cvs; GL.prog = pr; GL.ok = true; GL.t0 = performance.now(); GL.pz = 0;
+        GL.gl = gl; GL.cvs = cvs; GL.cw = GL.ch = 0; GL.prog = pr; GL.ok = true; GL.t0 = performance.now(); GL.pz = 0;   // v377: cw/ch = this canvas's size (a rebuilt canvas starts unsized)
         return true;
       } catch(e){ glKill(e && e.message); return false; }
     }
@@ -20264,22 +20321,30 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       }
       if(document.hidden) document.addEventListener('visibilitychange', go); else go();
     }
+    // v377: the screen size is read on resize (and re-checked every ~60 draws), not on every draw.
+    // window.innerWidth/innerHeight make the browser finish any pending layout first, so reading them
+    // 25× a second forced a layout whenever anything on the page had just changed.
+    var VP = { w:0, h:0, n:0 };
+    function vpRead(){ VP.w = innerWidth; VP.h = innerHeight; VP.n = 0; }
+    window.addEventListener('resize', vpRead);
+    window.addEventListener('orientationchange', function(){ setTimeout(vpRead, 300); });
     function glResize(){
+      if(!VP.w || ++VP.n > 60) vpRead();
       var dpr = Math.min(window.devicePixelRatio || 1, 2), sc = (GL.q || (window.__rudyUltra ? 1 : .38)) * dpr;   // reduced res: clouds are soft (v351 Ultra: .72)
-      var w = Math.max(1, Math.round(innerWidth*sc)), h = Math.max(1, Math.round(innerHeight*sc));
-      if(GL.cvs.width !== w || GL.cvs.height !== h){ GL.cvs.width = w; GL.cvs.height = h; GL.gl.viewport(0,0,w,h); }
+      var w = Math.max(1, Math.round(VP.w*sc)), h = Math.max(1, Math.round(VP.h*sc));
+      if(GL.cw !== w || GL.ch !== h){ GL.cw = GL.cvs.width = w; GL.ch = GL.cvs.height = h; GL.gl.viewport(0,0,w,h); }
     }
     function glDraw(now){
       var gl = GL.gl, u = GL.u, st = GL.st; if(!gl || !st) return;
       glResize();
-      var W = innerWidth, H = innerHeight, safe = 0;
+      var W = VP.w, H = VP.h, safe = 0;
       try {   // custom properties don't resolve env(), so measure a probe element (once per size)
         if(!GL.probe){ GL.probe = document.createElement('div'); GL.probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;padding-top:env(safe-area-inset-top,0px)'; document.body.appendChild(GL.probe); }
         var key = W+'x'+H;
         if(GL.safeKey !== key){ GL.safe = parseFloat(getComputedStyle(GL.probe).paddingTop) || 0; GL.safeKey = key; }
         safe = GL.safe;
       } catch(_){}
-      gl.uniform2f(u.uRes, GL.cvs.width, GL.cvs.height);
+      gl.uniform2f(u.uRes, GL.cw, GL.ch);
       gl.uniform1f(u.uTime, st.still ? 20. : (now - GL.t0)/1000);
       gl.uniform3fv(u.uTop, st.top); gl.uniform3fv(u.uMid, st.mid); gl.uniform3fv(u.uBot, st.bot);
       gl.uniform3fv(u.uLit, st.lit); gl.uniform3fv(u.uShade, st.shade); gl.uniform3fv(u.uSunCol, st.sunCol);
@@ -21816,9 +21881,13 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
 
     var t0 = performance.now(), last = 0, raf = 0, alive = true, blinkAt = 2.5, lastT = 0;
     var hiHz = true, hiN = 0, hiW = 0;   // v368: Ultra follows a 120 Hz screen while a robot frame stays cheap
+    var visN = 0, visOk = false;         // v377: "is the robot on screen?" is re-measured every 30th frame, not on every one
     function frame(now){
       raf = 0; if(!alive) return;
-      if(document.hidden || !fab.offsetWidth){ setTimeout(kick, 800); return; }   // (offsetParent is always null for a fixed element)
+      // offsetWidth makes the browser finish any pending layout first; asked on every frame it forced one
+      // in the middle of each frame that had a page change. (offsetParent is always null for a fixed element)
+      if(!document.hidden && (!visOk || ++visN >= 30)){ visN = 0; visOk = !!fab.offsetWidth; }
+      if(document.hidden || !visOk){ visOk = false; setTimeout(kick, 800); return; }
       raf = requestAnimationFrame(frame);
       var gap = now - last;
       if(gap < (window.__rudyUltra ? (hiHz ? 7 : 15) : 32)) return; last = now;   // v351 Ultra: 60 fps robot · v368: up to 120 on a 120 Hz screen
@@ -22232,7 +22301,7 @@ html body #ai-fab#ai-fab.fab-tuck{ transform:translateX(70%) rotate(-10deg) !imp
 <script>
 (function(){
   'use strict';
-  var t = 0, fab = null, lastY = new WeakMap(), moved = 0;
+  var t = 0, until = 0, fab = null, lastY = new WeakMap(), moved = 0;
   // v376: the robot can sit anywhere — it peeks from its own edge; in the middle of the screen it only fades (no peek pose).
   // The side comes from the classes the drag code keeps on the robot (no layout read while the page scrolls).
   function peek(on){ try {
@@ -22247,12 +22316,22 @@ html body #ai-fab#ai-fab.fab-tuck{ transform:translateX(70%) rotate(-10deg) !imp
       fab.classList.add('fab-tuck'); peek(true);
       var b = document.getElementById('rb-bubble'); if(b) b.classList.remove('show');
     }
-    clearTimeout(t); t = setTimeout(function(){ fab.classList.remove('fab-tuck'); peek(false); moved = 0; }, 850);
+    until = performance.now() + 850; if(!t) t = setTimeout(untuck, 850);
+  }
+  // v377: one timer that waits out the last scroll event, instead of cancelling and re-creating a
+  // timer on every event. Positions are forgotten on return so the next scroll starts from zero.
+  function untuck(){
+    var left = until - performance.now();
+    if(left > 8){ t = setTimeout(untuck, left); return; }
+    t = 0; fab.classList.remove('fab-tuck'); peek(false); moved = 0; lastY = new WeakMap();
   }
   // capture: also catches scrolling inside scrollable panels
   document.addEventListener('scroll', function(e){
     var el = e.target;
     if(el && el.closest && el.closest('.modal-overlay')) return;   // sheets/modals don't move the robot
+    // v377: already tucked away: only push the return time back. Reading scrollTop / offsetWidth here
+    // made the browser lay the page out again inside every scroll event.
+    if(t && fab && fab.classList.contains('fab-tuck')){ until = performance.now() + 850; return; }
     var node = (el === document || !el || el.scrollTop === undefined) ? (document.scrollingElement || document.documentElement) : el;
     var y = node.scrollTop || 0, prev = lastY.has(node) ? lastY.get(node) : y; lastY.set(node, y);
     onScroll(y - prev);
@@ -24097,6 +24176,10 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
       try { new MutationObserver(later).observe(document.body, { attributes:true, attributeFilter:['class'] }); } catch(e){}   // theme / look changes move the robot
       window.addEventListener('resize', later);
       document.addEventListener('visibilitychange', function(){ if(document.hidden && S) cancel(''); later(); });
+      // v377: re-check every 2 s. The robot can appear or vanish without any change this code can
+      // watch (sign-out hides the whole app shell). Until now that was caught only because the CKG
+      // guard rewrote the body class every 2 s; that rewrite is gone, so the re-check is explicit.
+      setInterval(function(){ if(!document.hidden) later(); }, 2000);
     }
     if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   } catch(e){ console.warn('[v372] mic init', e); }
@@ -24305,8 +24388,12 @@ html body #ai-fab#ai-fab.fab-tuck.fab-mid{ transform:scale(.55) !important; opac
     function clampL(l, w){ return Math.max(6, Math.min(window.innerWidth - w - 6, l)); }
     function clampT(t, h){ return Math.max(inset.t + 6, Math.min(window.innerHeight - inset.b - h - 6, t)); }
     function set(l, t){
-      fab.style.setProperty('left', Math.round(l) + 'px', 'important');
-      fab.style.setProperty('top', Math.round(t) + 'px', 'important');
+      var L = Math.round(l) + 'px', T = Math.round(t) + 'px', fs = fab.style;
+      // v377: nothing to write when the robot is already there (apply() is re-run on a timer)
+      if(fs.getPropertyValue('left') === L && fs.getPropertyValue('top') === T && fs.getPropertyValue('right') === 'auto' && fs.getPropertyValue('bottom') === 'auto'
+         && fs.getPropertyPriority('left') === 'important' && fs.getPropertyPriority('top') === 'important' && fs.getPropertyPriority('right') === 'important' && fs.getPropertyPriority('bottom') === 'important') return;
+      fab.style.setProperty('left', L, 'important');
+      fab.style.setProperty('top', T, 'important');
       fab.style.setProperty('right', 'auto', 'important');     // beats the inline default and body.corp's !important bottom
       fab.style.setProperty('bottom', 'auto', 'important');
     }
@@ -24387,6 +24474,9 @@ html body #ai-fab#ai-fab.fab-tuck.fab-mid{ transform:scale(.55) !important; opac
     window.addEventListener('orientationchange', function(){ setTimeout(function(){ readInsets(); later(); }, 300); });
     try { new MutationObserver(function(){ if(fab.style.display !== lastDisp){ lastDisp = fab.style.display; later(); } }).observe(fab, { attributes:true, attributeFilter:['style'] }); } catch(e){}   // shown after sign-in
     try { new MutationObserver(later).observe(document.body, { attributes:true, attributeFilter:['class'] }); } catch(e){}   // a look change can resize the robot
+    // v377: explicit 2 s re-check, only when a position is saved (see the same note in the mic code:
+    // this used to ride on the CKG guard rewriting the body class every 2 s)
+    setInterval(function(){ if(pos && !st && !document.hidden) later(); }, 2000);
     readInsets(); apply(); showReset();
   } catch(e){ console.warn('[v376] robot drag init', e); }
 })();
