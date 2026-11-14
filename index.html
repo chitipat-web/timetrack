@@ -3846,6 +3846,11 @@ body.dark .slide-action{
     <!-- ║ HOME WIDGETS CONTAINER (Phase A/B/C - bulletproof)   ║ -->
     <!-- ║ Each widget is sandboxed - failure doesn't break app ║ -->
     <!-- ╚═══════════════════════════════════════════════════════╝ -->
+    <!-- v379: who is at work now. Everyone sees names + status; check-in times and hours only admins -->
+    <div class="card home-a-card hq-team" id="hq-team" style="display:none">
+      <div class="hq-team-head"><div class="section-title">ทีมวันนี้</div><span class="hq-team-count" id="hq-team-count"></span></div>
+      <div class="hq-team-list" id="hq-team-list"></div>
+    </div>
     <!-- v291: this month's estimated pay — tap to open the pay page -->
     <button class="card home-a-card hq-pay" id="hq-pay" type="button" style="display:none" onclick="showPage('salary',document.querySelector('.nav-btn[data-page=stats]'))">
       <span class="hq-pay-ic">💰</span>
@@ -11328,7 +11333,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v378';
+const APP_VERSION = 'v379';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -24510,6 +24515,7 @@ html.ios body.corp{
   --ios-fill:rgba(118,118,128,0.12); --ios-seg:#FFFFFF; --ios-tab-ink:#1C1C1E; --ios-tint-ink:#0058B0; --ios-btn:#0066CC;
   --ios-glass:rgba(250,250,252,0.80); --ios-glass-edge:rgba(0,0,0,0.08); --ios-glass-shadow:0 10px 30px rgba(0,0,0,0.14); --ios-pill:rgba(0,0,0,0.06);
   --ios-sep:#C6C6C8; --ios-bar:#D1D1D6;
+  --tint-green:rgba(52,199,89,0.16); --tint-red:rgba(255,59,48,0.12); --tint-orange:rgba(255,149,0,0.14);
   font-variant-numeric:tabular-nums;
 }
 html.ios body.corp.dark{
@@ -24524,6 +24530,7 @@ html.ios body.corp.dark{
   --ios-fill:rgba(118,118,128,0.24); --ios-seg:#636366; --ios-tab-ink:#F2F2F7; --ios-tint-ink:#409CFF; --ios-btn:#0071E3;
   --ios-glass:rgba(40,40,44,0.80); --ios-glass-edge:rgba(255,255,255,0.14); --ios-glass-shadow:0 10px 30px rgba(0,0,0,0.5); --ios-pill:rgba(255,255,255,0.12);
   --ios-sep:#38383A; --ios-bar:#3A3A3C;
+  --tint-green:rgba(48,209,88,0.18); --tint-red:rgba(255,69,58,0.18); --tint-orange:rgba(255,159,10,0.18);
 }
 
 /* top bar: flat, same colour as the page, hairline under it */
@@ -24616,6 +24623,91 @@ html.ios #page-settings .card:has(> #cinema-btn){ display:none !important; }
     };
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', label); else label();
+})();
+</script>
+<style id="hq-team-v379">
+/* v379: "ทีมวันนี้" card on the home page */
+#hq-team{ padding:14px 16px; margin-top:12px; }
+.hq-team-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:4px; }
+.hq-team-head .section-title{ margin:0 !important; }
+.hq-team-count{ font-size:13px; color:var(--text2); white-space:nowrap; }
+.hq-team-row{ display:flex; align-items:center; gap:12px; width:100%; min-height:52px; padding:6px 0; margin:0; border:0; border-top:1px solid var(--border); background:transparent; color:inherit; font:inherit; text-align:left; }
+.hq-team-row:first-child{ border-top:0; }
+button.hq-team-row{ cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.hq-team-av{ flex:none; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; overflow:hidden; color:#fff; font-size:15px; font-weight:700; }
+.hq-team-av img{ width:100%; height:100%; object-fit:cover; }
+.hq-team-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.hq-team-name{ font-size:15px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hq-team-me{ font-weight:400; color:var(--text2); }
+.hq-team-sub{ font-size:12px; color:var(--text2); }
+.hq-team-st{ flex:none; display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; color:var(--text); background:var(--surface2); white-space:nowrap; }
+.hq-team-st i{ width:7px; height:7px; border-radius:50%; background:var(--text2); }
+.hq-team-st.on{ background:var(--green-light); }
+.hq-team-st.on i{ background:var(--green); }
+.hq-team-st.none{ color:var(--text2); }
+.hq-team-st.none i{ background:transparent; border:1.5px solid currentColor; box-sizing:border-box; }
+html.ios body.corp .hq-team-row{ border-top-width:0.5px; }
+</style>
+<script>
+// v379: "ทีมวันนี้" — who is at work right now, on the home page.
+// Everyone sees each person's name and status (working / left / not in yet); the check-in time and
+// hours worked are shown only to admins (canView), as the owner asked. Built from today's records
+// (the same data the team page uses), re-drawn after every home render and once a minute while the
+// home page is on screen; the list is written only when it actually changed.
+(function(){
+  'use strict';
+  var last = '';
+  function esc(s){ try { return escHtml(s); } catch(e){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return '&#' + c.charCodeAt(0) + ';'; }); } }
+  function render(){
+    try {
+      var card = document.getElementById('hq-team'), list = document.getElementById('hq-team-list'), cnt = document.getElementById('hq-team-count');
+      if(!card || !list) return;
+      var ok = typeof curUser !== 'undefined' && curUser && typeof employees !== 'undefined' && Array.isArray(employees) && employees.length > 1 && typeof records !== 'undefined' && Array.isArray(records);
+      if(!ok){ if(card.style.display !== 'none') card.style.display = 'none'; return; }
+      var admin = typeof canView === 'function' && canView(), today = todayStr(), now = nowStr(), rank = { on:0, out:1, none:2 };
+      var rows = employees.map(function(emp, i){
+        var dr = records.filter(function(r){ return r && r.empId === emp.id && r.date === today; });
+        var open = null, first = '', lastOut = '', min = 0;
+        dr.forEach(function(r){
+          if(r.checkIn && (!first || r.checkIn < first)) first = r.checkIn;
+          if(!r.checkOut){ open = r; if(r.checkIn) min += calcHours(r.checkIn, now) * 60; }
+          else { if(r.checkOut > lastOut) lastOut = r.checkOut; if(r.checkIn) min += calcHours(r.checkIn, r.checkOut) * 60; }
+        });
+        var st = open ? 'on' : dr.length ? 'out' : 'none';
+        return { emp:emp, i:i, st:st, first:first, lastOut:lastOut, min:min };
+      }).sort(function(a, b){ return rank[a.st] - rank[b.st] || a.i - b.i; });
+      var label = { on:'กำลังทำงาน', out:'ออกงานแล้ว', none:'ยังไม่เข้างาน' };
+      var html = rows.map(function(r){
+        var e = r.emp, photo = '';
+        try { photo = getPhoto(e.email || ''); } catch(_){}
+        var av = '<span class="hq-team-av" style="background:' + (photo ? 'none' : esc(avatarGrad(e.name || ''))) + '">' + (photo ? '<img src="' + esc(photo) + '" alt="">' : esc(avatarLetter(e.name || ''))) + '</span>';
+        var sub = '';
+        if(admin && r.st === 'on') sub = 'เข้า ' + esc(r.first) + ' · ' + fmtHM(r.min);
+        else if(admin && r.st === 'out') sub = esc(r.first) + '–' + esc(r.lastOut) + ' · ' + fmtHM(r.min);
+        var me = e.id === curUser.id ? ' <span class="hq-team-me">(คุณ)</span>' : '';
+        var inner = av + '<span class="hq-team-txt"><span class="hq-team-name">' + esc(e.name || '') + me + '</span>' + (sub ? '<span class="hq-team-sub">' + sub + '</span>' : '') + '</span>'
+          + '<span class="hq-team-st ' + r.st + '"><i></i>' + label[r.st] + '</span>';
+        return admin ? '<button type="button" class="hq-team-row" onclick="showPage(\'team\',document.querySelector(\'.nav-btn[data-page=team]\'))">' + inner + '</button>'
+                     : '<div class="hq-team-row">' + inner + '</div>';
+      }).join('');
+      var onN = rows.filter(function(r){ return r.st === 'on'; }).length;
+      var count = 'ทำงานอยู่ ' + onN + ' จาก ' + rows.length + ' คน';
+      if(html !== last){ list.innerHTML = html; last = html; }
+      if(cnt && cnt.textContent !== count) cnt.textContent = count;
+      if(card.style.display !== '') card.style.display = '';
+    } catch(e){ try { console.warn('[v379] team card', e); } catch(_){} }
+  }
+  window.rudyHomeTeam = render;
+  if(typeof window.renderHome === 'function'){
+    var rh = window.renderHome;
+    window.renderHome = function(){ var r = rh.apply(this, arguments); render(); return r; };
+  }
+  setInterval(function(){
+    if(document.hidden) return;
+    var pg = document.getElementById('page-home');
+    if(pg && pg.classList.contains('active')) render();
+  }, 60000);
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(render, 0); }); else setTimeout(render, 0);
 })();
 </script>
 </body>
