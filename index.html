@@ -11361,7 +11361,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v394';
+const APP_VERSION = 'v395';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -25535,6 +25535,82 @@ body.dark #late-stack > div{ background:rgba(44,44,54,.62) !important; border-co
     var shell = document.getElementById('app-shell'); if(shell) new MutationObserver(later).observe(shell, { attributes:true, attributeFilter:['style'] });   // shown after sign-in
     later();
   } catch(e){ try { console.warn('[v393] nav title', e); } catch(_){} }
+})();
+</script>
+<style id="line-icons-v395">
+/* v395 — one line-icon style: the emoji at the start of card headings is swapped for an iPhone-style line icon (stroke follows the heading colour) */
+svg.lic{ display:inline-block; width:1.15em; height:1.15em; vertical-align:-0.2em; margin-right:0.38em; flex:none; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; overflow:visible; }
+.week-stat-icon svg.lic{ display:block; width:18px; height:18px; margin:0 auto; }
+.ai-insight-title svg.lic{ color:#8B7CF6; }
+body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .section-title svg.lic{ filter:drop-shadow(0 1px 2px rgba(0,22,60,0.45)); }
+</style>
+<script>
+/* v395 — line icons. Only the leading emoji text of a heading is replaced; the element, its id/class and the rest of its text stay as they were.
+   Settings is skipped (v392 already removes emoji there). Shapes drawn after Lucide (ISC licence). */
+(function(){
+  try {
+    var NS_OPEN = '<svg class="lic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">', NS_CLOSE = '</svg>';
+    var P = {
+      cal:     '<rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>',
+      clock:   '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>',
+      timer:   '<circle cx="12" cy="13.5" r="8"/><path d="M12 9.5v4l2.5 1.5M9.5 2.5h5M12 2.5v3"/>',
+      flame:   '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+      bolt:    '<path d="M13 2.5 4.5 13.5H12l-1 8 8.5-11H12z"/>',
+      target:  '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>',
+      check:   '<circle cx="12" cy="12" r="9"/><path d="m8 12.3 2.7 2.7 5.5-5.5"/>',
+      sparkle: '<path d="M10 3.5 11.6 8a2 2 0 0 0 1.4 1.4l4.5 1.6-4.5 1.6a2 2 0 0 0-1.4 1.4L10 18.5 8.4 14a2 2 0 0 0-1.4-1.4L2.5 11 7 9.4A2 2 0 0 0 8.4 8z"/><path d="M18.5 3v4M16.5 5h4M18.5 16.5v3M17 18h3"/>',
+      bulb:    '<path d="M15 14c.2-1 .7-1.7 1.5-2.5A5.2 5.2 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6M10 21.5h4"/>',
+      bars:    '<path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"/>',
+      up:      '<path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>',
+      down:    '<path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/>',
+      pie:     '<path d="M21 12a1 1 0 0 0 1-1.1A10 10 0 0 0 13.1 2a1 1 0 0 0-1.1 1v8a1 1 0 0 0 1 1z"/><path d="M21.2 15.9A10 10 0 1 1 8 2.8"/>',
+      warn:    '<path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4M12 17h.01"/>',
+      receipt: '<path d="M4 2.5v19l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1v-19l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M15.5 8.5h-5a1.75 1.75 0 0 0 0 3.5h3a1.75 1.75 0 0 1 0 3.5h-5M12 17v-10"/>',
+      plus:    '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+      key:     '<circle cx="15.5" cy="8.5" r="5"/><path d="m11.9 12.1-8.4 8.4M6.5 17.5l2 2M9 15l1.5 1.5"/>',
+      bot:     '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4.5M9 13v2M15 13v2M2 13.5v2M22 13.5v2"/>',
+      bell:    '<path d="M6 8a6 6 0 0 1 12 0c0 4.5 1.4 6 2.7 7.3A1 1 0 0 1 20 17H4a1 1 0 0 1-.7-1.7C4.6 14 6 12.5 6 8"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/>',
+      trophy:  '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22M14 14.7V17c0 .6.5 1 1 1.2 1.1.6 2 2 2 3.8"/><path d="M18 2H6v7a6 6 0 0 0 12 0z"/>',
+      award:   '<circle cx="12" cy="8" r="6"/><path d="M15.5 12.9 17 22l-5-3-5 3 1.5-9.1"/>',
+      list:    '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01"/>',
+      megaphone:'<path d="M3 10.5v3a1 1 0 0 0 1 1h2l8 5V4.5l-8 5H4a1 1 0 0 0-1 1z"/><path d="M17.5 9a4 4 0 0 1 0 6"/>',
+      ballot:  '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/>'
+    };
+    var MAP = { '📅':'cal','📆':'cal','🗓':'cal','⏰':'clock','⏱':'timer','🔥':'flame','⚡':'bolt','🎯':'target','💯':'check','✨':'sparkle','🧠':'bulb',
+      '📊':'bars','📈':'up','📉':'down','🥧':'pie','⚠':'warn','🧾':'receipt','➕':'plus','＋':'plus','🔑':'key','🤖':'bot','🔔':'bell','🏆':'trophy',
+      '🏅':'award','📋':'list','📢':'megaphone','🗳':'ballot' };
+    var SEL = '.report-title, .section-title, .chart-title, .ai-insight-title, .punct-label, .week-stat-icon';
+    var LEAD = /^\s*(\p{Extended_Pictographic}|＋)[︎️]?\s*/u;
+    var tpl = {};
+    function icon(k){ if(!tpl[k]){ var t = document.createElement('template'); t.innerHTML = NS_OPEN + P[k] + NS_CLOSE; tpl[k] = t.content.firstChild; } return tpl[k].cloneNode(true); }
+    function fix(el){
+      if(!el || el.closest('#page-settings')) return;
+      var n = el.firstChild;
+      while(n && n.nodeType === 3 && !n.nodeValue.trim()) n = n.nextSibling;   // skip blank text
+      if(!n || n.nodeType !== 3) return;                                        // icon already there, or heading starts with an element
+      var m = n.nodeValue.match(LEAD); if(!m) return;
+      var k = MAP[m[1]]; if(!k) return;                                         // unknown emoji: leave as it is
+      n.nodeValue = n.nodeValue.slice(m[0].length);
+      el.insertBefore(icon(k), n);
+    }
+    function scan(root){
+      if(root.nodeType !== 1) return;
+      if(root.matches(SEL)) fix(root);
+      var l = root.querySelectorAll(SEL); for(var i = 0; i < l.length; i++) fix(l[i]);
+    }
+    window.rudyLineIcons = { scan:function(){ scan(document.body); }, map:MAP };
+    scan(document.body);
+    new MutationObserver(function(list){
+      for(var i = 0; i < list.length; i++){
+        var add = list[i].addedNodes;
+        for(var j = 0; j < add.length; j++){
+          var n = add[j];
+          if(n.nodeType === 1){ if(n.namespaceURI === 'http://www.w3.org/2000/svg') continue; scan(n); }
+          else if(n.nodeType === 3){ var p = n.parentElement; if(p && p.matches && p.matches(SEL)) fix(p); }
+        }
+      }
+    }).observe(document.body, { childList:true, subtree:true });
+  } catch(e){ try { console.warn('[v395] line icons', e); } catch(_){} }
 })();
 </script>
 </body>
