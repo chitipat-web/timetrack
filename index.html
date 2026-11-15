@@ -11341,7 +11341,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v383';
+const APP_VERSION = 'v384';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -23365,6 +23365,7 @@ html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
     window.showPage = showPage = function(id, btn){
       var cur = document.querySelector('.page.active'), curId = cur ? cur.id.replace('page-', '') : '';
       // a tap while a transition is still pending: its update will apply the latest target
+      if(window.__rudySwipeNav){ return base.apply(this, arguments); }   // v384: a swipe animates the change itself
       if(busy && req && !req.ran){ req.self = this; req.args = arguments; return; }
       if(busy || !cur || curId === id || document.hidden){ return base.apply(this, arguments); }
       var back = ORDER.indexOf(id) < ORDER.indexOf(curId), html = document.documentElement;
@@ -24930,16 +24931,26 @@ body.lg.lg.lg.dark{
 body.lg.lg.lg.dark .nav{ box-shadow:var(--g-edge), 0 12px 30px rgba(6,14,40,0.30), var(--g-hi) !important; }
 body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), inset 0 1px 0 rgba(255,255,255,0.30) !important; }
 </style>
+<style id="swipe-v384">
+/* v384: while a swipe hands over to the next tab, the page it leaves stays on screen (fixed where it
+   was) and slides out beside the incoming one; the auto layout's centring is kept until it is gone. */
+#app-shell .page.sw-out{ display:block !important; pointer-events:none !important; }
+#app-shell .page.sw-out.sw-flex{ display:flex !important; flex-direction:column !important; justify-content:center !important; min-height:var(--sw-mh) !important; }
+</style>
 <script>
 // v383: swipe left / right on a page to move to the next / previous bottom tab, like Instagram.
-// The page follows the finger once the move is clearly sideways, then slides out and the next tab
-// slides in; a short or slow swipe springs back. Vertical scrolling and pull-to-refresh are untouched
-// (the gesture gives up as soon as the move is mostly vertical). Ignored where a sideways drag already
-// means something: the check-in slider, text fields, charts, sideways-scrolling strips, the robot and
-// its mic, the tab bar / top bar, and whenever a sheet or dialog is open. Listeners are passive.
+// The page follows the finger once the move is clearly sideways; a short or slow swipe springs back.
+// Vertical scrolling and pull-to-refresh are untouched (the gesture gives up as soon as the move is
+// mostly vertical). Ignored where a sideways drag already means something: the check-in slider, text
+// fields, charts, sideways-scrolling strips, the robot and its mic, the tab bar / top bar, and whenever
+// a sheet or dialog is open. Listeners are passive.
+// v384: on release the page keeps going the way the finger went, at the finger's speed, and the next
+// tab slides in right behind it on the same timeline - no backward drift and no pause while the new
+// page is built (the slide runs on the compositor; the page is rendered one frame after it starts).
 (function(){
   'use strict';
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var EASE = 'cubic-bezier(.22,.7,.3,1)';
   var st = null, raf = 0, busy = false;
   function tabs(){ return Array.prototype.filter.call(document.querySelectorAll('#main-nav .nav-btn'), function(b){ return b.offsetWidth > 0; }); }
   function blocked(t){
@@ -24953,19 +24964,28 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
   }
   function setX(x){ if(!st) return; st.x = x; if(!raf) raf = requestAnimationFrame(function(){ raf = 0; if(st && st.pg) st.pg.style.transform = 'translate3d(' + st.x + 'px,0,0)'; }); }
   function clear(pg){ if(!pg) return; pg.style.transform = ''; pg.style.willChange = ''; }
+  // change tab without the tap transition (v346), with the same sound
+  function nav(id, btn){
+    window.__rudySwipeNav = true;
+    try { showPage(id, btn); } catch(e){ return false; } finally { window.__rudySwipeNav = false; }
+    try { if(typeof soundPage === 'function') soundPage(); } catch(e){}
+    try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+    return true;
+  }
   document.addEventListener('touchstart', function(e){
     st = null;
     if(busy || e.touches.length !== 1) return;
     var shell = document.getElementById('app-shell'); if(!shell || !shell.offsetWidth) return;
     var pg = document.querySelector('#app-shell .page.active'); if(!pg || !pg.contains(e.target)) return;
     if(blocked(e.target)) return;
-    var t = e.touches[0];
-    st = { x0:t.clientX, y0:t.clientY, t0:performance.now(), pg:pg, lock:'', x:0 };
+    var t = e.touches[0], now = performance.now();
+    st = { x0:t.clientX, y0:t.clientY, pg:pg, lock:'', x:0, vx:0, lx:0, lt:now };
   }, { passive:true });
   document.addEventListener('touchmove', function(e){
     if(!st) return;
     var t = e.touches[0]; if(!t) return;
-    var dx = t.clientX - st.x0, dy = t.clientY - st.y0;
+    var dx = t.clientX - st.x0, dy = t.clientY - st.y0, now = performance.now(), gap = now - st.lt;
+    if(gap > 0){ var v = (dx - st.lx) / gap; st.vx = st.vx * 0.4 + v * 0.6; st.lx = dx; st.lt = now; }   // finger speed, px/ms
     if(!st.lock){
       if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
       if(Math.abs(dx) > Math.abs(dy) * 1.4){
@@ -24980,9 +25000,11 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
   function end(cancel){
     var s = st; st = null;
     if(!s || s.lock !== 'h') return;
-    var pg = s.pg, dx = s.x, W = window.innerWidth || 390, dt = Math.max(1, performance.now() - s.t0);
+    var pg = s.pg, dx = s.x, W = window.innerWidth || 390;
     var n = dx < 0 ? s.i + 1 : s.i - 1, next = (n >= 0 && n < s.list.length) ? s.list[n] : null;
-    var go = !cancel && next && (Math.abs(dx) > W * 0.28 || (Math.abs(dx) > 40 && Math.abs(dx) / dt > 0.45));
+    var v = (performance.now() - s.lt) > 80 ? 0 : s.vx;                 // a finger that stopped has no speed
+    var along = dx < 0 ? -v : v;                                         // > 0 while still moving the way it was dragged
+    var go = !cancel && !!next && ((Math.abs(dx) > W * 0.28 && along > -0.2) || (Math.abs(dx) > 30 && along > 0.35));
     if(raf){ cancelAnimationFrame(raf); raf = 0; }
     if(!go){
       if(reduce || !pg.animate){ clear(pg); return; }
@@ -24991,29 +25013,40 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
       return;
     }
     busy = true;
-    var dir = dx < 0 ? -1 : 1;
-    // with View Transitions (v346 wraps showPage in one) the page change already slides, starting from
-    // where the finger left the page: hand over as is and tidy the old page once it is hidden
-    if(document.documentElement.classList.contains('vt-ok')){
-      try { showPage(next.getAttribute('data-page'), next); } catch(e){}
-      try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
-      setTimeout(function(){ clear(pg); busy = false; }, 450);
-      return;
+    var dir = dx < 0 ? -1 : 1, id = next.getAttribute('data-page');
+    if(reduce || !pg.animate){ clear(pg); nav(id, next); busy = false; return; }
+    var dur = Math.round(Math.max(180, Math.min(320, 2.2 * (W - Math.abs(dx)) / Math.max(0.6, along))));
+    // keep the old page where it is on screen once it is no longer the active one
+    pg.style.transform = '';
+    var r = pg.getBoundingClientRect(), saved = {}, keys = ['position', 'top', 'left', 'width', 'margin'];
+    keys.forEach(function(k){ saved[k] = pg.style[k]; });
+    if(pg.style.display === 'flex'){ pg.style.setProperty('--sw-mh', pg.style.minHeight || '0px'); pg.classList.add('sw-flex'); }
+    pg.style.position = 'fixed'; pg.style.top = r.top + 'px'; pg.style.left = r.left + 'px'; pg.style.width = r.width + 'px'; pg.style.margin = '0';
+    pg.classList.add('sw-out');
+    var out = pg.animate([{ transform:'translate3d(' + dx + 'px,0,0)' }, { transform:'translate3d(' + (dir * W) + 'px,0,0)' }], { duration:dur, easing:EASE, fill:'forwards' });
+    var done = false;
+    function tidy(){
+      if(done) return; done = true;
+      try { out.cancel(); } catch(e){}
+      pg.classList.remove('sw-out', 'sw-flex'); pg.style.removeProperty('--sw-mh');
+      keys.forEach(function(k){ pg.style[k] = saved[k]; });
+      clear(pg); busy = false;
     }
-    function swap(){
-      clear(pg);
-      try { showPage(next.getAttribute('data-page'), next); } catch(e){ busy = false; return; }
-      try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+    out.onfinish = tidy; setTimeout(tidy, dur + 400);
+    // build the new page once the slide has really started (its start time is known), then bring it in
+    // on the same timeline so the two pages stay joined
+    var built = false;
+    function build(){
+      if(built) return; built = true;
+      if(!nav(id, next)){ tidy(); return; }
       var np = document.querySelector('#app-shell .page.active');
-      if(np && np.animate && !reduce){
-        var a = np.animate([{ transform:'translate3d(' + (-dir * W * 0.3) + 'px,0,0)', opacity:0.5 }, { transform:'translate3d(0,0,0)', opacity:1 }], { duration:220, easing:'cubic-bezier(.2,.8,.3,1)' });
-        a.onfinish = a.oncancel = function(){ busy = false; };
-      } else busy = false;
-      setTimeout(function(){ busy = false; }, 400);
+      if(!np || np === pg || !np.animate) return;
+      np.classList.remove('glitch-active', 'slide-in-right', 'slide-in-left');
+      var inA = np.animate([{ transform:'translate3d(' + (dx - dir * W) + 'px,0,0)' }, { transform:'translate3d(0,0,0)' }], { duration:dur, easing:EASE });
+      try { if(out.startTime != null) inA.startTime = out.startTime; } catch(e){}
     }
-    if(reduce || !pg.animate){ swap(); return; }
-    var out = pg.animate([{ transform:'translate3d(' + dx + 'px,0,0)', opacity:1 }, { transform:'translate3d(' + (dir * W) + 'px,0,0)', opacity:0.6 }], { duration:150, easing:'cubic-bezier(.4,0,1,1)', fill:'forwards' });
-    out.onfinish = function(){ out.cancel(); swap(); };
+    try { out.ready.then(function(){ setTimeout(build, 0); }, build); } catch(e){ setTimeout(build, 0); }
+    setTimeout(build, 120);
   }
   document.addEventListener('touchend', function(){ end(false); }, { passive:true });
   document.addEventListener('touchcancel', function(){ end(true); }, { passive:true });
