@@ -11363,7 +11363,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v389';
+const APP_VERSION = 'v390';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -25284,6 +25284,98 @@ html body #ai-fab#ai-fab.fab-idle.fab-idle.fab-idle{ transform:translateX(var(--
     document.addEventListener('visibilitychange', function(){ if(!document.hidden && !fab.classList.contains('fab-idle')) arm(); });
     arm();
   } catch(e){ try { console.warn('[v389] robot idle tuck', e); } catch(_){} }
+})();
+</script>
+<style id="settings-ios-v390">
+/* v390: Settings in the iPhone style - grouped lists with the section name above the group, rows
+   with a fixed label and an iOS switch on the right (green when on). The rows are the existing
+   buttons (same ids and handlers; their own changing text is hidden and the label comes from
+   data-label), so nothing that updates them breaks. Display is never forced here: whatever hides
+   a button in a look (iPhone look, look lock, sky) still hides its row. The row selector carries
+   :not(#_) and extra classes to outrank the settings page's own button rule (2 ids, 3 classes). */
+html body #page-settings .card.ios-grp{ position:relative; padding:0 !important; margin-top:34px !important; overflow:visible !important; }
+html body #page-settings .card.ios-grp > .section-title{ position:absolute; left:16px; top:-24px; margin:0 !important; font-size:13px !important; font-weight:600 !important; letter-spacing:.02em; color:var(--ink-3) !important; opacity:.85; }
+html body #page-settings .card.ios-grp > .section-title .st-ico{ display:none; }
+html body #page-settings .card.ios-grp > .look-lock-note{ margin:12px 16px 0; }
+html body #page-settings .card.ios-grp #theme-pick{ padding:14px 14px 4px; margin:0; }
+html body #page-settings .card.ios-grp #lg-level-wrap{ padding:6px 16px 12px; margin:0; }
+html body #page-settings .card.ios-grp > p, html body #page-settings .card.ios-grp > .muted{ padding:12px 16px 0; margin:0; }
+html body #page-settings .card .ios-row.ios-row.ios-row:not(#_){ position:relative; align-items:center; justify-content:space-between; width:100% !important; min-height:50px !important; height:auto !important;
+  margin:0 !important; padding:10px 16px !important; background:transparent !important; background-image:none !important; border:none !important; border-radius:0 !important;
+  box-shadow:inset 0 0.5px 0 var(--ios-sep, rgba(128,128,140,.30)) !important; color:transparent !important; font-size:0 !important; line-height:0 !important; text-align:left !important;
+  transform:none !important; animation:none !important; -webkit-backdrop-filter:none !important; backdrop-filter:none !important; outline:none !important; font-weight:500 !important; -webkit-tap-highlight-color:transparent; cursor:pointer; gap:12px; }
+html body #page-settings .card .ios-row.ios-row.ios-row:not(#_):not([style*="display:none"]):not([style*="display: none"]){ display:flex; }
+html body #page-settings .card .ios-row.ios-row.ios-row:not(#_):active{ background:var(--ios-fill, rgba(128,128,140,.14)) !important; }
+html body #page-settings .card .ios-row.ios-row.ios-row:not(#_)::before{ content:attr(data-label) !important; display:block !important; position:static !important; inset:auto !important; flex:1; min-width:0;
+  font-size:16px; line-height:1.3; font-weight:500; color:var(--ink); background:none !important; border:none !important; width:auto !important; height:auto !important; opacity:1 !important; transform:none !important; }
+/* the iOS switch: a track with the white knob drawn as a gradient circle, sliding on background-position */
+html body #page-settings .card .ios-row.ios-row.ios-row:not(#_)[data-on]::after{ content:"" !important; display:block !important; position:static !important; flex:none; width:51px !important; height:31px !important; border-radius:16px !important; opacity:1 !important; transform:none !important;
+  background:radial-gradient(circle at center, #fff 0 13px, rgba(0,0,0,.18) 13.5px, transparent 15px) no-repeat, rgba(120,120,128,.32) !important;
+  background-size:31px 31px, auto !important; background-position:0 0, 0 0 !important; transition:background-position .25s cubic-bezier(.3,1.3,.5,1), background-color .2s !important; }
+html body #page-settings .card .ios-row.ios-row.ios-row:not(#_)[data-on="1"]::after{ background:radial-gradient(circle at center, #fff 0 13px, rgba(0,0,0,.18) 13.5px, transparent 15px) no-repeat, #34C759 !important;
+  background-size:31px 31px, auto !important; background-position:20px 0, 0 0 !important; }
+html body.dark #page-settings .card .ios-row.ios-row.ios-row:not(#_)[data-on="0"]::after{ background-color:rgba(120,120,128,.40) !important; }
+/* an action row: a chevron instead of a switch */
+html body #page-settings .card .ios-row.ios-row.ios-row:not(#_)[data-go]::after{ content:"›" !important; display:block !important; position:static !important; font-size:22px; line-height:1; color:var(--ink-3); background:none !important; width:auto !important; height:auto !important; opacity:.7 !important; }
+html body #page-settings .card.ios-hide{ display:none !important; }
+</style>
+<script>
+// v390: Settings › appearance and sound as iPhone-style rows with switches (owner's request). The
+// existing buttons are kept - same ids and handlers - and only restyled (see the style above): a fixed
+// label in data-label, the state in data-on read from the same place the app keeps it, refreshed when
+// a button's own text changes (the app rewrites it on every change) or the dark/light class changes.
+// The effects (Cinematic) button joins the appearance group (not in the iPhone look, where its card is
+// hidden); the experimental WebGL "Liquid Glass" card, which repeated the theme's name, is hidden
+// unless it is switched on on this phone (so it can still be switched off).
+(function(){
+  'use strict';
+  try {
+    var pg = document.getElementById('page-settings'); if(!pg) return;
+    function ls(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+    function $(id){ return document.getElementById(id); }
+    var ROWS = {
+      'ios-btn':      { label:'หน้าตาแบบ iPhone (ทดลอง)', on:function(){ return !!window.__rudyIOS; } },
+      'ultra-btn':    { label:'กราฟิกสูงสุด (Ultra)', on:function(){ return !!(window.rudyUltraWanted && window.rudyUltraWanted()); } },
+      'tilt-btn':     { label:'ท้องฟ้าเอียงตามมือ', on:function(b){ return /:\s*เปิด/.test(b.textContent || ''); } },
+      'lite-btn':     { label:'โหมดประหยัดแบต', on:function(){ return ls('tt_lite') === '1'; } },
+      'cinema-btn':   { label:'เอฟเฟกต์ภาพยนตร์ (Cinematic)', on:function(){ return typeof isCinematicOn === 'function' && !!isCinematicOn(); } },
+      'theme-btn':    { label:'โหมดมืด', on:function(){ return document.body.classList.contains('dark'); } },
+      'audio-btn':    { label:'เสียงในแอป', on:function(){ try { return !!_audioEnabled; } catch(e){ return ls('tt_audio') !== '0'; } } },
+      'ambient-btn':  { label:'เสียงพื้นหลัง', on:function(){ try { return !!_ambientOn; } catch(e){ return ls('tt_ambient') === '1'; } } },
+      'fab-reset-btn':{ label:'ย้ายหุ่นยนต์ AI กลับมุมขวาล่าง', go:true }
+    };
+    function refresh(){
+      Object.keys(ROWS).forEach(function(id){
+        var b = $(id), r = ROWS[id]; if(!b) return;
+        b.classList.add('ios-row');
+        var lab = r.label;
+        if(id === 'ultra-btn' && window.rudyUltraWanted && window.rudyUltraWanted() && !window.__rudyUltra && !window.__rudyIOS && ls('tt_lite') !== '1') lab += ' · พักไว้ (เครื่องช้า)';
+        if(b.getAttribute('data-label') !== lab) b.setAttribute('data-label', lab);
+        if(r.go){ b.setAttribute('data-go', '1'); return; }
+        var on = false; try { on = !!r.on(b); } catch(e){}
+        var v = on ? '1' : '0';
+        if(b.getAttribute('data-on') !== v){ b.setAttribute('data-on', v); b.setAttribute('role', 'switch'); b.setAttribute('aria-checked', on ? 'true' : 'false'); b.setAttribute('aria-label', r.label); }
+      });
+    }
+    var pend = 0; function later(){ if(!pend) pend = requestAnimationFrame(function(){ pend = 0; refresh(); }); }
+    function build(){
+      var ios = $('ios-btn'), lvl = $('lg-level-wrap'), lite = $('lite-btn'), cin = $('cinema-btn'), aud = $('audio-btn');
+      var look = ios && ios.closest('.card');
+      if(look){
+        look.classList.add('ios-grp');
+        var ultra = $('ultra-btn'); if(ultra && ultra.parentNode === look) look.insertBefore(ios, ultra);   // after the picker and the glass level
+        if(cin && !window.__rudyIOS){ var cc = cin.closest('.card'); if(cc && cc !== look){ var after = lite && lite.parentNode === look ? lite.nextSibling : null; look.insertBefore(cin, after); cc.classList.add('ios-hide'); } }
+      }
+      var snd = aud && aud.closest('.card'); if(snd) snd.classList.add('ios-grp');
+      var lg = $('lg-card-section'); if(lg && ls('rudy_lg_enabled_v1') !== '1') lg.classList.add('ios-hide');
+      refresh();
+      var mo = new MutationObserver(later);
+      Object.keys(ROWS).forEach(function(id){ var b = $(id); if(b) mo.observe(b, { childList:true, characterData:true, subtree:true }); });
+      new MutationObserver(later).observe(document.body, { attributes:true, attributeFilter:['class'] });
+      pg.addEventListener('click', function(e){ if(e.target && e.target.closest && e.target.closest('.ios-row')) setTimeout(refresh, 60); }, true);
+    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+  } catch(e){ try { console.warn('[v390] settings rows', e); } catch(_){} }
 })();
 </script>
 </body>
