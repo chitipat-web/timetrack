@@ -11346,7 +11346,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v385';
+const APP_VERSION = 'v386';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -24974,7 +24974,11 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
   function tf(x){ return 'translate3d(' + x + 'px,0,0)'; }
   function setX(x){
     if(!st) return; st.x = x;
-    if(!raf) raf = requestAnimationFrame(function(){ raf = 0; if(!st) return; st.pg.style.transform = tf(st.x); if(st.peek) st.peek.style.transform = tf(st.x + st.side * st.W); });
+    if(!raf) raf = requestAnimationFrame(function(){
+      raf = 0; if(!st) return; st.pg.style.transform = tf(st.x); if(st.peek) st.peek.style.transform = tf(st.x + st.side * st.W);
+      var g = window.rudyNavGlide, to = st.list && st.list[st.i + (st.x < 0 ? 1 : -1)];          // v386: the tab circle follows the finger
+      if(g && to) try { g.track(st.list[st.i], to, Math.abs(st.x) / st.W); } catch(e){}
+    });
   }
   function clear(pg){ if(!pg) return; pg.style.transform = ''; pg.style.willChange = ''; }
   // pin a page where it is on screen (fixed), so it can be shown beside / after the active one
@@ -24994,16 +24998,17 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     try { _renderPageContent(id); } catch(e){}
     s.peek = el; s.peekId = id; s.peekFit = centre(el);
   }
+  function glide(m, b){ try { var g = window.rudyNavGlide; if(g) g[m](b); } catch(e){} }   // v386 tab circle
   // change tab without the tap transition (v346), with the same sound
   function nav(id, btn, built){
     window.__rudySwipeNav = true; if(built) window.__rudySwipeSkipRender = id;
-    try { showPage(id, btn); } catch(e){ return false; } finally { window.__rudySwipeNav = false; window.__rudySwipeSkipRender = null; }
+    try { showPage(id, btn); } catch(e){ glide('settle'); return false; } finally { window.__rudySwipeNav = false; window.__rudySwipeSkipRender = null; }
     try { if(typeof soundPage === 'function') soundPage(); } catch(e){}
     try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
     return true;
   }
   document.addEventListener('touchstart', function(e){
-    if(st){ peekHide(st); if(st.lock) clear(st.pg); }                   // a second finger mid-drag: let go of it all
+    if(st){ peekHide(st); if(st.lock){ clear(st.pg); glide('settle'); } }   // a second finger mid-drag: let go of it all
     st = null;
     if(busy || e.touches.length !== 1) return;
     var shell = document.getElementById('app-shell'); if(!shell || !shell.offsetWidth) return;
@@ -25043,6 +25048,7 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     var go = !cancel && !!next && ((Math.abs(dx) > W * 0.28 && along > -0.2) || (Math.abs(dx) > 30 && along > 0.35));
     if(raf){ cancelAnimationFrame(raf); raf = 0; }
     if(!go){
+      glide('settle');
       var pk = s.peek, pkTo = s.side * W;
       if(reduce || !pg.animate){ clear(pg); peekHide(s); return; }
       var back = pg.animate([{ transform:tf(dx) }, { transform:tf(0) }], { duration:180, easing:'cubic-bezier(.2,.8,.3,1)' });
@@ -25054,6 +25060,7 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     }
     busy = true;
     var dir = dx < 0 ? -1 : 1, id = next.getAttribute('data-page');
+    glide('to', next);
     var peek = (s.peek && s.peekId === id) ? s.peek : null;
     if(!peek) peekHide(s);
     if(reduce || !pg.animate){ clear(pg); if(peek) peekHide(s); nav(id, next); busy = false; return; }
@@ -25103,6 +25110,98 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
   }
   document.addEventListener('touchend', function(){ end(false); }, { passive:true });
   document.addEventListener('touchcancel', function(){ end(true); }, { passive:true });
+})();
+</script>
+<style id="nav-glide-v386">
+/* v386: one indicator glides between the bottom tabs (and follows a swipe) instead of each tab
+   fading its own in and out. It copies the look's own active-tab style at runtime, so every look
+   (gold pill, Liquid Glass, iPhone pill, corporate top bar) keeps its appearance. */
+#main-nav.ng-on .nav-btn.active{ background:transparent !important; box-shadow:none !important; }
+#main-nav.ng-on .nav-btn.active::before{ display:none !important; }
+#main-nav.ng-on .nav-btn{ position:relative; z-index:1; }
+#ng-glider{ position:absolute; left:0; top:0; width:0; height:0; pointer-events:none; z-index:0; display:block; will-change:transform; }
+#ng-glider > i{ position:absolute; display:none; pointer-events:none; }
+</style>
+<script>
+// v386: the active-tab indicator glides to the new tab (tap, swipe, AI) with a slight spring, and
+// follows the finger while a page is swiped (window.rudyNavGlide). If anything fails the class
+// that hides the tabs' own highlight is never added, so the look's own indicator stays.
+(function(){
+  'use strict';
+  try {
+    var nav = document.getElementById('main-nav'); if(!nav || !window.MutationObserver) return;
+    var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    var SPRING = 'cubic-bezier(.32,1.28,.5,1)', DUR = 380;
+    var G = document.createElement('i'); G.id = 'ng-glider'; G.setAttribute('aria-hidden', 'true');
+    var S = document.createElement('i'); G.appendChild(S); nav.appendChild(G);
+    var cur = null, sig = '', tc = { f:null, t:null, a:null, b:null };
+    function active(){ var a = nav.querySelector('.nav-btn.active'); return a && a.offsetWidth > 0 ? a : null; }
+    function geo(b){ return { x:b.offsetLeft, y:b.offsetTop, w:b.offsetWidth, h:b.offsetHeight }; }
+    // copy the look's highlight (the tab's own background / shadow / shape and its ::before)
+    function readLook(){
+      var a = active(); if(!a) return false;
+      var tr = a.style.transition; a.style.transition = 'none';
+      nav.classList.remove('ng-on');
+      var cs = getComputedStyle(a), bs = getComputedStyle(a, '::before'), w = a.offsetWidth || 1;
+      G.style.backgroundColor = cs.backgroundColor; G.style.backgroundImage = cs.backgroundImage;
+      G.style.boxShadow = cs.boxShadow; G.style.borderRadius = cs.borderRadius;
+      if(bs.display !== 'none' && bs.content && bs.content !== 'none' && bs.content !== 'normal'){
+        S.style.display = 'block';
+        S.style.left = ((parseFloat(bs.left) || 0) / w * 100) + '%'; S.style.right = ((parseFloat(bs.right) || 0) / w * 100) + '%';
+        S.style.top = bs.top; S.style.height = bs.height; S.style.borderRadius = bs.borderRadius;
+        S.style.background = bs.backgroundImage !== 'none' ? bs.backgroundImage : bs.backgroundColor;
+      } else S.style.display = 'none';
+      nav.classList.add('ng-on');
+      void getComputedStyle(a).backgroundColor;                         // settle styles now, so nothing fades
+      a.style.transition = tr;
+      return true;
+    }
+    function restyle(force){
+      var b = document.body, s = b.className + '|' + (b.getAttribute('data-sky') || '') + '|' + document.documentElement.className.replace(/\bvt-back\b/g, '');
+      if(!force && s === sig) return false;
+      sig = readLook() ? s : '';
+      return true;
+    }
+    function put(g, anim){
+      G.style.transition = anim && !reduce ? 'transform ' + DUR + 'ms ' + SPRING + ', width ' + DUR + 'ms ' + SPRING : 'none';
+      G.style.height = g.h + 'px'; G.style.width = g.w + 'px';
+      G.style.transform = 'translate3d(' + g.x + 'px,' + g.y + 'px,0)';
+    }
+    function place(anim, to){
+      var a = to || active();
+      if(!a || !a.offsetWidth){ G.style.opacity = '0'; cur = null; return; }
+      if(!sig) restyle(true);
+      G.style.opacity = '';
+      put(geo(a), !!anim && !!cur);
+      cur = a; tc.f = null;
+    }
+    // a swipe: sit between the current tab and the one the finger heads to (f = 0..1)
+    function track(from, to, f){
+      if(!from || !to || !cur) return;
+      if(tc.f !== from || tc.t !== to){ tc.f = from; tc.t = to; tc.a = geo(from); tc.b = geo(to); }
+      var a = tc.a, b = tc.b; f = Math.max(0, Math.min(1, f));
+      put({ x:a.x + (b.x - a.x) * f, y:a.y, w:a.w + (b.w - a.w) * f, h:a.h }, false);
+    }
+    window.rudyNavGlide = { track:track, settle:function(){ place(true); }, to:function(b){ place(true, b); } };
+    // the active tab changed (any way): glide there
+    new MutationObserver(function(list){
+      for(var k = 0; k < list.length; k++){
+        var t = list[k].target;
+        if(t !== G && t.classList && t.classList.contains('nav-btn')){ var a = active(); if(a && a !== cur) place(true); else if(!a) place(false); return; }
+      }
+    }).observe(nav, { subtree:true, attributes:true, attributeFilter:['class'] });
+    // the look changed (theme, dark mode, sky phase, iPhone look): copy it again and re-measure
+    var lt = 0;
+    var relook = new MutationObserver(function(){ if(lt) return; lt = requestAnimationFrame(function(){ lt = 0; if(restyle(false)) place(false); }); });
+    relook.observe(document.body, { attributes:true, attributeFilter:['class', 'data-sky'] });
+    relook.observe(document.documentElement, { attributes:true, attributeFilter:['class'] });
+    // the bar appeared, or its size / the labels changed
+    var rt = 0;
+    function resized(){ if(rt) return; rt = requestAnimationFrame(function(){ rt = 0; if(!sig) restyle(true); place(false); }); }
+    if(window.ResizeObserver){ var ro = new ResizeObserver(resized); ro.observe(nav); Array.prototype.forEach.call(nav.querySelectorAll('.nav-btn'), function(b){ ro.observe(b); }); }
+    window.addEventListener('resize', resized, { passive:true });
+    place(false);
+  } catch(e){ try { document.getElementById('main-nav').classList.remove('ng-on'); console.warn('[v386] tab glide', e); } catch(_){} }
 })();
 </script>
 </body>
