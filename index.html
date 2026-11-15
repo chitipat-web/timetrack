@@ -4584,9 +4584,7 @@ body.dark .slide-action{
         <span class="more-row-ic mi mi-gray"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span><span class="more-row-lbl">ตั้งค่า</span><span class="more-row-chev">›</span>
       </button>
     </div>
-    <!-- v334: achievements showcase (filled by the achievements script) -->
-    <div class="more-sec">เหรียญรางวัล <span id="ach-count"></span></div>
-    <div class="card ach-card" id="ach-grid"></div>
+    <!-- v334 achievements showcase removed in v391 (owner: not useful, clutters the screen) -->
     <!-- v291: shortcuts that used to be hard to find -->
     <div class="more-sec">ทางลัด</div>
     <div class="card" style="padding:6px 0">
@@ -11363,7 +11361,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v390';
+const APP_VERSION = 'v391';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -23467,6 +23465,11 @@ html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
 // toast at the top (non-blocking, auto-hides); all medals live in อื่นๆ.
 (function(){
   'use strict';
+  // v391: medals switched off (owner: not useful, clutters the screen) - no unlock pop-ups, no
+  // checks every 30 s, no medal icons baked at start-up. Earned medals stay saved on the phone
+  // (tt_ach_<uid>); set MEDALS_ON to true (and put the More-page section back) to bring them back.
+  var MEDALS_ON = false;
+  if(!MEDALS_ON) return;
   var DEFS = [
     { id:'first',    tier:'bronze', big:'1',   small:'ครั้งแรก',  name:'ก้าวแรก',           desc:'ลงเวลาเข้างานครั้งแรก',                        goal:1,   key:'days' },
     { id:'early10',  tier:'bronze', big:'06',  small:'ก่อนเวลา',    name:'นกตัวแรก',          desc:'เข้างานก่อน 05:55 ครบ 10 วัน',                 goal:10,  key:'early' },
@@ -23678,9 +23681,7 @@ html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
       + '<div class="wr-big"><span data-cnt="' + W.onTime + '">0</span><small>%</small></div></div>'
       + '<div class="wr-k">เข้างานตรงเวลา</div><div class="wr-s">' + (W.late ? 'สาย ' + W.late + ' วัน' : 'ไม่สายเลยสักวัน! 🌟') + '</div>'
       + (W.early.d ? '<div class="wr-fun">เช้าสุด ' + esc(W.early.s) + ' น. · ' + esc(dd(W.early.d)) + ' ☀️</div>' : ''));
-    var meds = (W.medals || []).slice(-5).map(medalHTML).join('');
-    out.push('<div class="wr-k">ตรงเวลาติดต่อกันนานสุด</div><div class="wr-big"><span data-cnt="' + W.streak + '">0</span><small>วัน</small></div>'
-      + '<div class="wr-s">เหรียญรางวัลที่มี ' + (W.medals || []).length + '/' + ((window.ACH_DEFS || []).length || 9) + '</div>' + (meds ? '<div class="wr-meds">' + meds + '</div>' : ''));
+    out.push('<div class="wr-k">ตรงเวลาติดต่อกันนานสุด</div><div class="wr-big"><span data-cnt="' + W.streak + '">0</span><small>วัน</small></div>');   // v391: no medals line
     out.push((I.coins || I.coin ? '<img class="wr-img" src="' + (I.coins || I.coin) + '" alt="">' : '<div style="font-size:90px">💰</div>')
       + '<div class="wr-k">ค่าแรง' + (W.actual ? 'ที่ได้จริง' : ' (ประมาณ)') + '</div><div class="wr-big">₪<span data-cnt="' + Math.round(W.pay) + '" data-fmt="1">0</span></div>'
       + '<div class="wr-s">จากชั่วโมงคิดเงิน ' + H.h + ' ชม. ' + ('0' + H.m).slice(-2) + ' น.</div>');
