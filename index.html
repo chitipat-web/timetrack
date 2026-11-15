@@ -7040,7 +7040,7 @@ function _drawStatsCharts(){
   try{
     if(!job || typeof Chart==='undefined') return;
     const pg=document.getElementById('page-stats');
-    if(!pg || !pg.classList.contains('active')) return;       // closed meanwhile: drawn when it is opened
+    if(!pg || !(pg.classList.contains('active') || pg.classList.contains('sw-peek'))) return;   // closed meanwhile: drawn when it is opened (v385: or while a swipe shows it)
     if(chartH){ chartH.destroy(); chartH=null; }
     if(chartOT){ chartOT.destroy(); chartOT=null; }
     const cfg={responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(148,163,184,.15)'}}}};
@@ -10774,6 +10774,11 @@ function showPage(id,btn){
     if(groupBtn) btn = groupBtn;
   }
   if(btn)btn.classList.add('active');
+  // v385: a swipe builds the next page while it slides in beside the finger; it is not built twice
+  if(window.__rudySwipeSkipRender !== id) _renderPageContent(id);
+}
+// v385: what opening a page draws (was the tail of showPage; also used for the page a swipe shows)
+function _renderPageContent(id){
   if(id==='home')     { renderHome() } // v240: refresh home (chips + slider mode) on nav back
   if(id==='stats')    { showSkeletonStats(); renderStats() }
   if(id==='summary')  { renderSummary() }
@@ -11341,7 +11346,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v384';
+const APP_VERSION = 'v385';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -24933,9 +24938,10 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
 </style>
 <style id="swipe-v384">
 /* v384: while a swipe hands over to the next tab, the page it leaves stays on screen (fixed where it
-   was) and slides out beside the incoming one; the auto layout's centring is kept until it is gone. */
-#app-shell .page.sw-out{ display:block !important; pointer-events:none !important; }
-#app-shell .page.sw-out.sw-flex{ display:flex !important; flex-direction:column !important; justify-content:center !important; min-height:var(--sw-mh) !important; }
+   was) and slides out beside the incoming one; the auto layout's centring is kept until it is gone.
+   v385: the same for the next tab's page while the finger drags it in (sw-peek). */
+#app-shell .page.sw-out, #app-shell .page.sw-peek{ display:block !important; pointer-events:none !important; }
+#app-shell .page.sw-out.sw-flex, #app-shell .page.sw-peek.sw-flex{ display:flex !important; flex-direction:column !important; justify-content:center !important; min-height:var(--sw-mh) !important; }
 </style>
 <script>
 // v383: swipe left / right on a page to move to the next / previous bottom tab, like Instagram.
@@ -24945,12 +24951,15 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
 // fields, charts, sideways-scrolling strips, the robot and its mic, the tab bar / top bar, and whenever
 // a sheet or dialog is open. Listeners are passive.
 // v384: on release the page keeps going the way the finger went, at the finger's speed, and the next
-// tab slides in right behind it on the same timeline - no backward drift and no pause while the new
-// page is built (the slide runs on the compositor; the page is rendered one frame after it starts).
+// tab slides in right behind it on the same timeline - no backward drift and no pause.
+// v385: the next tab's page comes in beside the finger while dragging, built fresh at that moment
+// (so it never shows old data) and not built again on release. Only where View Transitions run
+// (html.vt-ok): elsewhere the old page animation (pageSwipeIn) would replay on it, so v384 applies.
 (function(){
   'use strict';
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   var EASE = 'cubic-bezier(.22,.7,.3,1)';
+  var FIX = ['position', 'top', 'left', 'width', 'margin'];
   var st = null, raf = 0, busy = false;
   function tabs(){ return Array.prototype.filter.call(document.querySelectorAll('#main-nav .nav-btn'), function(b){ return b.offsetWidth > 0; }); }
   function blocked(t){
@@ -24962,24 +24971,46 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     }
     return false;
   }
-  function setX(x){ if(!st) return; st.x = x; if(!raf) raf = requestAnimationFrame(function(){ raf = 0; if(st && st.pg) st.pg.style.transform = 'translate3d(' + st.x + 'px,0,0)'; }); }
+  function tf(x){ return 'translate3d(' + x + 'px,0,0)'; }
+  function setX(x){
+    if(!st) return; st.x = x;
+    if(!raf) raf = requestAnimationFrame(function(){ raf = 0; if(!st) return; st.pg.style.transform = tf(st.x); if(st.peek) st.peek.style.transform = tf(st.x + st.side * st.W); });
+  }
   function clear(pg){ if(!pg) return; pg.style.transform = ''; pg.style.willChange = ''; }
+  // pin a page where it is on screen (fixed), so it can be shown beside / after the active one
+  function pin(el, left, top, width){ el.style.position = 'fixed'; el.style.top = top + 'px'; el.style.left = left + 'px'; el.style.width = width + 'px'; el.style.margin = '0'; }
+  function unpin(el, cls){ el.classList.remove(cls, 'sw-flex'); el.style.removeProperty('--sw-mh'); FIX.forEach(function(k){ el.style[k] = ''; }); clear(el); }
+  // the auto layout (v212) centres a page shorter than the screen; do the same for a page shown early
+  function fit(){ var sh = document.getElementById('app-shell'), pb = sh ? parseFloat(getComputedStyle(sh).paddingBottom) : 100; return Math.max(0, window.innerHeight - (pb || 100) - 16); }
+  function centre(el){ var h = el.scrollHeight, f = fit(); if(h > 0 && h < f){ el.style.setProperty('--sw-mh', f + 'px'); el.classList.add('sw-flex'); return f; } return 0; }
+  // the next / previous tab's page, built now and placed beside the finger
+  function peekHide(s){ if(s && s.peek){ unpin(s.peek, 'sw-peek'); s.peek = null; s.peekId = ''; s.peekFit = 0; } }
+  function peekShow(s, side){
+    peekHide(s); s.side = side;
+    var btn = s.list[s.i + side], id = btn && btn.getAttribute('data-page'), el = id && document.getElementById('page-' + id);
+    if(!el || el === s.pg) return;
+    pin(el, s.left0, s.top0, s.w0); el.style.transform = tf(s.x + side * s.W); el.style.willChange = 'transform';
+    el.classList.add('sw-peek');
+    try { _renderPageContent(id); } catch(e){}
+    s.peek = el; s.peekId = id; s.peekFit = centre(el);
+  }
   // change tab without the tap transition (v346), with the same sound
-  function nav(id, btn){
-    window.__rudySwipeNav = true;
-    try { showPage(id, btn); } catch(e){ return false; } finally { window.__rudySwipeNav = false; }
+  function nav(id, btn, built){
+    window.__rudySwipeNav = true; if(built) window.__rudySwipeSkipRender = id;
+    try { showPage(id, btn); } catch(e){ return false; } finally { window.__rudySwipeNav = false; window.__rudySwipeSkipRender = null; }
     try { if(typeof soundPage === 'function') soundPage(); } catch(e){}
     try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
     return true;
   }
   document.addEventListener('touchstart', function(e){
+    if(st){ peekHide(st); if(st.lock) clear(st.pg); }                   // a second finger mid-drag: let go of it all
     st = null;
     if(busy || e.touches.length !== 1) return;
     var shell = document.getElementById('app-shell'); if(!shell || !shell.offsetWidth) return;
     var pg = document.querySelector('#app-shell .page.active'); if(!pg || !pg.contains(e.target)) return;
     if(blocked(e.target)) return;
     var t = e.touches[0], now = performance.now();
-    st = { x0:t.clientX, y0:t.clientY, pg:pg, lock:'', x:0, vx:0, lx:0, lt:now };
+    st = { x0:t.clientX, y0:t.clientY, pg:pg, lock:'', x:0, vx:0, lx:0, lt:now, side:0, peek:null, peekId:'', peekFit:0 };
   }, { passive:true });
   document.addEventListener('touchmove', function(e){
     if(!st) return;
@@ -24991,59 +25022,81 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
       if(Math.abs(dx) > Math.abs(dy) * 1.4){
         var list = tabs(), i = list.indexOf(document.querySelector('#main-nav .nav-btn.active'));
         if(i < 0){ st = null; return; }
-        st.lock = 'h'; st.list = list; st.i = i; st.pg.style.willChange = 'transform';
+        var r = st.pg.getBoundingClientRect();
+        st.lock = 'h'; st.list = list; st.i = i; st.W = window.innerWidth || 390; st.pg.style.willChange = 'transform';
+        st.left0 = r.left; st.top0 = r.top + (document.body.scrollTop || 0); st.w0 = r.width;   // where a page opened at the top sits
+        st.canPeek = !reduce && document.documentElement.classList.contains('vt-ok') && typeof _renderPageContent === 'function';
       } else { st = null; return; }                                      // vertical: leave it to the page
     }
-    var n = dx < 0 ? st.i + 1 : st.i - 1, has = n >= 0 && n < st.list.length;
+    var side = dx < 0 ? 1 : -1, has = !!st.list[st.i + side];
+    if(has && st.canPeek && st.side !== side){ st.x = dx; peekShow(st, side); }
+    else if(!has && st.peek){ peekHide(st); st.side = 0; }
     setX(has ? dx : dx * 0.25);                                          // rubber band at the first / last tab
   }, { passive:true });
   function end(cancel){
     var s = st; st = null;
     if(!s || s.lock !== 'h') return;
-    var pg = s.pg, dx = s.x, W = window.innerWidth || 390;
+    var pg = s.pg, dx = s.x, W = s.W;
     var n = dx < 0 ? s.i + 1 : s.i - 1, next = (n >= 0 && n < s.list.length) ? s.list[n] : null;
     var v = (performance.now() - s.lt) > 80 ? 0 : s.vx;                 // a finger that stopped has no speed
     var along = dx < 0 ? -v : v;                                         // > 0 while still moving the way it was dragged
     var go = !cancel && !!next && ((Math.abs(dx) > W * 0.28 && along > -0.2) || (Math.abs(dx) > 30 && along > 0.35));
     if(raf){ cancelAnimationFrame(raf); raf = 0; }
     if(!go){
-      if(reduce || !pg.animate){ clear(pg); return; }
-      var back = pg.animate([{ transform:'translate3d(' + dx + 'px,0,0)' }, { transform:'translate3d(0,0,0)' }], { duration:180, easing:'cubic-bezier(.2,.8,.3,1)' });
-      pg.style.transform = ''; back.onfinish = function(){ clear(pg); };
+      var pk = s.peek, pkTo = s.side * W;
+      if(reduce || !pg.animate){ clear(pg); peekHide(s); return; }
+      var back = pg.animate([{ transform:tf(dx) }, { transform:tf(0) }], { duration:180, easing:'cubic-bezier(.2,.8,.3,1)' });
+      pg.style.transform = '';
+      if(pk){ pk.style.transform = tf(pkTo); pk.animate([{ transform:tf(dx + pkTo) }, { transform:tf(pkTo) }], { duration:180, easing:'cubic-bezier(.2,.8,.3,1)' }); }
+      back.onfinish = function(){ clear(pg); peekHide(s); };
+      setTimeout(function(){ if(s.peek){ clear(pg); peekHide(s); } }, 600);
       return;
     }
     busy = true;
     var dir = dx < 0 ? -1 : 1, id = next.getAttribute('data-page');
-    if(reduce || !pg.animate){ clear(pg); nav(id, next); busy = false; return; }
+    var peek = (s.peek && s.peekId === id) ? s.peek : null;
+    if(!peek) peekHide(s);
+    if(reduce || !pg.animate){ clear(pg); if(peek) peekHide(s); nav(id, next); busy = false; return; }
     var dur = Math.round(Math.max(180, Math.min(320, 2.2 * (W - Math.abs(dx)) / Math.max(0.6, along))));
     // keep the old page where it is on screen once it is no longer the active one
     pg.style.transform = '';
-    var r = pg.getBoundingClientRect(), saved = {}, keys = ['position', 'top', 'left', 'width', 'margin'];
-    keys.forEach(function(k){ saved[k] = pg.style[k]; });
+    var r = pg.getBoundingClientRect(), saved = {};
+    FIX.forEach(function(k){ saved[k] = pg.style[k]; });
     if(pg.style.display === 'flex'){ pg.style.setProperty('--sw-mh', pg.style.minHeight || '0px'); pg.classList.add('sw-flex'); }
-    pg.style.position = 'fixed'; pg.style.top = r.top + 'px'; pg.style.left = r.left + 'px'; pg.style.width = r.width + 'px'; pg.style.margin = '0';
+    pin(pg, r.left, r.top, r.width);
     pg.classList.add('sw-out');
-    var out = pg.animate([{ transform:'translate3d(' + dx + 'px,0,0)' }, { transform:'translate3d(' + (dir * W) + 'px,0,0)' }], { duration:dur, easing:EASE, fill:'forwards' });
+    var out = pg.animate([{ transform:tf(dx) }, { transform:tf(dir * W) }], { duration:dur, easing:EASE, fill:'forwards' });
     var done = false;
     function tidy(){
       if(done) return; done = true;
       try { out.cancel(); } catch(e){}
       pg.classList.remove('sw-out', 'sw-flex'); pg.style.removeProperty('--sw-mh');
-      keys.forEach(function(k){ pg.style[k] = saved[k]; });
+      FIX.forEach(function(k){ pg.style[k] = saved[k]; });
       clear(pg); busy = false;
     }
     out.onfinish = tidy; setTimeout(tidy, dur + 400);
-    // build the new page once the slide has really started (its start time is known), then bring it in
-    // on the same timeline so the two pages stay joined
+    function slideIn(np){
+      if(!np || np === pg || !np.animate) return;
+      np.classList.remove('glitch-active', 'slide-in-right', 'slide-in-left');
+      var inA = np.animate([{ transform:tf(dx - dir * W) }, { transform:tf(0) }], { duration:dur, easing:EASE });
+      try { if(out.startTime != null) inA.startTime = out.startTime; } catch(e){}
+    }
+    if(peek){
+      // the page is already built and on screen: make it the active one where it is and let it finish
+      var f = s.peekFit; s.peek = null;
+      if(!nav(id, next, true)){ unpin(peek, 'sw-peek'); tidy(); return; }
+      unpin(peek, 'sw-peek');
+      if(f){ peek.style.display = 'flex'; peek.style.flexDirection = 'column'; peek.style.justifyContent = 'center'; peek.style.minHeight = f + 'px'; }   // as the auto layout will
+      slideIn(peek);
+      return;
+    }
+    // no page beside the finger (older browsers): build it once the slide has really started, then
+    // bring it in on the same timeline so the two pages stay joined
     var built = false;
     function build(){
       if(built) return; built = true;
       if(!nav(id, next)){ tidy(); return; }
-      var np = document.querySelector('#app-shell .page.active');
-      if(!np || np === pg || !np.animate) return;
-      np.classList.remove('glitch-active', 'slide-in-right', 'slide-in-left');
-      var inA = np.animate([{ transform:'translate3d(' + (dx - dir * W) + 'px,0,0)' }, { transform:'translate3d(0,0,0)' }], { duration:dur, easing:EASE });
-      try { if(out.startTime != null) inA.startTime = out.startTime; } catch(e){}
+      slideIn(document.querySelector('#app-shell .page.active'));
     }
     try { out.ready.then(function(){ setTimeout(build, 0); }, build); } catch(e){ setTimeout(build, 0); }
     setTimeout(build, 120);
