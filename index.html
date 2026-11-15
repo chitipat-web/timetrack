@@ -11341,7 +11341,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v381';
+const APP_VERSION = 'v382';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -24916,5 +24916,19 @@ html.ios body.corp .hq-pay-ic{ display:none !important; }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', nav); else nav();
 })();
 </script>
+<style id="lg-edge-v382">
+/* v382: Liquid Glass (dark — the look always runs dark over the sky) edges. The black outer ring
+   (0 0 0 1px rgba(0,0,0,.6)) and the heavy black drop shadows read as dirty black outlines on the blue
+   sky. Real Liquid Glass shows a light rim, not a dark one: the outer ring is now a faint light hairline,
+   the shadow a soft navy one, and the rim light runs round the edge (brightest along the top). */
+body.lg.lg.lg.dark{
+  --g-edge:0 0 0 0.5px rgba(255,255,255,0.10);
+  --g-shadow:var(--g-edge), 0 10px 28px rgba(6,14,40,0.24), 0 2px 6px rgba(6,14,40,0.10);
+  --g-hi:inset 0 1px 0 rgba(255,255,255,0.42), inset 1px 0 0 rgba(255,255,255,0.14), inset -1px 0 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(255,255,255,0.10), inset 0 0 20px rgba(255,255,255,0.06);
+  --g-stroke:rgba(255,255,255,0.20);
+}
+body.lg.lg.lg.dark .nav{ box-shadow:var(--g-edge), 0 12px 30px rgba(6,14,40,0.30), var(--g-hi) !important; }
+body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), inset 0 1px 0 rgba(255,255,255,0.30) !important; }
+</style>
 </body>
 </html>
