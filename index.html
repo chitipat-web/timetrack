@@ -4047,7 +4047,7 @@ body.dark .slide-action{
     <div id="heatmap-container"></div>
     <div class="chart-card"><div class="chart-title">⏰ ชั่วโมงทำงานรายวัน</div><canvas id="chart-hours" height="180"></canvas></div>
     <div class="chart-card"><div class="chart-title">⚡ ชั่วโมงโอทีรายวัน</div><canvas id="chart-ot" height="120"></canvas></div>
-    <div id="badges-container"></div>
+    <div id="badges-container" style="display:none"></div><!-- v394: badge card removed (owner request, like v391 medals) -->
     <div id="stats-late-list"></div>
   </div>
 
@@ -7079,7 +7079,7 @@ function renderStats(){
   if(streakC) streakC.innerHTML = renderStreakCard(curUser.id);
   if(punctC)  punctC.innerHTML  = renderPunctualityCard(curUser.id);
   if(heatC)   heatC.innerHTML   = renderHeatmap(curUser.id);
-  if(badgeC)  badgeC.innerHTML  = renderBadgesCard(curUser.id);
+  if(badgeC)  badgeC.innerHTML  = '';   // v394: badge card removed — renderBadgesCard() kept, not called
 
   // ===== Advanced Reports =====
   const reportC = document.getElementById('reports-container');
@@ -11361,7 +11361,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v393';
+const APP_VERSION = 'v394';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
