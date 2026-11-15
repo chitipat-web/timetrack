@@ -11341,7 +11341,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v382';
+const APP_VERSION = 'v383';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -24930,5 +24930,94 @@ body.lg.lg.lg.dark{
 body.lg.lg.lg.dark .nav{ box-shadow:var(--g-edge), 0 12px 30px rgba(6,14,40,0.30), var(--g-hi) !important; }
 body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), inset 0 1px 0 rgba(255,255,255,0.30) !important; }
 </style>
+<script>
+// v383: swipe left / right on a page to move to the next / previous bottom tab, like Instagram.
+// The page follows the finger once the move is clearly sideways, then slides out and the next tab
+// slides in; a short or slow swipe springs back. Vertical scrolling and pull-to-refresh are untouched
+// (the gesture gives up as soon as the move is mostly vertical). Ignored where a sideways drag already
+// means something: the check-in slider, text fields, charts, sideways-scrolling strips, the robot and
+// its mic, the tab bar / top bar, and whenever a sheet or dialog is open. Listeners are passive.
+(function(){
+  'use strict';
+  var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var st = null, raf = 0, busy = false;
+  function tabs(){ return Array.prototype.filter.call(document.querySelectorAll('#main-nav .nav-btn'), function(b){ return b.offsetWidth > 0; }); }
+  function blocked(t){
+    if(!t || !t.closest) return true;
+    if(document.querySelector('.modal-overlay.open, #confirm-overlay.open, #ai-modal.open')) return true;
+    if(t.closest('input, textarea, select, [contenteditable="true"], canvas, #slide-action, #place-switch, .swipe-wrap, #ai-fab, #rb-mic, #rb-bubble, #main-nav, .topbar, .modal-overlay, [data-noswipe]')) return true;
+    for(var e = t; e && e !== document.body && e !== document.documentElement; e = e.parentElement){
+      if(e.scrollWidth > e.clientWidth + 2){ var ox = getComputedStyle(e).overflowX; if(ox === 'auto' || ox === 'scroll') return true; }
+    }
+    return false;
+  }
+  function setX(x){ if(!st) return; st.x = x; if(!raf) raf = requestAnimationFrame(function(){ raf = 0; if(st && st.pg) st.pg.style.transform = 'translate3d(' + st.x + 'px,0,0)'; }); }
+  function clear(pg){ if(!pg) return; pg.style.transform = ''; pg.style.willChange = ''; }
+  document.addEventListener('touchstart', function(e){
+    st = null;
+    if(busy || e.touches.length !== 1) return;
+    var shell = document.getElementById('app-shell'); if(!shell || !shell.offsetWidth) return;
+    var pg = document.querySelector('#app-shell .page.active'); if(!pg || !pg.contains(e.target)) return;
+    if(blocked(e.target)) return;
+    var t = e.touches[0];
+    st = { x0:t.clientX, y0:t.clientY, t0:performance.now(), pg:pg, lock:'', x:0 };
+  }, { passive:true });
+  document.addEventListener('touchmove', function(e){
+    if(!st) return;
+    var t = e.touches[0]; if(!t) return;
+    var dx = t.clientX - st.x0, dy = t.clientY - st.y0;
+    if(!st.lock){
+      if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      if(Math.abs(dx) > Math.abs(dy) * 1.4){
+        var list = tabs(), i = list.indexOf(document.querySelector('#main-nav .nav-btn.active'));
+        if(i < 0){ st = null; return; }
+        st.lock = 'h'; st.list = list; st.i = i; st.pg.style.willChange = 'transform';
+      } else { st = null; return; }                                      // vertical: leave it to the page
+    }
+    var n = dx < 0 ? st.i + 1 : st.i - 1, has = n >= 0 && n < st.list.length;
+    setX(has ? dx : dx * 0.25);                                          // rubber band at the first / last tab
+  }, { passive:true });
+  function end(cancel){
+    var s = st; st = null;
+    if(!s || s.lock !== 'h') return;
+    var pg = s.pg, dx = s.x, W = window.innerWidth || 390, dt = Math.max(1, performance.now() - s.t0);
+    var n = dx < 0 ? s.i + 1 : s.i - 1, next = (n >= 0 && n < s.list.length) ? s.list[n] : null;
+    var go = !cancel && next && (Math.abs(dx) > W * 0.28 || (Math.abs(dx) > 40 && Math.abs(dx) / dt > 0.45));
+    if(raf){ cancelAnimationFrame(raf); raf = 0; }
+    if(!go){
+      if(reduce || !pg.animate){ clear(pg); return; }
+      var back = pg.animate([{ transform:'translate3d(' + dx + 'px,0,0)' }, { transform:'translate3d(0,0,0)' }], { duration:180, easing:'cubic-bezier(.2,.8,.3,1)' });
+      pg.style.transform = ''; back.onfinish = function(){ clear(pg); };
+      return;
+    }
+    busy = true;
+    var dir = dx < 0 ? -1 : 1;
+    // with View Transitions (v346 wraps showPage in one) the page change already slides, starting from
+    // where the finger left the page: hand over as is and tidy the old page once it is hidden
+    if(document.documentElement.classList.contains('vt-ok')){
+      try { showPage(next.getAttribute('data-page'), next); } catch(e){}
+      try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+      setTimeout(function(){ clear(pg); busy = false; }, 450);
+      return;
+    }
+    function swap(){
+      clear(pg);
+      try { showPage(next.getAttribute('data-page'), next); } catch(e){ busy = false; return; }
+      try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+      var np = document.querySelector('#app-shell .page.active');
+      if(np && np.animate && !reduce){
+        var a = np.animate([{ transform:'translate3d(' + (-dir * W * 0.3) + 'px,0,0)', opacity:0.5 }, { transform:'translate3d(0,0,0)', opacity:1 }], { duration:220, easing:'cubic-bezier(.2,.8,.3,1)' });
+        a.onfinish = a.oncancel = function(){ busy = false; };
+      } else busy = false;
+      setTimeout(function(){ busy = false; }, 400);
+    }
+    if(reduce || !pg.animate){ swap(); return; }
+    var out = pg.animate([{ transform:'translate3d(' + dx + 'px,0,0)', opacity:1 }, { transform:'translate3d(' + (dir * W) + 'px,0,0)', opacity:0.6 }], { duration:150, easing:'cubic-bezier(.4,0,1,1)', fill:'forwards' });
+    out.onfinish = function(){ out.cancel(); swap(); };
+  }
+  document.addEventListener('touchend', function(){ end(false); }, { passive:true });
+  document.addEventListener('touchcancel', function(){ end(true); }, { passive:true });
+})();
+</script>
 </body>
 </html>
