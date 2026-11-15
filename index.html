@@ -3177,7 +3177,18 @@ window.ICO = (function(){ var P = {clock:'<circle cx="12" cy="12" r="9"/><path d
   if(L ? L === 'ios' : localStorage.getItem('rudy_ios') === '1'){ window.__rudyIOS = true; document.documentElement.classList.add('ios'); }
 } catch(e){} })();
 // v323 battery saver: read once, before any heavy effect starts
-(function(){ try { if(!window.__rudyIOS && localStorage.getItem('tt_ultra') === '1' && localStorage.getItem('tt_lite') !== '1' && sessionStorage.getItem('tt_ultra_off') !== '1'){ window.__rudyUltra = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('ultra'); }); } } catch(e){} })();   // v351 Ultra graphics
+(function(){ try {
+  // v387: Ultra is on by default for the Liquid Glass look (the owner's look) when the person has never
+  // set it in Settings; their own choice (tt_ultra '1' / '0') always wins. Other looks (corporate,
+  // classic sky, iPhone, or locked to one of those) and battery saver keep it off unless chosen.
+  window.rudyUltraWanted = function(){ try {
+    var u = localStorage.getItem('tt_ultra'); if(u === '1') return true; if(u === '0') return false;
+    if(window.__rudyIOS || localStorage.getItem('tt_lite') === '1') return false;
+    if(window.__rudyLock) return window.__rudyLock === 'glass';
+    return localStorage.getItem('tt_ui') !== 'corp' && localStorage.getItem('tt_sky') !== '1';
+  } catch(e){ return false; } };
+  if(!window.__rudyIOS && window.rudyUltraWanted() && localStorage.getItem('tt_lite') !== '1' && sessionStorage.getItem('tt_ultra_off') !== '1'){ window.__rudyUltra = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('ultra'); }); }
+} catch(e){} })();   // v351 Ultra graphics
 (function(){ try { if(localStorage.getItem('tt_lite') === '1'){ window.__rudyLite = true; window.__skyNoGL = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('lite','cinema-off'); }); } } catch(e){} })();
 </script>
 <!-- INIT LOADING OVERLAY (load-D-motion: underwater theme) -->
@@ -11346,7 +11357,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v386';
+const APP_VERSION = 'v387';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -23021,9 +23032,9 @@ body.sky:not(.sky-gl) .ultra-rays{ display:none; }
 // if the phone can't keep up), and the Settings toggle.
 (function(){
   'use strict';
-  function btn(){ var b = document.getElementById('ultra-btn'); if(b){ var w = false; try { w = localStorage.getItem('tt_ultra') === '1'; } catch(e){} b.textContent = '✨ กราฟิกสูงสุด (Ultra): ' + (w ? (window.__rudyUltra ? 'เปิด' : 'เปิด (พักไว้ — เครื่องช้า)') : 'ปิด'); } }
+  function btn(){ var b = document.getElementById('ultra-btn'); if(b){ var w = false; try { w = !!(window.rudyUltraWanted && window.rudyUltraWanted()); } catch(e){} b.textContent = '✨ กราฟิกสูงสุด (Ultra): ' + (w ? (window.__rudyUltra ? 'เปิด' : 'เปิด (พักไว้ — เครื่องช้า)') : 'ปิด'); } }
   window.rudyToggleUltra = function(){
-    var w = false; try { w = localStorage.getItem('tt_ultra') === '1'; } catch(e){}
+    var w = false; try { w = !!(window.rudyUltraWanted && window.rudyUltraWanted()); } catch(e){}   // v387: what is in effect now, default included
     if(!w && window.__rudyLite){ if(typeof showToast === 'function') showToast('ปิดโหมดประหยัดแบตก่อน', 'warning'); return; }
     try { localStorage.setItem('tt_ultra', w ? '0' : '1'); sessionStorage.removeItem('tt_ultra_off'); } catch(e){}
     if(typeof showToast === 'function') showToast(w ? 'ปิด Ultra — กำลังโหลดใหม่…' : '✨ เปิด Ultra — กำลังโหลดใหม่…');
