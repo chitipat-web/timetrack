@@ -11363,7 +11363,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v388';
+const APP_VERSION = 'v389';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -22278,7 +22278,9 @@ body.dark #rb-bubble::after{ border-color:rgba(180,160,255,0.28); }
   // v376: the robot can be dragged anywhere — the bubble grows toward the roomier side (to the right when
   // the robot is on the left half) and sits under the robot when there's no room above it. Bottom-right as before.
   function place(fab){
-    var r = fab.getBoundingClientRect(), W = window.innerWidth, H = window.innerHeight;
+    // v389: the robot's resting spot (layout box), not where it is drawn now - it may be tucked into
+    // the screen edge and on its way out to speak
+    var fl = fab.offsetLeft, ft = fab.offsetTop, r = { left:fl, top:ft, width:fab.offsetWidth, right:fl + fab.offsetWidth, bottom:ft + fab.offsetHeight }, W = window.innerWidth, H = window.innerHeight;
     var lt = r.left + r.width / 2 < W / 2, bl = r.top < (b.offsetHeight || 60) + 60;
     b.classList.toggle('rb-l', lt); b.classList.toggle('rb-b', bl);
     b.style.left = lt ? Math.max(8, r.left - 2) + 'px' : 'auto';
@@ -22302,6 +22304,7 @@ body.dark #rb-bubble::after{ border-color:rgba(180,160,255,0.28); }
     }
     if(o.html != null) b.innerHTML = o.html; else b.textContent = text;
     b.classList.toggle('long', !!o.long);
+    try { if(window.rbIdle) window.rbIdle.wake(); } catch(e){}   // v389: out of the screen edge to speak
     place(fab);
     void b.offsetWidth; b.classList.add('show');
     if(!noWave){ try { if(window.rb3d && window.rb3d.wave) window.rb3d.wave(); } catch(e){} }
@@ -22364,7 +22367,7 @@ html body #ai-fab#ai-fab.fab-tuck{ transform:translateX(70%) rotate(-10deg) !imp
   function untuck(){
     var left = until - performance.now();
     if(left > 8){ t = setTimeout(untuck, left); return; }
-    t = 0; fab.classList.remove('fab-tuck'); peek(false); moved = 0; lastY = new WeakMap();
+    t = 0; fab.classList.remove('fab-tuck'); if(!fab.classList.contains('fab-idle')) peek(false); moved = 0; lastY = new WeakMap();   // v389: still tucked when idle
   }
   // capture: also catches scrolling inside scrollable panels
   document.addEventListener('scroll', function(e){
@@ -24037,7 +24040,7 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
     function sync(){
       if(!btn) return;
       fab = fab || document.getElementById('ai-fab');
-      var vis = !!(fab && fab.offsetWidth) && !document.hidden, tucked = !!(fab && (fab.classList.contains('fab-tuck') || fab.classList.contains('fab-drag'))), active = state !== 'idle';   // v376: also away while the robot is dragged
+      var vis = !!(fab && fab.offsetWidth) && !document.hidden, tucked = !!(fab && (fab.classList.contains('fab-tuck') || fab.classList.contains('fab-drag') || fab.classList.contains('fab-idle'))), active = state !== 'idle';   // v376: also away while the robot is dragged
       btn.classList.toggle('on', vis || active);
       btn.classList.toggle('away', !active && (!vis || tucked));
       if(vis) place();
@@ -24045,6 +24048,7 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
     function later(){ if(!pend) pend = requestAnimationFrame(function(){ pend = 0; sync(); }); }
     function setState(s){
       state = s;
+      if(s !== 'idle') try { if(window.rbIdle) window.rbIdle.wake(); } catch(e){}   // v389
       if(!btn) return;
       btn.classList.toggle('listen', s === 'listen');
       btn.classList.toggle('think', s === 'think');
@@ -25219,6 +25223,67 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     window.addEventListener('resize', resized, { passive:true });
     place(false);
   } catch(e){ try { document.getElementById('main-nav').classList.remove('ng-on'); console.warn('[v386] tab glide', e); } catch(_){} }
+})();
+</script>
+<style id="rb-idle-v389">
+/* v389: when the AI robot has not been used for a moment it slips into the nearest screen edge and
+   only peeks out (like a stashed Picture-in-Picture window), so it no longer covers the page; the mic
+   goes away with it. A tap on the part that peeks out brings it back; it also comes out by itself to
+   speak or listen. */
+html body #ai-fab#ai-fab.fab-idle.fab-idle.fab-idle{ transform:translateX(var(--idle-x, 70%)) rotate(var(--idle-r, -10deg)) !important; opacity:1 !important; animation:none !important;
+  transition:transform .55s cubic-bezier(.22,1,.36,1), opacity .3s ease; }
+@media (prefers-reduced-motion: reduce){ html body #ai-fab#ai-fab.fab-idle.fab-idle.fab-idle{ transition:none !important; } }
+</style>
+<script>
+// v389: tuck the AI robot into the screen edge when idle (owner's choice). 3 s after the last touch on
+// it (or after it finished speaking / listening, or was dragged) it moves to the nearer side edge with
+// 26px left to see, leaning in (rb3d.peek). The first tap on it then only brings it out (that click is
+// swallowed, as the drag code does), so a tap at the edge never opens the AI by surprise; dragging from
+// the edge works straight away. It stays out while it speaks, listens / thinks, is dragged, or the AI
+// sheet is open. window.rbIdle.wake() is called by the speech bubble and the mic.
+(function(){
+  'use strict';
+  try {
+    var fab = document.getElementById('ai-fab'); if(!fab) return;
+    var IDLE = 3000, PEEK = 26, timer = 0, swallow = 0, held = false;
+    function busy(){
+      if(!fab.offsetWidth || document.hidden || fab.classList.contains('fab-drag')) return true;
+      var b = document.getElementById('rb-bubble'), m = document.getElementById('rb-mic');
+      return !!(b && b.classList.contains('show')) || !!(m && (m.classList.contains('listen') || m.classList.contains('think'))) || !!document.querySelector('#ai-modal.open, .modal-overlay.open');
+    }
+    function arm(){ clearTimeout(timer); timer = setTimeout(tuck, IDLE); }
+    function tuck(){
+      timer = 0;
+      if(fab.classList.contains('fab-idle')) return;
+      if(busy()){ arm(); return; }
+      var l = fab.offsetLeft, w = fab.offsetWidth, W = window.innerWidth, right = l + w / 2 >= W / 2;   // the nearer side
+      fab.style.setProperty('--idle-x', Math.round(right ? W - PEEK - l : PEEK - w - l) + 'px');
+      fab.style.setProperty('--idle-r', right ? '-10deg' : '10deg');
+      fab.classList.add('fab-idle');
+      try { var b = document.getElementById('rb-bubble'); if(b) b.classList.remove('show'); } catch(e){}
+      try { if(window.rb3d && window.rb3d.peek) window.rb3d.peek(true, right ? 1 : -1); } catch(e){}
+    }
+    function wake(){
+      if(fab.classList.contains('fab-idle')){
+        fab.classList.remove('fab-idle');
+        try { if(window.rb3d && window.rb3d.peek && !fab.classList.contains('fab-tuck')) window.rb3d.peek(false); } catch(e){}
+      }
+      arm();
+    }
+    window.rbIdle = { wake:wake, tuck:tuck };
+    fab.addEventListener('pointerdown', function(){
+      held = true;
+      if(fab.classList.contains('fab-idle')){ swallow = performance.now() + 700; wake(); } else arm();
+    }, { passive:true });
+    document.addEventListener('click', function(e){
+      if(swallow && performance.now() < swallow && fab.contains(e.target)){ swallow = 0; e.stopPropagation(); e.preventDefault(); }
+    }, true);
+    function lift(){ if(held){ held = false; if(!fab.classList.contains('fab-idle')) arm(); } }   // the finger left the robot (a tap or the end of a drag): count from now
+    document.addEventListener('pointerup', lift, { passive:true }); document.addEventListener('pointercancel', lift, { passive:true });
+    window.addEventListener('resize', function(){ if(fab.classList.contains('fab-idle')) wake(); });
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden && !fab.classList.contains('fab-idle')) arm(); });
+    arm();
+  } catch(e){ try { console.warn('[v389] robot idle tuck', e); } catch(_){} }
 })();
 </script>
 </body>
