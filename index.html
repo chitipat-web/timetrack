@@ -992,6 +992,12 @@ body.dark .emp-card, body.dark .team-card{
   box-shadow:var(--shadow-sm), var(--glass-inner);
 }
 .month-lbl{ font-family:var(--font-display); font-size:16px; font-weight:700; letter-spacing:-0.02em; }
+/* v388: the summary month selector ‹ month › on one row in every look. .month-nav above was written
+   for a wrapper but sits on the two buttons, so the buttons and the label stacked in three rows
+   (the iPhone look already fixed this for itself in v378, with higher-priority rules). */
+.month-sel{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px; }
+button.month-nav{ flex:none; display:flex; align-items:center; justify-content:center; width:40px; height:40px; padding:0; margin:0; border-radius:50%; font-size:22px; line-height:1; color:var(--ink); cursor:pointer; }
+.month-sel .month-lbl{ flex:1; text-align:center; }
 .cal-nav-btn, .modal-close{
   background:transparent; border:none;
   width:34px; height:34px;
@@ -11357,7 +11363,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v387';
+const APP_VERSION = 'v388';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
