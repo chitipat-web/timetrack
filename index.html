@@ -3169,7 +3169,13 @@ window.ICO = (function(){ var P = {clock:'<circle cx="12" cy="12" r="9"/><path d
 // v378: "ลองหน้าตาใหม่" — the iPhone-style look, per device (rudy_ios is a local-only key, never synced).
 // Read before anything paints. While it is on, the heavy looks (sky, Ultra, Liquid Glass, cinematic
 // effects) stay off: the new look is built on the plain corporate theme underneath.
-(function(){ try { if(localStorage.getItem('rudy_ios') === '1'){ window.__rudyIOS = true; document.documentElement.classList.add('ios'); } } catch(e){} })();
+// v380: an admin can lock a person's look (employees/{uid}/look); this device keeps a copy in rudy_look_lock
+// so the locked look is on screen before anything paints. A lock wins over the device's own choice.
+(function(){ try {
+  var L = localStorage.getItem('rudy_look_lock'); if(!/^(glass|corp|sky|ios)$/.test(L || '')) L = '';
+  if(L){ window.__rudyLock = L; document.documentElement.classList.add('look-locked'); }
+  if(L ? L === 'ios' : localStorage.getItem('rudy_ios') === '1'){ window.__rudyIOS = true; document.documentElement.classList.add('ios'); }
+} catch(e){} })();
 // v323 battery saver: read once, before any heavy effect starts
 (function(){ try { if(!window.__rudyIOS && localStorage.getItem('tt_ultra') === '1' && localStorage.getItem('tt_lite') !== '1' && sessionStorage.getItem('tt_ultra_off') !== '1'){ window.__rudyUltra = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('ultra'); }); } } catch(e){} })();   // v351 Ultra graphics
 (function(){ try { if(localStorage.getItem('tt_lite') === '1'){ window.__rudyLite = true; window.__skyNoGL = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('lite','cinema-off'); }); } } catch(e){} })();
@@ -4230,6 +4236,7 @@ body.dark .slide-action{
 
     <div class="card">
       <div class="section-title"><svg class="st-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>ธีม</div>
+      <div class="look-lock-note" id="look-lock-note"></div>
       <button class="btn-secondary" onclick="rudyToggleIOS()" id="ios-btn" style="width:100%;margin-bottom:10px">✨ ลองหน้าตาใหม่ (แบบ iPhone) · เฉพาะเครื่องนี้</button>
       <div class="theme-pick" id="theme-pick" role="radiogroup" aria-label="เลือกธีม">
         <button type="button" class="tp tp-glass" data-t="glass" onclick="themePick('glass')"><span class="tp-mock"><i></i><b></b><b></b></span><span class="tp-name">Liquid Glass</span></button>
@@ -8543,6 +8550,7 @@ function renderEmpListSettings(){
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600">${escHtml(emp.name)} ${roleLabel(emp.role)}</div>
         <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(emp.email)}</div>
+        ${typeof rudyLookSelect === 'function' ? rudyLookSelect(emp) : ''}
       </div>
       <button class="btn-edit" style="padding:4px 8px;font-size:11px" onclick="adminSetPassword('${escHtml(emp.email)}','${escHtml(emp.name)}')" title="ตั้งรหัสผ่านใหม่">🔑</button>
       ${emp.id !== curUser.id ? `<button class="btn-edit" style="padding:4px 8px;font-size:11px" onclick="changeEmpRole('${emp.id}')" title="เปลี่ยนบทบาท">⚙️</button>` : ''}
@@ -11333,7 +11341,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v379';
+const APP_VERSION = 'v380';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -19852,7 +19860,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       night: ['#070B1C','#121A3A','#23305E','rgba(255,255,255,0.08)','rgba(255,255,255,0.12)','rgba(255,255,255,0.05)','rgba(18,26,56,0.95)']
     };
     // v280: the corporate theme is the default; the sky is opt-in (tt_sky='1')
-    function skyOn(){ if(window.__rudyIOS) return false; try { return localStorage.getItem('tt_sky') === '1'; } catch(e){ return false; } }   // v378: no sky in the iPhone look
+    function skyOn(){ if(window.__rudyIOS) return false; if(window.__rudyLock) return window.__rudyLock === 'sky'; try { return localStorage.getItem('tt_sky') === '1'; } catch(e){ return false; } }   // v378: no sky in the iPhone look · v380: admin lock
     // v285: the weather sky is also the wallpaper of the Liquid Glass theme
     function skyBg(){ return skyOn() || uiTheme() === 'glass'; }
     function israelNow(){
@@ -20451,7 +20459,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       try { glKick(); } catch(_){}   // restart the GL loop after sky off→on
     }
     // v282: three looks — Liquid Glass (default), corporate, weather sky.
-    function uiTheme(){ if(window.__rudyIOS) return 'corp'; try { return localStorage.getItem('tt_ui') === 'corp' ? 'corp' : 'glass'; } catch(e){ return 'glass'; } }   // v378: the iPhone look sits on the corporate theme
+    function uiTheme(){ if(window.__rudyIOS) return 'corp'; if(window.__rudyLock) return window.__rudyLock === 'glass' ? 'glass' : 'corp'; try { return localStorage.getItem('tt_ui') === 'corp' ? 'corp' : 'glass'; } catch(e){ return 'glass'; } }   // v378: the iPhone look sits on the corporate theme
     function updateBtn(){
       var btn = document.getElementById('sky-btn');
       var cur = skyOn() ? 'sky' : uiTheme();
@@ -24609,6 +24617,7 @@ html.ios #page-settings .card:has(> #cinema-btn){ display:none !important; }
   'use strict';
   function label(){ var b = document.getElementById('ios-btn'); if(b) b.textContent = window.__rudyIOS ? 'หน้าตาใหม่: เปิดอยู่ · แตะเพื่อกลับแบบเดิม' : '✨ ลองหน้าตาใหม่ (แบบ iPhone) · เฉพาะเครื่องนี้'; }
   window.rudyToggleIOS = function(){
+    if(window.__rudyLock){ try { showToast('แอดมินกำหนดพื้นหลังของคุณไว้แล้ว', 'warning'); } catch(e){} return; }   // v380
     var on = !window.__rudyIOS;
     try { if(on) localStorage.setItem('rudy_ios', '1'); else localStorage.removeItem('rudy_ios'); } catch(e){}
     try { showToast(on ? 'เปิดหน้าตาใหม่ — กำลังโหลดใหม่' : 'กลับเป็นหน้าตาเดิม — กำลังโหลดใหม่', 'success'); } catch(e){}
@@ -24708,6 +24717,88 @@ html.ios body.corp .hq-team-row{ border-top-width:0.5px; }
     if(pg && pg.classList.contains('active')) render();
   }, 60000);
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(render, 0); }); else setTimeout(render, 0);
+})();
+</script>
+<style id="look-lock-v380">
+/* v380: admin-locked look — the person's own theme pickers are replaced by a note */
+html.look-locked :is(#ios-btn, #theme-pick, #sky-btn){ display:none !important; }
+.look-lock-note{ display:none; font-size:13px; line-height:1.45; color:var(--text2); background:var(--surface2); border-radius:12px; padding:10px 12px; margin-bottom:10px; }
+html.look-locked .look-lock-note{ display:block; }
+.emp-look{ display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; color:var(--text2); }
+.emp-look > span{ flex:none; white-space:nowrap; }
+.emp-look select{ flex:1 1 auto; min-width:0; font:inherit; font-size:12px; color:var(--text); background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:3px 6px; max-width:100%; }
+</style>
+<script>
+// v380: an admin can lock which look (background) a person sees.
+// Stored on the person's employee record (employees/{uid}/look = glass | corp | sky | ios; absent = they
+// choose). Each device keeps a copy in rudy_look_lock (local only) that the first script applies before
+// paint. When the record changes, the new look is applied by a reload — at once if the app was opened a
+// moment ago and not touched yet, otherwise the next time the app comes back to the screen, so a reload
+// never cuts into a check-in. Light / dark stays the person's own choice.
+(function(){
+  'use strict';
+  var NAMES = { glass:'Liquid Glass', corp:'องค์กร', sky:'ท้องฟ้าเดิม', ios:'หน้าตาใหม่ (แบบ iPhone)' };
+  var t0 = Date.now(), touched = false, pending = false;
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function(t){ document.addEventListener(t, function(){ touched = true; }, { passive:true, capture:true }); });
+  function valid(v){ return /^(glass|corp|sky|ios)$/.test(v || '') ? v : ''; }
+  function stored(){ try { return valid(localStorage.getItem('rudy_look_lock')); } catch(e){ return ''; } }
+  function wanted(){
+    if(typeof curUser === 'undefined' || !curUser || !curUser.id) return null;          // not signed in yet: unknown
+    var me = (typeof employees !== 'undefined' && Array.isArray(employees)) ? employees.find(function(e){ return e && e.id === curUser.id; }) : null;
+    if(!me) return null;                                                                // no team list yet: unknown
+    return valid(me.look);
+  }
+  function note(){
+    var n = document.getElementById('look-lock-note'), L = window.__rudyLock;
+    if(n && L){ var t = 'แอดมินกำหนดพื้นหลังของคุณเป็น “' + NAMES[L] + '” · โหมดมืด/สว่างยังเลือกเองได้'; if(n.textContent !== t) n.textContent = t; }
+  }
+  function reload(){
+    // never loop: at most one look reload per 15 s (a later return to the app tries again)
+    var last = 0; try { last = parseInt(sessionStorage.getItem('rudy_lock_reload_at') || '0', 10) || 0; } catch(e){}
+    if(Date.now() - last < 15000){ pending = true; return; }
+    try { sessionStorage.setItem('rudy_lock_reload_at', String(Date.now())); } catch(e){}
+    setTimeout(function(){ location.reload(); }, 700);   // let the storage writes settle first (same as the other look switches)
+  }
+  function check(){
+    var w = wanted(); if(w === null) return;
+    var onScreen = window.__rudyLock || '';
+    if(w === stored() && w === onScreen) return;
+    if(w !== stored()){ try { if(w) localStorage.setItem('rudy_look_lock', w); else localStorage.removeItem('rudy_look_lock'); } catch(e){ return; } }
+    if(Date.now() - t0 < 10000 && !touched){ reload(); return; }                        // just opened, untouched
+    if(!pending){ pending = true; try { showToast(w ? 'แอดมินเปลี่ยนพื้นหลังของคุณ — จะใช้เมื่อเปิดแอปครั้งถัดไป' : 'แอดมินให้คุณเลือกพื้นหลังเองแล้ว — จะใช้เมื่อเปิดแอปครั้งถัดไป', 'success'); } catch(e){} }
+  }
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden && pending) reload(); });
+  setInterval(function(){ if(!document.hidden) check(); }, 4000);
+  window.rudyLookCheck = check;
+  // admin: the picker shown under each person in Settings › จัดการพนักงาน
+  window.rudyLookSelect = function(emp){
+    if(typeof isAdmin !== 'function' || !isAdmin() || !emp) return '';
+    var cur = valid(emp.look), id = String(emp.id).replace(/[^A-Za-z0-9_-]/g, '');
+    var opt = function(v, t){ return '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + t + '</option>'; };
+    return '<label class="emp-look"><span>พื้นหลัง</span><select onchange="rudySetEmpLook(\'' + id + '\', this.value)" aria-label="พื้นหลังของ ' + (typeof escHtml === 'function' ? escHtml(emp.name || '') : '') + '">'
+      + opt('', 'ให้เลือกเอง') + opt('glass', NAMES.glass) + opt('corp', NAMES.corp) + opt('sky', NAMES.sky) + opt('ios', NAMES.ios) + '</select></label>';
+  };
+  window.rudySetEmpLook = function(id, v){
+    if(typeof isAdmin !== 'function' || !isAdmin()) return;
+    v = valid(v);
+    var emp = employees.find(function(e){ return e && e.id === id; }); if(!emp) return;
+    var before = emp.look;
+    if(v) emp.look = v; else delete emp.look;
+    try { saveEmp(); } catch(e){}
+    var name = emp.name || '';
+    try {
+      db.ref('employees/' + id + '/look').set(v || null).then(function(){
+        try { showToast(v ? 'ล็อกพื้นหลังของ ' + name + ' เป็น ' + NAMES[v] + ' แล้ว' : name + ' เลือกพื้นหลังเองได้แล้ว', 'success'); } catch(e){}
+      }).catch(function(e){
+        if(before) emp.look = before; else delete emp.look;
+        try { saveEmp(); renderEmpListSettings(); } catch(_){}
+        try { showToast('บันทึกไม่สำเร็จ: ' + ((e && e.code) || 'ไม่มีสัญญาณ'), 'error'); } catch(_){}
+      });
+    } catch(e){}
+    if(curUser && id === curUser.id) setTimeout(check, 300);
+  };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', note); else note();
+  setTimeout(check, 1500);
 })();
 </script>
 </body>
