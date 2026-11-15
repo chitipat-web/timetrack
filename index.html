@@ -11361,7 +11361,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v392';
+const APP_VERSION = 'v393';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -25468,6 +25468,73 @@ html body #page-settings .card.ios-grp.ios-ver #settings-app-version{ color:var(
     }
     if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
   } catch(e){ try { console.warn('[v392] settings rows', e); } catch(_){} }
+})();
+</script>
+<style id="nav-title-v393">
+/* v393 (iPhone-style titles): the small "RUDY" bar is gone outside the corporate look - the top row
+   keeps only the profile picture, on a clear background, like an iPhone large-title screen. Once the
+   page's large title scrolls away, a thin glass bar fades in at the top with the title small and
+   centred (tap it to go back to the top). */
+html.ios #app-shell .topbar .topbar-logo, body:not(.corp) #app-shell .topbar .topbar-logo{ display:none !important; }
+html.ios #app-shell .topbar.topbar, body:not(.corp) #app-shell .topbar.topbar{ justify-content:flex-end !important; background:transparent !important; background-image:none !important;
+  border-bottom:none !important; box-shadow:none !important; -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
+#ios-nav{ position:fixed; left:0; right:0; top:0; z-index:44; height:calc(env(safe-area-inset-top, 0px) + 44px); padding-top:env(safe-area-inset-top, 0px);
+  display:flex; align-items:center; justify-content:center; pointer-events:none; opacity:0; transition:opacity .2s ease;
+  background:rgba(250,250,252,.74); -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%); box-shadow:inset 0 -0.5px 0 rgba(0,0,0,.14); }
+body.dark #ios-nav{ background:rgba(16,18,30,.58); box-shadow:inset 0 -0.5px 0 rgba(255,255,255,.12); }
+html.ios #ios-nav{ background:var(--ios-bar, rgba(30,30,32,.72)); }
+#ios-nav.on{ opacity:1; pointer-events:auto; cursor:pointer; }
+#ios-nav b{ font-size:17px; font-weight:600; letter-spacing:-.01em; color:var(--ink); max-width:70%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transform:translateY(4px); transition:transform .25s ease; }
+#ios-nav.on b{ transform:none; }
+@media (prefers-reduced-motion: reduce){ #ios-nav, #ios-nav b{ transition:none; } }
+/* the "not at work yet" alerts for admins: an iPhone notification banner (glass) instead of a dark red box */
+#late-stack > div{ background:rgba(250,250,252,.80) !important; -webkit-backdrop-filter:blur(30px) saturate(180%) !important; backdrop-filter:blur(30px) saturate(180%) !important;
+  border:0.5px solid rgba(0,0,0,.08) !important; border-radius:22px !important; box-shadow:0 10px 30px rgba(0,0,0,.22) !important;
+  animation:lnIn .45s cubic-bezier(.2,.9,.3,1.12) both, lnOut .35s ease 7.6s forwards !important; }
+body.dark #late-stack > div{ background:rgba(44,44,54,.62) !important; border-color:rgba(255,255,255,.10) !important; box-shadow:0 10px 30px rgba(0,0,0,.40) !important; }
+#late-stack > div > div > div:first-child{ color:var(--ink) !important; font-size:15px !important; font-weight:600 !important; }
+#late-stack > div > div > div:last-child{ color:var(--ink-3) !important; font-size:13px !important; }
+#late-stack > div > button{ color:var(--ink-3) !important; }
+@keyframes lnIn{ from{ transform:translateY(-130%) scale(.96); opacity:0; } to{ transform:none; opacity:1; } }
+@keyframes lnOut{ to{ transform:translateY(-130%); opacity:0; } }
+@media (prefers-reduced-motion: reduce){ #late-stack > div{ animation:none !important; } }
+</style>
+<script>
+// v393: small centred title that appears once the large title has scrolled away (see the style above).
+// Where the large title ends is measured once per page (when it opens or the window resizes); while
+// scrolling only scrollTop is read, once per frame.
+(function(){
+  'use strict';
+  try {
+    var bar = document.createElement('div'); bar.id = 'ios-nav'; bar.setAttribute('aria-hidden', 'true');
+    var t = document.createElement('b'); bar.appendChild(t); document.body.appendChild(bar);
+    var thr = 1e9, on = false, raf = 0, pg = null;
+    var EMO = /^[^\p{L}\p{N}]+/u;
+    function scroller(){ return document.body; }
+    function measure(){
+      pg = document.querySelector('#app-shell .page.active'); thr = 1e9;
+      var shell = document.getElementById('app-shell');
+      if(!pg || !shell || !shell.offsetWidth){ set(false); return; }
+      var big = pg.querySelector('.page-title') || pg.querySelector('.ha-greet-name');
+      var name = '';
+      if(pg.id === 'page-home'){ var nb = document.querySelector('#main-nav .nav-btn[data-page="home"]'); name = nb ? nb.textContent.trim() : ''; }
+      else if(big) name = big.textContent.replace(EMO, '').trim();
+      t.textContent = name;
+      if(big && name){ var r = big.getBoundingClientRect(); thr = r.bottom + scroller().scrollTop - bar.offsetHeight - 4; if(thr < 8) thr = 8; }
+      check();
+    }
+    function set(v){ if(v === on) return; on = v; bar.classList.toggle('on', v); }
+    function check(){ raf = 0; set(scroller().scrollTop > thr); }
+    document.addEventListener('scroll', function(){ if(!raf) raf = requestAnimationFrame(check); }, { passive:true, capture:true });
+    bar.addEventListener('click', function(){ try { scroller().scrollTo({ top:0, behavior:'smooth' }); } catch(e){ scroller().scrollTop = 0; } });
+    var mt = 0; function later(){ clearTimeout(mt); mt = setTimeout(measure, 60); }
+    var mo = new MutationObserver(function(list){ for(var i = 0; i < list.length; i++){ if(list[i].target.classList && list[i].target.classList.contains('active')){ set(false); later(); return; } } });
+    Array.prototype.forEach.call(document.querySelectorAll('#app-shell .page'), function(p){ mo.observe(p, { attributes:true, attributeFilter:['class'] }); });
+    window.addEventListener('resize', later);
+    new MutationObserver(later).observe(document.body, { attributes:true, attributeFilter:['class'] });   // look changes move the title
+    var shell = document.getElementById('app-shell'); if(shell) new MutationObserver(later).observe(shell, { attributes:true, attributeFilter:['style'] });   // shown after sign-in
+    later();
+  } catch(e){ try { console.warn('[v393] nav title', e); } catch(_){} }
 })();
 </script>
 </body>
