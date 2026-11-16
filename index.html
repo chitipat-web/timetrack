@@ -11353,7 +11353,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v408';
+const APP_VERSION = 'v409';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -25035,8 +25035,11 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
 #app-shell .page.sw-out, #app-shell .page.sw-peek{ display:block !important; pointer-events:none !important; }
 #app-shell .page.sw-out.sw-flex, #app-shell .page.sw-peek.sw-flex{ display:flex !important; flex-direction:column !important; justify-content:center !important; min-height:var(--sw-mh) !important; }
 /* v407: Home / History beside the active tab are kept built and laid out off screen (sw-warm), hidden — not drawn,
-   not touchable, out of the page flow (pinned fixed) — so a swipe toward them only has to slide them in */
-#app-shell .page.sw-warm{ display:block !important; visibility:hidden !important; pointer-events:none !important; }
+   not touchable, out of the page flow (pinned fixed) — so a swipe toward them only has to slide them in.
+   v409: hidden with opacity, not visibility. visibility is inherited, so showing the copy restyled every
+   element in it (5–22 ms on Home at 4× slower CPU) right as the finger started moving; opacity is not
+   inherited, so only the page box changes (under 1 ms). Still 1.5 screens off to the side, so nothing is drawn. */
+#app-shell .page.sw-warm{ display:block !important; opacity:0 !important; pointer-events:none !important; }
 #app-shell .page.sw-warm.sw-flex{ display:flex !important; flex-direction:column !important; justify-content:center !important; min-height:var(--sw-mh) !important; }
 </style>
 <script>
