@@ -11353,7 +11353,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v409';
+const APP_VERSION = 'v410';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -25091,10 +25091,21 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
   // nothing it shows has changed since it was built (same records, employees, day, look — and minute for Home);
   // otherwise it is built again at that moment, as before. Rebuilt on every tab change; checked every 20 s.
   var WARM = { home:1, history:1, stats:1, team:1, more:1 }, warmed = {}, warmT = 0;   // v408: every bottom tab (was Home / History)
+  // v410: a page also shows what the app keeps in local storage (work / OT start, holidays, photos, notes, goals,
+  // announcements…). Any write that changes a stored value — made here or synced from the cloud — makes every copy
+  // stale, so it is built again. The smoothness log (written after each swipe / tap) does not count.
+  var lsGen = 0;
+  try {
+    var LS = window.localStorage, lsSet = LS.setItem, lsRem = LS.removeItem;
+    var lsOld = function(k){ try { return LS.getItem(k); } catch(e){ return undefined; } };
+    LS.setItem = function(k, v){ var o = lsOld(k), r = lsSet.apply(this, arguments); if(k !== 'tt_perf_log' && o !== String(v)) lsGen++; return r; };
+    LS.removeItem = function(k){ var o = lsOld(k), r = lsRem.apply(this, arguments); if(k !== 'tt_perf_log' && o !== null) lsGen++; return r; };
+    window.addEventListener('cloudKeyChanged', function(){ lsGen++; });
+  } catch(e){}
   function sig(id){
     try {
       var p = [id, (typeof curUser !== 'undefined' && curUser && curUser.id) || '', (typeof todayStr === 'function' ? todayStr() : ''), document.body.className,
-        JSON.stringify(typeof records !== 'undefined' ? records : null), JSON.stringify(typeof employees !== 'undefined' ? employees : null)];
+        JSON.stringify(typeof records !== 'undefined' ? records : null), JSON.stringify(typeof employees !== 'undefined' ? employees : null), lsGen];
       if(id === 'home' || id === 'team'){ var n = new Date(); p.push(n.getHours() + ':' + n.getMinutes()); }   // live times on these two (v408: Team)
       return p.join('\u0001');
     } catch(e){ return 'x' + Math.random(); }
