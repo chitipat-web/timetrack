@@ -11349,7 +11349,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v398';
+const APP_VERSION = 'v399';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -23097,10 +23097,11 @@ body.sky:not(.sky-gl) .ultra-rays{ display:none; }
       cx.fillStyle = g; cx.fillRect(x - r * 4, y - r * 4, r * 8, r * 8);
     }
   }
+  var DUST = false;   // v399: floating light particles removed (owner request) — sun rays and the rest of Ultra stay
   function setup(){
     var sc = document.getElementById('sky-scene'); if(!sc || !window.__rudyUltra) return false;
-    if(!cv){ cv = document.createElement('canvas'); cv.className = 'ultra-dust'; cx = cv.getContext('2d'); var st = sc.querySelector('.sky-starc'); sc.insertBefore(cv, st ? st.nextSibling : null); size(); seed(); window.addEventListener('resize', function(){ if(cv) size(); }); }
-    if(!rays){ rays = document.createElement('div'); rays.className = 'ultra-rays'; sc.insertBefore(rays, cv); }
+    if(DUST && !cv){ cv = document.createElement('canvas'); cv.className = 'ultra-dust'; cx = cv.getContext('2d'); var st = sc.querySelector('.sky-starc'); sc.insertBefore(cv, st ? st.nextSibling : null); size(); seed(); window.addEventListener('resize', function(){ if(cv) size(); }); }
+    if(!rays){ rays = document.createElement('div'); rays.className = 'ultra-rays'; var st2 = sc.querySelector('.sky-starc'); sc.insertBefore(rays, cv || (st2 ? st2.nextSibling : null)); }   // v399: same spot as before (after the stars) without the dust canvas
     return true;
   }
   function update(){
@@ -23112,7 +23113,7 @@ body.sky:not(.sky-gl) .ultra-rays{ display:none; }
     // Centre stays on the day sun: uSunPos .86/.94 → 86% / 6% (CSS defaults).
     var ph = phase(), k = document.body.getAttribute('data-sky-wx') || 'clear', sunny = (k === 'clear' || k === 'few') && ph === 'day';
     rays.classList.toggle('on', sunny);
-    if(!raf) raf = requestAnimationFrame(draw);
+    if(cv && !raf) raf = requestAnimationFrame(draw);   // v399: no dust canvas → no particle loop
   }
   // v355: theme / phase / weather changes apply at once (was: the next 30 s tick —
   // after switching themes the light particles froze and the rays lagged up to 30 s)
