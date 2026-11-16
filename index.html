@@ -11353,7 +11353,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v410';
+const APP_VERSION = 'v411';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -25139,6 +25139,7 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
   // the next / previous tab's page, built now and placed beside the finger
   function peekHide(s){
     if(!(s && s.peek)) return;
+    if(GROW.length) growCharts();                                        // v411: a held chart is shown again as it was
     var el = s.peek, id = s.peekId, side = s.side;
     s.peek = null; s.peekId = ''; s.peekFit = 0;
     if(WARM[id] && warmable() && !el.classList.contains('active')){   // v407: keep it built, back off screen
@@ -25146,16 +25147,71 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
       warmed[id] = { sig:sig(id), side:side };
     } else unpin(el, 'sw-peek');
   }
+  // v411: a page built ahead ran its opening animations while hidden, so a swipe showed it already settled. When a
+  // copy is shown they play again, as on a page built at that moment: the 3D header icon and History's month bars
+  // (CSS), numbers rolling to their value from what was last on screen (Numbers' tiles from 0, Home's only if
+  // changed), and the charts growing.
+  var ROLL = new Map(), an0 = window.animateNumber;    // element → a number roll made while its page was hidden
+  try {
+    if(typeof an0 === 'function') window.animateNumber = function(n, target, duration, decimals, suffix){
+      try {
+        var pg = n && n.closest ? n.closest('.page') : null;
+        if(pg && pg.classList.contains('sw-warm')){
+          var r = ROLL.get(n), from = (decimals === 'hm' ? parseFloat(n.dataset.hmVal) : parseFloat(n.textContent)) || 0;
+          ROLL.set(n, { from:r ? r.from : from, target:target, duration:duration, decimals:decimals, suffix:suffix, t:performance.now() });
+          if(ROLL.size > 24) ROLL.forEach(function(v, k){ if(!k.isConnected) ROLL.delete(k); });
+        } else if(n) ROLL.delete(n);
+      } catch(e){}
+      return an0.apply(this, arguments);
+    };
+  } catch(e){}
+  function replayCss(el){   // also for a copy found stale and built again: it was on the page (hidden), so its CSS entrance had run
+    try { if(el.getAnimations) el.getAnimations({ subtree:true }).forEach(function(a){ if(a.animationName === 'ph3dIn' || a.animationName === 'mc2Grow'){ a.currentTime = 0; a.play(); } }); } catch(e){}
+  }
+  function replayIn(el){
+    replayCss(el);
+    var now = performance.now();
+    ROLL.forEach(function(r, n){
+      if(!n.isConnected){ ROLL.delete(n); return; }
+      if(!el.contains(n)) return;
+      ROLL.delete(n);
+      if(now - r.t < (r.duration || 700) + 60 || !(Math.abs(r.target - r.from) > 1e-6)) return;   // still rolling, or nothing to roll
+      try {
+        var sx = r.suffix || '';
+        if(r.decimals === 'hm'){ n.dataset.hmVal = String(r.from); n.innerHTML = fmtHM(r.from * 60); }
+        else n.textContent = r.decimals > 0 ? r.from.toFixed(r.decimals) + sx : Math.round(r.from) + sx;
+        window.animateNumber(n, r.target, r.duration, r.decimals, r.suffix);
+      } catch(e){}
+    });
+    // charts: growing them costs a full chart draw, too much while the finger drags the page, so they are kept
+    // empty until the page lands and grow then (a page built at that moment also drew them a frame later)
+    try { if(window.Chart && Chart.getChart) Array.prototype.forEach.call(el.querySelectorAll('canvas'), function(c){ if(Chart.getChart(c)){ c.style.visibility = 'hidden'; if(GROW.indexOf(c) < 0) GROW.push(c); } }); } catch(e){}
+  }
+  var GROW = [];
+  function growCharts(){   // grow the held charts of the page now active; any other held chart is just shown again
+    var list = GROW; GROW = [];
+    list.forEach(function(c){
+      c.style.visibility = '';
+      var pg = c.closest('.page'); if(!pg || !pg.classList.contains('active')) return;
+      try { var ch = Chart.getChart(c); if(ch){ ch.reset(); ch.update(); } } catch(e){}
+    });
+  }
+  function growSoon(){   // after the landing slide has started, as the stats page schedules its own charts
+    if(!GROW.length) return;
+    var done = false, go = function(){ if(done) return; done = true; growCharts(); };
+    requestAnimationFrame(function(){ setTimeout(go, 0); }); setTimeout(go, 400);
+  }
   function peekShow(s, side){
     peekHide(s); s.side = side;
     var btn = s.list[s.i + side], id = btn && btn.getAttribute('data-page'), el = id && document.getElementById('page-' + id);
     if(!el || el === s.pg) return;
     var b0 = performance.now();
-    var w = warmed[id], ready = !!(w && el.classList.contains('sw-warm') && w.sig === sig(id));   // v407: built ahead and still current
+    var w = warmed[id], was = el.classList.contains('sw-warm'), ready = !!(w && was && w.sig === sig(id));   // v407: built ahead and still current
     delete warmed[id];
     pin(el, s.left0, s.top0, s.w0); el.style.transform = tf(s.x + side * s.W); el.style.willChange = 'transform';
     el.classList.add('sw-peek'); el.classList.remove('sw-warm');
-    if(!ready){ try { _renderPageContent(id); } catch(e){} }
+    if(!ready){ try { _renderPageContent(id); } catch(e){} if(was) replayCss(el); }
+    else replayIn(el);                                                   // v411
     s.peek = el; s.peekId = id; s.peekFit = centre(el);
     if(window.rudyPerfNote) rudyPerfNote('build', performance.now() - b0);   // v406: render + layout of the page beside the finger
     if(ready && window.rudyPerfNote) rudyPerfNote('ready', 1);             // v407: it was built ahead
@@ -25283,7 +25339,7 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     var mo = new MutationObserver(function(){
       var a = document.querySelector('#app-shell .page.active');
       if(a && a.classList.contains('sw-warm')){ var aid = a.id.replace('page-', ''); unwarm(aid); }
-      if(a !== lastAct){ lastAct = a; warmSoon(700); }
+      if(a !== lastAct){ lastAct = a; warmSoon(700); growSoon(); }       // v411: held charts grow once the page has landed
     });
     Array.prototype.forEach.call(document.querySelectorAll('#app-shell .page'), function(p){ mo.observe(p, { attributes:true, attributeFilter:['class'] }); });
     setInterval(function(){ if(Object.keys(warmed).length) warmSoon(50); }, 20000);   // re-check what the copies show
