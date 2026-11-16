@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v406
-// Cache: rudy-static-v406, firebase-v406
-// Build: 2026-11-16 · v406 — on-phone page-change timing in Settings
+// RUDY · Service Worker v407
+// Cache: rudy-static-v407, firebase-v407
+// Build: 2026-11-16 · v407 — Home/History built ahead for swipes
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v406';
-const FIREBASE_CACHE = 'firebase-v406';
-const RUNTIME_CACHE = 'rudy-runtime-v406';
+const STATIC_CACHE  = 'rudy-static-v407';
+const FIREBASE_CACHE = 'firebase-v407';
+const RUNTIME_CACHE = 'rudy-runtime-v407';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -61,12 +61,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v406] Installing...');
+  console.log('[SW v407] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v406] Precache partial fail (ok):', err);
+          console.warn('[SW v407] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -77,16 +77,16 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v406] Activating...');
+  console.log('[SW v407] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
         return Promise.all(
           names
-            // v406: keep the baked 3D icons across updates — the page checks their signature (bake code) and re-bakes only when it changed
+            // v407: keep the baked 3D icons across updates — the page checks their signature (bake code) and re-bakes only when it changed
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE && name !== 'rudy-icons')
             .map((name) => {
-              console.log('[SW v406] Deleting old cache:', name);
+              console.log('[SW v407] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -247,7 +247,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v406' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v407' });
     return;
   }
 });
@@ -270,7 +270,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v406] Push parse fail:', e);
+    console.warn('[SW v407] Push parse fail:', e);
   }
 });
 
@@ -290,4 +290,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v406] Loaded — AI quota-friendly retry');
+console.log('[SW v407] Loaded — AI quota-friendly retry');

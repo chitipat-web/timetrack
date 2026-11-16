@@ -11353,7 +11353,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v406';
+const APP_VERSION = 'v407';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -23998,7 +23998,7 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
   function finish(){
     var r = rec; rec = null; var g = r.g; if(g.length < 3) return;
     var worst = 0, slow = 0; for(var i = 0; i < g.length; i++){ if(g[i] > worst) worst = g[i]; if(g[i] > 26) slow++; }
-    log.unshift({ t:Date.now(), k:r.k, from:r.from, to:pageId(), n:g.length, worst:Math.round(worst), slow:slow, build:r.build || 0, vt:r.vt || 0 });
+    log.unshift({ t:Date.now(), k:r.k, from:r.from, to:pageId(), n:g.length, worst:Math.round(worst), slow:slow, build:r.build || 0, vt:r.vt || 0, ready:r.ready || 0 });
     log = log.slice(0, 15); try { localStorage.setItem(KEY, JSON.stringify(log)); } catch(e){}
   }
   function tick(now){
@@ -24015,7 +24015,7 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
     if(!log.length) return '<div style="margin-top:10px">ยังไม่มีบันทึกการเปลี่ยนหน้า — ลองปัด/กดเมนูไปมาสัก 5-6 ครั้ง แล้วกดวัดใหม่</div>';
     return '<div style="margin-top:12px;font-weight:700;color:var(--ink)">การเปลี่ยนหน้าล่าสุด (เครื่องนี้)</div>' + log.map(function(e){
       var a = NAME[e.from] || e.from, b = NAME[e.to] || e.to, k = e.k === 'tap' ? 'กด' : (e.from === e.to ? 'ปัดแล้วเด้งกลับ' : 'ปัด');
-      var extra = e.k === 'tap' ? (e.vt ? ' · เตรียมภาพ ' + e.vt + 'ms' : '') : (e.build ? ' · สร้างหน้า ' + e.build + 'ms' : '');
+      var extra = e.k === 'tap' ? (e.vt ? ' · เตรียมภาพ ' + e.vt + 'ms' : '') : (e.build ? ' · สร้างหน้า ' + e.build + 'ms' + (e.ready ? ' (เตรียมไว้แล้ว)' : '') : '');
       return '<div style="font-variant-numeric:tabular-nums">' + k + ' ' + a + (e.from === e.to ? '' : ' → ' + b) + ' · ช้าสุด ' + e.worst + 'ms · สะดุด ' + e.slow + '/' + e.n + extra + '</div>';
     }).join('');
   };
@@ -25034,6 +25034,10 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
    v385: the same for the next tab's page while the finger drags it in (sw-peek). */
 #app-shell .page.sw-out, #app-shell .page.sw-peek{ display:block !important; pointer-events:none !important; }
 #app-shell .page.sw-out.sw-flex, #app-shell .page.sw-peek.sw-flex{ display:flex !important; flex-direction:column !important; justify-content:center !important; min-height:var(--sw-mh) !important; }
+/* v407: Home / History beside the active tab are kept built and laid out off screen (sw-warm), hidden — not drawn,
+   not touchable, out of the page flow (pinned fixed) — so a swipe toward them only has to slide them in */
+#app-shell .page.sw-warm{ display:block !important; visibility:hidden !important; pointer-events:none !important; }
+#app-shell .page.sw-warm.sw-flex{ display:flex !important; flex-direction:column !important; justify-content:center !important; min-height:var(--sw-mh) !important; }
 </style>
 <script>
 // v383: swipe left / right on a page to move to the next / previous bottom tab, like Instagram.
@@ -25079,18 +25083,68 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
   // the auto layout (v212) centres a page shorter than the screen; do the same for a page shown early
   function fit(){ var sh = document.getElementById('app-shell'), pb = sh ? parseFloat(getComputedStyle(sh).paddingBottom) : 100; return Math.max(0, window.innerHeight - (pb || 100) - 16); }
   function centre(el){ var h = el.scrollHeight, f = fit(); if(h > 0 && h < f){ el.style.setProperty('--sw-mh', f + 'px'); el.classList.add('sw-flex'); return f; } return 0; }
+  // v407: Home and History next to the active tab are built and laid out ahead of time, while nothing else is
+  // happening, and kept hidden off screen (sw-warm). A swipe toward one then only slides it in. It is used only if
+  // nothing it shows has changed since it was built (same records, employees, day, look — and minute for Home);
+  // otherwise it is built again at that moment, as before. Rebuilt on every tab change; checked every 20 s.
+  var WARM = { home:1, history:1 }, warmed = {}, warmT = 0;
+  function sig(id){
+    try {
+      var p = [id, (typeof curUser !== 'undefined' && curUser && curUser.id) || '', (typeof todayStr === 'function' ? todayStr() : ''), document.body.className,
+        JSON.stringify(typeof records !== 'undefined' ? records : null), JSON.stringify(typeof employees !== 'undefined' ? employees : null)];
+      if(id === 'home'){ var n = new Date(); p.push(n.getHours() + ':' + n.getMinutes()); }
+      return p.join('\u0001');
+    } catch(e){ return 'x' + Math.random(); }
+  }
+  function warmable(){ return !reduce && document.documentElement.classList.contains('vt-ok') && typeof _renderPageContent === 'function'; }
+  function unwarm(id){ var el = document.getElementById('page-' + id); delete warmed[id]; if(el && el.classList.contains('sw-warm')) unpin(el, 'sw-warm'); }
+  function warmPage(id, side){
+    var el = document.getElementById('page-' + id), act = document.querySelector('#app-shell .page.active');
+    if(!el || !act || el === act || el.classList.contains('sw-peek') || el.classList.contains('sw-out')) return;
+    var r = act.getBoundingClientRect();
+    pin(el, r.left, r.top + (document.body.scrollTop || 0), r.width); el.style.transform = tf(side * (window.innerWidth || 390) * 1.5);
+    el.classList.add('sw-warm');
+    try { _renderPageContent(id); } catch(e){}
+    centre(el);                                                          // lays it out now, while idle
+    warmed[id] = { sig:sig(id), side:side };
+  }
+  function warmSoon(ms){ clearTimeout(warmT); warmT = setTimeout(warmNow, ms || 600); }
+  function warmNow(){
+    warmT = 0;
+    if(!warmable()) return;
+    var now = performance.now();
+    if(st || busy || document.hidden || now < (window.__rudyBusyUntil || 0) + 200 || now - (window.__rudyScrollAt || -1e9) < 400 ||
+       document.querySelector('.modal-overlay.open, #confirm-overlay.open, #ai-modal.open')){ warmSoon(400); return; }
+    var list = tabs(), i = list.indexOf(document.querySelector('#main-nav .nav-btn.active')), want = {};
+    if(i >= 0) [-1, 1].forEach(function(d){ var b = list[i + d], id = b && b.getAttribute('data-page'); if(id && WARM[id]) want[id] = d; });
+    Object.keys(warmed).forEach(function(id){ if(!(id in want)) unwarm(id); });
+    var todo = Object.keys(want).filter(function(id){ var w = warmed[id], el = document.getElementById('page-' + id);
+      return !w || w.side !== want[id] || !el || !el.classList.contains('sw-warm') || w.sig !== sig(id); });
+    if(todo.length){ warmPage(todo[0], want[todo[0]]); if(todo.length > 1) warmSoon(150); }   // one page per task
+  }
   // the next / previous tab's page, built now and placed beside the finger
-  function peekHide(s){ if(s && s.peek){ unpin(s.peek, 'sw-peek'); s.peek = null; s.peekId = ''; s.peekFit = 0; } }
+  function peekHide(s){
+    if(!(s && s.peek)) return;
+    var el = s.peek, id = s.peekId, side = s.side;
+    s.peek = null; s.peekId = ''; s.peekFit = 0;
+    if(WARM[id] && warmable() && !el.classList.contains('active')){   // v407: keep it built, back off screen
+      el.classList.add('sw-warm'); el.classList.remove('sw-peek'); el.style.willChange = ''; el.style.transform = tf(side * (window.innerWidth || 390) * 1.5);
+      warmed[id] = { sig:sig(id), side:side };
+    } else unpin(el, 'sw-peek');
+  }
   function peekShow(s, side){
     peekHide(s); s.side = side;
     var btn = s.list[s.i + side], id = btn && btn.getAttribute('data-page'), el = id && document.getElementById('page-' + id);
     if(!el || el === s.pg) return;
-    pin(el, s.left0, s.top0, s.w0); el.style.transform = tf(s.x + side * s.W); el.style.willChange = 'transform';
-    el.classList.add('sw-peek');
     var b0 = performance.now();
-    try { _renderPageContent(id); } catch(e){}
+    var w = warmed[id], ready = !!(w && el.classList.contains('sw-warm') && w.sig === sig(id));   // v407: built ahead and still current
+    delete warmed[id];
+    pin(el, s.left0, s.top0, s.w0); el.style.transform = tf(s.x + side * s.W); el.style.willChange = 'transform';
+    el.classList.add('sw-peek'); el.classList.remove('sw-warm');
+    if(!ready){ try { _renderPageContent(id); } catch(e){} }
     s.peek = el; s.peekId = id; s.peekFit = centre(el);
     if(window.rudyPerfNote) rudyPerfNote('build', performance.now() - b0);   // v406: render + layout of the page beside the finger
+    if(ready && window.rudyPerfNote) rudyPerfNote('ready', 1);             // v407: it was built ahead
   }
   function glide(m, b){ try { var g = window.rudyNavGlide; if(g) g[m](b); } catch(e){} }   // v386 tab circle
   // change tab without the tap transition (v346), with the same sound
@@ -25208,6 +25262,20 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
   }
   document.addEventListener('touchend', function(){ end(false); }, { passive:true });
   document.addEventListener('touchcancel', function(){ end(true); }, { passive:true });
+  // v407: when the active tab changes (swipe, tap, code), a page that becomes active stops being a hidden copy at
+  // once (before it is drawn), and the pages next to the new tab are prepared a moment later
+  try {
+    var lastAct = null;
+    var mo = new MutationObserver(function(){
+      var a = document.querySelector('#app-shell .page.active');
+      if(a && a.classList.contains('sw-warm')){ var aid = a.id.replace('page-', ''); unwarm(aid); }
+      if(a !== lastAct){ lastAct = a; warmSoon(700); }
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#app-shell .page'), function(p){ mo.observe(p, { attributes:true, attributeFilter:['class'] }); });
+    setInterval(function(){ if(Object.keys(warmed).length) warmSoon(50); }, 20000);   // re-check what the copies show
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) warmSoon(1200); });
+    warmSoon(3000);
+  } catch(e){ console.warn('[swipe warm]', e); }
 })();
 </script>
 <style id="nav-glide-v386">
