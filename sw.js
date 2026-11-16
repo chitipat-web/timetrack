@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v403
-// Cache: rudy-static-v403, firebase-v403
-// Build: 2026-11-16 · v403 — robot at most 60 fps
+// RUDY · Service Worker v404
+// Cache: rudy-static-v404, firebase-v404
+// Build: 2026-11-16 · v404 — 3D icons kept across updates, bake waits for page changes
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v403';
-const FIREBASE_CACHE = 'firebase-v403';
-const RUNTIME_CACHE = 'rudy-runtime-v403';
+const STATIC_CACHE  = 'rudy-static-v404';
+const FIREBASE_CACHE = 'firebase-v404';
+const RUNTIME_CACHE = 'rudy-runtime-v404';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -61,12 +61,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v403] Installing...');
+  console.log('[SW v404] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v403] Precache partial fail (ok):', err);
+          console.warn('[SW v404] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -77,15 +77,16 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v403] Activating...');
+  console.log('[SW v404] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
         return Promise.all(
           names
-            .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
+            // v404: keep the baked 3D icons across updates — the page checks their signature (bake code) and re-bakes only when it changed
+            .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE && name !== 'rudy-icons')
             .map((name) => {
-              console.log('[SW v403] Deleting old cache:', name);
+              console.log('[SW v404] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -246,7 +247,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v403' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v404' });
     return;
   }
 });
@@ -269,7 +270,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v403] Push parse fail:', e);
+    console.warn('[SW v404] Push parse fail:', e);
   }
 });
 
@@ -289,4 +290,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v403] Loaded — AI quota-friendly retry');
+console.log('[SW v404] Loaded — AI quota-friendly retry');

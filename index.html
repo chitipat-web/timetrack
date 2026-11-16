@@ -11352,7 +11352,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v403';
+const APP_VERSION = 'v404';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -22183,15 +22183,18 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       }
       // one icon per task, yielding between them: frames and taps keep flowing
       function step(){
+        // v404: each icon is one long task (resize + render + PNG encode) — wait while a page is changing or scrolling
+        var nw = performance.now();
+        if(nw < (window.__rudyBusyUntil || 0) || nw - (window.__rudyScrollAt || -1e9) < 400){ setTimeout(step, 250); return; }
         var j = Q.shift();
         if(!j){
           var job = jobs.shift();
           if(!job){ finish(); return; }
           try { job(); } catch(e){ bakeOK = false; console.warn('[3D icons] group', e); }   // builds a group of models → queues their shots
-          setTimeout(step, 30); return;
+          setTimeout(step, 60); return;
         }
         try { shoot(j); if(!(String(out[j[0]] || '').length > 100)) bakeOK = false; } catch(e){ bakeOK = false; try { renderer.setSize(PX, PX, false); } catch(_){} console.warn('[3D icons] ' + j[0], e); }
-        setTimeout(step, 30);
+        setTimeout(step, 60);
       }
       // v367: the icons (all but the robot picture) come out the same on every
       // start — fixed models, lights and size — so a bake is kept in Cache
