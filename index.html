@@ -4038,11 +4038,11 @@ body.dark .slide-action{
       <button class="btn-export" style="background:linear-gradient(135deg,#107c41,#16a34a);color:#fff" onclick="exportXLSX()" title="Export Excel"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M9 8l6 8M15 8l-6 8"/></svg>Excel</button>
       <button class="btn-export btn-pdf" onclick="exportPDF()" title="Export PDF"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>PDF</button>
     </div>
+    <div id="month-summary" class="sum-grid"></div><!-- v397: month 4 tiles moved to the top (owner choice) -->
     <div id="stats-widgets" class="hq-stats-widgets"></div>
     <div id="streak-container" style="display:none"></div><!-- v396: streak card removed -->
     <div id="punctuality-container" style="display:none"></div><!-- v396: punctuality score removed -->
     <div id="reports-container"></div>
-    <div id="month-summary" class="sum-grid"></div>
     <div id="ai-insight-container"></div>
     <div id="heatmap-container" style="display:none"></div><!-- v396: check-in time heatmap removed (same as "ช่วงเข้างานบ่อยสุด") -->
     <div class="chart-card"><div class="chart-title">⏰ ชั่วโมงทำงานรายวัน</div><canvas id="chart-hours" height="180"></canvas></div>
@@ -11357,7 +11357,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v396';
+const APP_VERSION = 'v397';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
