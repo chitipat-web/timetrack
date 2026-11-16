@@ -3948,15 +3948,7 @@ body.dark .slide-action{
         </div>
         <div class="ha-week-period" id="ha-week-period"></div>
       </div>
-      <div class="ha-bars" id="ha-bars">
-        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">จ</div></div>
-        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">อ</div></div>
-        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">พ</div></div>
-        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">พฤ</div></div>
-        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">ศ</div></div>
-        <div class="ha-bar-col"><div class="ha-bar-track"><div class="ha-bar-fill" style="height:0%;"></div></div><div class="ha-bar-lbl">ส</div></div>
-        <div class="ha-bar-col today"><div class="ha-bar-track"><div class="ha-bar-fill today" style="height:0%;"></div></div><div class="ha-bar-lbl">วันนี้</div></div>
-      </div>
+      <div class="ha-bars wk" id="ha-bars"></div><!-- v398: Health-style bars, built by updateWeek() -->
     </div>
 
     <!-- KEEP all old elements for JS compat (hidden via .home-a CSS) -->
@@ -11357,7 +11349,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v397';
+const APP_VERSION = 'v398';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -15118,7 +15110,7 @@ if('serviceWorker' in navigator) {
     try {
       const u = getUser();
       const allRecs = getRecords();
-      if (!u || !allRecs.length) return;
+      if (!u) return;   // v398: render with no records too (7 dots), the bars are built here now
       const now = _ilWall();   // v276: Israel date/time
       const todayDs = _ymdLocal(now);
       // Week starts Sunday (Israel). `mon` keeps its old name = first day.
@@ -15130,13 +15122,15 @@ if('serviceWorker' in navigator) {
       sun.setDate(mon.getDate() + 6);
 
       let totalHours = 0;
-      const bars = [];
+      const bars = [], dsList = [], liveDay = [];
       let maxH = 0;
       for(let i = 0; i < 7; i++){
         const d = new Date(mon);
         d.setDate(mon.getDate() + i);
         const ds = _ymdLocal(d);
         const dayRecs = allRecs.filter(r => r && r.empId === u.id && r.date === ds);
+        dsList.push(ds);
+        liveDay.push(ds === todayDs && dayRecs.some(r => r.checkIn && !r.checkOut));
         let dayHours = 0;
         dayRecs.forEach(r => {
           if(r.checkIn && r.checkOut){   // v279: saved HH:MM only (timestamps go stale after edits)
@@ -15155,21 +15149,48 @@ if('serviceWorker' in navigator) {
         totalHours += dayHours;
       }
 
-      // v279: labels Sun..Sat, "วันนี้" on today's column (was fixed on the 7th)
+      // v398: Health-style bars (owner's pick) — time on each bar, OT part in orange (pay formula, same
+      //       as the history chart), a dot for days without work (no more 4% sliver), dashed line =
+      //       average of this week's finished days, bars scale to real hours (not to the busiest day).
+      //       Columns are built once and then updated in place, so the 30 s refresh does not replay
+      //       the grow animation.
       const _lbls = ['อา','จ','อ','พ','พฤ','ศ','ส'];
-      document.querySelectorAll('#ha-bars .ha-bar-col').forEach((col, i) => {
-        const isT = i === dow;
-        col.classList.toggle('today', isT);
-        const f = col.querySelector('.ha-bar-fill'); if(f) f.classList.toggle('today', isT);
-        const l = col.querySelector('.ha-bar-lbl'); if(l) l.textContent = isT ? 'วันนี้' : _lbls[i];
-      });
-      // Render bars
-      const barEls = document.querySelectorAll('#ha-bars .ha-bar-fill');
-      bars.forEach((h, i) => {
-        if(!barEls[i]) return;
-        const pct = maxH > 0 ? Math.max(4, (h / maxH) * 100) : 0;
-        barEls[i].style.height = pct + '%';
-      });
+      const box = document.getElementById('ha-bars');
+      if(box){
+        let built = false;
+        if(!box.querySelector('.wk-col')){
+          box.innerHTML = _lbls.map(() => '<div class="wk-col"><div class="wk-val"></div><div class="wk-track"><div class="wk-bar"><i class="wk-ot"></i></div><div class="wk-empty"></div></div><div class="wk-lbl"></div></div>').join('') +
+            '<div class="wk-plot"><div class="wk-avg" style="display:none"><span></span></div></div>';
+          box.classList.add('wk'); built = true;
+          void box.offsetHeight;   // start from height 0 so the first fill animates
+        }
+        const nowHM = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+        const fmt = h => { const m = Math.round(h*60); return Math.floor(m/60) + ':' + String(m%60).padStart(2,'0'); };
+        const scale = Math.max(10, maxH);
+        let doneSum = 0, doneN = 0;
+        const cols = box.querySelectorAll('.wk-col');
+        bars.forEach((h, i) => {
+          const col = cols[i]; if(!col) return;
+          const live = liveDay[i];
+          let ot = 0;
+          if(h > 0){ try { ot = Math.min(h, Math.max(0, dayOTMin(u.id, dsList[i], live ? nowHM : undefined) / 60)); } catch(e){} }
+          if(h > 0 && !live){ doneSum += h; doneN++; }
+          col.classList.toggle('is-today', i === dow);
+          col.classList.toggle('is-future', i > dow);
+          col.classList.toggle('is-live', !!live);
+          col.classList.toggle('has', h > 0);
+          col.querySelector('.wk-val').textContent = h > 0 ? fmt(h) : '';
+          col.querySelector('.wk-lbl').textContent = i === dow ? 'วันนี้' : _lbls[i];
+          col.querySelector('.wk-bar').style.height = (h > 0 ? Math.max(6, h / scale * 100) : 0).toFixed(1) + '%';
+          col.querySelector('.wk-ot').style.height = (h > 0 ? ot / h * 100 : 0).toFixed(1) + '%';
+        });
+        const avgEl = box.querySelector('.wk-avg');
+        if(avgEl){
+          const show = doneN >= 2;   // one day's "average" would just repeat its bar
+          avgEl.style.display = show ? '' : 'none';
+          if(show){ const avg = doneSum / doneN; avgEl.style.bottom = (avg / scale * 100).toFixed(1) + '%'; avgEl.firstChild.textContent = 'เฉลี่ย ' + fmt(avg); }
+        }
+      }
 
       // Total
       const totEl = document.getElementById('ha-week-total');
@@ -25533,6 +25554,31 @@ body.dark #late-stack > div{ background:rgba(44,44,54,.62) !important; border-co
   } catch(e){ try { console.warn('[v393] nav title', e); } catch(_){} }
 })();
 </script>
+<style id="week-bars-v398">
+/* v398 — home "สัปดาห์นี้": Health-style bars (owner's pick). Scoped to #ha-bars.wk so the old .ha-bar-* rules no longer apply. */
+#ha-bars.wk{ display:flex; gap:6px; height:136px !important; align-items:stretch; position:relative; }
+#ha-bars.wk .wk-col{ flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; position:relative; z-index:1; }
+#ha-bars.wk .wk-val{ height:16px; line-height:16px; font-size:10.5px; font-weight:700; color:var(--ink-2); font-variant-numeric:tabular-nums; letter-spacing:-0.02em; white-space:nowrap; }
+#ha-bars.wk .wk-track{ flex:1; width:100%; display:flex; align-items:flex-end; justify-content:center; position:relative; }
+#ha-bars.wk .wk-bar{ width:20px; height:0; border-radius:10px; position:relative; overflow:hidden; background:linear-gradient(180deg,#5AB0FF,#0A7CFF); transition:height .6s cubic-bezier(.22,1,.36,1); }
+#ha-bars.wk .wk-ot{ position:absolute; top:0; left:0; right:0; height:0; background:linear-gradient(180deg,#FFB340,#FF8A00); transition:height .6s cubic-bezier(.22,1,.36,1); }
+#ha-bars.wk .wk-col.is-live .wk-bar{ background:linear-gradient(180deg,#9FD0FF,#5AA8FF); }
+#ha-bars.wk .wk-col:not(.has) .wk-bar{ opacity:0; }
+#ha-bars.wk .wk-empty{ position:absolute; bottom:0; left:50%; width:6px; height:6px; margin-left:-3px; border-radius:3px; background:var(--ink-4); opacity:.45; }
+#ha-bars.wk .wk-col.has .wk-empty{ display:none; }
+#ha-bars.wk .wk-lbl{ margin-top:6px; height:20px; display:flex; align-items:center; font-size:11px; font-weight:600; color:var(--ink-3); white-space:nowrap; }
+#ha-bars.wk .wk-col.is-future .wk-lbl{ opacity:.5; }
+#ha-bars.wk .wk-col.is-today .wk-lbl{ background:#0A84FF; color:#fff; font-weight:700; padding:0 8px; border-radius:10px; }
+#ha-bars.wk .wk-plot{ position:absolute; left:0; right:0; top:16px; bottom:26px; pointer-events:none; z-index:0; }
+#ha-bars.wk .wk-avg{ position:absolute; left:0; right:0; height:0; border-top:1.5px dashed rgba(255,255,255,0.42); transition:bottom .6s cubic-bezier(.22,1,.36,1); }
+body:not(.dark) #ha-bars.wk .wk-avg{ border-top-color:rgba(0,0,0,0.28); }
+#ha-bars.wk .wk-avg span{ position:absolute; right:0; bottom:2px; font-size:10px; font-weight:700; color:var(--ink-3); white-space:nowrap; }
+body.corp #ha-bars.wk .wk-bar{ background:var(--c-brand); }
+body.corp #ha-bars.wk .wk-col.is-live .wk-bar{ opacity:.55; }
+body.corp #ha-bars.wk .wk-ot{ background:var(--sys-orange, #FF9F0A); }
+body.corp #ha-bars.wk .wk-col.is-today .wk-lbl{ background:var(--c-brand); }
+@media (prefers-reduced-motion: reduce){ #ha-bars.wk .wk-bar, #ha-bars.wk .wk-ot, #ha-bars.wk .wk-avg{ transition:none; } }
+</style>
 <style id="line-icons-v395">
 /* v395 — one line-icon style: the emoji at the start of card headings is swapped for an iPhone-style line icon (stroke follows the heading colour) */
 svg.lic{ display:inline-block; width:1.15em; height:1.15em; vertical-align:-0.2em; margin-right:0.38em; flex:none; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; overflow:visible; }
