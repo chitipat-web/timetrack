@@ -3195,6 +3195,9 @@ window.ICO = (function(){ var P = {clock:'<circle cx="12" cy="12" r="9"/><path d
   } catch(e){ return false; } };
   if(!window.__rudyIOS && window.rudyUltraWanted() && localStorage.getItem('tt_lite') !== '1' && sessionStorage.getItem('tt_ultra_off') !== '1'){ window.__rudyUltra = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('ultra'); }); }
 } catch(e){} })();   // v351 Ultra graphics
+// v400: "a page is changing" signal. Swipes and the tap transition call rudyBusy(ms); the sky shader and the 3D robot
+// keep their last frame until __rudyBusyUntil, so the page animation has the frame budget to itself.
+window.rudyBusy = function(ms){ try { var u = performance.now() + (ms || 400); if(!(window.__rudyBusyUntil > u)) window.__rudyBusyUntil = u; } catch(e){} };
 (function(){ try { if(localStorage.getItem('tt_lite') === '1'){ window.__rudyLite = true; window.__skyNoGL = true; document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('lite','cinema-off'); }); } } catch(e){} })();
 </script>
 <!-- INIT LOADING OVERLAY (load-D-motion: underwater theme) -->
@@ -11349,7 +11352,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v399';
+const APP_VERSION = 'v400';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -20419,7 +20422,7 @@ body.role-admin #ai-modal .emp, body:not(.role-admin) #ai-modal .adm{ display:no
       // what makes a scroll hitch. On resume the time origin moves by the length of the hold, so the
       // clouds carry on from where they stopped (no jump), and the hold isn't counted as a slow frame.
       // Not in rain/storm: the falling rain is drawn by this shader and would visibly freeze.
-      var hold = !(GL.st && GL.st.rain > 0) && now - (window.__rudyScrollAt || -1e9) < 180;
+      var hold = !(GL.st && GL.st.rain > 0) && (now - (window.__rudyScrollAt || -1e9) < 180 || now < (window.__rudyBusyUntil || 0));   // v400: also while a page is changing
       if(hold){ if(!GL.pz) GL.pz = now; }
       else if(GL.pz){ GL.t0 += now - GL.pz; GL.pz = 0; GL.last = 0; }
       if(!hold && now - GL.last >= (window.__rudyUltra ? 33 : 40)){   // ≤25 fps: clouds drift slowly (Ultra ≤30)
@@ -21935,7 +21938,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     }
     pose(0, 0.033, false);
 
-    var t0 = performance.now(), last = 0, raf = 0, alive = true, blinkAt = 2.5, lastT = 0;
+    var t0 = performance.now(), last = 0, raf = 0, alive = true, blinkAt = 2.5, lastT = 0, bz = 0;   // v400: bz = start of a page-change hold
     var hiHz = true, hiN = 0, hiW = 0;   // v368: Ultra follows a 120 Hz screen while a robot frame stays cheap
     var visN = 0, visOk = false;         // v377: "is the robot on screen?" is re-measured every 30th frame, not on every one
     function frame(now){
@@ -21945,6 +21948,10 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       if(!document.hidden && (!visOk || ++visN >= 30)){ visN = 0; visOk = !!fab.offsetWidth; }
       if(document.hidden || !visOk){ visOk = false; setTimeout(kick, 800); return; }
       raf = requestAnimationFrame(frame);
+      // v400: while a page is changing (swipe / tap transition) keep the last robot frame; the clock moves
+      // by the length of the hold so the motion carries on from where it stopped
+      if(now < (window.__rudyBusyUntil || 0)){ if(!bz) bz = now; return; }
+      if(bz){ t0 += now - bz; bz = 0; last = 0; lastT = (now - t0) / 1000; }
       var gap = now - last;
       if(gap < (window.__rudyUltra ? (hiHz ? 7 : 15) : 32)) return; last = now;   // v351 Ultra: 60 fps robot · v368: up to 120 on a 120 Hz screen
       var w0 = performance.now();
@@ -23414,8 +23421,9 @@ html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
       busy = true; req = { self:this, args:arguments, ran:false };
       try { if(typeof soundPage === 'function') soundPage(); } catch(_){}
       try {
+        if(window.rudyBusy) rudyBusy(800);   // v400: sky + robot hold for the transition (ended early below)
         var r = req, t = document.startViewTransition(function(){ r.ran = true; base.apply(r.self, r.args); });
-        var done = function(){ busy = false; html.classList.remove('vt-back'); };
+        var done = function(){ busy = false; html.classList.remove('vt-back'); try { window.__rudyBusyUntil = Math.min(window.__rudyBusyUntil || 0, performance.now() + 60); } catch(_){} };
         t.finished.then(done, done);
       } catch(e){ busy = false; if(!req.ran){ req.ran = true; base.apply(req.self, req.args); } }
     };
@@ -25077,6 +25085,7 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     if(has && st.canPeek && st.side !== side){ st.x = dx; peekShow(st, side); }
     else if(!has && st.peek){ peekHide(st); st.side = 0; }
     setX(has ? dx : dx * 0.25);                                          // rubber band at the first / last tab
+    if(window.rudyBusy) rudyBusy(300);                                   // v400: sky + robot hold while the finger drags a page
   }, { passive:true });
   function end(cancel){
     var s = st; st = null;
@@ -25088,6 +25097,7 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     var go = !cancel && !!next && ((Math.abs(dx) > W * 0.28 && along > -0.2) || (Math.abs(dx) > 30 && along > 0.35));
     if(raf){ cancelAnimationFrame(raf); raf = 0; }
     if(!go){
+      if(window.rudyBusy) rudyBusy(260);                                 // v400: through the spring back
       glide('settle');
       var pk = s.peek, pkTo = s.side * W;
       if(reduce || !pg.animate){ clear(pg); peekHide(s); return; }
@@ -25105,6 +25115,7 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     if(!peek) peekHide(s);
     if(reduce || !pg.animate){ clear(pg); if(peek) peekHide(s); nav(id, next); busy = false; return; }
     var dur = Math.round(Math.max(180, Math.min(320, 2.2 * (W - Math.abs(dx)) / Math.max(0.6, along))));
+    if(window.rudyBusy) rudyBusy(dur + 220);                             // v400: through the slide (+ the new page's first paint)
     // keep the old page where it is on screen once it is no longer the active one
     pg.style.transform = '';
     var r = pg.getBoundingClientRect(), saved = {};
