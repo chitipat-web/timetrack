@@ -7050,7 +7050,7 @@ function _drawStatsCharts(){
   try{
     if(!job || typeof Chart==='undefined') return;
     const pg=document.getElementById('page-stats');
-    if(!pg || !(pg.classList.contains('active') || pg.classList.contains('sw-peek'))) return;   // closed meanwhile: drawn when it is opened (v385: or while a swipe shows it)
+    if(!pg || !(pg.classList.contains('active') || pg.classList.contains('sw-peek') || pg.classList.contains('sw-warm'))) return;   // closed meanwhile: drawn when it is opened (v385: or while a swipe shows it · v408: or while it is built ahead)
     if(chartH){ chartH.destroy(); chartH=null; }
     if(chartOT){ chartOT.destroy(); chartOT=null; }
     const cfg={responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(148,163,184,.15)'}}}};
@@ -11353,7 +11353,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v407';
+const APP_VERSION = 'v408';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -25087,12 +25087,12 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
   // happening, and kept hidden off screen (sw-warm). A swipe toward one then only slides it in. It is used only if
   // nothing it shows has changed since it was built (same records, employees, day, look — and minute for Home);
   // otherwise it is built again at that moment, as before. Rebuilt on every tab change; checked every 20 s.
-  var WARM = { home:1, history:1 }, warmed = {}, warmT = 0;
+  var WARM = { home:1, history:1, stats:1, team:1, more:1 }, warmed = {}, warmT = 0;   // v408: every bottom tab (was Home / History)
   function sig(id){
     try {
       var p = [id, (typeof curUser !== 'undefined' && curUser && curUser.id) || '', (typeof todayStr === 'function' ? todayStr() : ''), document.body.className,
         JSON.stringify(typeof records !== 'undefined' ? records : null), JSON.stringify(typeof employees !== 'undefined' ? employees : null)];
-      if(id === 'home'){ var n = new Date(); p.push(n.getHours() + ':' + n.getMinutes()); }
+      if(id === 'home' || id === 'team'){ var n = new Date(); p.push(n.getHours() + ':' + n.getMinutes()); }   // live times on these two (v408: Team)
       return p.join('\u0001');
     } catch(e){ return 'x' + Math.random(); }
   }
