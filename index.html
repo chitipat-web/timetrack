@@ -10898,6 +10898,7 @@ const swipeToast = true; // marker
         toast.className = 'toast';
         toast.style.transform = '';
         toast.style.opacity = '';
+        toast.style.transition = '';   // v405: back to the stylesheet's fade (it also carries visibility)
       }, 250);
     }
     toastStartX = 0;
@@ -11352,7 +11353,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v404';
+const APP_VERSION = 'v405';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -25571,6 +25572,16 @@ body.dark #late-stack > div{ background:rgba(44,44,54,.62) !important; border-co
   } catch(e){ try { console.warn('[v393] nav title', e); } catch(_){} }
 })();
 </script>
+<style id="hidden-blur-v405">
+/* v405: these three sit on screen fully transparent while hidden, still with a backdrop blur (pull-to-refresh 60px,
+   toast 18px, compact title bar 22px). visibility:hidden means nothing is drawn for them. visibility is part of each
+   fade's transition, so it stays visible until a fade-out ends and turns visible as soon as a fade-in starts. */
+.ptr-indicator:not(.visible){ visibility:hidden; }
+.toast:not(.show){ visibility:hidden; }
+#ios-nav{ transition:opacity .2s ease, visibility .2s; }
+#ios-nav:not(.on){ visibility:hidden; }
+@media (prefers-reduced-motion: reduce){ #ios-nav{ transition:none; } }
+</style>
 <style id="week-bars-v398">
 /* v398 — home "สัปดาห์นี้": Health-style bars (owner's pick). Scoped to #ha-bars.wk so the old .ha-bar-* rules no longer apply. */
 #ha-bars.wk{ display:flex; gap:6px; height:136px !important; align-items:stretch; position:relative; }
