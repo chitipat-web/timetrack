@@ -11352,7 +11352,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v400';
+const APP_VERSION = 'v401';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21953,7 +21953,9 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
       if(now < (window.__rudyBusyUntil || 0)){ if(!bz) bz = now; return; }
       if(bz){ t0 += now - bz; bz = 0; last = 0; lastT = (now - t0) / 1000; }
       var gap = now - last;
-      if(gap < (window.__rudyUltra ? (hiHz ? 7 : 15) : 32)) return; last = now;   // v351 Ultra: 60 fps robot · v368: up to 120 on a 120 Hz screen
+      var minGap = window.__rudyUltra ? (hiHz ? 7 : 15) : 32;   // v351 Ultra: 60 fps robot · v368: up to 120 on a 120 Hz screen
+      if(minGap < 40 && fab.classList.contains('fab-idle')) minGap = 40;   // v401: tucked at the edge (v389) → ~25 fps is plenty for the idle sway
+      if(gap < minGap) return; last = now;
       var w0 = performance.now();
       var t = (now - t0) / 1000, busy = modal && modal.classList.contains('ai-busy');
       if(!reduce){
