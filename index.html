@@ -1471,14 +1471,16 @@ body.dark .team-subtab:not(.active):hover{
   from { opacity:0; transform:translateY(16px); }
   to   { opacity:1; transform:translateY(0); }
 }
-#login-screen .login-logo{ animation:loginLogoBounce 0.9s cubic-bezier(0.34,1.56,0.64,1); }
-#login-screen .login-sub{ animation:loginFieldUp 0.5s ease-out 0.4s backwards; }
-#login-screen .login-lbl:nth-of-type(1){ animation:loginFieldUp 0.5s ease-out 0.55s backwards; }
-#login-screen #login-email{ animation:loginFieldUp 0.5s ease-out 0.65s backwards; }
-#login-screen .login-lbl:nth-of-type(2){ animation:loginFieldUp 0.5s ease-out 0.75s backwards; }
-#login-screen .pw-wrap{ animation:loginFieldUp 0.5s ease-out 0.85s backwards; }
-#login-screen .login-btn{ animation:loginFieldUp 0.5s ease-out 0.95s backwards; }
-#login-screen .btn-forgot{ animation:loginFieldUp 0.5s ease-out 1.05s backwards; }
+/* v413: the same entrance, for the new sign-in layout */
+#login-screen .lx-icon{ animation:loginLogoBounce 0.9s cubic-bezier(0.34,1.56,0.64,1); }
+#login-screen .lx-title{ animation:loginFieldUp 0.5s ease-out 0.3s backwards; }
+#login-screen .lx-sub{ animation:loginFieldUp 0.5s ease-out 0.4s backwards; }
+#login-screen .lx-group{ animation:loginFieldUp 0.5s ease-out 0.55s backwards; }
+#login-screen .lx-btn{ animation:loginFieldUp 0.5s ease-out 0.7s backwards; }
+#login-screen .lx-link{ animation:loginFieldUp 0.5s ease-out 0.85s backwards; }
+#login-screen .lx-foot{ animation:loginFieldUp 0.5s ease-out 0.95s backwards; }
+#login-screen .lx-foot .lx-link{ animation:none; }
+@media (prefers-reduced-motion: reduce){ #login-screen .lx-head *, #login-screen .lx-group, #login-screen .lx-btn, #login-screen .lx-link, #login-screen .lx-foot{ animation:none !important; } }
 
 /* 5. Page transition — swipe in from right (iOS feel) */
 @keyframes pageSwipeIn {
@@ -3584,73 +3586,112 @@ body.dark .slide-action{
 <!-- aaa-popup-container removed (reward popup deleted) -->
 
 <!-- INITIAL LOADING OVERLAY -->
+<style id="login-v413">
+/* v413: sign-in + sign-up, iPhone style (design A). Scoped to the two screens by id so the looks' rules for
+   the old .login-* classes and the iOS look's input rule don't reach them. Colours follow the theme vars. */
+#login-screen, #register-screen{ align-items:stretch !important; justify-content:center; padding:0 !important; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+#register-screen{ z-index:500; }
+#login-screen .lx, #register-screen .lx{ width:100%; max-width:440px; margin:0 auto; min-height:100%; box-sizing:border-box; display:flex; flex-direction:column; justify-content:center;
+  padding:calc(env(safe-area-inset-top, 0px) + 56px) 24px calc(env(safe-area-inset-bottom, 0px) + 26px); }
+/* a soft shade behind the lower half keeps the text readable over any sky */
+#login-screen::before, #register-screen::before{ content:""; position:fixed; inset:0; pointer-events:none; z-index:-1;
+  background:linear-gradient(180deg, rgba(0,8,28,0) 0%, rgba(0,8,28,.16) 50%, rgba(0,8,28,.36) 100%); }
+body:not(.dark) #login-screen::before, body:not(.dark) #register-screen::before{ background:linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.22) 45%, rgba(255,255,255,.5) 100%); }
+#login-screen .lx-head, #register-screen .lx-head{ display:flex; flex-direction:column; align-items:center; text-align:center; margin:auto 0 28px; }
+#login-screen .lx-icon, #register-screen .lx-icon{ width:88px; height:88px; margin-bottom:16px; filter:drop-shadow(0 14px 26px rgba(0,0,0,.38)); }
+#register-screen .lx-head-sm .lx-icon{ width:64px; height:64px; margin-bottom:12px; }
+/* the app's own icon (as on the home screen), with the iPhone icon corner */
+#login-screen .lx-icon img, #register-screen .lx-icon img{ width:100%; height:100%; display:block; border-radius:22.4%; }
+body.dark #login-screen .lx-icon img, body.dark #register-screen .lx-icon img{ box-shadow:0 0 0 1px rgba(255,255,255,.16); }   /* its edge on a black background */
+#login-screen .lx-title, #register-screen .lx-title{ margin:0; font:800 34px/1.12 var(--font-display); letter-spacing:-.03em; color:var(--ink); }
+#register-screen .lx-head-sm .lx-title{ font-size:28px; }
+#login-screen .lx-sub, #register-screen .lx-sub{ margin-top:6px; font-size:15px; color:var(--ink-2); }
+#login-screen .lx-group, #register-screen .lx-group{ background:var(--glass-2); -webkit-backdrop-filter:blur(24px) saturate(180%); backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid var(--glass-stroke); border-radius:18px; overflow:hidden; margin-bottom:18px; box-shadow:0 10px 30px rgba(0,0,0,.16); }
+#login-screen .lx-row, #register-screen .lx-row{ position:relative; display:flex; align-items:center; gap:10px; min-height:56px; padding:0 10px 0 16px; }
+#login-screen .lx-row + .lx-row::before, #register-screen .lx-row + .lx-row::before{ content:""; position:absolute; top:0; left:16px; right:0; height:1px; background:var(--glass-stroke); }
+#register-screen .lx-row{ min-height:52px; }
+#login-screen .lx-lbl, #register-screen .lx-lbl{ flex:none; width:72px; font-size:15px; font-weight:600; color:var(--ink); }
+#register-screen .lx-lbl{ width:96px; }
+#login-screen .lx-row input, #register-screen .lx-row input{ flex:1; min-width:0; height:46px; margin:0 !important; padding:0 6px 0 0 !important;
+  background:transparent !important; border:none !important; border-radius:0 !important; box-shadow:none !important; outline:none !important;
+  font:400 16px var(--font-display); color:var(--ink) !important; -webkit-appearance:none; appearance:none; }
+#login-screen .lx-row input::placeholder, #register-screen .lx-row input::placeholder{ color:var(--ink-3); opacity:1; }
+#login-screen .lx-row:focus-within, #register-screen .lx-row:focus-within{ background:rgba(10,132,255,.08); }
+#login-screen .lx-eye, #register-screen .lx-eye{ flex:none; display:flex; align-items:center; justify-content:center; width:40px; height:40px; padding:0; background:none; border:none; color:var(--ink-3); cursor:pointer; }
+#login-screen .lx-btn, #register-screen .lx-btn{ display:block; width:100%; height:54px; border:none; border-radius:16px; cursor:pointer;
+  background:linear-gradient(180deg, #3A97FF, #0A7CFF); color:#fff; font:700 17px var(--font-display); letter-spacing:-.01em;
+  box-shadow:0 10px 24px rgba(10,124,255,.36), inset 0 1px 0 rgba(255,255,255,.45); transition:transform .12s, filter .2s, opacity .2s; }
+#login-screen .lx-btn:active, #register-screen .lx-btn:active{ transform:scale(.97); filter:brightness(.95); }
+#register-screen .lx-btn:disabled{ opacity:.6; }
+#login-screen .lx-link, #register-screen .lx-link{ display:block; margin:14px auto 0; padding:8px 12px; background:none; border:none; cursor:pointer;
+  font:600 15px var(--font-display); color:var(--sys-blue); }
+body.dark #login-screen .lx-link, body.dark #register-screen .lx-link{ text-shadow:0 1px 8px rgba(0,10,40,.45); }
+body:not(.dark) #login-screen .lx-link, body:not(.dark) #register-screen .lx-link{ color:var(--sys-blue-2); text-shadow:0 0 10px rgba(255,255,255,.75); }
+#login-screen .lx-inline, #register-screen .lx-inline{ display:inline; margin:0; padding:6px 2px; font-weight:700; }
+#login-screen .lx-foot, #register-screen .lx-foot{ margin-top:auto; padding-top:28px; text-align:center; font-size:15px; color:var(--ink-2); }   /* at the foot of the screen; the rest sits centred above */
+/* messages are solid (white text on red / green) so they read over any sky */
+#login-screen .lx-msg, #register-screen .lx-msg{ margin-bottom:14px; padding:12px 14px; border-radius:14px; font-size:14px; font-weight:600; line-height:1.45; text-align:center;
+  background:rgba(235,52,44,.94); border:none; color:#fff; box-shadow:0 8px 20px rgba(235,52,44,.28); }
+#login-screen .lx-msg.lx-ok, #register-screen .lx-msg.lx-ok{ background:rgba(28,160,84,.94); box-shadow:0 8px 20px rgba(28,160,84,.28); }
+#login-screen .lx-loading, #register-screen .lx-loading{ text-align:center; padding:14px 0 0; color:var(--ink-2); font-size:14px; }
+@media (max-height:640px){
+  #login-screen .lx, #register-screen .lx{ padding-top:calc(env(safe-area-inset-top, 0px) + 28px); }
+  #login-screen .lx-icon{ width:72px; height:72px; margin-bottom:12px; }
+  #login-screen .lx-head, #register-screen .lx-head{ margin-bottom:20px; }
+  #login-screen .lx-foot, #register-screen .lx-foot{ padding-top:18px; }
+}
+</style>
 <!-- LOGIN -->
+<!-- v413: iPhone-style sign-in (owner picked design A, with the app's own icon): icon + title over the sky, the two fields in one
+     grouped glass box, a blue button, plain links. Same ids, handlers and form as before (Keychain / Face ID fill). -->
 <div id="login-screen" style="display:none">
-  <div class="login-box">
-    <div class="login-logo"><div class="login-logo-mark">R</div><div class="login-logo-text">RU<span>DY</span></div></div>
-    <div class="login-sub">ระบบบันทึกเวลาพนักงาน</div>
-    <div class="login-err" id="login-err" style="display:none"></div>
+  <div class="lx">
+    <div class="lx-head">
+      <div class="lx-icon"><img src="icon-512.png" alt="RUDY" width="88" height="88"/></div>
+      <h1 class="lx-title">RUDY</h1>
+      <div class="lx-sub">ระบบบันทึกเวลาพนักงาน</div>
+    </div>
+    <div class="lx-msg" id="login-err" style="display:none"></div>
 
     <!-- v263: real <form> + username/current-password so iPhone offers to save the
          password in iCloud Keychain and fills it with Face ID next time. The submit
          event (not a click handler) is what Safari watches for. -->
     <form id="login-form" autocomplete="on" onsubmit="event.preventDefault();doLogin();return false;">
-    <label class="login-lbl" for="login-email">อีเมล</label>
-    <input class="login-inp" id="login-email" name="username" type="email" placeholder="email@company.com" autocomplete="username" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('login-pw').focus();}"/>
-    <label class="login-lbl" for="login-pw">รหัสผ่าน</label>
-    <div class="pw-wrap">
-      <input class="login-inp" id="login-pw" name="password" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:48px"/>
-      <button type="button" class="toggle-pw" onclick="togglePw()" tabindex="-1">👁</button>
-    </div>
-    <button type="submit" class="login-btn">เข้าสู่ระบบ</button>
+      <div class="lx-group">
+        <div class="lx-row"><label class="lx-lbl" for="login-email">อีเมล</label><input id="login-email" name="username" type="email" placeholder="name@company.com" autocomplete="username" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('login-pw').focus();}"/></div>
+        <div class="lx-row"><label class="lx-lbl" for="login-pw">รหัสผ่าน</label><input id="login-pw" name="password" type="password" placeholder="รหัสผ่าน" autocomplete="current-password"/><button type="button" class="lx-eye" onclick="togglePw()" tabindex="-1" aria-label="แสดงรหัสผ่าน"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+      </div>
+      <button type="submit" class="lx-btn">เข้าสู่ระบบ</button>
     </form>
-    <button class="btn-forgot" onclick="forgotPassword()">ลืมรหัสผ่าน?</button>
-
-    <div style="display:flex;align-items:center;gap:8px;margin:16px 0">
-      <div style="flex:1;height:1px;background:var(--border)"></div>
-      <span style="font-size:12px;color:var(--text3)">ยังไม่มีบัญชี?</span>
-      <div style="flex:1;height:1px;background:var(--border)"></div>
-    </div>
-    <button class="btn-register" onclick="showRegister()">สมัครสมาชิก</button>
-
-    <div id="login-loading" style="display:none;text-align:center;padding:16px;color:var(--accent2)">
-      <div class="spinner"></div>กำลังเข้าสู่ระบบ...
-    </div>
+    <button type="button" class="lx-link" onclick="forgotPassword()">ลืมรหัสผ่าน?</button>
+    <div id="login-loading" class="lx-loading" style="display:none"><div class="spinner"></div>กำลังเข้าสู่ระบบ...</div>
+    <div class="lx-foot">ยังไม่มีบัญชี? <button type="button" class="lx-link lx-inline" onclick="showRegister()">สมัครสมาชิก</button></div>
   </div>
 </div>
 
-<!-- REGISTER SCREEN -->
-<div id="register-screen" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#001a3a 0%,#003366 50%,#0066aa 100%);overflow-y:auto">
-  <div class="login-box" style="max-height:90vh;overflow-y:auto">
-    <div class="login-logo"><div class="login-logo-mark">R</div><div class="login-logo-text">RU<span>DY</span></div></div>
-    <div class="login-sub">สมัครสมาชิกใหม่</div>
-    <div class="login-err" id="reg-err" style="display:none"></div>
-    <div id="reg-success" style="display:none;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green);font-size:13px;padding:12px;border-radius:8px;margin-bottom:14px;text-align:center"></div>
+<!-- REGISTER SCREEN (v413: same look as the sign-in) -->
+<div id="register-screen" style="display:none">
+  <div class="lx">
+    <div class="lx-head lx-head-sm">
+      <div class="lx-icon"><img src="icon-512.png" alt="RUDY" width="88" height="88"/></div>
+      <h1 class="lx-title">สมัครสมาชิก</h1>
+      <div class="lx-sub">สร้างบัญชีใหม่สำหรับ RUDY</div>
+    </div>
+    <div class="lx-msg" id="reg-err" style="display:none"></div>
+    <div class="lx-msg lx-ok" id="reg-success" style="display:none"></div>
 
-    <label class="login-lbl">ชื่อ-นามสกุล</label>
-    <input class="login-inp" id="reg-name" type="text" placeholder="เช่น สมชาย ใจดี"/>
-
-    <label class="login-lbl">อีเมล</label>
-    <input class="login-inp" id="reg-email" type="email" placeholder="email@company.com" autocomplete="username" autocapitalize="off" spellcheck="false"/>
-
-    <label class="login-lbl">รหัสผ่าน</label>
-    <div class="pw-wrap">
-      <input class="login-inp" id="reg-pw" type="password" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password" style="padding-right:48px"/>
-      <button class="toggle-pw" onclick="toggleRegPw()" tabindex="-1">👁</button>
+    <div class="lx-group lx-group-reg">
+      <div class="lx-row"><label class="lx-lbl" for="reg-name">ชื่อ-นามสกุล</label><input id="reg-name" type="text" placeholder="เช่น สมชาย ใจดี" autocomplete="name"/></div>
+      <div class="lx-row"><label class="lx-lbl" for="reg-email">อีเมล</label><input id="reg-email" type="email" placeholder="name@company.com" autocomplete="username" autocapitalize="off" spellcheck="false"/></div>
+      <div class="lx-row"><label class="lx-lbl" for="reg-pw">รหัสผ่าน</label><input id="reg-pw" type="password" placeholder="อย่างน้อย 6 ตัว" autocomplete="new-password"/><button type="button" class="lx-eye" onclick="toggleRegPw()" tabindex="-1" aria-label="แสดงรหัสผ่าน"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+      <div class="lx-row"><label class="lx-lbl" for="reg-pw2">ยืนยันรหัส</label><input id="reg-pw2" type="password" placeholder="กรอกอีกครั้ง" autocomplete="new-password"/></div>
+      <div class="lx-row"><label class="lx-lbl" for="reg-dept">แผนก</label><input id="reg-dept" type="text" placeholder="เช่น การตลาด, IT"/></div>
     </div>
 
-    <label class="login-lbl">ยืนยันรหัสผ่าน</label>
-    <input class="login-inp" id="reg-pw2" type="password" placeholder="กรอกรหัสผ่านอีกครั้ง" autocomplete="new-password"/>
-
-    <label class="login-lbl">แผนก</label>
-    <input class="login-inp" id="reg-dept" type="text" placeholder="เช่น การตลาด, IT, บัญชี"/>
-
-    <button class="login-btn" id="reg-btn" onclick="doRegister()">สมัครสมาชิก</button>
-    <button class="btn-forgot" onclick="showLogin()">← กลับไปหน้า Login</button>
-
-    <div id="reg-loading" style="display:none;text-align:center;padding:16px;color:var(--accent2)">
-      <div class="spinner"></div>กำลังสมัคร...
-    </div>
+    <button type="button" class="lx-btn" id="reg-btn" onclick="doRegister()">สมัครสมาชิก</button>
+    <div id="reg-loading" class="lx-loading" style="display:none"><div class="spinner"></div>กำลังสมัคร...</div>
+    <div class="lx-foot">มีบัญชีแล้ว? <button type="button" class="lx-link lx-inline" onclick="showLogin()">เข้าสู่ระบบ</button></div>
   </div>
 </div>
 
@@ -11353,7 +11394,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v412';
+const APP_VERSION = 'v413';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -11438,14 +11479,18 @@ function forgotPassword() {
   if (!email) { showLoginErr('กรุณาใส่อีเมลก่อนกด ลืมรหัสผ่าน'); return; }
   auth.sendPasswordResetEmail(email)
     .then(() => {
-      document.getElementById('login-err').style.cssText = 'display:block;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#10b981';
-      document.getElementById('login-err').textContent = '✅ ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้วครับ';
+      // v413: shown as a green message by class (the inline colours used before stayed on later errors too)
+      const el = document.getElementById('login-err');
+      el.classList.add('lx-ok');
+      el.textContent = '✅ ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้วครับ';
+      el.style.display = 'block';
     })
     .catch(err => showLoginErr(getThaiError(err.code)));
 }
 
 function showLoginErr(msg) {
   const el = document.getElementById('login-err');
+  el.classList.remove('lx-ok');   // v413: an error after a reset email is shown as an error
   el.textContent = msg;
   el.style.display = 'block';
 }
