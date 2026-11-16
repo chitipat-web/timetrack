@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v402
-// Cache: rudy-static-v402, firebase-v402
-// Build: 2026-11-16 · v402 — Ultra sky at 60% resolution
+// RUDY · Service Worker v403
+// Cache: rudy-static-v403, firebase-v403
+// Build: 2026-11-16 · v403 — robot at most 60 fps
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v402';
-const FIREBASE_CACHE = 'firebase-v402';
-const RUNTIME_CACHE = 'rudy-runtime-v402';
+const STATIC_CACHE  = 'rudy-static-v403';
+const FIREBASE_CACHE = 'firebase-v403';
+const RUNTIME_CACHE = 'rudy-runtime-v403';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -61,12 +61,12 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v402] Installing...');
+  console.log('[SW v403] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v402] Precache partial fail (ok):', err);
+          console.warn('[SW v403] Precache partial fail (ok):', err);
         });
       })
       .then(() => self.skipWaiting())
@@ -77,7 +77,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v402] Activating...');
+  console.log('[SW v403] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -85,7 +85,7 @@ self.addEventListener('activate', (event) => {
           names
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE)
             .map((name) => {
-              console.log('[SW v402] Deleting old cache:', name);
+              console.log('[SW v403] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -246,7 +246,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v402' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v403' });
     return;
   }
 });
@@ -269,7 +269,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v402] Push parse fail:', e);
+    console.warn('[SW v403] Push parse fail:', e);
   }
 });
 
@@ -289,4 +289,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v402] Loaded — AI quota-friendly retry');
+console.log('[SW v403] Loaded — AI quota-friendly retry');

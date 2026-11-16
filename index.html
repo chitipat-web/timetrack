@@ -11352,7 +11352,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v402';
+const APP_VERSION = 'v403';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21939,7 +21939,7 @@ svg.rb .rb-armL{ transform-origin:50% 8%; animation:rbSwing 3.2s ease-in-out inf
     pose(0, 0.033, false);
 
     var t0 = performance.now(), last = 0, raf = 0, alive = true, blinkAt = 2.5, lastT = 0, bz = 0;   // v400: bz = start of a page-change hold
-    var hiHz = true, hiN = 0, hiW = 0;   // v368: Ultra follows a 120 Hz screen while a robot frame stays cheap
+    var hiHz = false, hiN = 0, hiW = 0;   // v368: Ultra followed a 120 Hz screen while a robot frame stayed cheap · v403: off — at most 60 fps, the page animations get the 120 Hz budget
     var visN = 0, visOk = false;         // v377: "is the robot on screen?" is re-measured every 30th frame, not on every one
     function frame(now){
       raf = 0; if(!alive) return;
