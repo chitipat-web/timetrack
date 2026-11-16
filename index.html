@@ -11353,7 +11353,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v411';
+const APP_VERSION = 'v412';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -23430,7 +23430,15 @@ html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
         if(window.rudyBusy) rudyBusy(800);   // v400: sky + robot hold for the transition (ended early below)
         if(window.rudyPerfMark) rudyPerfMark('tap');   // v406: on-phone timing
         var vt0 = performance.now();
-        var r = req, t = document.startViewTransition(function(){ r.ran = true; base.apply(r.self, r.args); });
+        var r = req, t = document.startViewTransition(function(){
+          r.ran = true;
+          // v412: a page built ahead and still current is used as it is (not built again here)
+          var tid = r.args && r.args[0], wm = 0;
+          try { wm = window.rudyWarmTake ? rudyWarmTake(tid) : 0; } catch(_){}
+          if(wm === 2) window.__rudySwipeSkipRender = tid;
+          try { base.apply(r.self, r.args); } finally { if(wm === 2) window.__rudySwipeSkipRender = null; }
+          if(wm) try { rudyWarmShown(tid, wm === 2); if(wm === 2 && window.rudyPerfNote) rudyPerfNote('ready', 1); } catch(_){}
+        });
         try { t.ready.then(function(){ if(window.rudyPerfNote) rudyPerfNote('vt', performance.now() - vt0); }, function(){}); } catch(_){}
         var done = function(){ busy = false; html.classList.remove('vt-back'); try { window.__rudyBusyUntil = Math.min(window.__rudyBusyUntil || 0, performance.now() + 60); } catch(_){} };
         t.finished.then(done, done);
@@ -25166,7 +25174,8 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     };
   } catch(e){}
   function replayCss(el){   // also for a copy found stale and built again: it was on the page (hidden), so its CSS entrance had run
-    try { if(el.getAnimations) el.getAnimations({ subtree:true }).forEach(function(a){ if(a.animationName === 'ph3dIn' || a.animationName === 'mc2Grow'){ a.currentTime = 0; a.play(); } }); } catch(e){}
+    // a fresh copy of each animated element starts its CSS entrance on its own (no style read needed here)
+    try { Array.prototype.forEach.call(el.querySelectorAll('img.ph3d, .mc2-bar'), function(n){ n.parentNode.replaceChild(n.cloneNode(true), n); }); } catch(e){}
   }
   function replayIn(el){
     replayCss(el);
@@ -25201,6 +25210,24 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     var done = false, go = function(){ if(done) return; done = true; growCharts(); };
     requestAnimationFrame(function(){ setTimeout(go, 0); }); setTimeout(go, 400);
   }
+  // v412: a tap on a tab (the v346 transition) on a page kept built ahead. Home and Numbers, costly to build, are used as
+  // they are when still current (not built again inside the transition); measured on the others, building them again
+  // is as quick as taking the copy. Either way the page leaves its hidden, pinned state before the transition shows it,
+  // and its opening animations play. Returns 2: use it as it is · 1: build it as before · 0: no copy.
+  var TAPUSE = { home:1, stats:1 };
+  window.rudyWarmTake = function(id){
+    try {
+      var el = document.getElementById('page-' + id), w = warmed[id];
+      if(!el || !WARM[id] || !el.classList.contains('sw-warm')) return 0;
+      var use = !!(TAPUSE[id] && w && w.sig === sig(id));
+      unwarm(id);                                    // not drawn until showPage makes it the active page, just after
+      return use ? 2 : 1;
+    } catch(e){ return 0; }
+  };
+  window.rudyWarmShown = function(id, used){         // once the tapped page is the active one
+    var el = document.getElementById('page-' + id); if(!el) return;
+    if(used) replayIn(el); else replayCss(el);
+  };
   function peekShow(s, side){
     peekHide(s); s.side = side;
     var btn = s.list[s.i + side], id = btn && btn.getAttribute('data-page'), el = id && document.getElementById('page-' + id);
