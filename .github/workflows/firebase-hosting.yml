@@ -20,6 +20,7 @@ on:
       - 'splash.mp4'
       - '*.png'
       - '*.html'
+      - 'sfx/**'
       - 'firebase.json'
       - '.github/workflows/firebase-hosting.yml'
   workflow_dispatch:
@@ -65,6 +66,7 @@ jobs:
           mkdir -p _site
           cp index.html sw.js version.json manifest.json splash.mp4 _site/
           cp icon-*.png _site/
+          if [ -d sfx ]; then cp -r sfx _site/; fi   # v414: the app's sounds
           for f in privacy.html cache-clear.html force-resubscribe.html; do
             if [ -f "$f" ]; then cp "$f" _site/; fi
           done

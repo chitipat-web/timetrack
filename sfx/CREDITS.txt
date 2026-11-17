@@ -1,0 +1,15 @@
+RUDY in-app sounds (v414)
+
+Source: Notification Sounds — https://notificationsounds.com
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+         https://creativecommons.org/licenses/by/4.0/
+Changes: leading / trailing silence trimmed, short fade-in, level adjusted, re-encoded to 96 kbps mono MP3.
+
+checkin.mp3   "Elegant"         https://notificationsounds.com/storage/sounds/file-sounds-1233-elegant.mp3
+checkout.mp3  "Task completed"  https://notificationsounds.com/storage/sounds/file-sounds-1239-task-completed.mp3
+success.mp3   "Me too"          https://notificationsounds.com/storage/sounds/file-sounds-1144-me-too.mp3
+error.mp3     "Unconvinced"     https://notificationsounds.com/storage/sounds/file-sounds-1113-unconvinced.mp3
+notify.mp3    "Message"         https://notificationsounds.com/storage/sounds/file-sounds-1192-message.mp3
+coin.mp3      "Accomplished"    https://notificationsounds.com/storage/sounds/file-sounds-1126-accomplished.mp3
+
+Credited in the app under อื่นๆ → เกี่ยวกับ → เสียงในแอป.

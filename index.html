@@ -4648,6 +4648,9 @@ body:not(.dark) #login-screen .lx-link, body:not(.dark) #register-screen .lx-lin
       <div class="more-row" style="cursor:default">
         <span class="more-row-ic mi mi-blue"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6h.01"/></svg></span><span class="more-row-lbl">RUDY</span><span class="more-row-val" id="more-ver">—</span>
       </div>
+      <a class="more-row" href="https://notificationsounds.com" target="_blank" rel="noopener" style="text-decoration:none">
+        <span class="more-row-ic mi mi-green"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></span><span class="more-row-lbl">เสียงในแอป</span><span class="more-row-val">notificationsounds.com · CC BY 4.0</span>
+      </a>
       <button class="more-row more-logout" onclick="doLogout()">
         <span class="more-row-ic mi mi-red"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l5-5-5-5M15 12H4"/></svg></span><span class="more-row-lbl">ออกจากระบบ</span>
       </button>
@@ -11394,7 +11397,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v413';
+const APP_VERSION = 'v414';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -23090,6 +23093,51 @@ body.lite .hq-wx-ic img{ animation:none !important; }
   window.soundPage = function(){ if(!on()) return; bell(1760, 0, 0.09, 0.012); };
   // the old functions were global declarations; rebind the names too
   try { soundCheckIn = window.soundCheckIn; soundCheckOut = window.soundCheckOut; soundSuccess = window.soundSuccess; soundError = window.soundError; soundNotification = window.soundNotification; soundClick = window.soundClick; } catch(e){}
+})();
+</script>
+<script>
+// v414: the owner's sounds (picked by ear: set "N3" from notificationsounds.com, CC BY 4.0 — credited in
+// อื่นๆ → เกี่ยวกับ). Short recorded tones in sfx/ (precached by the service worker), played through Web Audio so
+// the iPhone ringer switch still mutes them as before, under the same names; the 🔊 setting (tt_audio) still turns
+// them all off. No sound on a tab change or a click (as iPhone apps). The medal reuses the coin sound.
+(function(){
+  'use strict';
+  var FILES = { checkin:'sfx/checkin.mp3', checkout:'sfx/checkout.mp3', success:'sfx/success.mp3', error:'sfx/error.mp3', notify:'sfx/notify.mp3', coin:'sfx/coin.mp3' };
+  var buf = {}, busy = {};
+  function on(){ return typeof isAudioOn !== 'function' || isAudioOn(); }
+  function ctx(){ var c = typeof getAudioCtx === 'function' ? getAudioCtx() : null; if(c){ try { if(c.state === 'suspended') c.resume(); } catch(e){} } return c; }
+  function load(k){
+    if(buf[k]) return Promise.resolve(buf[k]);
+    if(busy[k]) return busy[k];
+    var c = ctx(); if(!c || !window.fetch || !FILES[k] || location.protocol === 'file:') return Promise.resolve(null);   // (a local file copy can't fetch them)
+    busy[k] = fetch(FILES[k]).then(function(r){ if(!r.ok) throw new Error('sfx ' + r.status); return r.arrayBuffer(); })
+      .then(function(a){ return new Promise(function(res, rej){ var q = c.decodeAudioData(a, res, rej); if(q && q.then) q.then(res, rej); }); })
+      .then(function(b){ buf[k] = b; busy[k] = null; return b; }, function(e){ busy[k] = null; try { console.warn('[sfx]', k, e && e.message); } catch(_){} return null; });
+    return busy[k];
+  }
+  function play(k){
+    if(!on()) return;
+    var c = ctx(); if(!c) return;
+    var go = function(b){ if(!b || !on()) return; try { var s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(); } catch(e){} };
+    if(buf[k]){ go(buf[k]); return; }
+    var t0 = Date.now(); load(k).then(function(b){ if(Date.now() - t0 < 800) go(b); });   // a sound that comes late is left out
+  }
+  function preload(){ if(!on()) return; Object.keys(FILES).forEach(function(k){ load(k); }); }
+  window.soundCheckIn = function(){ play('checkin'); };
+  window.soundCheckOut = function(){ play('checkout'); };
+  window.soundSuccess = function(){ play('success'); };
+  window.soundError = function(){ play('error'); };
+  window.soundNotification = function(){ play('notify'); };
+  window.soundCoin = function(){ play('coin'); };
+  window.soundMedal = function(){ play('coin'); };
+  window.soundPage = function(){};
+  window.soundClick = function(){};
+  try { soundCheckIn = window.soundCheckIn; soundCheckOut = window.soundCheckOut; soundSuccess = window.soundSuccess; soundError = window.soundError; soundNotification = window.soundNotification; soundClick = window.soundClick; } catch(e){}
+  window.rudySfx = { play:play, load:load, files:FILES };
+  // ready before the first sound: on the first touch (which also lets iPhone start audio), or a few seconds in
+  var first = function(){ document.removeEventListener('touchend', first, true); document.removeEventListener('click', first, true); preload(); };
+  document.addEventListener('touchend', first, true); document.addEventListener('click', first, true);
+  window.addEventListener('load', function(){ setTimeout(preload, 4000); });
 })();
 </script>
 <style id="ultra-v351">
