@@ -11397,7 +11397,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v416';
+const APP_VERSION = 'v417';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -22676,6 +22676,154 @@ html body.corp .clock-svg.lw2:not(#_){ filter:drop-shadow(0 4px 10px rgba(0,0,0,
   ['doCheckIn','doCheckOut'].forEach(function(fn){ window.addEventListener('load', function(){ var o = window[fn]; if(typeof o !== 'function') return; window[fn] = function(){ var r = o.apply(this, arguments); setTimeout(upd, 50); return r; }; }); });
 })();
 </script>
+<style id="dial-bake-v417">
+/* v417: the analog dial's fixed parts are drawn once into a picture behind it (script below) */
+.clock-analog > canvas.lw2-bake{ position:absolute; pointer-events:none; }
+.clock-analog > svg.clock-svg.lw2-baked{ position:relative; }
+.clock-svg.lw2.lw2-baked .lw2-bk{ visibility:hidden; }
+html body .clock-svg.lw2.lw2-baked:not(#_), html body.corp .clock-svg.lw2.lw2-baked:not(#_){ filter:none !important; }
+</style>
+<script>
+// v417: the analog dial's fixed parts (rim, face, minute ticks, hour indices and numerals with their shadows, RUDY /
+// ISRAEL, and the soft shadow under the dial) are drawn once into a picture (canvas) right behind it; the dial itself
+// then draws only what moves or changes: the hands, today's shift arc, the date window and the glass highlight. Same
+// look. Why: with this face, leaving Home still froze the phone ~0.15 s (v416 log) while Safari pictured the page for
+// the slide-out, and the hands moving every frame made the whole dial be drawn again 60 times a second. The picture is
+// drawn again when the dial's size, colours (light / dark, look) or shadow change. If it cannot be made, the dial stays
+// as it was; if text in a picture would not come out in the page's own font, the numerals and words stay live.
+(function(){
+  'use strict';
+  try {
+    if(!window.XMLSerializer || !window.Image) return;
+    var NS = 'http://www.w3.org/2000/svg', M = 48;   // room around the dial for its shadow (CSS px)
+    var PROPS = ['fill', 'fill-opacity', 'fill-rule', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-linecap', 'stroke-linejoin',
+      'stroke-dasharray', 'opacity', 'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant-numeric', 'letter-spacing',
+      'word-spacing', 'text-anchor', 'dominant-baseline', 'stop-color', 'stop-opacity'];
+    var st = { svg:null, canvas:null, sig:'', busy:false, again:false, later:false, text:null }, T = 0;
+    function els(){ var svg = document.querySelector('#clock-analog > svg.clock-svg.lw2'); return { svg:svg, box:svg && svg.parentNode, hero:document.getElementById('clock-hero') }; }
+    function fixUrl(v){ return String(v).replace(/url\(\s*(['"]?)[^#'")]*#/g, 'url($1#'); }
+    // a copy of an element for the picture, with the page's styles written on it (a picture has no style sheet)
+    function inline(live, copy){
+      var cs = getComputedStyle(live), s = '';
+      for(var k = 0; k < PROPS.length; k++){ var v = cs.getPropertyValue(PROPS[k]); if(v !== '') s += PROPS[k] + ':' + fixUrl(v) + ';'; }
+      copy.setAttribute('style', s); copy.removeAttribute('class');
+      for(var j = 0; j < live.children.length && j < copy.children.length; j++) inline(live.children[j], copy.children[j]);
+    }
+    // the fixed parts, in paint order: everything before today's shift arc, then the RUDY and ISRAEL lines (nothing
+    // drawn between them overlaps them: the arc runs at the rim, the date window sits between RUDY and ISRAEL)
+    function fixedParts(svg, withText){
+      var track = svg.querySelector(':scope > #lw2-shift-track'), out = [], k = svg.children;
+      if(!track) return null;
+      for(var i = 0; i < k.length && k[i] !== track; i++){ if(k[i].tagName.toLowerCase() !== 'defs') out.push(k[i]); }
+      if(out.length < 5) return null;
+      ['text.lw2-brand', 'text.lw2-sub'].forEach(function(q){ var e = svg.querySelector(':scope > ' + q); if(e) out.push(e); });
+      if(!withText) out = out.filter(function(e){ return !(e.tagName.toLowerCase() === 'text' || e.querySelector('text')); });
+      return out;
+    }
+    function shadowOf(f){   // the dial's drop shadow, as computed: drop-shadow(rgba(10, 20, 60, 0.35) 0px 10px 22px)
+      f = String(f || 'none').trim(); if(f === 'none') return { none:true };
+      var m = /^drop-shadow\((.+?)\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+([\d.]+)px\)$/.exec(f) || /^drop-shadow\((-?[\d.]+)px\s+(-?[\d.]+)px\s+([\d.]+)px\s+(.+)\)$/.exec(f);
+      if(!m) return null;
+      return /^drop-shadow\(-?[\d.]/.test(f) ? { c:m[4], x:+m[1], y:+m[2], b:+m[3] } : { c:m[1], x:+m[2], y:+m[3], b:+m[4] };
+    }
+    function picture(str, done){
+      var img = new Image();
+      img.onload = function(){ done(img); }; img.onerror = function(){ done(null); };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str);
+    }
+    function esc(v){ return String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+    // text drawn inside a picture must come out in the page's own font (a system font name may not reach a picture on
+    // every phone): the same line drawn by the page (canvas) and inside a picture must match in width and weight
+    function fontCheck(svg, done){
+      try {
+        var t = svg.querySelector('text.lw2-num'); if(!t) return done(false);
+        var cs = getComputedStyle(t), fam = cs.fontFamily, wt = cs.fontWeight, S = 48, w = 420, h = 72, str = '12 3 6 9 RUDY';
+        var a = document.createElement('canvas'); a.width = w; a.height = h; var ax = a.getContext('2d');
+        ax.font = wt + ' ' + S + 'px ' + fam; ax.fillStyle = '#000'; ax.fillText(str, 4, 56);
+        picture('<svg xmlns="' + NS + '" width="' + w + '" height="' + h + '"><text x="4" y="56" style="font-family:' + esc(fam) + ';font-weight:' + esc(wt) + ';font-size:' + S + 'px;fill:#000">' + str + '</text></svg>', function(img){
+          try {
+            if(!img) return done(false);
+            var b = document.createElement('canvas'); b.width = w; b.height = h; var bx = b.getContext('2d'); bx.drawImage(img, 0, 0);
+            var A = ax.getImageData(0, 0, w, h).data, B = bx.getImageData(0, 0, w, h).data;
+            var ink = function(D){ var s = 0, l = w, r = -1; for(var y = 0; y < h; y++) for(var x = 0; x < w; x++){ var v = D[(y * w + x) * 4 + 3]; if(v > 40){ if(x < l) l = x; if(x > r) r = x; } s += v; } return { s:s, w:r - l }; };
+            var p = ink(A), q = ink(B);
+            done(p.s > 0 && p.w > 0 && Math.abs(p.w - q.w) / p.w < 0.03 && Math.abs(p.s - q.s) / p.s < 0.08);
+          } catch(e){ done(false); }   // e.g. a picture that may not be read back: leave the text live
+        });
+      } catch(e){ done(false); }
+    }
+    function unbake(){ var o = st.svg; if(o) o.classList.remove('lw2-baked'); if(st.canvas && st.canvas.parentNode) st.canvas.parentNode.removeChild(st.canvas); st.canvas = null; st.sig = ''; }
+    function bake(){
+      var e = els(), svg = e.svg;
+      if(!svg || !e.box || !e.hero || !e.hero.classList.contains('hq-face-analog') || document.hidden) return;
+      if(st.svg !== svg){ unbake(); st.svg = svg; }
+      if(st.busy){ st.again = true; return; }                          // looked at again once the picture in hand is done
+      var W = svg.getBoundingClientRect().width;
+      if(!(W > 20)){ st.later = true; return; }                        // Home not laid out (another page): looked at when shown
+      st.later = false;
+      if(st.text === null){ st.busy = true; fontCheck(svg, function(ok){ st.text = !!ok; st.busy = false; bake(); }); return; }
+      var was = svg.classList.contains('lw2-baked');
+      if(was) svg.classList.remove('lw2-baked');                     // read the dial as it is drawn without the picture
+      var dpr = window.devicePixelRatio || 1, sh = shadowOf(getComputedStyle(svg).filter);
+      var parts = fixedParts(svg, st.text), str = '';
+      if(sh && parts){
+        var out = document.createElementNS(NS, 'svg'), px = Math.round(W * dpr);
+        out.setAttribute('xmlns', NS); out.setAttribute('viewBox', svg.getAttribute('viewBox') || '0 0 200 200'); out.setAttribute('width', px); out.setAttribute('height', px);
+        var defs = svg.querySelector(':scope > defs'); if(defs){ var dc = defs.cloneNode(true); inline(defs, dc); out.appendChild(dc); }
+        parts.forEach(function(p){ var c = p.cloneNode(true); inline(p, c); out.appendChild(c); });
+        str = new XMLSerializer().serializeToString(out);
+      }
+      if(was) svg.classList.add('lw2-baked');
+      if(!str){ unbake(); return; }
+      var sig = [W, dpr, JSON.stringify(sh), st.text, str].join('|');
+      if(sig === st.sig && st.canvas) return;                          // still current
+      if(st.canvas) unbake();                                          // stale: the dial draws itself until the new picture is ready
+      st.busy = true;
+      picture(str, function(img){
+        st.busy = false;
+        if(st.again){ st.again = false; soon(60); }                   // something changed meanwhile: check again
+        var e2 = els();
+        if(!img || e2.svg !== svg){ return; }
+        try {
+          var cw = Math.round((W + 2 * M) * dpr), c = document.createElement('canvas');
+          c.width = cw; c.height = cw; c.className = 'lw2-bake'; c.setAttribute('aria-hidden', 'true');
+          c.style.left = -M + 'px'; c.style.top = -M + 'px'; c.style.width = (W + 2 * M) + 'px'; c.style.height = (W + 2 * M) + 'px';
+          var x = c.getContext('2d');
+          // the dial is drawn flat first and its shadow made from that (a shadow taken straight from an SVG picture
+          // came out cut to a square in WebKit)
+          var f = document.createElement('canvas'); f.width = img.width || Math.round(W * dpr); f.height = img.height || Math.round(W * dpr);
+          f.getContext('2d').drawImage(img, 0, 0);
+          if(!sh.none){ x.shadowColor = sh.c; x.shadowOffsetX = sh.x * dpr; x.shadowOffsetY = sh.y * dpr; x.shadowBlur = sh.b * dpr; }
+          x.drawImage(f, Math.round(M * dpr), Math.round(M * dpr));
+          // swap in one go: the picture goes in behind, the same parts of the dial stop drawing
+          Array.prototype.forEach.call(svg.querySelectorAll('.lw2-bk'), function(n){ n.classList.remove('lw2-bk'); });
+          parts.forEach(function(p){ p.classList.add('lw2-bk'); });
+          if(st.canvas && st.canvas.parentNode) st.canvas.parentNode.removeChild(st.canvas);
+          svg.parentNode.insertBefore(c, svg); svg.classList.add('lw2-baked');
+          st.canvas = c; st.sig = sig;
+        } catch(err){ unbake(); }
+      });
+    }
+    function soon(ms){ clearTimeout(T); T = setTimeout(function(){
+      var now = performance.now();
+      if(now < (window.__rudyBusyUntil || 0) + 150){ soon(300); return; }   // not while a page is changing
+      bake();
+    }, ms || 400); }
+    function start(){
+      var e = els(); if(!e.svg || !e.hero) return;
+      try { new MutationObserver(function(){ soon(60); }).observe(e.hero, { attributes:true, attributeFilter:['class'] }); } catch(_){}   // face switched
+      try { new MutationObserver(function(){ soon(250); }).observe(document.body, { attributes:true, attributeFilter:['class'] }); } catch(_){}   // light / dark, look
+      var home = document.getElementById('page-home');
+      if(home) try { new MutationObserver(function(){ if(st.later || !st.canvas) soon(300); }).observe(home, { attributes:true, attributeFilter:['class'] }); } catch(_){}   // shown again
+      window.addEventListener('resize', function(){ soon(400); });
+      document.addEventListener('visibilitychange', function(){ if(!document.hidden) soon(400); });
+      soon(1200);
+    }
+    if(document.readyState === 'complete') start(); else window.addEventListener('load', start);
+    window.rudyDialBake = { state:function(){ return { baked:!!(st.svg && st.svg.classList.contains('lw2-baked')), text:st.text, busy:st.busy, parts:st.svg ? st.svg.querySelectorAll('.lw2-bk').length : 0 }; }, now:bake };
+  } catch(e){ try { console.warn('[v417] dial', e); } catch(_){} }
+})();
+</script>
 <style id="clock-digital-v321">
 /* v321 digital face: soft glow, blinking colon, tabular figures */
 #clock-hero .hq-digital{ font-variant-numeric:tabular-nums; letter-spacing:-0.03em; color:var(--ink);
@@ -24169,8 +24317,11 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
   window.rudyPerfLog = function(){ return log.slice(); };
   var NAME = { home:'หน้าหลัก', history:'ย้อนหลัง', calendar:'ปฏิทิน', stats:'ตัวเลข', summary:'สรุปเดือน', salary:'ค่าแรง', team:'ทีม', more:'อื่นๆ', settings:'ตั้งค่า', announce:'ประกาศ' };
   window.rudyPerfHtml = function(){
-    if(!log.length) return '<div style="margin-top:10px">ยังไม่มีบันทึกการเปลี่ยนหน้า — ลองปัด/กดเมนูไปมาสัก 5-6 ครั้ง แล้วกดวัดใหม่</div>';
-    return '<div style="margin-top:12px;font-weight:700;color:var(--ink)">การเปลี่ยนหน้าล่าสุด (เครื่องนี้)</div>' + log.map(function(e){
+    // v417: whether the analog dial is drawn from its picture on this phone (and with its numerals)
+    var dial = '';
+    try { var ds = window.rudyDialBake && rudyDialBake.state(); if(ds && ds.baked) dial = '<div style="margin-top:8px">หน้าปัดเข็ม: วาดไว้ล่วงหน้าแล้ว' + (ds.text ? '' : ' (ยกเว้นตัวเลข)') + '</div>'; } catch(e){}
+    if(!log.length) return dial + '<div style="margin-top:10px">ยังไม่มีบันทึกการเปลี่ยนหน้า — ลองปัด/กดเมนูไปมาสัก 5-6 ครั้ง แล้วกดวัดใหม่</div>';
+    return dial + '<div style="margin-top:12px;font-weight:700;color:var(--ink)">การเปลี่ยนหน้าล่าสุด (เครื่องนี้)</div>' + log.map(function(e){
       var a = NAME[e.from] || e.from, b = NAME[e.to] || e.to, k = e.k === 'tap' ? 'กด' : (e.from === e.to ? 'ปัดแล้วเด้งกลับ' : 'ปัด');
       var extra = e.k === 'tap' ? (e.vt ? ' · เตรียมภาพ ' + e.vt + 'ms' : '') : (e.build ? ' · สร้างหน้า ' + e.build + 'ms' + (e.ready ? ' (เตรียมไว้แล้ว)' : '') : '');
       var WK = { build:'สร้าง', warm:'เตรียม', cb:'สลับหน้า', charts:'กราฟ', replay:'แอนิเมชัน' };
