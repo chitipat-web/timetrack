@@ -11397,7 +11397,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v414';
+const APP_VERSION = 'v415';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -23524,13 +23524,14 @@ html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
         if(window.rudyPerfMark) rudyPerfMark('tap');   // v406: on-phone timing
         var vt0 = performance.now();
         var r = req, t = document.startViewTransition(function(){
-          r.ran = true;
+          r.ran = true; var c0 = performance.now();
           // v412: a page built ahead and still current is used as it is (not built again here)
           var tid = r.args && r.args[0], wm = 0;
           try { wm = window.rudyWarmTake ? rudyWarmTake(tid) : 0; } catch(_){}
           if(wm === 2) window.__rudySwipeSkipRender = tid;
           try { base.apply(r.self, r.args); } finally { if(wm === 2) window.__rudySwipeSkipRender = null; }
           if(wm) try { rudyWarmShown(tid, wm === 2); if(wm === 2 && window.rudyPerfNote) rudyPerfNote('ready', 1); } catch(_){}
+          if(window.rudyPerfAcc) rudyPerfAcc('cb', performance.now() - c0);   // v415
         });
         try { t.ready.then(function(){ if(window.rudyPerfNote) rudyPerfNote('vt', performance.now() - vt0); }, function(){}); } catch(_){}
         var done = function(){ busy = false; html.classList.remove('vt-back'); try { window.__rudyBusyUntil = Math.min(window.__rudyBusyUntil || 0, performance.now() + 60); } catch(_){} };
@@ -24096,19 +24097,38 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
   var KEY = 'tt_perf_log', rec = null, log = [];
   try { log = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch(e){ log = []; }
   function pageId(){ var a = document.querySelector('#app-shell .page.active'); return a ? a.id.replace('page-', '') : ''; }
+  // v415: three more facts for the slowest frame, to find what holds it up on the phone: when it ended (ms after the
+  // tap / swipe), how late a short timer ran meanwhile (code, layout or drawing on the page's own thread holds it;
+  // work done elsewhere does not), and the longest named pieces of work while it was measured (rudyPerfAcc).
   function finish(){
     var r = rec; rec = null; var g = r.g; if(g.length < 3) return;
-    var worst = 0, slow = 0; for(var i = 0; i < g.length; i++){ if(g[i] > worst) worst = g[i]; if(g[i] > 26) slow++; }
-    log.unshift({ t:Date.now(), k:r.k, from:r.from, to:pageId(), n:g.length, worst:Math.round(worst), slow:slow, build:r.build || 0, vt:r.vt || 0, ready:r.ready || 0 });
+    var worst = 0, slow = 0, at = 0, sum = 0; for(var i = 0; i < g.length; i++){ sum += g[i]; if(g[i] > worst){ worst = g[i]; at = sum; } if(g[i] > 26) slow++; }
+    var top = Object.keys(r.acc).map(function(k){ return [k, r.acc[k]]; }).filter(function(x){ return x[1] >= 4; }).sort(function(a, b){ return b[1] - a[1]; }).slice(0, 3).map(function(x){ return x[0] + ' ' + Math.round(x[1]); }).join(', ');
+    log.unshift({ t:Date.now(), k:r.k, from:r.from, to:pageId(), n:g.length, worst:Math.round(worst), slow:slow, build:r.build || 0, vt:r.vt || 0, ready:r.ready || 0,
+      at:Math.round((r.first || 0) + at), js:Math.round(r.jsMax || 0), jsAt:Math.round(r.jsAt || 0), top:top });
     log = log.slice(0, 15); try { localStorage.setItem(KEY, JSON.stringify(log)); } catch(e){}
   }
   function tick(now){
     if(!rec) return;
-    if(rec.prev) rec.g.push(now - rec.prev); rec.prev = now;
+    if(rec.prev) rec.g.push(now - rec.prev); else rec.first = now - rec.t0; rec.prev = now;
     if(document.hidden){ rec = null; return; }
     if(now < (window.__rudyBusyUntil || 0) + 120 || rec.g.length < 3) requestAnimationFrame(tick); else finish();
   }
-  window.rudyPerfMark = function(kind){ if(rec) return; rec = { k:kind, from:pageId(), g:[], prev:0 }; requestAnimationFrame(tick); };
+  function ping(){
+    var r = rec; if(!r) return; var now = performance.now();
+    if(r.pt){ var late = now - r.pt - 8; if(late > (r.jsMax || 0)){ r.jsMax = late; r.jsAt = now - r.t0; } }
+    r.pt = now; setTimeout(ping, 8);
+  }
+  window.rudyPerfMark = function(kind){ if(rec) return; rec = { k:kind, from:pageId(), g:[], prev:0, t0:performance.now(), acc:{} }; requestAnimationFrame(tick); setTimeout(ping, 8); };
+  window.rudyPerfAcc = function(name, ms){ var r = rec; if(r) r.acc[name] = (r.acc[name] || 0) + ms; };   // v415
+  // v415: the build of any page while a change is measured; a page built ahead is labelled as such
+  try {
+    var rpc = window._renderPageContent;
+    if(typeof rpc === 'function') window._renderPageContent = function(id){
+      if(!rec) return rpc.apply(this, arguments);
+      var t = performance.now(); try { return rpc.apply(this, arguments); } finally { rudyPerfAcc((window.__rudyPerfKind || 'build') + ':' + id, performance.now() - t); }
+    };
+  } catch(e){}
   window.rudyPerfNote = function(k, v){ if(rec && !rec[k]) rec[k] = Math.round(v); };
   window.rudyPerfLog = function(){ return log.slice(); };
   var NAME = { home:'หน้าหลัก', history:'ย้อนหลัง', calendar:'ปฏิทิน', stats:'ตัวเลข', summary:'สรุปเดือน', salary:'ค่าแรง', team:'ทีม', more:'อื่นๆ', settings:'ตั้งค่า', announce:'ประกาศ' };
@@ -24117,7 +24137,10 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
     return '<div style="margin-top:12px;font-weight:700;color:var(--ink)">การเปลี่ยนหน้าล่าสุด (เครื่องนี้)</div>' + log.map(function(e){
       var a = NAME[e.from] || e.from, b = NAME[e.to] || e.to, k = e.k === 'tap' ? 'กด' : (e.from === e.to ? 'ปัดแล้วเด้งกลับ' : 'ปัด');
       var extra = e.k === 'tap' ? (e.vt ? ' · เตรียมภาพ ' + e.vt + 'ms' : '') : (e.build ? ' · สร้างหน้า ' + e.build + 'ms' + (e.ready ? ' (เตรียมไว้แล้ว)' : '') : '');
-      return '<div style="font-variant-numeric:tabular-nums">' + k + ' ' + a + (e.from === e.to ? '' : ' → ' + b) + ' · ช้าสุด ' + e.worst + 'ms · สะดุด ' + e.slow + '/' + e.n + extra + '</div>';
+      var WK = { build:'สร้าง', warm:'เตรียม', cb:'สลับหน้า', charts:'กราฟ', replay:'แอนิเมชัน' };
+      var top = String(e.top || '').split(', ').filter(Boolean).map(function(x){ var p = x.split(' '), q = p[0].split(':'); return (WK[q[0]] || q[0]) + (q[1] ? (NAME[q[1]] || q[1]) : '') + ' ' + p[1] + 'ms'; }).join(', ');
+      var why = e.at != null ? ' · ค้างตอน +' + e.at + 'ms · โค้ดค้างสุด ' + (e.js || 0) + 'ms' + (e.js > 30 ? ' (+' + e.jsAt + ')' : '') + (top ? ' · งานนาน: ' + top : '') : '';   // v415
+      return '<div style="font-variant-numeric:tabular-nums">' + k + ' ' + a + (e.from === e.to ? '' : ' → ' + b) + ' · ช้าสุด ' + e.worst + 'ms · สะดุด ' + e.slow + '/' + e.n + extra + why + '</div>';
     }).join('');
   };
 })();
@@ -25219,7 +25242,7 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     var r = act.getBoundingClientRect();
     pin(el, r.left, r.top + (document.body.scrollTop || 0), r.width); el.style.transform = tf(side * (window.innerWidth || 390) * 1.5);
     el.classList.add('sw-warm');
-    try { _renderPageContent(id); } catch(e){}
+    window.__rudyPerfKind = 'warm'; try { _renderPageContent(id); } catch(e){} window.__rudyPerfKind = '';   // (v415: named for the timing)
     centre(el);                                                          // lays it out now, while idle
     warmed[id] = { sig:sig(id), side:side };
   }
@@ -25271,6 +25294,9 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
     try { Array.prototype.forEach.call(el.querySelectorAll('img.ph3d, .mc2-bar'), function(n){ n.parentNode.replaceChild(n.cloneNode(true), n); }); } catch(e){}
   }
   function replayIn(el){
+    var r0 = performance.now(); try { replayIn0(el); } finally { if(window.rudyPerfAcc) rudyPerfAcc('replay', performance.now() - r0); }   // v415
+  }
+  function replayIn0(el){
     replayCss(el);
     var now = performance.now();
     ROLL.forEach(function(r, n){
@@ -25291,12 +25317,13 @@ body.lg.lg.lg.dark .nav-btn.active{ box-shadow:0 3px 10px rgba(6,14,40,0.20), in
   }
   var GROW = [];
   function growCharts(){   // grow the held charts of the page now active; any other held chart is just shown again
-    var list = GROW; GROW = [];
+    var list = GROW, g0 = performance.now(); GROW = [];
     list.forEach(function(c){
       c.style.visibility = '';
       var pg = c.closest('.page'); if(!pg || !pg.classList.contains('active')) return;
       try { var ch = Chart.getChart(c); if(ch){ ch.reset(); ch.update(); } } catch(e){}
     });
+    if(list.length && window.rudyPerfAcc) rudyPerfAcc('charts', performance.now() - g0);   // v415
   }
   function growSoon(){   // after the landing slide has started, as the stats page schedules its own charts
     if(!GROW.length) return;
