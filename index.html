@@ -11397,7 +11397,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v415';
+const APP_VERSION = 'v416';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -23489,7 +23489,11 @@ html.vt-ok .page.active{ view-transition-name:rudy-page; }
 html.vt-ok .page.active > .page-header .page-title{ view-transition-name:rudy-title; }
 html.vt-ok .page.active > .page-header .ph3d{ view-transition-name:rudy-ph3d; }
 ::view-transition-old(root), ::view-transition-new(root){ animation:none; }
-::view-transition-old(rudy-page){ animation:vtOut .24s cubic-bezier(.4,0,.2,1) both; }
+::view-transition-old(rudy-page){ animation:vtOut .24s cubic-bezier(.4,0,.2,1) both; transform-origin:50% var(--vt-oy); }
+/* v416: where the old page's picture shrinks toward (set per tap, see clipOld). Registered as not inherited, so setting it
+   on <html> does not restyle the whole page (5-12 ms measured); the transition's own layers take it explicitly. */
+@property --vt-oy{ syntax:'<length-percentage>'; inherits:false; initial-value:50%; }
+::view-transition, ::view-transition-group(rudy-page), ::view-transition-image-pair(rudy-page), ::view-transition-old(rudy-page){ --vt-oy:inherit; }
 ::view-transition-new(rudy-page){ animation:vtIn .38s cubic-bezier(.2,.85,.25,1) both; }
 html.vt-back::view-transition-old(rudy-page){ animation-name:vtOutB; }
 html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
@@ -23507,8 +23511,38 @@ html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
     if(typeof document.startViewTransition !== 'function' || typeof showPage !== 'function') return;
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if(reduce || window.__rudyLite) return;
-    var base = showPage, busy = false, req = null, ORDER = ['home','calendar','history','stats','summary','salary','team','more','settings','announce'];
+    var base = showPage, busy = false, req = null, unclip = null, ORDER = ['home','calendar','history','stats','summary','salary','team','more','settings','announce'];
     document.documentElement.classList.add('vt-ok');
+    // v416: Safari takes a picture of the whole old page for its slide-out, top to bottom, not only the part on
+    // screen (seen in WebKit: the picture moved up 1000 px still showed the page's lower cards). Home and History are
+    // 2+ screens tall and the phone froze ~0.3 s drawing that picture; Team / More (under one screen) did not.
+    // So just before the picture the old page is held where it is on screen, cut to what is visible; the rest is
+    // never seen during the slide. Let go again before the new page is shown. The scroll length is kept (no jump) and
+    // the slide-out shrinks toward the same point as before (--vt-oy), so it looks the same. One difference, only when
+    // the old page was scrolled down: the new page used to drop in from as far above as the page was scrolled (the
+    // whole old page slid down with it, which the freeze hid on the phone); now both stay level, as for a tap at the top.
+    function clipOld(el){
+      var s = el.style, html = document.documentElement, keep = null, undone = false;
+      var K = ['position', 'top', 'height', 'marginBottom', 'overflow'];
+      function undo(){ if(undone || !keep) return; undone = true; K.forEach(function(k){ s[k] = keep[k]; }); }
+      try {
+        html.style.removeProperty('--vt-oy');
+        var r = el.getBoundingClientRect(), vh = (window.innerHeight || 0) + 40;   // a little past the bottom edge
+        if(vh <= 40 || !r.height || (r.top >= -1 && r.bottom <= vh)) return null;   // already all on screen
+        // from where the page starts when not scrolled (so a scrolled page leaves exactly like one at the top: no move up
+        // or down; what was under the top bar is not in the picture)
+        var sc = document.body.scrollTop || document.documentElement.scrollTop || 0;
+        var top = Math.max(0, r.top, r.top + sc), off = top - r.top, h = Math.min(r.bottom, vh) - top;
+        if(h < 1) return null;
+        keep = {}; K.forEach(function(k){ keep[k] = s[k]; });
+        // the box is moved down to the visible part and cut there, its content scrolled back by the same amount, and it
+        // still takes its full height in the page (bottom margin): nothing else moves and the scroll stays as it is
+        s.position = 'relative'; s.top = off + 'px'; s.height = h + 'px'; s.marginBottom = (r.height - h) + 'px'; s.overflow = 'hidden';
+        el.scrollTop = off;
+        html.style.setProperty('--vt-oy', (r.height / 2 - off) + 'px');
+        return undo;
+      } catch(e){ try { undo(); html.style.removeProperty('--vt-oy'); } catch(_){} return null; }
+    }
     window.showPage = showPage = function(id, btn){
       var cur = document.querySelector('.page.active'), curId = cur ? cur.id.replace('page-', '') : '';
       // a tap while a transition is still pending: its update will apply the latest target
@@ -23523,8 +23557,10 @@ html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
         if(window.rudyBusy) rudyBusy(800);   // v400: sky + robot hold for the transition (ended early below)
         if(window.rudyPerfMark) rudyPerfMark('tap');   // v406: on-phone timing
         var vt0 = performance.now();
+        unclip = clipOld(cur);                                             // v416: picture only the part on screen
         var r = req, t = document.startViewTransition(function(){
           r.ran = true; var c0 = performance.now();
+          if(unclip){ unclip(); unclip = null; }                           // v416: back in place before the new page
           // v412: a page built ahead and still current is used as it is (not built again here)
           var tid = r.args && r.args[0], wm = 0;
           try { wm = window.rudyWarmTake ? rudyWarmTake(tid) : 0; } catch(_){}
@@ -23534,9 +23570,9 @@ html.vt-back::view-transition-new(rudy-page){ animation-name:vtInB; }
           if(window.rudyPerfAcc) rudyPerfAcc('cb', performance.now() - c0);   // v415
         });
         try { t.ready.then(function(){ if(window.rudyPerfNote) rudyPerfNote('vt', performance.now() - vt0); }, function(){}); } catch(_){}
-        var done = function(){ busy = false; html.classList.remove('vt-back'); try { window.__rudyBusyUntil = Math.min(window.__rudyBusyUntil || 0, performance.now() + 60); } catch(_){} };
+        var done = function(){ busy = false; html.classList.remove('vt-back'); if(unclip){ unclip(); unclip = null; } html.style.removeProperty('--vt-oy'); try { window.__rudyBusyUntil = Math.min(window.__rudyBusyUntil || 0, performance.now() + 60); } catch(_){} };
         t.finished.then(done, done);
-      } catch(e){ busy = false; if(!req.ran){ req.ran = true; base.apply(req.self, req.args); } }
+      } catch(e){ busy = false; if(unclip){ unclip(); unclip = null; } if(!req.ran){ req.ran = true; base.apply(req.self, req.args); } }
     };
   } catch(e){ console.warn('[vt]', e); }
 })();
