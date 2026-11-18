@@ -11690,7 +11690,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v421';
+const APP_VERSION = 'v422';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -21228,7 +21228,7 @@ span.coin-c{ background:radial-gradient(circle at 35% 30%, #FFE58A, #D9A21E); bo
         .replace(/₪\s*([\d,.]+)/g, '$1 เชเกล')
         .replace(/\s+/g, ' ').trim().slice(0, 600);
     }
-    function stop(){ try { if(synth) synth.cancel(); } catch(e){} var b = btn(); if(b) b.classList.remove('speaking'); }
+    function stop(){ try { if(synth) synth.cancel(); } catch(e){} gStop(); var b = btn(); if(b) b.classList.remove('speaking'); }
     // one piece of speech, queued after whatever is being said (v419: pieces of an answer as it streams in)
     function queue(t){
       var u = new SpeechSynthesisUtterance(t);
@@ -21244,6 +21244,85 @@ span.coin-c{ background:radial-gradient(circle at 35% 30%, #FFE58A, #D9A21E); bo
       stop();
       queue(t);
     }
+    // v422: Google's Thai voice (gemini-3.8-flash-tts) for the AI's answers — owner's choice: Google, with the iPhone
+    // voice as the fallback. One request per answer, made once the answer is complete, played through one <audio>
+    // element (on iPhone that plays even with the ring switch on silent, unlike Web Audio). When it can't — no
+    // quota, not open to this key, slow (8 s), an error, or playback refused — the iPhone voice says the answer
+    // straight away; no quota / not open → the iPhone voice until the quota resets (midnight Pacific ≈ 10:00
+    // Israel; a minute for the per-minute limit). App messages (a change to confirm, errors) stay on the iPhone voice.
+    var TTS_MODEL = 'gemini-3.8-flash-tts', TTS_VOICE = 'Leda', TTS_OFF = 'rudy_ai_tts_off_until', TTS_WAIT = 8000;
+    var SILENT = 'data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA';   // 0.05 s of silence
+    var au = null, unlocked = false, gBusy = false, gSeq = 0;
+    function audioEl(){ if(!au){ au = new Audio(); au.preload = 'auto'; try { au.setAttribute('playsinline', ''); } catch(e){} } return au; }
+    function gStop(){ gSeq++; gBusy = false; try { if(au && !au.paused) au.pause(); } catch(e){} }
+    // inside a tap: iPhone lets a media element play later (after the answer arrives) only once a tap has played it
+    window.aiAudioUnlock = function(){
+      if(unlocked) return;
+      try { var a = audioEl(); a.src = SILENT; var pr = a.play(); if(pr && pr.then) pr.then(function(){ unlocked = true; }, function(){}); else unlocked = true; } catch(e){}
+    };
+    function ttsOff(){ try { return +(localStorage.getItem(TTS_OFF) || 0) > Date.now(); } catch(e){ return false; } }
+    function googleOk(){ try { return on() && unlocked && !ttsOff() && typeof _getAIKey === 'function' && !!_getAIKey(); } catch(e){ return false; } }
+    function ttsRest(e){   // as _aiSmartUnavailable (v420): how long the iPhone voice takes over after this error
+      var st = e && e.status, m = String((e && e.message) || ''), ms = 0;
+      try {
+        if(st === 429 || /quota|exhausted|rate.?limit/i.test(m)) ms = /per.?day|daily|limit:\s*0\b/i.test(m) ? _aiQuotaResetMs() : 60000;
+        else if(st === 404 || st === 403 || (st === 400 && /model|voice|speech|modalit|not (found|supported)/i.test(m))) ms = _aiQuotaResetMs();
+        if(ms) localStorage.setItem(TTS_OFF, String(Date.now() + ms));
+      } catch(_){}
+    }
+    function toWav(b64, mime){   // a WAV as is; raw 16-bit little-endian PCM (audio/L16;rate=24000) gets a WAV header
+      var bin = atob(b64), n = bin.length, u8 = new Uint8Array(n), i;
+      for(i = 0; i < n; i++) u8[i] = bin.charCodeAt(i);
+      if(/wav/i.test(mime) || (bin.slice(0, 4) === 'RIFF' && bin.slice(8, 12) === 'WAVE')) return new Blob([u8], { type:'audio/wav' });
+      var rate = +((/rate=(\d+)/i.exec(mime) || [])[1]) || 24000, h = new DataView(new ArrayBuffer(44));
+      function w(o, x){ for(var j = 0; j < x.length; j++) h.setUint8(o + j, x.charCodeAt(j)); }
+      w(0, 'RIFF'); h.setUint32(4, 36 + n, true); w(8, 'WAVE'); w(12, 'fmt '); h.setUint32(16, 16, true); h.setUint16(20, 1, true); h.setUint16(22, 1, true);
+      h.setUint32(24, rate, true); h.setUint32(28, rate * 2, true); h.setUint16(32, 2, true); h.setUint16(34, 16, true); w(36, 'data'); h.setUint32(40, n, true);
+      return new Blob([h.buffer, u8], { type:'audio/wav' });
+    }
+    function ttsFetch(text){
+      var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+      var timer = setTimeout(function(){ try { if(ctl) ctl.abort(); } catch(e){} }, TTS_WAIT);
+      return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + TTS_MODEL + ':generateContent?key=' + encodeURIComponent(_getAIKey()), {
+        method:'POST', mode:'cors', cache:'no-store', credentials:'omit', headers:{ 'Content-Type':'application/json' }, signal:ctl ? ctl.signal : undefined,
+        body:JSON.stringify({ contents:[{ role:'user', parts:[{ text:text }] }],
+          generationConfig:{ responseModalities:['AUDIO'], speechConfig:{ voiceConfig:{ prebuiltVoiceConfig:{ voiceName:TTS_VOICE } } } } })
+      }).then(function(res){
+        if(!res.ok) return _geminiHttpErr(res).then(function(e){ throw e; });
+        return res.json();
+      }).then(function(d){
+        var c = d && d.candidates && d.candidates[0], parts = (c && c.content && c.content.parts) || [], b = null;
+        parts.forEach(function(x){ if(!b && x) b = x.inlineData || x.inline_data || null; });
+        if(!b || !b.data) throw new Error('TTS: no audio');
+        return toWav(b.data, b.mimeType || b.mime_type || '');
+      }).then(function(blob){ clearTimeout(timer); return blob; }, function(e){ clearTimeout(timer); throw e; });
+    }
+    function play(blob){
+      return new Promise(function(res, rej){
+        var a = audioEl(), url = URL.createObjectURL(blob), done = false, b = btn();
+        function end(ok, e){ if(done) return; done = true; a.onended = a.onerror = null; try { URL.revokeObjectURL(url); } catch(_){} if(b) b.classList.remove('speaking'); if(ok) res(); else rej(e || new Error('audio')); }
+        a.onended = function(){ end(true); };
+        a.onerror = function(){ end(false, new Error('audio error')); };
+        a.src = url;
+        var pr; try { pr = a.play(); } catch(e){ end(false, e); return; }
+        if(b) b.classList.add('speaking');
+        if(pr && pr.then) pr.then(null, function(e){ end(false, e); });
+      });
+    }
+    function sayGoogle(text){   // the whole answer, once; the iPhone voice if Google's can't
+      var t = clean(text), my; if(!t) return;
+      my = ++gSeq; gBusy = true;
+      ttsFetch(t).then(function(blob){ if(my === gSeq) return play(blob); }).then(function(){ if(my === gSeq) gBusy = false; }, function(e){
+        if(my !== gSeq) return;
+        gBusy = false;
+        if(!(e && e.name === 'AbortError')) ttsRest(e);
+        try { console.warn('[v422] Google voice → iPhone voice:', (e && e.message) || e); } catch(_){}
+        if(on()) queue(t);
+      });
+    }
+    // v422: is anything still being said (or about to be)? — the robot's mic waits for this before it listens again
+    window.aiVoiceBusy = function(){ var b = gBusy; try { b = b || !!(synth && (synth.speaking || synth.pending)); } catch(e){} return b; };
+    window.aiSpeakStop = function(){ stop(); };
     // v419: the answer streams in ('rudy-ai-text' from aiCommandSubmit). Each finished line or sentence is
     // said as soon as it is there, queued after the last, instead of the whole answer once it is complete.
     // A turn that already spoke is not spoken again at the end. At most ~600 characters, as before.
@@ -21260,6 +21339,8 @@ span.coin-c{ background:radial-gradient(circle at 35% 30%, #FFE58A, #D9A21E); bo
     }
     document.addEventListener('rudy-ai-text', function(e){
       var t = live, d = (e && e.detail) || {}; if(!t || !synth || !on()) return;
+      if(t.g == null) t.g = googleOk();   // v422: Google's voice for this answer — said whole, once it is complete
+      if(t.g){ if(d.done && !t.on){ t.on = true; t.said = String(d.text || ''); sayGoogle(t.said); } return; }
       var full = String(d.text || ''); if(full.length < t.pos) t.pos = full.length;
       var rest = full.slice(t.pos), n = d.done ? rest.length : cutAt(rest);
       if(n <= 0) return;
@@ -21273,7 +21354,9 @@ span.coin-c{ background:radial-gradient(circle at 35% 30%, #FFE58A, #D9A21E); bo
       if(primed || !synth) return; primed = true;
       try { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); } catch(e){}
     }
-    document.addEventListener('pointerdown', function(e){ try { if(e.target && e.target.closest && e.target.closest('#ai-modal')) prime(); } catch(_){} }, true);
+    document.addEventListener('pointerdown', function(e){ try { if(e.target && e.target.closest && e.target.closest('#ai-modal')){ prime(); window.aiAudioUnlock(); } } catch(_){} }, true);   // v422: + Google's voice
+    // v422: a click is a sure tap for iPhone media (a touch-down may not count) — unlock Google's voice there too
+    document.addEventListener('click', function(e){ try { if(e.target && e.target.closest && e.target.closest('#ai-modal, #rb-mic')) window.aiAudioUnlock(); } catch(_){} }, true);
 
     window.aiTtsToggle = function(){
       if(!synth){ try { showToast('เครื่องนี้อ่านออกเสียงไม่ได้', 'warning'); } catch(e){} return; }
@@ -21289,7 +21372,7 @@ span.coin-c{ background:radial-gradient(circle at 35% 30%, #FFE58A, #D9A21E); bo
     if(typeof _submit === 'function'){
       window.aiCommandSubmit = async function(){
         stop();
-        var my = ++seq, t = live = { pos:0, said:'', on:false }, r;
+        var my = ++seq, t = live = { pos:0, said:'', on:false, g:null }, r;
         try { r = await _submit.apply(this, arguments); }
         finally { if(live === t) live = null; }
         if(my !== seq) return r;                         // v419: a newer question took over — nothing to say for this one
@@ -24807,21 +24890,27 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
         bars(my, Math.min(1, Math.max(0, (r - my.floor) / (on * 2.5))));
       }
       if(my.heard && now - my.lastVoice > QUIET_MS){ finish(); return; }
+      if(!my.heard && my.auto && el > WAIT_MS){ follow = 0; cancel(''); return; }   // v422: listening on by itself — nothing said, it just ends
       if(!my.heard && my.live && el > WAIT_MS){ cancel('🎤 ไม่ได้ยินเสียงเลย แตะไมค์แล้วพูดใหม่อีกครั้งนะ'); return; }
       if(!my.live && !my.hint && el > 2500){ my.hint = true; var h2 = q('.rbm-h'); if(h2) h2.textContent = '🎙️ พูดเสร็จแล้วแตะไมค์เพื่อส่ง'; }
       if(el > MAX_MS) finish();
     }
 
-    function start(){
-      var my = { chunks:[], hist:[], floor:-1, loud:0, n:0 };
+    function start(auto){
+      var my = { chunks:[], hist:[], floor:-1, loud:0, n:0, auto:!!auto };
       S = my;
-      // inside the tap (iOS): stop an answer still being spoken, else unlock speech for the coming answer
-      try { var ss = window.speechSynthesis; if(ss){ if(ss.speaking || ss.pending) ss.cancel(); else { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; ss.speak(u); } } } catch(e){}
+      if(!auto){
+        follow = 0;   // v422: a tap starts a new run of follow-ups
+        // inside the tap (iOS): stop an answer still being spoken, else unlock speech for the coming answer
+        try { if(typeof window.aiSpeakStop === 'function' && window.aiVoiceBusy && window.aiVoiceBusy()) window.aiSpeakStop(); } catch(e){}
+        try { var ss = window.speechSynthesis; if(ss){ if(ss.speaking || ss.pending) ss.cancel(); else { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; ss.speak(u); } } } catch(e){}
+        try { if(typeof window.aiAudioUnlock === 'function') window.aiAudioUnlock(); } catch(e){}   // v422: Google's voice
+      }
       try { if(AC){ my.ac = new AC(); if(my.ac.state === 'suspended' && my.ac.resume) my.ac.resume().catch(function(){}); } } catch(e){ my.ac = null; }
       clearInterval(talkT); talkT = 0;
       setState('listen');
       var sp = ''; for(var i = 0; i < NBARS; i++) sp += '<span></span>';
-      bubble('', { ms:0, long:true, html:'<div class="rbm-h">🎙️ กำลังฟัง… พูดได้เลย</div><div class="rbm-bars">' + sp + '</div>' });
+      bubble('', { ms:0, long:true, html:'<div class="rbm-h">' + (auto ? '🎙️ ฟังต่อ… ถามต่อได้เลย' : '🎙️ กำลังฟัง… พูดได้เลย') + '</div><div class="rbm-bars">' + sp + '</div>' });
       try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
       md.getUserMedia({ audio:true }).then(function(stream){
         if(S !== my || my.done){ try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e){} return; }
@@ -24883,8 +24972,24 @@ body.lg.lg.lg:not(.dark) .history-item .hi-rec{ background:rgba(255,255,255,0.35
         var inp = document.getElementById('ai-cmd-input'); if(inp){ inp.value = text; try { aiAutoGrow(inp); } catch(e){} }
         var r = document.getElementById('ai-cmd-result'); if(r) r.innerHTML = '';
         live = true;
-        return Promise.resolve(window.aiCommandSubmit()).then(answer);   // picks up the call already under way
-      }).catch(fail).then(function(){ live = false; busy(false); setState('idle'); settle(); });
+        return Promise.resolve(window.aiCommandSubmit()).then(answer).then(function(){ return true; });   // picks up the call already under way
+      }).catch(fail).then(function(ok){ live = false; busy(false); setState('idle'); settle(); if(ok === true) again(); else follow = 0; });
+    }
+    // v422: continuous conversation (owner's choice) — once the answer to a spoken question has been said, the mic
+    // listens again by itself for a follow-up; nothing said for ~6 s ends it quietly. Not while a dialog waits
+    // (a change or a check-in to confirm), not in the background, not with the robot hidden, at most 5 in a row.
+    var follow = 0;
+    function again(){
+      if(++follow > 5){ follow = 0; return; }
+      var t0 = Date.now(), quiet = 0, iv = setInterval(function(){
+        if(state !== 'idle' || S){ clearInterval(iv); return; }   // something else started
+        if(document.hidden || document.querySelector('.modal-overlay.open, .confirm-overlay.open') || !(fab && fab.offsetWidth) || Date.now() - t0 > 90000){ clearInterval(iv); follow = 0; return; }   // (the confirm dialog is a .confirm-overlay)
+        var talking = false; try { talking = typeof window.aiVoiceBusy === 'function' && window.aiVoiceBusy(); } catch(e){}
+        if(talking){ quiet = 0; return; }
+        if((quiet += 250) < 500) return;   // a moment after the voice stops, so it doesn't hear its own last word
+        clearInterval(iv);
+        start(true);
+      }, 250);
     }
     document.addEventListener('rudy-ai-text', function(e){
       if(!live) return;

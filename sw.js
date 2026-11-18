@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v421
-// Cache: rudy-static-v421, firebase-v421
-// Build: 2026-11-18 · v421 — AI can do more: check in/out (after confirm, same button as the slider), dark/light, clock face, daily notes, reminders, a page at a month
+// RUDY · Service Worker v422
+// Cache: rudy-static-v422, firebase-v422
+// Build: 2026-11-18 · v422 — AI speaks answers in Google's Thai voice (gemini-3.8-flash-tts) with the iPhone voice as fallback; the robot's mic listens again by itself after a spoken answer
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v421';
-const FIREBASE_CACHE = 'firebase-v421';
-const RUNTIME_CACHE = 'rudy-runtime-v421';
+const STATIC_CACHE  = 'rudy-static-v422';
+const FIREBASE_CACHE = 'firebase-v422';
+const RUNTIME_CACHE = 'rudy-runtime-v422';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -18,7 +18,7 @@ const PRECACHE_URLS = [
   // 206 Range responses to play video; a cached full-200 body breaks it.
   // The video is fetched from network so the browser negotiates ranges.
 ];
-// v421: the app's sounds (sfx/), cached on their own so a missing one never stops the files above being cached
+// v422: the app's sounds (sfx/), cached on their own so a missing one never stops the files above being cached
 const SFX_URLS = ['./sfx/checkin.mp3', './sfx/checkout.mp3', './sfx/success.mp3', './sfx/error.mp3', './sfx/notify.mp3', './sfx/coin.mp3'];
 
 // =============================================================
@@ -63,14 +63,14 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v421] Installing...');
+  console.log('[SW v422] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v421] Precache partial fail (ok):', err);
+          console.warn('[SW v422] Precache partial fail (ok):', err);
         }).then(() => cache.addAll(SFX_URLS).catch(err => {
-          console.warn('[SW v421] Sound precache failed (ok):', err);
+          console.warn('[SW v422] Sound precache failed (ok):', err);
         }));
       })
       .then(() => self.skipWaiting())
@@ -81,16 +81,16 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v421] Activating...');
+  console.log('[SW v422] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
         return Promise.all(
           names
-            // v421: keep the baked 3D icons across updates — the page checks their signature (bake code) and re-bakes only when it changed
+            // v422: keep the baked 3D icons across updates — the page checks their signature (bake code) and re-bakes only when it changed
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE && name !== 'rudy-icons')
             .map((name) => {
-              console.log('[SW v421] Deleting old cache:', name);
+              console.log('[SW v422] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -251,7 +251,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v421' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v422' });
     return;
   }
 });
@@ -274,7 +274,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v421] Push parse fail:', e);
+    console.warn('[SW v422] Push parse fail:', e);
   }
 });
 
@@ -294,4 +294,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v421] Loaded — AI quota-friendly retry');
+console.log('[SW v422] Loaded — AI quota-friendly retry');
