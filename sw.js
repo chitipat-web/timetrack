@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v427
-// Cache: rudy-static-v427, firebase-v427
-// Build: 2026-11-18 · v427 — the AI girl's name is Porping (was spelled Porting in v427)
+// RUDY · Service Worker v428
+// Cache: rudy-static-v428, firebase-v428
+// Build: 2026-11-18 · v428 — Porping's voice: giggles when tapped, "Ooh!" when picked up, "Hey!" when let go, a soft thud on landing, "OK~" getting up
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v427';
-const FIREBASE_CACHE = 'firebase-v427';
-const RUNTIME_CACHE = 'rudy-runtime-v427';
+const STATIC_CACHE  = 'rudy-static-v428';
+const FIREBASE_CACHE = 'firebase-v428';
+const RUNTIME_CACHE = 'rudy-runtime-v428';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -18,8 +18,9 @@ const PRECACHE_URLS = [
   // 206 Range responses to play video; a cached full-200 body breaks it.
   // The video is fetched from network so the browser negotiates ranges.
 ];
-// v427: the app's sounds (sfx/), cached on their own so a missing one never stops the files above being cached
-const SFX_URLS = ['./sfx/checkin.mp3', './sfx/checkout.mp3', './sfx/success.mp3', './sfx/error.mp3', './sfx/notify.mp3', './sfx/coin.mp3'];
+// v428: the app's sounds (sfx/), cached on their own so a missing one never stops the files above being cached
+const SFX_URLS = ['./sfx/checkin.mp3', './sfx/checkout.mp3', './sfx/success.mp3', './sfx/error.mp3', './sfx/notify.mp3', './sfx/coin.mp3',
+                    './sfx/porping-giggle.mp3', './sfx/porping-ooh.mp3', './sfx/porping-hey.mp3', './sfx/porping-land.mp3', './sfx/porping-ok.mp3'];   // Porping's voice lines
 
 // =============================================================
 // HARD BYPASS LIST — CRITICAL for iOS Safari PWA
@@ -63,14 +64,14 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v427] Installing...');
+  console.log('[SW v428] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v427] Precache partial fail (ok):', err);
+          console.warn('[SW v428] Precache partial fail (ok):', err);
         }).then(() => cache.addAll(SFX_URLS).catch(err => {
-          console.warn('[SW v427] Sound precache failed (ok):', err);
+          console.warn('[SW v428] Sound precache failed (ok):', err);
         }));
       })
       .then(() => self.skipWaiting())
@@ -81,16 +82,16 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v427] Activating...');
+  console.log('[SW v428] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
         return Promise.all(
           names
-            // v427: keep the baked 3D icons across updates — the page checks their signature (bake code) and re-bakes only when it changed
+            // v428: keep the baked 3D icons across updates — the page checks their signature (bake code) and re-bakes only when it changed
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE && name !== 'rudy-icons')
             .map((name) => {
-              console.log('[SW v427] Deleting old cache:', name);
+              console.log('[SW v428] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -251,7 +252,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v427' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v428' });
     return;
   }
 });
@@ -274,7 +275,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v427] Push parse fail:', e);
+    console.warn('[SW v428] Push parse fail:', e);
   }
 });
 
@@ -294,4 +295,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v427] Loaded — AI quota-friendly retry');
+console.log('[SW v428] Loaded — AI quota-friendly retry');

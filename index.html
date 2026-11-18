@@ -11691,7 +11691,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v427';
+const APP_VERSION = 'v428';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -26559,6 +26559,30 @@ body.lite #ai-fab .rg *{ animation-play-state:paused !important; }
       dgPose(drag.y, drag.a, 1 + Math.min(0.045, Math.abs(drag.vx) / 12000));
       drag.raf = requestAnimationFrame(swing);
     }
+    // v428: Porping's voice (the owner's pick by ear: "ASMR girl" lines + a soft plush thud from notificationsounds.com,
+    // CC BY 4.0, credited in เกี่ยวกับ → เสียงในแอป; see sfx/CREDITS.txt): tapped → a giggle, picked up → "Ooh!", let go
+    // → "Hey!", lands → a soft thud, gets back up → "OK~". Through the app's Web Audio like its other sounds, so the 🔊
+    // setting (tt_audio) and the iPhone ringer switch apply; one voice line at a time (a new one cuts the last).
+    var VOX = { tap:'sfx/porping-giggle.mp3', up:'sfx/porping-ooh.mp3', drop:'sfx/porping-hey.mp3', land:'sfx/porping-land.mp3', ok:'sfx/porping-ok.mp3' }, voxNow = null;
+    function voxReg(){ try { var F = window.rudySfx && window.rudySfx.files; if(F) Object.keys(VOX).forEach(function(k){ if(!F['pp_' + k]) F['pp_' + k] = VOX[k]; }); } catch(e){} }
+    function vox(k){
+      try {
+        if(!on || !VOX[k] || (typeof isAudioOn === 'function' && !isAudioOn())) return;
+        var S = window.rudySfx, c = typeof getAudioCtx === 'function' ? getAudioCtx() : null; if(!S || !S.load || !c) return;
+        voxReg(); try { if(c.state === 'suspended') c.resume(); } catch(e){}
+        var t0 = Date.now();
+        S.load('pp_' + k).then(function(b){
+          if(!b || !on || Date.now() - t0 > 800 || (typeof isAudioOn === 'function' && !isAudioOn())) return;   // late → left out, as the other sounds
+          var src = c.createBufferSource(), g = c.createGain(); src.buffer = b; src.connect(g); g.connect(c.destination);
+          if(k !== 'land'){
+            var p = voxNow; voxNow = { s:src, g:g };
+            if(p){ try { p.g.gain.setTargetAtTime(0, c.currentTime, 0.012); p.s.stop(c.currentTime + 0.06); } catch(e){} }
+            src.onended = function(){ if(voxNow && voxNow.s === src) voxNow = null; };
+          }
+          src.start();
+        });
+      } catch(e){}
+    }
     function clearFall(){
       fallT.forEach(clearTimeout); fallT = []; if(fallRaf) cancelAnimationFrame(fallRaf); fallRaf = 0;
       if(rg) rg.classList.remove('p-fall', 'a-up'); if(dg) dg.style.transform = '';
@@ -26568,6 +26592,7 @@ body.lite #ai-fab .rg *{ animation-play-state:paused !important; }
       Object.keys(ACT).forEach(function(k){ rg.classList.remove(ACT[k][0]); }); rg.classList.remove('bl');
       dg = dg || rg.querySelector('.rg-dg'); if(!dg) return;
       drag.on = true; drag.a = 0; drag.v = 0; drag.vx = 0; drag.lx = null; drag.last = 0; drag.t0 = now(); drag.y = 0;
+      vox('up');                                                         // v428
       if(reduce2){ dg.style.transform = 'translateY(-16px)'; rg.classList.add('p-dangle'); return; }
       dgPose(0, 0, 0); rg.classList.add('p-dangle');
       cancelAnimationFrame(drag.raf); drag.raf = requestAnimationFrame(swing);
@@ -26575,6 +26600,7 @@ body.lite #ai-fab .rg *{ animation-play-state:paused !important; }
     function endDrag(){
       if(!drag.on) return; drag.on = false; cancelAnimationFrame(drag.raf); drag.raf = 0;
       if(!rg || !dg) return;
+      vox('drop');                                                       // v428
       if(reduce2){ rg.classList.remove('p-dangle'); dg.style.transform = ''; return; }
       var a0 = drag.a, y0 = drag.y, t0 = now(), DUR = 320;
       (function drop(nw){
@@ -26583,9 +26609,11 @@ body.lite #ai-fab .rg *{ animation-play-state:paused !important; }
         if(k < 1){ fallRaf = requestAnimationFrame(drop); return; }
         fallRaf = 0; rg.classList.remove('p-dangle'); rg.classList.add('p-fall');      // lands sitting, dizzy (the poses cross-fade)
         try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+        vox('land');                                                     // v428
         fallT.push(setTimeout(function(){ if(!drag.on && dg) dg.style.transform = ''; }, 220));   // once the dangle has faded out
         fallT.push(setTimeout(function(){
           rg.classList.remove('p-fall'); void rg.offsetWidth; rg.classList.add('a-up');                       // hops back up
+          vox('ok');                                                     // v428
           fallT.push(setTimeout(function(){ rg.classList.remove('a-up'); }, 620));
         }, 1900));
       })(t0);
@@ -26597,6 +26625,7 @@ body.lite #ai-fab .rg *{ animation-play-state:paused !important; }
       drag.lx = e.clientX; drag.lt = t;
     }, { passive:true });
     try { new MutationObserver(function(){ if(drag.on && !fab.classList.contains('fab-drag')) endDrag(); }).observe(fab, { attributes:true, attributeFilter:['class'] }); } catch(e){}
+    fab.addEventListener('click', function(){ vox('tap'); });          // v428: tapped (opens the AI) → she giggles
     var G = {
       look:function(x, y, own){
         x = Math.max(-1, Math.min(1, +x || 0));
@@ -26651,7 +26680,7 @@ body.lite #ai-fab .rg *{ animation-play-state:paused !important; }
     }
     try { var aim = document.getElementById('ai-modal'); if(aim) new MutationObserver(function(){ if(on && aim.classList.contains('open')) greet(); }).observe(aim, { attributes:true, attributeFilter:['class'] }); } catch(e){}
     function mount(){
-      if(on) return; on = true; window.__rgOn = true;
+      if(on) return; on = true; window.__rgOn = true; voxReg();
       if(!rg) build();
       fab.appendChild(rg); fab.classList.add('rg-on'); document.body.classList.add('rg-mode');
       orb = orb || document.querySelector('#ai-modal .ai-orb'); if(orb){ orb.appendChild(hd); orb.classList.add('rg-on'); }

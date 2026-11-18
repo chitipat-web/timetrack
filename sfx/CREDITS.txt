@@ -13,3 +13,12 @@ notify.mp3    "Message"         https://notificationsounds.com/storage/sounds/fi
 coin.mp3      "Accomplished"    https://notificationsounds.com/storage/sounds/file-sounds-1126-accomplished.mp3
 
 Credited in the app under อื่นๆ → เกี่ยวกับ → เสียงในแอป.
+
+Porping's voice (v428) — same source and license (Notification Sounds, CC BY 4.0), picked by ear by the owner.
+Changes: trimmed to the spoken part, short fades, levelled to the other sounds, re-encoded to 96 kbps mono MP3.
+
+porping-giggle.mp3  "ASMR Girl Giggle 1"   https://notificationsounds.com/storage/sounds/file-sounds-1244-asmr-girl-giggle-1.mp3
+porping-ooh.mp3     "ASMR Girl Ooh"        https://notificationsounds.com/storage/sounds/file-sounds-1272-asmr-girl-ooh.mp3
+porping-hey.mp3     "ASMR Girl Hey 2"      https://notificationsounds.com/storage/sounds/file-sounds-1248-asmr-girl-hey-2.mp3
+porping-land.mp3    "Stuffed and dropped"  https://notificationsounds.com/storage/sounds/file-sounds-826-stuffed-and-dropped.mp3
+porping-ok.mp3      "ASMR Girl OK"         https://notificationsounds.com/storage/sounds/file-sounds-1271-asmr-girl-ok.mp3
