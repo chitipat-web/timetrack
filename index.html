@@ -11691,7 +11691,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v424';
+const APP_VERSION = 'v425';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -26302,9 +26302,9 @@ html body #ai-fab#ai-fab.rg-on{ width:80px !important; height:152px !important; 
   background:radial-gradient(closest-side, rgba(170,60,130,.30), rgba(170,60,130,0)); animation:rgShadow 3.6s ease-in-out infinite; }
 #ai-fab .rg-glow{ position:absolute; left:-24%; right:-24%; top:2%; height:62%; border-radius:50%; opacity:0; transition:opacity .35s ease;
   background:radial-gradient(closest-side, rgba(255,128,192,.5), rgba(255,128,192,0)); }
-#ai-fab .rg-ln{ position:absolute; inset:0; transform-origin:50% 100%; transform:rotate(calc(var(--rg-lean, 0) * 1deg)); transition:transform .45s cubic-bezier(.3,1.3,.5,1); }
-#ai-fab .rg-fl{ position:absolute; inset:0; transform-origin:50% 100%; animation:rgFloat 3.6s ease-in-out infinite; }
-#ai-fab .rg-bd{ position:absolute; inset:0; transform-origin:50% 100%; animation:rgBreathe 2.8s ease-in-out infinite; }
+#ai-fab .rg-ln{ position:absolute; inset:0; z-index:2; transform-origin:50% 100%; transform:rotate(calc(var(--rg-lean, 0) * 1deg)); transition:transform .45s cubic-bezier(.3,1.3,.5,1), opacity .09s ease-out; will-change:transform, opacity; }
+#ai-fab .rg-fl{ position:absolute; inset:0; transform-origin:50% 100%; animation:rgFloat 3.6s ease-in-out infinite; will-change:transform; }
+#ai-fab .rg-bd{ position:absolute; inset:0; transform-origin:50% 100%; animation:rgBreathe 2.8s ease-in-out infinite; will-change:transform; }
 #ai-fab .rg img{ display:block; -webkit-user-drag:none; -webkit-user-select:none; user-select:none; pointer-events:none; }
 #ai-fab .rg-b{ position:absolute; inset:0; width:100%; height:100%; }
 #ai-fab .rg-p{ position:absolute; opacity:0; }
@@ -26347,16 +26347,21 @@ html body.rg-mode #rb-mic i{ background:rgba(255,105,170,.45); }
 body.rg-mode .es3d .es-robot{ filter:drop-shadow(0 10px 16px rgba(200,60,140,.32)); }
 /* v424: two more poses (made with Canva from her picture): picked up, she dangles from the finger and swings with
    it; let go, she drops, lands sitting with dizzy eyes and stars circling, then hops back up */
-#ai-fab .rg-alt{ position:absolute; left:50%; display:none; pointer-events:none; }
+#ai-fab .rg-alt{ position:absolute; left:50%; z-index:1; display:block; opacity:0; visibility:hidden; pointer-events:none; will-change:transform, opacity;
+  transition:opacity .08s ease-in .07s, visibility 0s linear .15s; }
+/* v425: a pose change dissolves instead of swapping: the new pose fades in on top (0.09 s) while the old one stays
+   solid under it, then fades out (0.07–0.15 s) — no see-through moment, no hard cut */
 #ai-fab .rg-alt img{ display:block; width:100%; height:100%; -webkit-user-drag:none; -webkit-user-select:none; user-select:none; pointer-events:none; }
 #ai-fab .rg-dg{ top:-4px; width:81.9px; height:156.5px; margin-left:-40.95px; transform-origin:50% 0; }
 #ai-fab .rg-fa{ bottom:-3px; width:97.6px; height:111.6px; margin-left:-48.80px; transform-origin:50% 100%; }
-#ai-fab .rg.p-dangle .rg-ln, #ai-fab .rg.p-fall .rg-ln, #ai-fab .rg.p-dangle .rg-glow, #ai-fab .rg.p-fall .rg-glow{ visibility:hidden; }
-#ai-fab .rg.p-dangle .rg-dg, #ai-fab .rg.p-fall .rg-fa{ display:block; }
+#ai-fab .rg.p-dangle .rg-ln, #ai-fab .rg.p-fall .rg-ln{ opacity:0; z-index:1; transition:transform .45s cubic-bezier(.3,1.3,.5,1), opacity .08s ease-in .07s; }
+#ai-fab .rg.p-dangle.p-dangle .rg-glow, #ai-fab .rg.p-fall.p-fall .rg-glow{ opacity:0; animation:none; }
+#ai-fab .rg.p-dangle .rg-dg, #ai-fab .rg.p-fall .rg-fa{ opacity:1; visibility:visible; z-index:2; transition:opacity .09s ease-out, visibility 0s; }
+html body #ai-fab#ai-fab.rg-on.fab-drag{ transition:transform .18s cubic-bezier(.3,1.4,.5,1) !important; }   /* v425: grows into the hand, no jump */
 #ai-fab .rg.p-dangle .rg-sh{ animation:none; transform:scale(.55); opacity:.45; transition:transform .25s ease, opacity .25s ease; }
 #ai-fab .rg.p-fall .rg-fa{ animation:rgLand .55s cubic-bezier(.3,1.5,.5,1) both; }
 @keyframes rgLand{ 0%{ transform:scale(1.1,.8); } 55%{ transform:scale(.96,1.05); } 100%{ transform:scale(1,1); } }
-#ai-fab .rg-stars{ position:absolute; left:50%; top:52px; width:0; height:0; display:none; }
+#ai-fab .rg-stars{ position:absolute; left:50%; top:52px; width:0; height:0; display:none; z-index:3; }
 #ai-fab .rg.p-fall .rg-stars{ display:block; }
 #ai-fab .rg-stars i{ position:absolute; left:-6px; top:-6px; width:12px; height:12px; font:normal 11px/12px sans-serif; text-align:center; color:#FFC83D;
   text-shadow:0 0 4px rgba(255,170,0,.8), 0 1px 0 #fff; animation:rgOrbit 1.05s linear infinite; }
@@ -26462,15 +26467,20 @@ body.lite #ai-fab .rg *{ animation-play-state:paused !important; }
     }
     // v424: picked up → she dangles from the finger and swings with it (a damped spring toward an angle that follows
     // the finger's speed); let go → she drops, lands sitting with dizzy eyes and stars, then hops back up (≈2.8 s)
+    // v425 smoother: she rises into the dangle (ease-out-back), the swing is softer and stretches a little when swung
+    // fast, the drop accelerates like a fall, and each pose change cross-fades (CSS) instead of swapping pictures
     var reduce2 = false; try { reduce2 = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){}
-    var drag = { on:false, a:0, v:0, vx:0, lx:null, lt:0, last:0, raf:0 }, fallT = [], fallRaf = 0, dg = null;
+    var drag = { on:false, a:0, v:0, vx:0, lx:null, lt:0, last:0, raf:0, t0:0, y:0 }, fallT = [], fallRaf = 0, dg = null;
+    function backOut(k){ var c = 1.70158, u = k - 1; return 1 + (c + 1) * u * u * u + c * u * u; }
+    function dgPose(y, a, s){ dg.style.transform = 'translate3d(0,' + y.toFixed(2) + 'px,0) rotate(' + a.toFixed(2) + 'deg)' + (s ? ' scale(' + (2 - s).toFixed(3) + ',' + s.toFixed(3) + ')' : ''); }
     function swing(nw){
       drag.raf = 0; if(!drag.on || !dg) return;
       var dt = drag.last ? Math.min(0.05, Math.max(0.001, (nw - drag.last) / 1000)) : 0.016; drag.last = nw;
-      drag.vx *= Math.pow(0.03, dt);                                    // the finger stops → the push fades in ~0.5 s
-      var target = Math.max(-38, Math.min(38, -drag.vx * 0.05));
-      drag.v += (-95 * (drag.a - target) - 6.5 * drag.v) * dt; drag.a += drag.v * dt;
-      dg.style.transform = 'translateY(-16px) rotate(' + drag.a.toFixed(2) + 'deg)';
+      drag.vx *= Math.pow(0.04, dt);                                    // the finger stops → the push fades in ~0.6 s
+      var target = Math.max(-36, Math.min(36, -drag.vx * 0.045));
+      drag.v += (-70 * (drag.a - target) - 7.5 * drag.v) * dt; drag.a += drag.v * dt;
+      drag.y = -16 * backOut(Math.min(1, (nw - drag.t0) / 260));        // rises into the dangle
+      dgPose(drag.y, drag.a, 1 + Math.min(0.045, Math.abs(drag.vx) / 12000));
       drag.raf = requestAnimationFrame(swing);
     }
     function clearFall(){
@@ -26481,32 +26491,33 @@ body.lite #ai-fab .rg *{ animation-play-state:paused !important; }
       if(!rg) return; clearFall();
       Object.keys(ACT).forEach(function(k){ rg.classList.remove(ACT[k][0]); }); rg.classList.remove('bl');
       dg = dg || rg.querySelector('.rg-dg'); if(!dg) return;
-      drag.on = true; drag.a = 0; drag.v = 0; drag.vx = 0; drag.lx = null; drag.last = 0;
-      rg.classList.add('p-dangle');
-      if(reduce2){ dg.style.transform = 'translateY(-16px)'; return; }
+      drag.on = true; drag.a = 0; drag.v = 0; drag.vx = 0; drag.lx = null; drag.last = 0; drag.t0 = now(); drag.y = 0;
+      if(reduce2){ dg.style.transform = 'translateY(-16px)'; rg.classList.add('p-dangle'); return; }
+      dgPose(0, 0, 0); rg.classList.add('p-dangle');
       cancelAnimationFrame(drag.raf); drag.raf = requestAnimationFrame(swing);
     }
     function endDrag(){
       if(!drag.on) return; drag.on = false; cancelAnimationFrame(drag.raf); drag.raf = 0;
       if(!rg || !dg) return;
       if(reduce2){ rg.classList.remove('p-dangle'); dg.style.transform = ''; return; }
-      var a0 = drag.a, t0 = now(), DUR = 300;
+      var a0 = drag.a, y0 = drag.y, t0 = now(), DUR = 320;
       (function drop(nw){
-        var k = Math.min(1, Math.max(0, (nw - t0) / DUR)), y = -16 + 22 * k * k;   // falls with gravity, a touch past the ground
-        dg.style.transform = 'translateY(' + y.toFixed(1) + 'px) rotate(' + (a0 * (1 - k)).toFixed(1) + 'deg)';
+        var k = Math.min(1, Math.max(0, (nw - t0) / DUR));
+        dgPose(y0 + (7 - y0) * k * k, a0 * (1 - k) * (1 - k), 1 + 0.04 * k);           // accelerates like a fall, straightens out
         if(k < 1){ fallRaf = requestAnimationFrame(drop); return; }
-        fallRaf = 0; dg.style.transform = ''; rg.classList.remove('p-dangle'); rg.classList.add('p-fall');   // lands sitting, dizzy
+        fallRaf = 0; rg.classList.remove('p-dangle'); rg.classList.add('p-fall');      // lands sitting, dizzy (the poses cross-fade)
         try { if(typeof haptic === 'function') haptic('light'); } catch(e){}
+        fallT.push(setTimeout(function(){ if(!drag.on && dg) dg.style.transform = ''; }, 220));   // once the dangle has faded out
         fallT.push(setTimeout(function(){
           rg.classList.remove('p-fall'); void rg.offsetWidth; rg.classList.add('a-up');                       // hops back up
-          fallT.push(setTimeout(function(){ rg.classList.remove('a-up'); }, 600));
+          fallT.push(setTimeout(function(){ rg.classList.remove('a-up'); }, 620));
         }, 1900));
       })(t0);
     }
     document.addEventListener('pointermove', function(e){
       if(!drag.on) return;
-      var t = e.timeStamp || now();
-      if(drag.lx != null){ var dt = Math.max(8, t - drag.lt), v = (e.clientX - drag.lx) / dt * 1000; drag.vx = drag.vx * 0.5 + v * 0.5; }
+      var t = now();                                                     // v425: the same clock as the frames
+      if(drag.lx != null){ var dt = Math.max(8, t - drag.lt), v = (e.clientX - drag.lx) / dt * 1000; drag.vx = drag.vx * 0.7 + v * 0.3; }
       drag.lx = e.clientX; drag.lt = t;
     }, { passive:true });
     try { new MutationObserver(function(){ if(drag.on && !fab.classList.contains('fab-drag')) endDrag(); }).observe(fab, { attributes:true, attributeFilter:['class'] }); } catch(e){}
