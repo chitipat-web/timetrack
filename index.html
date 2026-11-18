@@ -8964,6 +8964,9 @@ function _aiSmartUnavailable(e){
   let ms = 0;
   if(st === 429 || /quota|exhausted|rate.?limit/i.test(m)) ms = /per.?day|daily|limit:\s*0\b/i.test(m) ? _aiQuotaResetMs() : 60000;
   else if(st === 404 || st === 403 || (st === 400 && /model|thinking|not (found|supported)/i.test(m))) ms = _aiQuotaResetMs();
+  // v429: busy (500/502/503/504, "no capacity", "overloaded") or silent (nothing within its first-words wait) → Flash-Lite
+  // for 30 min. The newest Flash was often this slow in Nov 2026 (free tier, US daytime): a question waited 30 s and failed.
+  else if((e && e.slow) || st === 500 || st === 502 || st === 503 || st === 504 || /overloaded|no capacity|unavailable|high demand|deadline/i.test(m)) ms = 30 * 60000;
   if(!ms) return false;
   try { localStorage.setItem(_AI_LITE_KEY, String(Date.now() + ms)); } catch(_){}
   return true;
@@ -9016,12 +9019,14 @@ async function _geminiHttpErr(response){
 }
 // The streamed call (server-sent events, one GenerateContentResponse per "data:" line). onText(all the
 // text so far) on every piece; resolves { text, calls }. Same key, model and errors as _callGemini.
-async function _geminiStream(body, onText, ctl, model){
+async function _geminiStream(body, onText, ctl, model, firstMs){
   if(!_getAIKey()){ const ok = await _promptAIKey(); if(!ok) throw new Error('CANCELLED'); }
   const key = _getAIKey(); if(!key) throw new Error('NO_KEY');
-  let timedOut = false, timer = 0;
+  let timedOut = false, timer = 0, firstT = 0;
   const arm = () => { clearTimeout(timer); timer = setTimeout(() => { timedOut = true; try { if(ctl) ctl.abort(); } catch(e){} }, 30000); };   // nothing for 30 s: give up
   let text = '', calls = [], blocked = '', seen = 0, data = [], buf = '', raw = '';
+  // v429: firstMs (optional) = the most to wait for the first words or call; given up as "slow" (err.slow) when none came
+  if(firstMs) firstT = setTimeout(() => { if(!text && !calls.length){ timedOut = true; try { if(ctl) ctl.abort(); } catch(e){} } }, firstMs);
   const handle = d => {
     seen++;
     if(d && d.error){ const er = new Error(d.error.message || 'API error'); er.status = d.error.code; throw er; }
@@ -9063,9 +9068,9 @@ async function _geminiStream(body, onText, ctl, model){
     if(!text && !calls.length) throw new Error(blocked ? 'AI ไม่ตอบกลับมา' : 'AI ตอบมาว่าง');
     return { text, calls };
   } catch(e){
-    if(timedOut) throw new Error('AI ไม่ตอบกลับมา (หมดเวลา) ลองใหม่อีกครั้ง');
+    if(timedOut){ const er = new Error('AI ไม่ตอบกลับมา (หมดเวลา) ลองใหม่อีกครั้ง'); if(!text && !calls.length) er.slow = true; throw er; }
     throw e;
-  } finally { clearTimeout(timer); }
+  } finally { clearTimeout(timer); clearTimeout(firstT); }
 }
 // A spoken question: the words it heard come first, as [[heard: …]]. null = that tag may still be coming.
 const _AI_HEARD_NONE = '🎤 (ข้อความเสียง)';
@@ -9110,7 +9115,11 @@ function _aiStart(cmd, voice){
     if(admin){ b.tools = _AI_TOOLS; b.toolConfig = { functionCallingConfig:{ mode:'AUTO' } }; }
     return b;
   };
-  const run = model => { s.model = model; return _geminiStream(bodyFor(model), view, s.ctl, model); };
+  // v429: each call has its own AbortController (s.ctl = the current one, so s.cancel stops it): a call given up as
+  // silent must not leave the next one aborted. First words within 15 s from the newest Flash (25 s when it thinks
+  // MEDIUM), else the same question goes to Flash-Lite (below); Flash-Lite gets 20 s.
+  const run = model => { s.model = model; const c = typeof AbortController === 'function' ? new AbortController() : null; s.ctl = c;
+    return _geminiStream(bodyFor(model), view, c, model, model === AI_MODEL_SMART ? (hard ? 25000 : 15000) : 20000); };
   const first = _aiLiteNow() ? AI_MODEL_LITE : AI_MODEL_SMART;
   s.done = run(first).catch(e => {
     if(first !== AI_MODEL_SMART || got || s.dead || (e && e.name === 'AbortError') || !_aiSmartUnavailable(e)) throw e;
@@ -11691,7 +11700,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v428';
+const APP_VERSION = 'v429';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
