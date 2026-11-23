@@ -3921,6 +3921,8 @@ body:not(.dark) #login-screen .lx-link, body:not(.dark) #register-screen .lx-lin
     <!-- ║ HOME WIDGETS CONTAINER (Phase A/B/C - bulletproof)   ║ -->
     <!-- ║ Each widget is sandboxed - failure doesn't break app ║ -->
     <!-- ╚═══════════════════════════════════════════════════════╝ -->
+    <!-- v431: after a missed working day, asks why (filled by the absence module at the end of the file) -->
+    <div class="card home-a-card hq-abs" id="hq-abs" style="display:none"></div>
     <!-- v379: who is at work now. Everyone sees names + status; check-in times and hours only admins -->
     <div class="card home-a-card hq-team" id="hq-team" style="display:none">
       <div class="hq-team-head"><div class="section-title">ทีมวันนี้</div><span class="hq-team-count" id="hq-team-count"></span></div>
@@ -11708,7 +11710,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v430';
+const APP_VERSION = 'v431';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -27126,6 +27128,16 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
 .abs-note{ display:flex; align-items:center; gap:8px; margin-top:12px; padding:10px 12px; border-radius:var(--r-sm); background:var(--glass-3); border:1px solid var(--glass-stroke-dim); color:var(--ink-2); font-size:13px; }
 .abs-note span{ flex:1; min-width:0; }
 .abs-note button{ flex:none; padding:6px 12px; border-radius:var(--r-pill); border:1px solid var(--glass-stroke); background:none; color:var(--red); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+/* v431: Home's card the day after a missed working day */
+.hq-abs{ padding:14px 16px 8px; }
+.hq-abs-hd{ font-size:15px; font-weight:700; line-height:1.35; color:var(--ink); }
+.hq-abs-sub{ margin-top:2px; font-size:12px; color:var(--ink-3); }
+.hq-abs .abs-chips{ margin:10px 0 4px; }
+.hq-abs-foot{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.hq-abs-foot button{ background:none; border:0; padding:8px 0; font:inherit; font-size:13px; font-weight:600; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.hq-abs-foot [data-hq="skip"]{ color:var(--ink-3); }
+.hq-abs-foot [data-hq="backfill"]{ color:var(--sys-blue); }
+.hq-abs-more{ padding-bottom:4px; font-size:12px; color:var(--ink-4); }
 @media (prefers-reduced-motion: reduce){ .abs-chip{ transition:none; } }
 </style>
 <script>
@@ -27168,7 +27180,17 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
     function days(uid){ var o = {}, f = '', l = recs(); for(var i = 0; i < l.length; i++){ var r = l[i]; if(r && r.empId === uid && r.date){ o[r.date] = 1; if(!f || r.date < f) f = r.date; } } return { has:o, first:f }; }
     function isMissed(d, D, hol, today){ return !!D.first && d >= D.first && d < today && dow(d) !== 6 && !hol[d] && !D.has[d]; }
     function todayOpen(d, D, hol, today){ return d === today && dow(d) !== 6 && !hol[d] && !D.has[d]; }   // today, nothing recorded yet
-    function refresh(){ try { renderCalendar(); } catch(e){} }
+    function refresh(){ try { renderCalendar(); } catch(e){} try { homeCard(); } catch(e){} }
+    // came to work but forgot to check in: History's backfill form, on that date
+    function backfill(d){
+      try { closeModal('day-modal'); } catch(_){}
+      try { showPage('history'); } catch(_){}
+      setTimeout(function(){
+        var det = document.getElementById('hq-backfill'), md = document.getElementById('man-date');
+        if(det) det.open = true; if(md) md.value = d;
+        try { if(det) det.scrollIntoView({ block:'start', behavior:'smooth' }); } catch(_){}
+      }, 450);
+    }
 
     // ---- the calendar: missed days in red, the noted reason under the number, this month's list below ----
     function calExtra(){
@@ -27250,14 +27272,8 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
           if(!put(d, { x:1, ts:Date.now() })) return;
           closeModal('day-modal'); refresh();
           showToast('ลบเหตุผลแล้ว', 'success');
-        } else if(act === 'backfill'){                                  // came to work but forgot to check in: the history page's backfill form, on that date
-          closeModal('day-modal');
-          try { showPage('history'); } catch(_){}
-          setTimeout(function(){
-            var det = document.getElementById('hq-backfill'), md = document.getElementById('man-date');
-            if(det) det.open = true; if(md) md.value = d;
-            try { if(det) det.scrollIntoView({ block:'start', behavior:'smooth' }); } catch(_){}
-          }, 450);
+        } else if(act === 'backfill'){
+          backfill(d);
         }
       });
       dm.addEventListener('keydown', function(ev){                       // Return in the words box saves
@@ -27266,7 +27282,64 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
       });
     }
 
-    // drawn after the calendar / the day sheet; a failure here leaves them as they were
+    // ---- v431: Home asks about a missed day of the last 7 that has nothing noted (most recent first, one at a time).
+    // A reason tapped is saved at once; "อื่นๆ" opens the day sheet for the words; "ไม่ต้องจด" leaves it ({x:1}). ----
+    function ymd(t){ return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
+    function pending(){
+      var u = me(); if(!u) return [];
+      var hol = getHolidays(), D = days(u.id), m = map(u.id), today = todayStr(), t = new Date(today + 'T12:00:00'), out = [];
+      for(var i = 1; i <= 7; i++){ var d = ymd(new Date(t.getFullYear(), t.getMonth(), t.getDate() - i, 12)); if(isMissed(d, D, hol, today) && !m[d]) out.push(d); }
+      return out;
+    }
+    var hqLast = null;
+    function homeCard(){
+      var el = document.getElementById('hq-abs'); if(!el) return;
+      var list = me() ? pending() : [], html = '';
+      if(list.length){
+        var d = list[0], t = new Date(todayStr() + 'T12:00:00'), yest = ymd(new Date(t.getFullYear(), t.getMonth(), t.getDate() - 1, 12));
+        html = '<div class="hq-abs-hd">' + (d === yest ? 'เมื่อวาน' : fmtD(d) + ' ') + 'ไม่ได้ลงเวลา ขาดเพราะอะไร?</div>' +
+          '<div class="hq-abs-sub">' + (d === yest ? fmtD(d) + ' · ' : '') + 'จดไว้กันลืม · เห็นได้เฉพาะคุณกับแอดมิน</div>' +
+          '<div class="abs-chips">' + R.map(function(x){ return '<button type="button" class="abs-chip" data-hq="pick" data-k="' + x.k + '">' + x.i + ' ' + x.l + '</button>'; }).join('') + '</div>' +
+          '<div class="hq-abs-foot"><button type="button" data-hq="skip">ไม่ต้องจด</button><button type="button" data-hq="backfill">มาทำงานแต่ลืมลงเวลา ›</button></div>' +
+          (list.length > 1 ? '<div class="hq-abs-more">ยังไม่ได้จดอีก ' + (list.length - 1) + ' วัน</div>' : '');
+        el.setAttribute('data-date', d);
+      }
+      if(html === hqLast) return;
+      hqLast = html; el.innerHTML = html; el.style.display = html ? '' : 'none';
+    }
+    var hq = document.getElementById('hq-abs');
+    if(hq) hq.addEventListener('click', function(ev){
+      var b = ev.target && ev.target.closest ? ev.target.closest('[data-hq]') : null, u = me(); if(!b || !hq.contains(b) || !u) return;
+      var d = hq.getAttribute('data-date'), act = b.getAttribute('data-hq'); if(!d || !DATE.test(d)) return;
+      if(act === 'pick'){
+        var k = b.getAttribute('data-k');
+        if(k === 'other'){                                              // words wanted: the day sheet, "อื่นๆ" picked, the box focused
+          showDayDetail(d, u.email);
+          var c = document.querySelector('#day-modal-content .abs-chip[data-k="other"]'); if(c) c.click();
+          return;
+        }
+        if(!put(d, { r:k, ts:Date.now() })) return;
+        try { if(typeof haptic === 'function') haptic('light'); } catch(_){}
+        refresh();
+        showToast('📝 จดไว้แล้ว · ' + fmtD(d) + ' ' + reason(k).i + ' ' + reason(k).l, 'success');
+      } else if(act === 'skip'){
+        if(put(d, { x:1, ts:Date.now() })) refresh();
+      } else if(act === 'backfill'){
+        backfill(d);
+      }
+    });
+
+    // drawn after the calendar / the day sheet / Home; a failure here leaves them as they were
+    var baseHome = window.renderHome;
+    if(typeof baseHome === 'function') window.renderHome = function(){
+      var r = baseHome.apply(this, arguments);
+      try { homeCard(); } catch(e){ try { console.warn('[v431] home card', e); } catch(_){} }
+      return r;
+    };
+    setInterval(function(){                                             // a new day while Home stays open
+      if(document.hidden) return;
+      var pg = document.getElementById('page-home'); if(pg && pg.classList.contains('active')) try { homeCard(); } catch(e){}
+    }, 60000);
     var baseCal = window.renderCalendar;
     if(typeof baseCal === 'function') window.renderCalendar = function(){
       var r = baseCal.apply(this, arguments);
@@ -27281,7 +27354,8 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
     };
     // a reason noted on another of this person's phones
     window.addEventListener('cloudKeyChanged', function(ev){ var k = ev && ev.detail && ev.detail.key; if(typeof k === 'string' && k.indexOf('tt_absent_') === 0) refresh(); });
-    window.rudyAbsence = { reasons:R, reason:reason, map:map, why:why, put:put, days:days, isMissed:isMissed, todayOpen:todayOpen, fmt:fmtD };   // (v431 home card, v432 admin)
+    window.rudyAbsence = { reasons:R, reason:reason, map:map, why:why, put:put, days:days, isMissed:isMissed, todayOpen:todayOpen, fmt:fmtD, pending:pending, homeCard:homeCard };   // (v432 admin)
+    try { homeCard(); } catch(e){}
   } catch(e){ try { console.warn('[v430] absence', e); } catch(_){} }
 })();
 </script>
