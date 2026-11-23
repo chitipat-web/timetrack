@@ -1,12 +1,12 @@
 // =============================================================
-// RUDY · Service Worker v429
-// Cache: rudy-static-v429, firebase-v429
-// Build: 2026-11-18 · v429 — AI questions no longer time out when the newest Gemini is busy: no words in 15 s (or a 503) → Flash-Lite answers
+// RUDY · Service Worker v430
+// Cache: rudy-static-v430, firebase-v430
+// Build: 2026-11-23 · v430 — note why a working day was missed (calendar → tap the day); the calendar shows its colours again
 // =============================================================
 
-const STATIC_CACHE  = 'rudy-static-v429';
-const FIREBASE_CACHE = 'firebase-v429';
-const RUNTIME_CACHE = 'rudy-runtime-v429';
+const STATIC_CACHE  = 'rudy-static-v430';
+const FIREBASE_CACHE = 'firebase-v430';
+const RUNTIME_CACHE = 'rudy-runtime-v430';
 
 // Files to precache (small static assets only — NEVER cache index.html aggressively)
 const PRECACHE_URLS = [
@@ -64,14 +64,14 @@ function shouldBypass(url) {
 // INSTALL — Precache static assets, skipWaiting immediately
 // =============================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW v429] Installing...');
+  console.log('[SW v430] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(PRECACHE_URLS).catch(err => {
-          console.warn('[SW v429] Precache partial fail (ok):', err);
+          console.warn('[SW v430] Precache partial fail (ok):', err);
         }).then(() => cache.addAll(SFX_URLS).catch(err => {
-          console.warn('[SW v429] Sound precache failed (ok):', err);
+          console.warn('[SW v430] Sound precache failed (ok):', err);
         }));
       })
       .then(() => self.skipWaiting())
@@ -82,7 +82,7 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — Clear old caches, claim clients
 // =============================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW v429] Activating...');
+  console.log('[SW v430] Activating...');
   event.waitUntil(
     Promise.all([
       caches.keys().then((names) => {
@@ -91,7 +91,7 @@ self.addEventListener('activate', (event) => {
             // v429: keep the baked 3D icons across updates — the page checks their signature (bake code) and re-bakes only when it changed
             .filter((name) => name !== STATIC_CACHE && name !== FIREBASE_CACHE && name !== RUNTIME_CACHE && name !== 'rudy-icons')
             .map((name) => {
-              console.log('[SW v429] Deleting old cache:', name);
+              console.log('[SW v430] Deleting old cache:', name);
               return caches.delete(name);
             })
         );
@@ -252,7 +252,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'GET_VERSION') {
-    if (event.ports[0]) event.ports[0].postMessage({ version: 'v429' });
+    if (event.ports[0]) event.ports[0].postMessage({ version: 'v430' });
     return;
   }
 });
@@ -275,7 +275,7 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.warn('[SW v429] Push parse fail:', e);
+    console.warn('[SW v430] Push parse fail:', e);
   }
 });
 
@@ -295,4 +295,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW v429] Loaded — AI quota-friendly retry');
+console.log('[SW v430] Loaded — AI quota-friendly retry');

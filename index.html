@@ -1064,6 +1064,8 @@ body:not(.dark) .cal-day.holiday { color:var(--sys-purple); }
 }
 .legend-item{ display:flex; align-items:center; gap:5px; color:var(--ink-3); }
 .legend-dot{ width:10px; height:10px; border-radius:3px; }
+/* v430: a small mark under the day number — ⚡ OT, or the reason a missed day was noted with */
+.cal-day .cal-mk{ position:absolute; left:50%; bottom:2px; transform:translateX(-50%); font-size:10px; line-height:1; pointer-events:none; }
 
 .modal-overlay{
   position:fixed; inset:0; z-index:200;
@@ -4053,10 +4055,13 @@ body:not(.dark) #login-screen .lx-link, body:not(.dark) #register-screen .lx-lin
     </div>
     <div class="cal-legend">
       <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>ตรงเวลา</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>มาสาย</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>มีโอที ⚡</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--sys-orange)"></div>มาสาย</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>ขาด</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>วันหยุด</div>
+      <div class="legend-item">⚡ มีโอที</div>
     </div>
+    <!-- v430: this month's missed days and why (filled by the absence module at the end of the file) -->
+    <div class="card cal-abs" id="cal-abs" style="display:none"></div>
     <div style="font-size:11px;color:var(--text3);text-align:center">💡 กดค้างวันในปฏิทินเพื่อตั้งวันหยุด (Admin)</div>
   </div>
 
@@ -4940,7 +4945,8 @@ function saveOTStart(){localStorage.setItem('tt_ot_start',document.getElementByI
 // Personal keys (each user has their own)
 const PERSONAL_KEY_PREFIXES = [
   'tt_dark','tt_notif_','tt_notes_','tt_sal_','tt_user_',
-  'tt_late_','tt_early_','tt_monthly_','tt_remind_','tt_ann_read','tt_photo_'
+  'tt_late_','tt_early_','tt_monthly_','tt_remind_','tt_ann_read','tt_photo_',
+  'tt_absent_'   // v430: why a working day was missed — one map per person (see the absence module)
 ];
 // Shared keys (admin sets, everyone sees)
 const SHARED_KEY_PREFIXES = [
@@ -7076,13 +7082,15 @@ function renderCalendar(){
     const hasOT=dr.some(r=>r.otMin>0);
     const holiday=holidays[dateStr];
     let cls='cal-day';
-    if(isToday)cls+=' today-cell';
-    else if(holiday)cls+=' is-holiday';
-    else if(hasData&&!hasLate)cls+=' has-data';
-    else if(hasLate)cls+=' has-late';
+    // v430: the coloured looks (.today .holiday .work .late — styled since STAGE-2) were never set here, so no day
+    // had a colour; the old names stay for anything that looks for them. Missed days (.absent) come from the absence module.
+    if(isToday)cls+=' today-cell today';
+    else if(holiday)cls+=' is-holiday holiday';
+    else if(hasData&&!hasLate)cls+=' has-data work';
+    else if(hasLate)cls+=' has-late late';
     if(hasOT)cls+=' has-ot';
     const tip=isAdmin()?`oncontextmenu="event.preventDefault();toggleHoliday('${dateStr}')" onlongpress="toggleHoliday('${dateStr}')"`:'' ;
-    html+=`<div class="${cls}" data-date="${dateStr}" onclick="showDayDetail('${dateStr}','${curUser.email}')" ${tip} title="${holiday||''}">${d}</div>`;
+    html+=`<div class="${cls}" data-date="${dateStr}" onclick="showDayDetail('${dateStr}','${curUser.email}')" ${tip} title="${holiday||''}">${d}${hasOT?'<span class="cal-mk">⚡</span>':''}</div>`;
   }
   document.getElementById('cal-days').innerHTML=html;
 }
@@ -11700,7 +11708,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v429';
+const APP_VERSION = 'v430';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -27091,6 +27099,190 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
       }
     }).observe(document.body, { childList:true, subtree:true });
   } catch(e){ try { console.warn('[v395] line icons', e); } catch(_){} }
+})();
+</script>
+<style id="absent-v430">
+/* v430 — why a working day was missed: the month's list under the calendar and the reason in the day sheet */
+.cal-abs{ padding:12px 14px 4px; }
+.cal-abs .section-title{ margin-bottom:2px; }
+.cal-abs-row{ display:flex; align-items:center; gap:10px; width:100%; min-height:44px; padding:10px 0; background:none; border:0; border-top:1px solid var(--glass-stroke-dim); color:var(--ink); font:inherit; font-size:14px; text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.cal-abs .section-title + .cal-abs-row{ border-top:0; }
+.cal-abs-d{ flex:none; width:88px; font-weight:600; color:var(--ink-2); }
+.cal-abs-r{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink); }
+.cal-abs-r i{ font-style:normal; font-weight:600; color:var(--red); }
+.cal-abs-go{ flex:none; color:var(--ink-4); font-size:20px; line-height:1; }
+.abs-hd{ font-size:16px; font-weight:700; color:var(--ink); }
+.abs-sub{ margin-top:2px; font-size:12px; color:var(--ink-3); }
+.abs-chips{ display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 10px; }
+.abs-chip{ padding:9px 14px; border-radius:var(--r-pill); border:1px solid var(--glass-stroke); background:var(--glass-3); color:var(--ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .12s var(--ease-out); }
+.abs-chip:active{ transform:scale(.96); }
+.abs-chip.on{ background:var(--sys-blue); border-color:var(--sys-blue); color:#fff; }
+.abs-txt{ width:100%; box-sizing:border-box; margin-bottom:10px; }
+.abs-btns{ display:flex; gap:8px; }
+.abs-btns .btn-primary, .abs-btns .btn-secondary{ margin-bottom:0; }
+.abs-btns .btn-primary{ flex:1; }
+.abs-btns .btn-secondary{ flex:0 0 32%; }
+.abs-link{ display:block; width:100%; margin-top:10px; padding:8px 0; background:none; border:0; color:var(--sys-blue); font:inherit; font-size:13px; font-weight:600; text-align:center; cursor:pointer; }
+.abs-note{ display:flex; align-items:center; gap:8px; margin-top:12px; padding:10px 12px; border-radius:var(--r-sm); background:var(--glass-3); border:1px solid var(--glass-stroke-dim); color:var(--ink-2); font-size:13px; }
+.abs-note span{ flex:1; min-width:0; }
+.abs-note button{ flex:none; padding:6px 12px; border-radius:var(--r-pill); border:1px solid var(--glass-stroke); background:none; color:var(--red); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+@media (prefers-reduced-motion: reduce){ .abs-chip{ transition:none; } }
+</style>
+<script>
+/* v430 — absence reasons. The owner: a way to note the days one missed and why, to remember later; the admin sees
+   everyone's (v432); the app asks the next day (v431). A missed day is a working day (not Saturday — v279 — and not a
+   team holiday) that has passed with nothing recorded, counted from the person's first record on. The reason is
+   picked (sick / errand / leave / papers-visa / other) with optional words, by tapping the day in the calendar.
+   Kept per person as tt_absent_{uid} in local storage, which the sync layer copies to userdata/{uid} like the daily
+   notes: {"YYYY-MM-DD": {r:reason, t:"words", ts}}; {x:1, ts} = left without a reason on purpose. Nothing here
+   changes how days, pay or OT are counted. */
+(function(){
+  try {
+    var R = [
+      { k:'sick',   i:'🤒', l:'ป่วย' },
+      { k:'errand', i:'📋', l:'ธุระ' },
+      { k:'leave',  i:'🌴', l:'ลาพัก' },
+      { k:'doc',    i:'🛂', l:'เอกสาร/วีซ่า' },
+      { k:'other',  i:'📝', l:'อื่นๆ' }
+    ];
+    var DN = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'], MS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    var DATE = /^\d{4}-\d{2}-\d{2}$/;
+    function me(){ try { return (curUser && curUser.id) ? curUser : null; } catch(e){ return null; } }
+    function recs(){ try { return Array.isArray(records) ? records : []; } catch(e){ return []; } }
+    function reason(k){ for(var i = 0; i < R.length; i++) if(R[i].k === k) return R[i]; return R[R.length - 1]; }
+    function map(uid){
+      var u = me(); uid = uid || (u && u.id); if(!uid) return {};
+      try { var m = JSON.parse(localStorage.getItem('tt_absent_' + uid) || '{}'); return (m && typeof m === 'object' && !Array.isArray(m)) ? m : {}; } catch(e){ return {}; }
+    }
+    function why(m, d){ var e = m && m[d]; return (e && e.r) ? e : null; }
+    function put(d, e){
+      var u = me(); if(!u || !DATE.test(d)) return false;
+      var m = map(u.id); m[d] = e;
+      localStorage.setItem('tt_absent_' + u.id, JSON.stringify(m));   // kept here, and written to the cloud by the sync layer
+      return true;
+    }
+    function clean(t){ return String(t || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120); }
+    function dow(d){ return new Date(d + 'T12:00:00').getDay(); }
+    function fmtD(d){ var t = new Date(d + 'T12:00:00'); return DN[t.getDay()] + ' ' + t.getDate() + ' ' + MS[t.getMonth()]; }
+    // the days this person has a record on, and the first of them
+    function days(uid){ var o = {}, f = '', l = recs(); for(var i = 0; i < l.length; i++){ var r = l[i]; if(r && r.empId === uid && r.date){ o[r.date] = 1; if(!f || r.date < f) f = r.date; } } return { has:o, first:f }; }
+    function isMissed(d, D, hol, today){ return !!D.first && d >= D.first && d < today && dow(d) !== 6 && !hol[d] && !D.has[d]; }
+    function todayOpen(d, D, hol, today){ return d === today && dow(d) !== 6 && !hol[d] && !D.has[d]; }   // today, nothing recorded yet
+    function refresh(){ try { renderCalendar(); } catch(e){} }
+
+    // ---- the calendar: missed days in red, the noted reason under the number, this month's list below ----
+    function calExtra(){
+      var u = me(), box = document.getElementById('cal-days'), out = document.getElementById('cal-abs'); if(!u || !box) return;
+      var hol = getHolidays(), D = days(u.id), m = map(u.id), today = todayStr(), list = [];
+      var cells = box.querySelectorAll('.cal-day[data-date]');
+      for(var i = 0; i < cells.length; i++){
+        var c = cells[i], d = c.getAttribute('data-date'); if(!DATE.test(d)) continue;
+        var miss = isMissed(d, D, hol, today), w = (miss || todayOpen(d, D, hol, today)) ? why(m, d) : null;
+        if(miss) c.classList.add('absent');
+        if(miss || w) list.push(d);
+        if(w){ var s = document.createElement('span'); s.className = 'cal-mk'; s.textContent = reason(w.r).i; c.appendChild(s); }
+      }
+      if(!out) return;
+      if(!list.length){ out.style.display = 'none'; out.innerHTML = ''; return; }
+      out.innerHTML = '<div class="section-title">📋 วันที่ขาด · ' + list.length + ' วัน</div>' + list.map(function(d){
+        var e = why(m, d), r = e && reason(e.r);
+        return '<button type="button" class="cal-abs-row" data-date="' + d + '">' +
+          '<span class="cal-abs-d">' + (d === today ? 'วันนี้' : fmtD(d)) + '</span>' +
+          '<span class="cal-abs-r">' + (r ? r.i + ' ' + r.l + (e.t ? ' · ' + escHtml(e.t) : '') : '<i>ยังไม่ได้จดเหตุผล</i>') + '</span>' +
+          '<span class="cal-abs-go" aria-hidden="true">›</span></button>';
+      }).join('');
+      out.style.display = '';
+    }
+    var out0 = document.getElementById('cal-abs');
+    if(out0) out0.addEventListener('click', function(ev){
+      var b = ev.target && ev.target.closest ? ev.target.closest('.cal-abs-row') : null, u = me();
+      if(b && u) showDayDetail(b.getAttribute('data-date'), u.email);
+    });
+
+    // ---- the day sheet: on one's own missed day (or today, before anything is recorded) the reason can be noted ----
+    function editor(d, e, isToday){
+      return '<div class="abs-box" data-date="' + d + '">' +
+        '<div class="abs-hd">' + (isToday ? 'วันนี้ไม่ได้มาทำงาน? จดเหตุผลไว้ได้' : 'วันนั้นขาดงานเพราะอะไร?') + '</div>' +
+        '<div class="abs-sub">จดไว้กันลืม · เห็นได้เฉพาะคุณกับแอดมิน</div>' +
+        '<div class="abs-chips" role="radiogroup" aria-label="เหตุผลที่ขาด">' + R.map(function(x){
+          var on = !!(e && e.r === x.k);
+          return '<button type="button" class="abs-chip' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-abs="pick" data-k="' + x.k + '">' + x.i + ' ' + x.l + '</button>';
+        }).join('') + '</div>' +
+        '<input type="text" class="form-inp abs-txt" maxlength="120" placeholder="รายละเอียด (ไม่บังคับ) เช่น ไปหาหมอ" value="' + escHtml((e && e.t) || '') + '">' +
+        '<div class="abs-btns"><button type="button" class="btn-primary" data-abs="save">บันทึก</button>' +
+          (e ? '<button type="button" class="btn-secondary" data-abs="del">ลบ</button>' : '') + '</div>' +
+        '<button type="button" class="abs-link" data-abs="backfill">มาทำงานแต่ลืมลงเวลา? เพิ่มเวลาย้อนหลัง ›</button>' +
+      '</div>';
+    }
+    function sheetExtra(d, email){
+      var u = me(), box = document.getElementById('day-modal-content'); if(!u || !box || !DATE.test(d)) return;
+      var emp = null; try { emp = employees.find(function(x){ return x && x.email === email; }) || null; } catch(e){}
+      if(!emp || emp.id !== u.id) return;                              // someone else's day: the admin's view (v432)
+      var D = days(u.id), hol = getHolidays(), today = todayStr(), e = why(map(u.id), d);
+      if(D.has[d]){                                                     // a day with a record that was noted as missed before
+        if(e){ var r = reason(e.r); box.insertAdjacentHTML('beforeend', '<div class="abs-note" data-date="' + d + '"><span>' + r.i + ' เคยจดว่าขาด: ' + r.l + (e.t ? ' · ' + escHtml(e.t) : '') + '</span><button type="button" data-abs="del">ลบ</button></div>'); }
+        return;
+      }
+      if(!isMissed(d, D, hol, today) && !todayOpen(d, D, hol, today)) return;
+      var html = editor(d, e, d === today), es = box.querySelector('.empty-state');
+      if(es) es.outerHTML = html; else box.insertAdjacentHTML('beforeend', html);
+    }
+    var dm = document.getElementById('day-modal-content');
+    if(dm){
+      dm.addEventListener('click', function(ev){
+        var b = ev.target && ev.target.closest ? ev.target.closest('[data-abs]') : null; if(!b || !dm.contains(b)) return;
+        var host = b.closest('[data-date]'), d = host && host.getAttribute('data-date'), act = b.getAttribute('data-abs');
+        if(!d || !DATE.test(d)) return;
+        if(act === 'pick'){
+          var all = host.querySelectorAll('.abs-chip');
+          for(var i = 0; i < all.length; i++){ var on = all[i] === b; all[i].classList.toggle('on', on); all[i].setAttribute('aria-checked', on ? 'true' : 'false'); }
+          try { if(typeof haptic === 'function') haptic('light'); } catch(_){}
+          if(b.getAttribute('data-k') === 'other'){ var t0 = host.querySelector('.abs-txt'); try { if(t0) t0.focus(); } catch(_){} }
+        } else if(act === 'save'){
+          var sel = host.querySelector('.abs-chip.on'), inp = host.querySelector('.abs-txt'), txt = clean(inp ? inp.value : '');
+          var k = sel ? sel.getAttribute('data-k') : (txt ? 'other' : '');
+          if(!k){ showToast('เลือกเหตุผลก่อนนะ', 'warning'); return; }
+          var ent = { r:k, ts:Date.now() }; if(txt) ent.t = txt;
+          if(!put(d, ent)){ showToast('บันทึกไม่ได้ ลองใหม่อีกครั้ง', 'error'); return; }
+          closeModal('day-modal'); refresh();
+          showToast('📝 จดไว้แล้ว · ' + (d === todayStr() ? 'วันนี้' : fmtD(d)) + ' ' + reason(k).i + ' ' + reason(k).l, 'success');
+        } else if(act === 'del'){
+          if(!put(d, { x:1, ts:Date.now() })) return;
+          closeModal('day-modal'); refresh();
+          showToast('ลบเหตุผลแล้ว', 'success');
+        } else if(act === 'backfill'){                                  // came to work but forgot to check in: the history page's backfill form, on that date
+          closeModal('day-modal');
+          try { showPage('history'); } catch(_){}
+          setTimeout(function(){
+            var det = document.getElementById('hq-backfill'), md = document.getElementById('man-date');
+            if(det) det.open = true; if(md) md.value = d;
+            try { if(det) det.scrollIntoView({ block:'start', behavior:'smooth' }); } catch(_){}
+          }, 450);
+        }
+      });
+      dm.addEventListener('keydown', function(ev){                       // Return in the words box saves
+        var t = ev.target; if(ev.key !== 'Enter' || !t || !t.classList || !t.classList.contains('abs-txt')) return;
+        var s = t.closest('.abs-box'), b = s && s.querySelector('[data-abs="save"]'); if(b){ ev.preventDefault(); b.click(); }
+      });
+    }
+
+    // drawn after the calendar / the day sheet; a failure here leaves them as they were
+    var baseCal = window.renderCalendar;
+    if(typeof baseCal === 'function') window.renderCalendar = function(){
+      var r = baseCal.apply(this, arguments);
+      try { calExtra(); } catch(e){ try { console.warn('[v430] calendar', e); } catch(_){} }
+      return r;
+    };
+    var baseDay = window.showDayDetail;
+    if(typeof baseDay === 'function') window.showDayDetail = function(dateStr, email){
+      var r = baseDay.apply(this, arguments);
+      try { sheetExtra(dateStr, email); } catch(e){ try { console.warn('[v430] sheet', e); } catch(_){} }
+      return r;
+    };
+    // a reason noted on another of this person's phones
+    window.addEventListener('cloudKeyChanged', function(ev){ var k = ev && ev.detail && ev.detail.key; if(typeof k === 'string' && k.indexOf('tt_absent_') === 0) refresh(); });
+    window.rudyAbsence = { reasons:R, reason:reason, map:map, why:why, put:put, days:days, isMissed:isMissed, todayOpen:todayOpen, fmt:fmtD };   // (v431 home card, v432 admin)
+  } catch(e){ try { console.warn('[v430] absence', e); } catch(_){} }
 })();
 </script>
 </body>
