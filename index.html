@@ -11712,7 +11712,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v432';
+const APP_VERSION = 'v433';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -27244,7 +27244,36 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
       var u = me(); if(!u || !DATE.test(d)) return false;
       var m = map(u.id); m[d] = e;
       localStorage.setItem('tt_absent_' + u.id, JSON.stringify(m));   // kept here, and written to the cloud by the sync layer
+      var pd = pendGet(u.id); pd[d] = e; pendSet(u.id, pd);            // v433: and remembered until the cloud has it
+      setTimeout(flush, 1500);
       return true;
+    }
+    // ---- v433: offline-safe. The sync layer uploads only while connected (a write made offline is dropped) and, on the
+    // next start, its listener puts the cloud map over the local one: a reason tapped with no signal would be lost.
+    // So each one is also kept in rudy_abs_pend_{uid} (this phone only — not a synced name) until the cloud has it:
+    // merged back by date when the cloud copy arrives (the newer ts wins), and sent with a transaction once connected. ----
+    function pendGet(uid){ try { var o = JSON.parse(localStorage.getItem('rudy_abs_pend_' + uid) || '{}'); return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; } catch(e){ return {}; } }
+    function pendSet(uid, o){ try { if(Object.keys(o).length) localStorage.setItem('rudy_abs_pend_' + uid, JSON.stringify(o)); else localStorage.removeItem('rudy_abs_pend_' + uid); } catch(e){} }
+    function asMap(v){ var m = v; if(typeof v === 'string'){ try { m = JSON.parse(v); } catch(e){ m = null; } } return (m && typeof m === 'object' && !Array.isArray(m)) ? m : {}; }
+    function newer(a, b){ return !a || ((b && b.ts) || 0) > ((a && a.ts) || 0); }           // b newer than a (or a missing)
+    function mergeIn(m, pd){ var ch = false; for(var d in pd){ if(newer(m[d], pd[d])){ m[d] = pd[d]; ch = true; } } return ch; }
+    var flushing = false;
+    function flush(){
+      var u = me(); if(!u || flushing) return;
+      var uid = u.id, pd = pendGet(uid); if(!Object.keys(pd).length) return;
+      if(typeof fbConn === 'undefined' || !fbConn || typeof db === 'undefined' || !db || typeof db.ref !== 'function') return;
+      flushing = true;
+      var settle = function(v){                                       // drop what the cloud now has (or has newer)
+        var srv = asMap(v), now = pendGet(uid), ch = false;
+        for(var d in now){ if(!newer(srv[d], now[d])){ delete now[d]; ch = true; } }
+        if(ch) pendSet(uid, now);
+      };
+      try {
+        db.ref('userdata/' + uid + '/tt_absent_' + uid).transaction(function(cur){
+          var m = asMap(cur); return mergeIn(m, pd) ? JSON.stringify(m) : undefined;   // nothing newer here: leave it as it is
+        }).then(function(res){ flushing = false; try { settle(res && res.snapshot ? res.snapshot.val() : null); } catch(_){} },
+                function(){ flushing = false; });
+      } catch(e){ flushing = false; }
     }
     function clean(t){ return String(t || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120); }
     function dow(d){ return new Date(d + 'T12:00:00').getDay(); }
@@ -27459,7 +27488,8 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
       try { mhExtra(); } catch(e){ try { console.warn('[v432] member history', e); } catch(_){} }
       return r;
     };
-    setInterval(function(){                                             // a new day while Home stays open
+    setInterval(function(){                                             // a new day while Home stays open; anything still to send (v433)
+      try { flush(); } catch(e){}
       if(document.hidden) return;
       var pg = document.getElementById('page-home'); if(pg && pg.classList.contains('active')) try { homeCard(); } catch(e){}
     }, 60000);
@@ -27475,10 +27505,25 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
       try { sheetExtra(dateStr, email); } catch(e){ try { console.warn('[v430] sheet', e); } catch(_){} }
       return r;
     };
-    // a reason noted on another of this person's phones
-    window.addEventListener('cloudKeyChanged', function(ev){ var k = ev && ev.detail && ev.detail.key; if(typeof k === 'string' && k.indexOf('tt_absent_') === 0) refresh(); });
+    // the cloud copy arrived (a reason noted on another phone, or the start-up sync): what this phone noted and the cloud
+    // doesn't have yet is put back (v433), then everything showing reasons is redrawn
+    window.addEventListener('cloudKeyChanged', function(ev){
+      var k = ev && ev.detail && ev.detail.key; if(typeof k !== 'string' || k.indexOf('tt_absent_') !== 0) return;
+      try {
+        var u = me(), pd = u && k === 'tt_absent_' + u.id ? pendGet(u.id) : null;
+        if(pd && Object.keys(pd).length){
+          var m = map(u.id);
+          if(mergeIn(m, pd)) localStorage.setItem(k, JSON.stringify(m));
+          setTimeout(flush, 1500);
+        }
+      } catch(e){}
+      refresh();
+    });
+    try {                                                               // v433: back online → send what is waiting
+      if(typeof db !== 'undefined' && db && typeof db.ref === 'function') db.ref('.info/connected').on('value', function(s){ if(s && s.val() === true) setTimeout(flush, 2000); });
+    } catch(e){}
     window.rudyAbsence = { reasons:R, reason:reason, map:map, why:why, put:put, days:days, isMissed:isMissed, todayOpen:todayOpen, fmt:fmtD, pending:pending, homeCard:homeCard,
-      reasonFor:reasonFor, teamBadge:teamBadge, teamSub:teamSub, teamSync:teamSync, team:function(){ return team; } };
+      reasonFor:reasonFor, teamBadge:teamBadge, teamSub:teamSub, teamSync:teamSync, team:function(){ return team; }, flush:flush, waiting:function(){ var u = me(); return u ? pendGet(u.id) : {}; } };
     try { homeCard(); } catch(e){}
   } catch(e){ try { console.warn('[v430] absence', e); } catch(_){} }
 })();
