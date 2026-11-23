@@ -7476,6 +7476,7 @@ function renderStatus() {
     }
     const photo = getPhoto(emp.email);
     const _eG=avatarGrad(emp.name), _eL=avatarLetter(emp.name);
+    let absWhy=''; try { if(!dr.length&&window.rudyAbsence&&rudyAbsence.teamSub) absWhy=rudyAbsence.teamSub(emp.id,today)||''; } catch(_){}   // v432: not in today and why (admin)
     return { isIn, html: `<div class="emp-card ${isIn?'in':'out'} card-enter">
       <div class="emp-av" style="width:40px;height:40px;border-radius:10px;background:${photo?'none':_eG};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;overflow:hidden">${photo?`<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:_eL}</div>
       <div class="emp-info" style="flex:1;min-width:0">
@@ -7485,6 +7486,7 @@ function renderStatus() {
       </div>
       <div class="emp-right" style="text-align:right;flex-shrink:0">
         <div class="status-pill ${isIn?'in':'out'}">${isIn?'ในงาน':'ไม่อยู่'}</div>
+        ${absWhy?`<div class="abs-live">${absWhy}</div>`:''}
         <div style="font-family:var(--mono);font-size:11px;color:var(--text2)">${firstIn !== '--:--' ? 'เข้า '+firstIn : '—'}</div>
         ${durText?`<div style="font-size:10px;color:var(--accent2)">${durText}</div>`:''}
       </div>
@@ -7558,7 +7560,7 @@ function renderTeam(){
     let badge='';
     if(open)badge='<span class="badge badge-green">🟢 กำลังทำงาน</span>';
     else if(dr.length)badge=hasLate?'<span class="badge badge-red">⚠ สาย</span>':'<span class="badge badge-blue">✓ มาแล้ว</span>';
-    else badge='<span class="badge" style="background:var(--surface2);color:var(--text3)">— ยังไม่มา</span>';
+    else badge=(window.rudyAbsence&&rudyAbsence.teamBadge&&rudyAbsence.teamBadge(emp.id,dateKey))||'<span class="badge" style="background:var(--surface2);color:var(--text3)">— ยังไม่มา</span>';   // v432: the reason noted for a missed day (admin)
     return {emp,photo,dr,totalH,totalOT,open,hasLate,badge,color:colors[i%colors.length]};
   });
 
@@ -7897,7 +7899,7 @@ function showDayDetail(dateStr,email){
   const holiday=getHolidays()[dateStr];
   const totalH=dr.filter(r=>r.checkOut).reduce((s,r)=>s+calcHours(r.checkIn,r.checkOut),0);
   const totalOT=dr.reduce((s,r)=>s+(r.otMin||0),0);
-  const note=getDailyNote(dateStr);
+  const note=getDailyNote(dateStr);   // the viewer's own note (tt_notes_{own id}): shown on one's own days only (v432; was on others' too)
 
   document.getElementById('day-modal-title').textContent=`${parseInt(d)} ${mons[parseInt(m)-1]} ${parseInt(y)+543}`;
   document.getElementById('day-modal-content').innerHTML=`
@@ -7924,7 +7926,7 @@ function showDayDetail(dateStr,email){
         ${(isAdmin()||emp.id===curUser.id)?`<button class="btn-edit" onclick="closeModal('day-modal');openEdit('${r.id}','${email}')">✏️</button>`:''}
       </div>`).join('')}
     `:`<div class="empty-state"><div class="empty-icon">😴</div><div>ไม่มีข้อมูลวันนี้</div></div>`}
-    ${note?`<div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--text2)">📓 ${escHtml(note)}</div>`:''}
+    ${note&&emp.id===curUser.id?`<div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--text2)">📓 ${escHtml(note)}</div>`:''}
     ${isAdmin()?`<div style="margin-top:12px"><button class="btn-secondary" onclick="toggleHoliday('${dateStr}');closeModal('day-modal')">🏖 ${isHoliday(dateStr)?'ยกเลิกวันหยุด':'ตั้งเป็นวันหยุด'}</button></div>`:''}`;
 
   document.getElementById('day-modal').classList.add('open');
@@ -11710,7 +11712,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v431';
+const APP_VERSION = 'v432';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -25573,6 +25575,7 @@ html.ios body.corp .hq-team-row{ border-top-width:0.5px; }
         var sub = '';
         if(admin && r.st === 'on') sub = 'เข้า ' + esc(r.first) + ' · ' + fmtHM(r.min);
         else if(admin && r.st === 'out') sub = esc(r.first) + '–' + esc(r.lastOut) + ' · ' + fmtHM(r.min);
+        else if(admin && r.st === 'none'){ try { var absWhy = window.rudyAbsence && rudyAbsence.teamSub && rudyAbsence.teamSub(e.id, today); if(absWhy) sub = absWhy; } catch(_){} }   // v432: not in today and why (noted today)
         var me = e.id === curUser.id ? ' <span class="hq-team-me">(คุณ)</span>' : '';
         var inner = av + '<span class="hq-team-txt"><span class="hq-team-name">' + esc(e.name || '') + me + '</span>' + (sub ? '<span class="hq-team-sub">' + sub + '</span>' : '') + '</span>'
           + '<span class="hq-team-st ' + r.st + '"><i></i>' + label[r.st] + '</span>';
@@ -27128,6 +27131,17 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
 .abs-note{ display:flex; align-items:center; gap:8px; margin-top:12px; padding:10px 12px; border-radius:var(--r-sm); background:var(--glass-3); border:1px solid var(--glass-stroke-dim); color:var(--ink-2); font-size:13px; }
 .abs-note span{ flex:1; min-width:0; }
 .abs-note button{ flex:none; padding:6px 12px; border-radius:var(--r-pill); border:1px solid var(--glass-stroke); background:none; color:var(--red); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+/* v432: what the admin sees of the others' reasons */
+.abs-ro{ padding:14px 16px; border-radius:var(--r); background:var(--glass-3); border:1px solid var(--glass-stroke-dim); }
+.abs-ro-l{ font-size:12px; font-weight:600; color:var(--ink-3); }
+.abs-ro-v{ margin-top:4px; font-size:16px; color:var(--ink); }
+.abs-ro-none{ font-size:14px; font-weight:600; color:var(--red); }
+.abs-ro-wait{ font-size:13px; color:var(--ink-3); }
+.badge.abs-badge{ background:var(--surface2); color:var(--ink-2); }
+.abs-live{ max-width:150px; margin:3px 0 1px auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; font-weight:600; color:var(--ink-2); }
+.cal-abs-row.ro{ cursor:default; }
+.mh-abs{ margin-bottom:12px; }
+.mh-abs-note{ padding:2px 0 6px; font-size:12px; color:var(--ink-3); }
 /* v431: Home's card the day after a missed working day */
 .hq-abs{ padding:14px 16px 8px; }
 .hq-abs-hd{ font-size:15px; font-weight:700; line-height:1.35; color:var(--ink); }
@@ -27164,7 +27178,66 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
     function reason(k){ for(var i = 0; i < R.length; i++) if(R[i].k === k) return R[i]; return R[R.length - 1]; }
     function map(uid){
       var u = me(); uid = uid || (u && u.id); if(!uid) return {};
+      if(u && uid !== u.id) return (team[uid] && team[uid].m) || {};   // someone else's: read by the admin into memory (v432)
       try { var m = JSON.parse(localStorage.getItem('tt_absent_' + uid) || '{}'); return (m && typeof m === 'object' && !Array.isArray(m)) ? m : {}; } catch(e){ return {}; }
+    }
+    // ---- v432: the admin reads the others' reasons from userdata/{id}/tt_absent_{id}, one listener each. Kept in memory
+    // only: written to local storage they would be copied into the admin's own cloud data by the sync layer. If
+    // Firebase refuses the read, the views say so instead of showing nothing. ----
+    var team = {}, teamFor = '', tcT = 0;           // id → { m:map, st:'wait'|'ok'|'denied', ref, cb }
+    function adminNow(){ try { return typeof isAdmin === 'function' && !!isAdmin(); } catch(e){ return false; } }
+    function teamOff(){ for(var id in team){ try { if(team[id].ref) team[id].ref.off('value', team[id].cb); } catch(_){} } team = {}; }
+    function teamSync(){
+      var u = me(), ok = !!u && adminNow() && typeof db !== 'undefined' && db && typeof db.ref === 'function';
+      if(!ok){ if(teamFor){ teamOff(); teamFor = ''; } return; }
+      if(teamFor !== u.id){ teamOff(); teamFor = u.id; }
+      var list = []; try { list = Array.isArray(employees) ? employees : []; } catch(e){}
+      list.forEach(function(emp){
+        if(!emp || !emp.id || emp.id === u.id || team[emp.id]) return;
+        var slot = team[emp.id] = { m:{}, st:'wait' };
+        try {
+          slot.ref = db.ref('userdata/' + emp.id + '/tt_absent_' + emp.id);
+          slot.cb = slot.ref.on('value', function(snap){
+            var v = snap && typeof snap.val === 'function' ? snap.val() : null, m = {};
+            try { m = typeof v === 'string' ? JSON.parse(v) : v; } catch(e){ m = {}; }
+            slot.m = (m && typeof m === 'object' && !Array.isArray(m)) ? m : {}; slot.st = 'ok'; teamChanged();
+          }, function(err){
+            slot.st = 'denied'; teamChanged();
+            try { console.warn('[v432] reasons of', emp.id, 'not readable:', err && (err.code || err.message) || err); } catch(_){}
+          });
+        } catch(e){ slot.st = 'denied'; }
+      });
+    }
+    function teamChanged(){                         // redraw what shows the others' reasons, once per burst
+      clearTimeout(tcT);
+      tcT = setTimeout(function(){
+        try {                                         // the Team page's open tab: สด (renderStatus) or รายวัน (renderTeam)
+          var tp = document.getElementById('page-team'), lv = document.getElementById('team-sub-live'), dl = document.getElementById('team-sub-daily');
+          if(tp && tp.classList.contains('active')){
+            if(lv && lv.style.display !== 'none' && typeof renderStatus === 'function') renderStatus();
+            if(dl && dl.style.display !== 'none' && typeof renderTeam === 'function') renderTeam();
+          }
+        } catch(_){}
+        try { if(typeof window.rudyHomeTeam === 'function') window.rudyHomeTeam(); } catch(_){}
+        try { var mh = document.getElementById('member-history-modal'); if(mh && mh.classList.contains('open')) mhExtra(); } catch(_){}
+        try { var dmo = document.getElementById('day-modal'); if(dmo && dmo.classList.contains('open') && lastSheet && lastSheet.other) sheetExtra(lastSheet.d, lastSheet.email); } catch(_){}
+      }, 120);
+    }
+    // the reason noted for a person's missed day (or today, before anything is recorded): {st, e} — null when not shown to this viewer
+    function reasonFor(empId, d, D){
+      var u = me(); if(!u || !empId || !DATE.test(d)) return null;
+      D = D || days(empId); var hol = getHolidays(), today = todayStr();
+      if(!isMissed(d, D, hol, today) && !todayOpen(d, D, hol, today)) return null;
+      if(empId === u.id) return { st:'ok', e:why(map(u.id), d) };
+      if(!adminNow()) return null;
+      teamSync(); var s = team[empId];
+      return { st:s ? s.st : 'wait', e:s ? why(s.m, d) : null };
+    }
+    function teamBadge(empId, d){                   // the Team page: instead of "— ยังไม่มา"
+      try { var o = reasonFor(empId, d); if(!o || !o.e) return ''; var r = reason(o.e.r); return '<span class="badge abs-badge">' + r.i + ' ' + r.l + '</span>'; } catch(e){ return ''; }
+    }
+    function teamSub(empId, d){                     // "ทีมวันนี้" on Home: the line under the name
+      try { var o = reasonFor(empId, d); if(!o || !o.e) return ''; var r = reason(o.e.r); return r.i + ' ' + r.l + (o.e.t ? ' · ' + escHtml(o.e.t) : ''); } catch(e){ return ''; }
     }
     function why(m, d){ var e = m && m[d]; return (e && e.r) ? e : null; }
     function put(d, e){
@@ -27236,10 +27309,26 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
         '<button type="button" class="abs-link" data-abs="backfill">มาทำงานแต่ลืมลงเวลา? เพิ่มเวลาย้อนหลัง ›</button>' +
       '</div>';
     }
+    var lastSheet = null;
+    // v432: someone else's day, seen by the admin — the reason they noted, read-only (or why it can't be shown)
+    function sheetOther(d, emp, box){
+      var o = reasonFor(emp.id, d), old = box.querySelector('.abs-ro');
+      if(!o){ if(old) old.remove(); return; }
+      var r = o.e && reason(o.e.r);
+      var v = o.e ? '<b>' + r.i + ' ' + r.l + '</b>' + (o.e.t ? ' · ' + escHtml(o.e.t) : '')
+        : o.st === 'denied' ? '<span class="abs-ro-wait">ดูเหตุผลของคนอื่นไม่ได้ — ระบบ (Firebase) ยังไม่ให้แอดมินอ่าน</span>'
+        : o.st === 'wait' ? '<span class="abs-ro-wait">กำลังโหลด…</span>'
+        : '<span class="abs-ro-none">ยังไม่ได้จดเหตุผล</span>';
+      var html = '<div class="abs-ro"><div class="abs-ro-l">' + (d === todayStr() ? 'วันนี้ยังไม่ได้มาทำงาน' : 'ขาดงานวันนี้') + ' · เหตุผลที่จดไว้</div><div class="abs-ro-v">' + v + '</div></div>';
+      var es = box.querySelector('.empty-state');
+      if(old) old.outerHTML = html; else if(es) es.outerHTML = html; else box.insertAdjacentHTML('beforeend', html);
+    }
     function sheetExtra(d, email){
       var u = me(), box = document.getElementById('day-modal-content'); if(!u || !box || !DATE.test(d)) return;
       var emp = null; try { emp = employees.find(function(x){ return x && x.email === email; }) || null; } catch(e){}
-      if(!emp || emp.id !== u.id) return;                              // someone else's day: the admin's view (v432)
+      if(!emp) return;
+      lastSheet = { d:d, email:email, other:emp.id !== u.id };
+      if(emp.id !== u.id){ sheetOther(d, emp, box); return; }
       var D = days(u.id), hol = getHolidays(), today = todayStr(), e = why(map(u.id), d);
       if(D.has[d]){                                                     // a day with a record that was noted as missed before
         if(e){ var r = reason(e.r); box.insertAdjacentHTML('beforeend', '<div class="abs-note" data-date="' + d + '"><span>' + r.i + ' เคยจดว่าขาด: ' + r.l + (e.t ? ' · ' + escHtml(e.t) : '') + '</span><button type="button" data-abs="del">ลบ</button></div>'); }
@@ -27329,11 +27418,45 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
       }
     });
 
-    // drawn after the calendar / the day sheet / Home; a failure here leaves them as they were
+    // ---- v432: the member-history sheet (admin): that month's missed days with the reasons noted, read-only ----
+    function mhExtra(){
+      var emp = null; try { emp = _mhCurrentEmp; } catch(e){}
+      var host = document.getElementById('mh-content'); if(!host || !host.parentNode) return;
+      var blk = document.getElementById('mh-abs');
+      if(!blk){ blk = document.createElement('div'); blk.id = 'mh-abs'; blk.className = 'card cal-abs mh-abs'; host.parentNode.insertBefore(blk, host); }
+      var u = me(), mo = document.getElementById('mh-month'), yo = document.getElementById('mh-year');
+      var month = mo ? parseInt(mo.value, 10) : NaN, year = yo ? parseInt(yo.value, 10) : NaN, list = [], st = 'ok', today = todayStr();
+      if(emp && u && (emp.id === u.id || adminNow()) && !isNaN(month) && !isNaN(year)){
+        var D = days(emp.id), n = new Date(year, month + 1, 0).getDate();
+        for(var i = 1; i <= n; i++){
+          var d = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(i).padStart(2, '0'), o = reasonFor(emp.id, d, D);
+          if(!o || (d === today && !o.e)) continue;     // today is listed once a reason is noted
+          st = o.st; list.push({ d:d, e:o.e });
+        }
+      }
+      if(!list.length){ blk.style.display = 'none'; blk.innerHTML = ''; return; }
+      blk.innerHTML = '<div class="section-title">📋 วันที่ขาด · ' + list.length + ' วัน</div>' +
+        (st === 'denied' ? '<div class="mh-abs-note">ดูเหตุผลไม่ได้ — ระบบ (Firebase) ยังไม่ให้แอดมินอ่าน</div>' : st === 'wait' ? '<div class="mh-abs-note">กำลังโหลดเหตุผล…</div>' : '') +
+        list.map(function(x){
+          var r = x.e && reason(x.e.r);
+          return '<div class="cal-abs-row ro"><span class="cal-abs-d">' + (x.d === today ? 'วันนี้' : fmtD(x.d)) + '</span><span class="cal-abs-r">' +
+            (r ? r.i + ' ' + r.l + (x.e.t ? ' · ' + escHtml(x.e.t) : '') : st === 'ok' ? '<i>ยังไม่ได้จดเหตุผล</i>' : '') + '</span></div>';
+        }).join('');
+      blk.style.display = '';
+    }
+
+    // drawn after the calendar / the day sheet / Home / the member history; a failure here leaves them as they were
     var baseHome = window.renderHome;
     if(typeof baseHome === 'function') window.renderHome = function(){
       var r = baseHome.apply(this, arguments);
       try { homeCard(); } catch(e){ try { console.warn('[v431] home card', e); } catch(_){} }
+      try { teamSync(); } catch(e){}                  // v432: an admin's reads start once Home is drawn after login
+      return r;
+    };
+    var baseMH = window.renderMemberHistory;
+    if(typeof baseMH === 'function') window.renderMemberHistory = function(){
+      var r = baseMH.apply(this, arguments);
+      try { mhExtra(); } catch(e){ try { console.warn('[v432] member history', e); } catch(_){} }
       return r;
     };
     setInterval(function(){                                             // a new day while Home stays open
@@ -27354,7 +27477,8 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
     };
     // a reason noted on another of this person's phones
     window.addEventListener('cloudKeyChanged', function(ev){ var k = ev && ev.detail && ev.detail.key; if(typeof k === 'string' && k.indexOf('tt_absent_') === 0) refresh(); });
-    window.rudyAbsence = { reasons:R, reason:reason, map:map, why:why, put:put, days:days, isMissed:isMissed, todayOpen:todayOpen, fmt:fmtD, pending:pending, homeCard:homeCard };   // (v432 admin)
+    window.rudyAbsence = { reasons:R, reason:reason, map:map, why:why, put:put, days:days, isMissed:isMissed, todayOpen:todayOpen, fmt:fmtD, pending:pending, homeCard:homeCard,
+      reasonFor:reasonFor, teamBadge:teamBadge, teamSub:teamSub, teamSync:teamSync, team:function(){ return team; } };
     try { homeCard(); } catch(e){}
   } catch(e){ try { console.warn('[v430] absence', e); } catch(_){} }
 })();
