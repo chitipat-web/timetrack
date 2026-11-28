@@ -37,6 +37,12 @@ if (!GMAIL_USER || !GMAIL_PASS || !FIREBASE_KEY) {
 // ============================================
 // DATE HELPERS (IDT = Asia/Jerusalem)
 // ============================================
+// v434: an address in the log as "e***@gmail.com" — the Actions log of a public repo can be read by anyone
+function maskEmail(e) {
+  const s = String(e || ''), at = s.indexOf('@');
+  return at > 0 ? s[0] + '***' + s.slice(at) : '***';
+}
+
 function getTodayDateIDT() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Jerusalem',
@@ -351,7 +357,8 @@ async function main() {
       uid,
       name: (data && data.name) || 'Unknown',
       email: (data && data.email) || null,
-      role: (data && data.role) || 'user'
+      role: (data && data.role) || 'user',
+      noEmail: !!(data && data.noEmail === true)
     })).slice(0, MAX_EMPLOYEES);
 
     const recObj = recSnap.val() || {};
@@ -375,6 +382,11 @@ async function main() {
   for (const emp of employees) {
     if (!emp.email) {
       console.log('⚠️  ' + emp.name + ' — no email, skip');
+      skipped++;
+      continue;
+    }
+    if (emp.noEmail) {   // v434: the admin switched this person's email off (app: Settings › จัดการพนักงาน)
+      console.log('📭 ' + emp.name + ' — email off, skip');
       skipped++;
       continue;
     }
@@ -407,7 +419,7 @@ async function main() {
     }
 
     if (DRY_RUN) {
-      console.log('   🧪 DRY_RUN — would send to', emp.email, '(', html.length, 'bytes )');
+      console.log('   🧪 DRY_RUN — would send to', maskEmail(emp.email), '(', html.length, 'bytes )');
       sentOK++;
       continue;
     }

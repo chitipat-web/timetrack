@@ -5,9 +5,9 @@ const nodemailer = require('nodemailer');
 
 const TEAM_EMAILS = [
   'chitipat.kao@gmail.com',
-  'lenghlx1@gmail.com',
-  'chitipat.kee@gmail.com'
+  'lenghlx1@gmail.com'
 ];
+// v434: an address the owner asked not to email was taken out of this list
 
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
@@ -45,6 +45,12 @@ const html = `
 </div>
 `;
 
+// v434: an address in the log as "e***@gmail.com" — the Actions log of a public repo can be read by anyone
+function maskEmail(e) {
+  const s = String(e || ''), at = s.indexOf('@');
+  return at > 0 ? s[0] + '***' + s.slice(at) : '***';
+}
+
 async function main() {
   console.log('=== 🧪 TEST EMAIL START ===');
   console.log('Time:', time);
@@ -61,10 +67,10 @@ async function main() {
         subject: subject,
         html: html
       });
-      console.log(`  ✅ ${to}`);
+      console.log(`  ✅ ${maskEmail(to)}`);
       sent++;
     } catch (err) {
-      console.log(`  ❌ ${to}: ${err.message}`);
+      console.log(`  ❌ ${maskEmail(to)}: ${err.message}`);
       failed++;
     }
   }

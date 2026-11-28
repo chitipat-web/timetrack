@@ -17,6 +17,12 @@ if (!GMAIL_USER || !GMAIL_PASS || !FIREBASE_KEY) {
   process.exit(1);
 }
 
+// v434: an address in the log as "e***@gmail.com" — the Actions log of a public repo can be read by anyone
+function maskEmail(e) {
+  const s = String(e || ''), at = s.indexOf('@');
+  return at > 0 ? s[0] + '***' + s.slice(at) : '***';
+}
+
 function getTodayDateIDT() {
   const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Jerusalem',
@@ -90,7 +96,8 @@ async function main() {
     uid,
     name: data.name || 'Unknown',
     email: data.email || null,
-    role: data.role || 'user'
+    role: data.role || 'user',
+    noEmail: data.noEmail === true
   }));
 
   const recordsSnap = await db.ref('records').once('value');
@@ -136,7 +143,12 @@ async function main() {
       continue;
     }
 
-    console.log(`📧 ${emp.name} (${emp.email}) - ยังไม่ check-out`);
+    if (emp.noEmail) {   // v434: the admin switched this person's email reminders off (app: Settings › จัดการพนักงาน)
+      console.log(`📭 ${emp.name} - email off, skip`);
+      continue;
+    }
+
+    console.log(`📧 ${emp.name} (${maskEmail(emp.email)}) - ยังไม่ check-out`);
 
     const pattern = ai.analyzeEmployeePattern(emp.uid, records, today);
     console.log(`   Pattern: ${pattern.label} - ${pattern.detail}`);

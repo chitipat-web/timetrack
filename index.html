@@ -8620,6 +8620,7 @@ function renderEmpListSettings(){
         <div style="font-size:13px;font-weight:600">${escHtml(emp.name)} ${roleLabel(emp.role)}</div>
         <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(emp.email)}</div>
         ${typeof rudyLookSelect === 'function' ? rudyLookSelect(emp) : ''}
+        ${typeof rudyEmailSelect === 'function' ? rudyEmailSelect(emp) : ''}
       </div>
       <button class="btn-edit" style="padding:4px 8px;font-size:11px" onclick="adminSetPassword('${escHtml(emp.email)}','${escHtml(emp.name)}')" title="ตั้งรหัสผ่านใหม่">🔑</button>
       ${emp.id !== curUser.id ? `<button class="btn-edit" style="padding:4px 8px;font-size:11px" onclick="changeEmpRole('${emp.id}')" title="เปลี่ยนบทบาท">⚙️</button>` : ''}
@@ -11712,7 +11713,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v433';
+const APP_VERSION = 'v434';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -27526,6 +27527,41 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
       reasonFor:reasonFor, teamBadge:teamBadge, teamSub:teamSub, teamSync:teamSync, team:function(){ return team; }, flush:flush, waiting:function(){ var u = me(); return u ? pendGet(u.id) : {}; } };
     try { homeCard(); } catch(e){}
   } catch(e){ try { console.warn('[v430] absence', e); } catch(_){} }
+})();
+</script>
+<script>
+/* v434 — the admin chooses, per person, whether the email reminders go to them (Settings › จัดการพนักงาน, under
+   "พื้นหลัง"). Saved as employees/{id}/noEmail = true (absent = emails go as before), written field by field like the
+   v380 look lock; the email scripts (05:45 check-in, 22:00 check-out, Friday summary) skip those people. Push
+   notifications on the phone and the monthly backup to admins are not affected. No address is kept in the code. */
+(function(){
+  try {
+    function esc(s){ try { return escHtml(s); } catch(e){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return '&#' + c.charCodeAt(0) + ';'; }); } }
+    window.rudyEmailSelect = function(emp){
+      if(typeof isAdmin !== 'function' || !isAdmin() || !emp || !emp.email) return '';
+      var off = emp.noEmail === true, id = String(emp.id).replace(/[^A-Za-z0-9_-]/g, '');
+      return '<label class="emp-look emp-mail"><span>อีเมลแจ้งเตือน</span><select onchange="rudySetEmpEmail(\'' + id + '\', this.value)" aria-label="อีเมลแจ้งเตือนของ ' + esc(emp.name || '') + '">'
+        + '<option value="on"' + (off ? '' : ' selected') + '>ส่ง</option><option value="off"' + (off ? ' selected' : '') + '>ไม่ส่ง</option></select></label>';
+    };
+    window.rudySetEmpEmail = function(id, v){
+      if(typeof isAdmin !== 'function' || !isAdmin()) return;
+      var emp = null; try { emp = employees.find(function(e){ return e && e.id === id; }) || null; } catch(e){}
+      if(!emp) return;
+      var before = emp.noEmail === true, off = v === 'off', name = emp.name || '';
+      if(off) emp.noEmail = true; else delete emp.noEmail;
+      try { saveEmp(); } catch(e){}
+      var undo = function(why){
+        if(before) emp.noEmail = true; else delete emp.noEmail;
+        try { saveEmp(); renderEmpListSettings(); } catch(_){}
+        try { showToast('บันทึกไม่สำเร็จ: ' + (why || 'ไม่มีสัญญาณ'), 'error'); } catch(_){}
+      };
+      try {
+        db.ref('employees/' + id + '/noEmail').set(off ? true : null).then(function(){
+          try { showToast(off ? '📭 ไม่ส่งอีเมลแจ้งเตือนให้ ' + name + ' แล้ว' : '📧 ส่งอีเมลแจ้งเตือนให้ ' + name + ' ตามเดิม', 'success'); } catch(_){}
+        }).catch(function(e){ undo(e && e.code); });
+      } catch(e){ undo(e && e.message); }
+    };
+  } catch(e){ try { console.warn('[v434] email switch', e); } catch(_){} }
 })();
 </script>
 </body>
