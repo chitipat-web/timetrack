@@ -8071,429 +8071,64 @@ function exportPDF(){
     </tr>`;
   }).join('');
 
-  const html=`<!DOCTYPE html><html><head>
-    <meta charset="UTF-8">
-    <title>รายงาน ${escHtml(curUser.name)} ${mons[month]} ${year+543}</title>
-    <style>
-      body{font-family:'Sarabun',sans-serif;font-size:13px;color:#1a202c;padding:24px;max-width:800px;margin:0 auto}
-      h1{font-size:20px;font-weight:700;color:#2b6cb0;margin-bottom:4px}
-      h2{font-size:14px;font-weight:400;color:#718096;margin-bottom:20px}
-      .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-      .sum-box{background:#ebf8ff;border:1px solid #bee3f8;border-radius:8px;padding:12px;text-align:center}
-      .sum-val{font-size:22px;font-weight:700;color:#2b6cb0}
-      .sum-lbl{font-size:11px;color:#718096;margin-top:2px}
-      table{width:100%;border-collapse:collapse;margin-bottom:20px}
-      th{background:#2b6cb0;color:#fff;padding:8px 10px;text-align:left;font-size:12px}
-      td{padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:12px}
-      tr:nth-child(even){background:#f7fafc}
-      .footer{text-align:center;font-size:11px;color:#a0aec0;margin-top:20px;border-top:1px solid #e2e8f0;padding-top:12px}
-      @media print{body{padding:0}.no-print{display:none}}
-    
-
-
-
-
-/* =====================================================
-   load-D-motion Loading Screen (dm- prefix, isolated)
-   ===================================================== */
-.dmotion-loading{
-  position:fixed !important;
-  inset:0 !important;
-  width:100vw !important; height:100vh !important; height:100dvh !important;
-  z-index:2147483647 !important;
-  overflow:hidden !important;
-  background:linear-gradient(180deg, #001828 0%, #003554 50%, #001020 100%) !important;
-  perspective:1000px;
-  font-family:'Sarabun','Inter',sans-serif;
-  transition:opacity 0.5s ease;
-}
-
-.dm-scene{
-  position:fixed; inset:0;
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-}
-@keyframes dmCameraSway{
-  0%{ transform:translate(-8px, -4px) rotate(-0.5deg); }
-  33%{ transform:translate(6px, 2px) rotate(0.3deg); }
-  66%{ transform:translate(-3px, 5px) rotate(-0.2deg); }
-  100%{ transform:translate(7px, -3px) rotate(0.5deg); }
-}
-
-/* Caustics disabled */
-@keyframes dmCaustic{
-  0%{ transform:translateX(-5%); opacity:0.8; }
-  100%{ transform:translateX(5%); opacity:1; }
-}
-
-/* God rays */
-.dm-god-rays{
-  position:absolute; top:0; left:50%;
-  transform:translateX(-50%);
-  width:100%; height:60vh;
-  pointer-events:none;
-  z-index:2;
-  opacity:0;
-  animation:dmRaysFadeIn 1.5s ease 0.5s forwards, dmRaysSway 7s ease-in-out infinite alternate;
-}
-@keyframes dmRaysFadeIn{ to{ opacity:1; } }
-@keyframes dmRaysSway{
-  0%{ transform:translateX(-50%) skewX(-2deg); }
-  100%{ transform:translateX(-50%) skewX(2deg); }
-}
-.dm-ray{
-  position:absolute; top:0;
-  width:60px; height:100%;
-  background:linear-gradient(180deg,
-    rgba(186,230,253,0.35) 0%,
-    rgba(94,200,250,0.15) 40%,
-    transparent 100%);
-  filter:blur(8px);
-  transform-origin:top center;
-  mix-blend-mode:screen;
-}
-.dm-r1{ left:15%; transform:rotate(-8deg); animation:dmRayPulse 4s ease-in-out infinite alternate; }
-.dm-r2{ left:30%; transform:rotate(-3deg); width:40px; animation:dmRayPulse 5s ease-in-out infinite alternate; }
-.dm-r3{ left:45%; transform:rotate(2deg); width:80px; animation:dmRayPulse 6s ease-in-out infinite alternate; }
-.dm-r4{ left:60%; transform:rotate(5deg); animation:dmRayPulse 4.5s ease-in-out infinite alternate; }
-.dm-r5{ left:75%; transform:rotate(10deg); width:50px; animation:dmRayPulse 5.5s ease-in-out infinite alternate; }
-@keyframes dmRayPulse{
-  0%{ opacity:0.4; }
-  100%{ opacity:1; }
-}
-
-/* Lens flare */
-.dm-flare-spot{
-  position:absolute;
-  top:-50px; left:50%;
-  transform:translateX(-50%);
-  width:200px; height:100px;
-  background:radial-gradient(ellipse, rgba(255,255,255,0.4), rgba(186,230,253,0.2) 30%, transparent 70%);
-  filter:blur(15px);
-  pointer-events:none;
-  z-index:2;
-  animation:dmFlarePulse 3s ease-in-out infinite alternate;
-}
-@keyframes dmFlarePulse{
-  0%{ opacity:0.6; transform:translateX(-50%) scale(1); }
-  100%{ opacity:1; transform:translateX(-50%) scale(1.15); }
-}
-
-/* Bubbles */
-#dm-bubbles{position:absolute;inset:0;pointer-events:none;}
-.dm-bubble{
-  position:absolute;
-  border-radius:50%;
-  pointer-events:none;
-  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.7), rgba(186,230,253,0.3) 60%, transparent);
-  border:1px solid rgba(255,255,255,0.3);
-  bottom:-20px;
-  animation:dmBubbleUp var(--dur) ease-in infinite;
-  animation-delay:var(--delay);
-  opacity:0;
-  z-index:1;
-}
-@keyframes dmBubbleUp{
-  0%{ transform:translateX(0) translateY(0) scale(0.5); opacity:0; }
-  10%{ opacity:1; }
-  90%{ opacity:0.7; }
-  100%{ transform:translateX(var(--sway)) translateY(-110vh) scale(1.2); opacity:0; }
-}
-
-/* Sparkles */
-#dm-sparkles{position:absolute;inset:0;pointer-events:none;}
-.dm-sparkle{
-  position:absolute;
-  width:6px; height:6px;
-  pointer-events:none;
-  z-index:3;
-  opacity:0;
-  animation:dmSparkleBlink var(--d) ease-in-out infinite;
-  animation-delay:var(--dl);
-}
-.dm-sparkle::before, .dm-sparkle::after{
-  content:''; position:absolute; left:50%; top:50%;
-  background:#fff;
-  box-shadow:0 0 8px #fff, 0 0 16px rgba(186,230,253,0.6);
-  transform:translate(-50%, -50%);
-}
-.dm-sparkle::before{ width:6px; height:1px; }
-.dm-sparkle::after{ width:1px; height:6px; }
-@keyframes dmSparkleBlink{
-  0%, 90%, 100%{ opacity:0; transform:scale(0.5); }
-  5%, 15%{ opacity:1; transform:scale(1); }
-  10%{ opacity:1; transform:scale(1.4) rotate(45deg); }
-}
-
-/* Drop stage */
-.dm-drop-stage{
-  position:relative;
-  width:280px; height:280px;
-  display:flex; align-items:center; justify-content:center;
-  margin-bottom:40px;
-  z-index:3;
-}
-
-/* Ripples */
-.dm-ripple{
-  position:absolute;
-  border:2px solid rgba(94,200,250,0.5);
-  border-radius:50%;
-  inset:50%;
-  width:0; height:0;
-  transform:translate(-50%,-50%);
-  animation:dmRippleOut 3s ease-out infinite;
-}
-.dm-rip1{ animation-delay:0s; }
-.dm-rip2{ animation-delay:0.75s; border-color:rgba(186,230,253,0.5); }
-.dm-rip3{ animation-delay:1.5s; border-color:rgba(255,255,255,0.4); }
-.dm-rip4{ animation-delay:2.25s; border-color:rgba(94,200,250,0.3); }
-@keyframes dmRippleOut{
-  0%{ width:0; height:0; opacity:1; border-width:3px; }
-  100%{ width:280px; height:280px; opacity:0; border-width:0px; }
-}
-
-/* Intro splash */
-.dm-intro-splash{
-  position:absolute;
-  top:-100vh; left:50%;
-  transform:translateX(-50%);
-  width:30px; height:50px;
-  background:linear-gradient(180deg, #92DCFE 0%, #5AC8FA 50%, #0A84FF 100%);
-  border-radius:50% 50% 50% 50% / 70% 70% 30% 30%;
-  box-shadow:0 0 20px rgba(94,200,250,0.8), inset 0 -4px 8px rgba(0,0,0,0.2), inset 0 4px 6px rgba(255,255,255,0.6);
-  animation:dmDropFall 1s cubic-bezier(0.55, 0, 0.85, 1.4) forwards;
-  z-index:5;
-}
-@keyframes dmDropFall{
-  0%{ top:-100vh; opacity:1; transform:translateX(-50%) scale(0.8); }
-  85%{ top:50%; opacity:1; transform:translateX(-50%) scale(1.1) scaleY(0.9); }
-  100%{ top:50%; opacity:0; transform:translateX(-50%) scale(2) scaleY(0); }
-}
-
-/* Splash burst */
-.dm-splash-burst{
-  position:absolute;
-  top:50%; left:50%;
-  width:4px; height:4px;
-  background:#92DCFE;
-  border-radius:50%;
-  box-shadow:0 0 6px #5AC8FA;
-  opacity:0;
-  animation:dmSplashBurst 1s ease-out 0.95s forwards;
-  z-index:5;
-}
-@keyframes dmSplashBurst{
-  0%{ opacity:1; transform:translate(-50%, -50%) scale(1); }
-  100%{ opacity:0; transform:translate(calc(-50% + var(--bx)), calc(-50% + var(--by))) scale(0.2); }
-}
-
-/* Droplet R */
-.dm-droplet{
-  position:relative;
-  width:140px; height:140px;
-  background:linear-gradient(135deg, #5AC8FA 0%, #0A84FF 50%, #5E5CE6 100%);
-  border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
-  display:flex; align-items:center; justify-content:center;
-  box-shadow:
-    inset 0 -8px 20px rgba(0,0,0,0.3),
-    inset 0 8px 20px rgba(255,255,255,0.4),
-    0 12px 32px rgba(10,132,255,0.4);
-  animation:dmDropBob 3s ease-in-out infinite alternate, dmDropEntry 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1s backwards;
-  z-index:3;
-}
-@keyframes dmDropEntry{
-  0%{ opacity:0; transform:scale(0); }
-  60%{ opacity:1; transform:scale(1.3) scaleY(0.7); }
-  80%{ transform:scale(0.95) scaleY(1.1); }
-  100%{ opacity:1; transform:scale(1); }
-}
-@keyframes dmDropMorph{
-  0%, 100%{ border-radius:50% 50% 50% 50% / 60% 60% 40% 40%; }
-  25%{ border-radius:55% 45% 60% 40% / 50% 65% 35% 50%; }
-  50%{ border-radius:48% 52% 55% 45% / 45% 55% 45% 55%; }
-  75%{ border-radius:52% 48% 45% 55% / 60% 40% 60% 40%; }
-}
-@keyframes dmDropBob{
-  0%{ transform:translateY(0) rotate(-2deg); }
-  100%{ transform:translateY(-10px) rotate(2deg); }
-}
-.dm-droplet::before{
-  content:''; position:absolute;
-  top:18%; left:25%;
-  width:30%; height:30%;
-  background:radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0.2) 60%, transparent);
-  border-radius:50%;
-  filter:blur(2px); pointer-events:none;
-}
-.dm-droplet::after{
-  content:''; position:absolute;
-  top:35%; left:55%;
-  width:12%; height:12%;
-  background:radial-gradient(circle, rgba(255,255,255,0.8), transparent 70%);
-  border-radius:50%;
-  filter:blur(1px); pointer-events:none;
-}
-.dm-drop-logo{
-  font-family:'Inter',sans-serif;
-  font-size:54px; font-weight:900;
-  color:#fff;
-  text-shadow:0 2px 8px rgba(0,30,60,0.6), 0 0 20px rgba(255,255,255,0.4);
-  letter-spacing:-0.04em;
-  position:relative; z-index:2;
-  animation:dmLogoWobble 3s ease-in-out infinite alternate;
-}
-@keyframes dmLogoWobble{
-  0%{ transform:scale(1) rotate(-1deg); }
-  100%{ transform:scale(1.05) rotate(1deg); }
-}
-
-/* Mini orbital drops */
-.dm-mini-drop{
-  position:absolute;
-  width:14px; height:14px;
-  border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
-  background:linear-gradient(135deg, #5AC8FA, #0A84FF);
-  box-shadow:inset 0 -2px 4px rgba(0,0,0,0.2), inset 0 2px 3px rgba(255,255,255,0.6), 0 0 12px rgba(94,200,250,0.6);
-  top:50%; left:50%;
-  margin:-7px 0 0 -7px;
-}
-.dm-m1{ animation:dmMiniOrbit1 5s linear infinite; }
-.dm-m2{ animation:dmMiniOrbit2 7s linear infinite; }
-.dm-m3{ animation:dmMiniOrbit3 6s linear infinite; }
-@keyframes dmMiniOrbit1{
-  from{ transform:rotate(0deg) translateX(110px) rotate(0deg); }
-  to{ transform:rotate(360deg) translateX(110px) rotate(-360deg); }
-}
-@keyframes dmMiniOrbit2{
-  from{ transform:rotate(140deg) translateX(120px) rotate(-140deg); }
-  to{ transform:rotate(500deg) translateX(120px) rotate(-500deg); }
-}
-@keyframes dmMiniOrbit3{
-  from{ transform:rotate(260deg) translateX(100px) rotate(-260deg); }
-  to{ transform:rotate(620deg) translateX(100px) rotate(-620deg); }
-}
-
-/* Title */
-.dm-title-stack{
-  display:flex; flex-direction:column; align-items:center; gap:8px;
-  margin-bottom:30px;
-  opacity:0;
-  animation:dmFadeIn 1s ease 1.8s forwards;
-  z-index:3;
-}
-@keyframes dmFadeIn{ to{ opacity:1; } }
-.dm-title{
-  font-family:'Inter',sans-serif;
-  font-size:38px; font-weight:800;
-  letter-spacing:-0.025em;
-  background:linear-gradient(135deg, #fff 0%, #92DCFE 50%, #5AC8FA 100%);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  background-clip:text;
-}
-.dm-subtitle{
-  font-size:12px;
-  color:rgba(186,230,253,0.6);
-  font-weight:500;
-  letter-spacing:0.2em;
-  text-transform:uppercase;
-  display:flex; align-items:center; gap:8px;
-}
-.dm-subtitle::before, .dm-subtitle::after{
-  content:''; width:24px; height:0.5px; background:rgba(186,230,253,0.3);
-}
-
-/* Wave loader */
-.dm-wave-loader{
-  display:flex; align-items:flex-end; gap:4px; height:24px;
-  opacity:0;
-  animation:dmFadeIn 0.8s ease 2.1s forwards;
-  margin-bottom:14px;
-  z-index:3;
-}
-.dm-wave-bar{
-  width:4px; border-radius:99px;
-  background:linear-gradient(180deg, #5AC8FA, #0A84FF);
-  box-shadow:0 0 8px rgba(94,200,250,0.6);
-  animation:dmWave 1.4s ease-in-out infinite;
-}
-.dm-wave-bar:nth-child(1){ animation-delay:0s; }
-.dm-wave-bar:nth-child(2){ animation-delay:0.1s; }
-.dm-wave-bar:nth-child(3){ animation-delay:0.2s; }
-.dm-wave-bar:nth-child(4){ animation-delay:0.3s; }
-.dm-wave-bar:nth-child(5){ animation-delay:0.4s; }
-.dm-wave-bar:nth-child(6){ animation-delay:0.5s; }
-.dm-wave-bar:nth-child(7){ animation-delay:0.6s; }
-@keyframes dmWave{
-  0%, 100%{ height:6px; }
-  50%{ height:20px; }
-}
-
-.dm-drop-status{
-  font-size:11px;
-  color:rgba(186,230,253,0.5);
-  letter-spacing:0.15em;
-  text-transform:uppercase;
-  z-index:3;
-  transition:opacity 0.3s ease;
-}
-
-/* Edge blur */
-.dm-edge-blur{
-  position:absolute; inset:0;
-  pointer-events:none;
-  z-index:20;
-  background:radial-gradient(ellipse 90% 90% at center, transparent 50%, rgba(0,24,40,0.15) 70%, rgba(0,16,32,0.4) 100%);
-}
-.dm-edge-blur::before{
-  content:''; position:absolute; inset:0;
-  background:linear-gradient(180deg, rgba(0,24,40,0.3), transparent 15%, transparent 85%, rgba(0,16,32,0.4));
-  pointer-events:none;
-}
-.dm-edge-blur::after{
-  content:''; position:absolute; inset:0;
-  background:linear-gradient(90deg, rgba(0,24,40,0.25), transparent 10%, transparent 90%, rgba(0,16,32,0.3));
-  pointer-events:none;
-}
-/* =====================================================
-   end load-D-motion Loading Screen
-   ===================================================== */
-
-</style>
-    <!-- Sarabun loaded in head -->
-  </head><body>
-    <h1>📊 รายงานเวลาทำงาน</h1>
-    <h2>👤 ${escHtml(curUser.name)} &nbsp;|&nbsp; ${escHtml(curUser.dept||'')} &nbsp;|&nbsp; ${mons[month]} ${year+543}</h2>
-    <div class="summary">
-      <div class="sum-box"><div class="sum-val">${days}</div><div class="sum-lbl">วันที่มา</div></div>
-      <div class="sum-box"><div class="sum-val">${fmtHMt(totalH*60)}</div><div class="sum-lbl">ชม.รวม</div></div>
-      <div class="sum-box"><div class="sum-val">${fmtHMt(totalOT)}</div><div class="sum-lbl">ชม.โอที</div></div>
-      <div class="sum-box"><div class="sum-val">${lateCount}</div><div class="sum-lbl">ครั้งสาย</div></div>
+  // v435: the report opens inside the app, in a full-screen sheet with ✕ ปิด. It used to open with window.open(): an
+  // iPhone home-screen app has no address bar or back button, so that new window could only be left by quitting the app.
+  // (The old window's style sheet had also carried a stray copy of the old splash screen's CSS.)
+  const body=`<div class="rpt-h1">📊 รายงานเวลาทำงาน</div>
+    <div class="rpt-h2">👤 ${escHtml(curUser.name)} &nbsp;|&nbsp; ${escHtml(curUser.dept||'')} &nbsp;|&nbsp; ${mons[month]} ${year+543}</div>
+    <div class="rpt-sum">
+      <div class="rpt-box"><div class="rpt-val">${days}</div><div class="rpt-lbl">วันที่มา</div></div>
+      <div class="rpt-box"><div class="rpt-val">${fmtHMt(totalH*60)}</div><div class="rpt-lbl">ชม.รวม</div></div>
+      <div class="rpt-box"><div class="rpt-val">${fmtHMt(totalOT)}</div><div class="rpt-lbl">ชม.โอที</div></div>
+      <div class="rpt-box"><div class="rpt-val">${lateCount}</div><div class="rpt-lbl">ครั้งสาย</div></div>
     </div>
-    ${sal?`<div style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:8px;padding:12px;margin-bottom:20px;display:flex;gap:24px">
-      <div><span style="color:#718096">เงินเดือน:</span> <strong>₪${parseFloat(sal).toLocaleString('th-TH')}</strong></div>
-      <div><span style="color:#718096">ค่าแรง/ชม.:</span> <strong>₪${perH}</strong></div>
-    </div>`:''}
-    <table>
+    ${sal?`<div class="rpt-pay"><div><span>เงินเดือน:</span> <strong>₪${parseFloat(sal).toLocaleString('th-TH')}</strong></div><div><span>ค่าแรง/ชม.:</span> <strong>₪${perH}</strong></div></div>`:''}
+    <div class="rpt-tw"><table>
       <thead><tr><th>วันที่</th><th>วัน</th><th>เข้างาน</th><th>ออกงาน</th><th>ชม.</th><th>โอที</th><th>สถานะ</th></tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr style="background:#ebf8ff;font-weight:700">
+      <tfoot><tr class="rpt-tot">
         <td colspan="4">รวม</td>
         <td style="text-align:center">${fmtHMt(totalH*60)}</td>
         <td style="text-align:center">${fmtHMt(totalOT)}</td>
         <td></td>
       </tr></tfoot>
-    </table>
-    <div class="footer">สร้างโดย RUDY &nbsp;|&nbsp; ${new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</div>
-    <div class="no-print" style="text-align:center;margin-top:16px">
-      <button onclick="window.print()" style="padding:10px 28px;background:#2b6cb0;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:Sarabun">🖨️ พิมพ์ / บันทึก PDF</button>
-    </div>
-  
-</body></html>`;
-
-  const w=window.open('','_blank');
-  if(w){ w.document.write(html); w.document.close(); }
-  else{ showToast('⚠️ กรุณาอนุญาต Popup ก่อน','warning'); }
+    </table></div>
+    <div class="rpt-foot">สร้างโดย RUDY &nbsp;|&nbsp; ${new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</div>`;
+  showReport(`รายงาน ${curUser.name} ${mons[month]} ${year+543}`, body);
+}
+// v435: a printable report in a full-screen sheet inside the app — ✕ ปิด (or Esc) goes back, 🖨️ prints or saves a PDF
+// with window.print(); the print rules (style block "report-v435") print only the report. Built once, then reused.
+// It is a .modal-overlay, so the app's tab swipes, nudges and mic stand down while it is up.
+function showReport(title, html){
+  try {
+    let ov = document.getElementById('rpt-ov');
+    if(!ov){
+      ov = document.createElement('div');
+      ov.id = 'rpt-ov'; ov.className = 'modal-overlay';
+      ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'รายงาน');
+      ov.innerHTML = '<div class="rpt-bar"><button type="button" class="rpt-close" data-rpt="close">✕ ปิด</button>'
+        + '<button type="button" class="rpt-print" data-rpt="print">🖨️ พิมพ์ / บันทึก PDF</button></div><div class="rpt-page"></div>';
+      ov.addEventListener('click', e => {
+        const b = e.target && e.target.closest ? e.target.closest('[data-rpt]') : null; if(!b) return;
+        if(b.getAttribute('data-rpt') === 'close') closeReport();
+        else { try { window.print(); } catch(_){ showToast('พิมพ์ไม่ได้บนเครื่องนี้', 'warning'); } }
+      });
+      // touches stay in the sheet: no pull-to-refresh of the page underneath
+      ['touchstart', 'touchmove', 'touchend'].forEach(t => ov.addEventListener(t, e => e.stopPropagation(), { passive:true }));
+      document.addEventListener('keydown', e => { if(e.key === 'Escape' && ov.classList.contains('open')) closeReport(); });
+      document.body.appendChild(ov);
+    }
+    ov.querySelector('.rpt-page').innerHTML = html;
+    if(!ov.classList.contains('open')) ov.setAttribute('data-title', document.title);   // the PDF is named after the page title
+    document.title = title;
+    ov.classList.add('open');
+    ov.scrollTop = 0;
+  } catch(e){ console.warn('[report]', e); showToast('เปิดรายงานไม่ได้', 'error'); }
+}
+function closeReport(){
+  const ov = document.getElementById('rpt-ov'); if(!ov) return;
+  ov.classList.remove('open');
+  const t = ov.getAttribute('data-title'); if(t) document.title = t;
 }
 
 // ========== PROFILE PHOTO ==========
@@ -11713,7 +11348,7 @@ const db   = firebase.database();
 // poller's baseline so an app loaded from stale cache detects immediately
 // that a newer version.json is published (previously the baseline came from
 // the first network read, which made a stale-loaded app blind to being old).
-const APP_VERSION = 'v434';
+const APP_VERSION = 'v435';
 
 // v243: admin password reset backend — the Netlify site imported from this
 // repo (free tier, function at /.netlify/functions/set-password).
@@ -27564,5 +27199,48 @@ body.lg.lg.lg.sky:is([data-sky="day"],[data-sky="dawn"],[data-sky="dusk"]) .sect
   } catch(e){ try { console.warn('[v434] email switch', e); } catch(_){} }
 })();
 </script>
+<style id="report-v435">
+/* v435 — the printable report as a sheet inside the app (it was a window.open popup: no way back on the home-screen app).
+   The report itself is white paper in either theme, the way it prints; its colours are fixed for that reason. */
+#rpt-ov.modal-overlay{ display:none; position:fixed; inset:0; z-index:100000; padding:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+  background:var(--bg-base, #F2F2F7); -webkit-backdrop-filter:none; backdrop-filter:none; animation:none; align-items:stretch; justify-content:flex-start; }
+#rpt-ov.modal-overlay.open{ display:block; }
+#rpt-ov .rpt-bar{ position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px; background:var(--glass-1); border-bottom:1px solid var(--glass-stroke-dim);
+  -webkit-backdrop-filter:var(--blur-chrome); backdrop-filter:var(--blur-chrome); }
+#rpt-ov .rpt-bar button{ min-height:42px; padding:8px 16px; border-radius:var(--r-pill); font:inherit; font-size:15px; font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+#rpt-ov .rpt-close{ border:1px solid var(--glass-stroke); background:var(--glass-3); color:var(--ink); }
+#rpt-ov .rpt-print{ border:0; background:#2b6cb0; color:#fff; }
+#rpt-ov .rpt-page{ max-width:800px; margin:14px auto calc(env(safe-area-inset-bottom, 0px) + 28px); padding:22px 14px; box-sizing:border-box;
+  background:#fff; color:#1a202c; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.16); font-family:'Sarabun',-apple-system,sans-serif; font-size:13px; line-height:1.45; }
+@media (min-width:600px){ #rpt-ov .rpt-page{ padding:28px 24px; } }
+#rpt-ov .rpt-h1{ font-size:20px; font-weight:700; color:#2b6cb0; margin:0 0 4px; }
+#rpt-ov .rpt-h2{ font-size:14px; font-weight:400; color:#718096; margin:0 0 18px; }
+#rpt-ov .rpt-sum{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:18px; }
+#rpt-ov .rpt-box{ background:#ebf8ff; border:1px solid #bee3f8; border-radius:8px; padding:10px 4px; text-align:center; }
+#rpt-ov .rpt-val{ font-size:20px; font-weight:700; color:#2b6cb0; white-space:nowrap; }
+#rpt-ov .rpt-lbl{ font-size:11px; color:#718096; margin-top:2px; }
+#rpt-ov .rpt-pay{ display:flex; flex-wrap:wrap; gap:8px 24px; margin-bottom:18px; padding:12px; border-radius:8px; background:#f0fff4; border:1px solid #9ae6b4; color:#1a202c; }
+#rpt-ov .rpt-pay span{ color:#718096; }
+#rpt-ov .rpt-tw{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:18px; }
+#rpt-ov table{ width:100%; border-collapse:collapse; }
+#rpt-ov th{ background:#2b6cb0; color:#fff; padding:8px 8px; text-align:left; font-size:12px; font-weight:700; white-space:nowrap; }
+#rpt-ov td{ padding:7px 8px; border-bottom:1px solid #e2e8f0; font-size:12px; color:#1a202c; white-space:nowrap; }
+#rpt-ov tbody tr:nth-child(even){ background:#f7fafc; }
+#rpt-ov tr.rpt-tot{ background:#ebf8ff; font-weight:700; }
+#rpt-ov .rpt-foot{ text-align:center; font-size:11px; color:#a0aec0; margin-top:18px; border-top:1px solid #e2e8f0; padding-top:12px; }
+@media (max-width:400px){ #rpt-ov th, #rpt-ov td{ padding-left:5px; padding-right:5px; font-size:11px; } #rpt-ov .rpt-val{ font-size:17px; } }
+/* printing while the report is up: only the report, on white, across as many pages as it needs */
+@media print{
+  @page{ margin:12mm; }
+  html:has(#rpt-ov.open), body:has(#rpt-ov.open){ height:auto !important; min-height:0 !important; overflow:visible !important; background:#fff !important; }
+  body:has(#rpt-ov.open) > :not(#rpt-ov){ display:none !important; }
+  #rpt-ov.modal-overlay.open{ position:static !important; display:block !important; overflow:visible !important; background:#fff !important; z-index:auto !important; }
+  #rpt-ov .rpt-bar{ display:none !important; }
+  #rpt-ov .rpt-page{ max-width:none !important; margin:0 !important; padding:0 !important; border-radius:0 !important; box-shadow:none !important; }
+  #rpt-ov .rpt-tw{ overflow:visible !important; }
+  #rpt-ov, #rpt-ov *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+</style>
 </body>
 </html>
